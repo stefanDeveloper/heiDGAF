@@ -9,6 +9,7 @@ def encode_domain(df):
     """
     domain = str(df["Domain"].decode('latin-1').encode("utf-8"))
     df["Domain"] = domain
+    
     return df
 
 def fqdn_entropy(df):
@@ -21,6 +22,8 @@ def fqdn_entropy(df):
     pk = np.array(pk)
 
     df["Entropy"] = entropy(pk, base=2)
+
+    return df
 
     
 def count(df):
