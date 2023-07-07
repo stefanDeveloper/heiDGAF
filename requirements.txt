@@ -1,0 +1,8 @@
+ydata-profiling
+pandas
+scikit-learn
+scipy
+numpy
+alibi
+tldextract
+pyarrow
