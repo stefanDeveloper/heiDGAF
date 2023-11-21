@@ -1,0 +1,64 @@
+[build-system]
+requires = [ "setuptools>=62.0.0" ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heidgaf"
+version = "0.0.1"
+authors = [
+  { name="Stefan Machmeier", email="stefan.machmeier@uni-heidelberg.de" },
+]
+description = "DNS analyzer."
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.7"
+keywords = [ "network" ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)",
+    "Operating System :: OS Independent",
+    "Operating System :: OS Independent",
+    'Intended Audience :: Telecommunications Industry',
+    'Intended Audience :: Information Technology',
+    'Intended Audience :: System Administrators',
+    'Intended Audience :: Science/Research',
+    'Intended Audience :: Developers',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Topic :: Security',
+    'Topic :: Internet :: Log Analysis',
+    'Topic :: System :: Networking :: Monitoring',
+    'Topic :: Scientific/Engineering :: Artificial Intelligence'
+]
+
+[project.scripts]
+dgaf = "heidgaf.cli:cli"
+
+[project.urls]
+"Homepage" = "https://github.com/stefanDeveloper/heiDGAF"
+"Bug Tracker" = "https://github.com/stefanDeveloper/heiDGAF/issues"
+
+[tool.setuptools.packages.find]
+include = [
+    "heidgaf*",
+]
+exclude = [
+    "test*",
+    "assets*",
+]
+
+[tool.poetry]
+name = "heiDGAF"
+version = "1.1.1"
+description = "A tool to convert network traffic into images for ML use cases."
+license = "EUPL-1.2"
+authors = ["Stefan Machmeier"]
+
+[[tool.poetry_bumpversion.replacements]]
+files = ["heidgaf/__init__.py", "heidgaf/exceptions/__init__.py", "heidgaf/images/__init__.py", "heidgaf/layers/__init__.py", "heidgaf/plugins/__init__.py", "heidgaf/protocols/__init__.py"]
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'

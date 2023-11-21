@@ -7,3 +7,5 @@ alibi
 tldextract
 pyarrow
 click
+torch
+setuptools
