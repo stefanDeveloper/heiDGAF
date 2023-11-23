@@ -1,4 +1,5 @@
 import click
+import logging
 from heidgaf.train import train
 from heidgaf import CONTEXT_SETTINGS
 from heidgaf.version import __version__
@@ -14,11 +15,11 @@ except ImportError:
 @click.version_option(version=__version__)
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
-    click.secho("Starting heiDGAF CLI")
+    logging.info("Starting heiDGAF CLI")
 
 @cli.group(name="train", context_settings={"show_default": True})
 def training_model():
-    click.secho("Start training of model.")
+    logging.info("Start training of model.")
 
 @training_model.command(name="start")
 def training_start():
