@@ -34,9 +34,13 @@ classifiers = [
     'Topic :: System :: Networking :: Monitoring',
     'Topic :: Scientific/Engineering :: Artificial Intelligence'
 ]
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
 
 [project.scripts]
-dgaf = "heidgaf.cli:cli"
+heidgaf = "heidgaf.cli:cli"
 
 [project.urls]
 "Homepage" = "https://github.com/stefanDeveloper/heiDGAF"
@@ -53,8 +57,8 @@ exclude = [
 
 [tool.poetry]
 name = "heiDGAF"
-version = "1.1.1"
-description = "A tool to convert network traffic into images for ML use cases."
+version = "0.0.1"
+description = "DNS Analyzer for highly volatile DNS traffic."
 license = "EUPL-1.2"
 authors = ["Stefan Machmeier"]
 

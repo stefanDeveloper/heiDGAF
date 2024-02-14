@@ -1,11 +1,12 @@
-FROM python:3.9-slim
+FROM python:3.10-bookworm
 
 WORKDIR /project
+
+COPY requirements.txt ./
 COPY pyproject.toml ./
 COPY heidgaf/ heidgaf/
-RUN pip --disable-pip-version-check install --no-compile  .
-RUN heidgaf --help
 
-ENV TF_CPP_MIN_LOG_LEVEL=3
-ENTRYPOINT [ "heidgaf"]
-CMD [ "--help" ]
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  .
+
+# ENTRYPOINT [ "heidgaf"]
+CMD [ "heidgaf", "train" ]
