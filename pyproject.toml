@@ -39,6 +39,12 @@ dynamic = ["dependencies"]
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
+[tool.autopep8]
+max_line_length = 180
+in-place = true
+recursive = true
+aggressive = 3
+
 [project.scripts]
 heidgaf = "heidgaf.cli:cli"
 

@@ -1,3 +1,5 @@
+import polars as pl
+
 from heidgaf.pre import Analyzer
 
 
