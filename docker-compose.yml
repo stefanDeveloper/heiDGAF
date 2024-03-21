@@ -1,5 +1,16 @@
+version: "3.9"
+
+volumes:
+  redis:
+  heidgaf:
+
 services:
-  test:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  heidgaf:
     build:
       context: .
       dockerfile: Dockerfile

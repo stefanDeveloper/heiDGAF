@@ -9,3 +9,4 @@ pyarrow
 click
 torch
 setuptools
+redis
