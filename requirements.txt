@@ -10,5 +10,4 @@ click
 torch
 setuptools
 redis
-mpi4py
 pytest
