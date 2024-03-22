@@ -23,16 +23,16 @@ def cli():
 def check_gpu():
     # setting device on GPU if available, else CPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info(f'Using device: {device}')
 
-    # Additional Info when using cuda
+    logging.info(f'Using device: {device}')
+    if torch.cuda.is_available():
+        logging.info("GPU detected")
+        logging.info(f"\t{torch.cuda.get_device_name(0)}")
+        
     if device.type == 'cuda':
-        logging.info(torch.cuda.get_device_name(0))
-        logging.info('Memory Usage:')
-        logging.info(
-            f'Allocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB')
-        logging.info(
-            f'Cached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB')
+        logging.info("Memory Usage:")
+        logging.info(f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB")
+        logging.info(f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB")
 
 
 @cli.group(name="train", context_settings={"show_default": True})

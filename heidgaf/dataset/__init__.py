@@ -1,17 +1,43 @@
 from torch.utils.data.dataset import Dataset
 import torch
 import string
-import pandas as pd
+import polars as pl
+from dataclasses import dataclass, field
+from typing import Callable, Tuple
 
+@dataclass
+class Dataset:
+    train_path: str
+    val_path: str
+    test_path: str
+    cast_dataset: Callable
+    binary: bool = field(default=True)
 
-class DomainDataset(Dataset):
+    @property
+    def train(self):
+        return {
+            "train_path": self.train_path,
+            "val_path": self.val_path,
+            "cast_dataset": self.cast_dataset,
+            "binary": self.binary,
+        }
+
+    @property
+    def test(self):
+        return {
+            "test_path": self.test_path,
+            "cast_dataset": self.cast_dataset,
+            "binary": self.binary,
+        }
+
+class DomainDataset():
     def __init__(self, csv_path, train=True):
         """
         Args:
             csv_path (string): path to csv file
             train (string): flag train or test mode i.e. labeled or not
         """
-        self.data_df = pd.read_csv(csv_path, header=None)
+        self.data_df = pl.read_csv(csv_path, header=None)
         self.all_chars = self.__build__chars__()
         self.inputs = self.data_df.iloc[:, 0]
         self.train = train

@@ -1,7 +1,6 @@
 
 import os
 import polars as pl
-import redis
 import logging
 from enum import Enum
 from click import Path

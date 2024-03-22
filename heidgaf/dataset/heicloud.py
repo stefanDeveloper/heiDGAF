@@ -1,8 +1,10 @@
-from torch.utils.data.dataset import Dataset
 
 #2023-10-15T00:00:00.050782194Z NOERROR 129.206.5.241 129.206.100.126 heigitsv02.heigit.org AAAA - 123b
 
-class HeiCLOUD(Dataset):
+from heidgaf.dataset import DomainDataset
+
+
+class HeiCLOUD(DomainDataset):
     def __init__(self, logs_path: str) -> None:
         pass
 

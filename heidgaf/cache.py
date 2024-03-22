@@ -20,7 +20,7 @@ class DataFrameRedisCache(object):
         return self.redis_client.exists(key)
     
     def __str__(self):
-        pass
+        return f'Redis has stored following keys: {self.redis_client.keys}'
 
     def __setitem__(self, key: str, df: pl.DataFrame) -> pl.DataFrame:
         self.redis_client.set(key, df.write_ipc(file=None, compression="lz4").getvalue())

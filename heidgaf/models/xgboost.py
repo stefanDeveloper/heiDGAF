@@ -1,13 +1,19 @@
 
 from heidgaf.models import Model
-
+import xgboost as xgb
+import polars as pl
 
 class XGBoost(Model):
-    def __init__(self) -> None:
+    def __init__(self, pre_trained_model: str, data: pl.DataFrame, train=True) -> None:
         super().__init__()
+        self.model = xgb.XGBClassifier(tree_method="hist", early_stopping_rounds=2)
+        
+        if train:
+            self.__train()
     
-    def train():
-        pass
+    def __train(self, df: pl.DataFrame) -> None:
+        self.model.fit()
+        self.model.save_model("clf.json")
     
-    def evaluate():
+    def __evaluate(self) -> None:
         pass

@@ -15,9 +15,9 @@ class Feature():
                 (pl.col("query").str.strip_chars(".").str.len_chars().alias("label_average")),
             ]
         )
-        
+
         dataframes = dataframes.with_columns(
-            [   
+            [
                 # FQDN
                 (pl.when(pl.col("labels").list.len() > 2)
                     .then(
@@ -66,6 +66,9 @@ class Feature():
         dataframes = dataframes.with_columns([
             (pl.col("query").entropy(base=2).alias("FQDN_entropy")),
         ])
+        
+        # TODO Add features
     
     def majesticmillion_rank_feature():
+        # TODO Implement feature rank
         pass

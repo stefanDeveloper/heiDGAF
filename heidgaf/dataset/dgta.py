@@ -1,5 +1,8 @@
 
-class DGTA():
+from heidgaf.dataset import DomainDataset
+
+
+class DGTA(DomainDataset):
     def __init__(self) -> None:
         pass
 
