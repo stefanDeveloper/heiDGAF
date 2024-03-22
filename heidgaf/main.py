@@ -1,10 +1,12 @@
 
 import os
 import polars as pl
-import fnmatch
+import redis
 import logging
 from enum import Enum
 from click import Path
+
+from heidgaf.pre.ip_analyzer import IPAnalyzer
 
 
 class FileType(Enum):
@@ -18,16 +20,25 @@ class Separator(Enum):
 
 
 class DNSAnalyzerPipeline:
-    def __init__(self, path: Path, redis_host="redis", filetype=FileType.TXT, separator=Separator.SPACE) -> None:
+    def __init__(self, path: Path, redis_host="localhost", redis_port=6379, redis_db=0, redis_max_connections=20, filetype=FileType.TXT, separator=Separator.SPACE) -> None:
+        logging.debug("Connect to Redis server")
+        pool = redis.ConnectionPool(host=redis_host, port=redis_port, db=redis_db, max_connections=redis_max_connections)
+        self.redis_client = redis.Redis(connection_pool=pool)
+        self.redis_client.ping() 
+
+        
         if os.path.isfile(path):
             logging.debug(f"Processing files: {path}")
-            self.data = self.load_data(path)
+            self.data = self.load_data(path, separator.value)
         elif os.path.isdir(path):
             logging.debug(f"Processing files: {path}/*.{filetype.value}")
             self.data = self.load_data(f'{path}/*.{filetype.value}', separator.value)
+        
+        self.redis_client.set("key", self.data.write_ipc(file = None, compression="lz4").getvalue())
+        logging.info(pl.read_ipc(self.redis_client.get("key")))
 
     def load_data(self, path, separator):
-        dataframes = pl.read_csv(path, separator=separator, try_parse_dates=True,  has_header=False).with_columns(
+        dataframes = pl.read_csv(path, separator=separator, try_parse_dates=False,  has_header=False).with_columns(
             [
                 (pl.col('column_1').str.strptime(pl.Datetime).cast(pl.Datetime)),
             ]
@@ -97,4 +108,4 @@ class DNSAnalyzerPipeline:
         return dataframes
 
     def run(self):
-        pass
+        IPAnalyzer.run(self.data)

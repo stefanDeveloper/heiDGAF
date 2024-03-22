@@ -54,6 +54,7 @@ def training_model():
 @click.option("-r", "--read", "input_dir", required=True, type=click.Path())
 def training_start(input_dir):
     pipeline = DNSAnalyzerPipeline(input_dir)
+    pipeline.run()
 
 
 if __name__ == "__main__":

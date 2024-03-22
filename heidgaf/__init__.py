@@ -1,6 +1,11 @@
+from enum import Enum
 import logging
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], show_default=True)
+
+
+class ReturnCode(Enum):
+    NOERROR = "NOERROR"
 
 
 # set up logging to file
