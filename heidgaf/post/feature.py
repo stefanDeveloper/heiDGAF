@@ -29,9 +29,18 @@ class Feature():
                 (pl.col("query").str.count_matches(r"[0-9]").alias("FQDN_numeric_count")),
                 (pl.col("query").str.count_matches(r"[^\w\s]").alias("FQDN_special_count")),
                 # Third-level domain
-                (pl.when(pl.col("labels").list.len() > 2).then(pl.col("labels").list.get(0).str.len_chars()).otherwise(0).alias("SD_full_count")),
-                (pl.when(pl.col("labels").list.len() > 2).then(pl.col("labels").list.get(0).str.count_matches(r"[0-9]")).otherwise(0).alias("SD_numeric_count")),
-                (pl.when(pl.col("labels").list.len() > 2).then(pl.col("labels").list.get(0).str.count_matches(r"[^\w\s]")).otherwise(0).alias("SD_special_count")),
+                (pl.when(pl.col("labels").list.len() > 2)
+                    .then(
+                        pl.col("labels").list.get(0).str.len_chars()
+                    ).otherwise(0).alias("SD_full_count")),
+                (pl.when(pl.col("labels").list.len() > 2)
+                    .then(
+                        pl.col("labels").list.get(0).str.count_matches(r"[0-9]")
+                    ).otherwise(0).alias("SD_numeric_count")),
+                (pl.when(pl.col("labels").list.len() > 2)
+                    .then(
+                        pl.col("labels").list.get(0).str.count_matches(r"[^\w\s]")
+                    ).otherwise(0).alias("SD_special_count")),
                 # Second-level domain
                 (pl.when(pl.col("labels").list.len() > 2)
                     .then(
