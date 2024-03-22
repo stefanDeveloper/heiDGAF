@@ -1,9 +1,7 @@
-import polars as pl
-
 from heidgaf.pre import Analyzer
 
 
-class DomainAnalyzer(Analyzer):
+class TimeAnalyzer(Analyzer):
     def __init__(self) -> None:
         super().__init__()
     

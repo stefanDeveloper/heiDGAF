@@ -34,8 +34,7 @@ class DNSAnalyzerPipeline:
             logging.debug(f"Processing files: {path}/*.{filetype.value}")
             self.data = self.load_data(f'{path}/*.{filetype.value}', separator.value)
         
-        self.redis_client.set("key", self.data.write_ipc(file = None, compression="lz4").getvalue())
-        logging.info(pl.read_ipc(self.redis_client.get("key")))
+        self.redis_client.set("data", self.data.write_ipc(file = None, compression="lz4").getvalue())
 
     def load_data(self, path, separator):
         dataframes = pl.read_csv(path, separator=separator, try_parse_dates=False,  has_header=False).with_columns(
@@ -68,7 +67,6 @@ class DNSAnalyzerPipeline:
         dataframes = dataframes.with_columns(
             [   
 
-                # (pl.col("domain").map_batches(lambda x: FQDN_entropy(x)).alias("FQDN_entropy")), # TODO: Implement Shannon Entropy
                 # FQDN
                 (pl.when(pl.col("labels").list.len() > 2)
                     .then(
@@ -104,8 +102,12 @@ class DNSAnalyzerPipeline:
                     ).alias("SLD_special_count")),
             ]
         )
+        
+        dataframes = dataframes.with_columns([
+            (pl.col("query").entropy(base=2).alias("FQDN_entropy")),
+        ])
 
         return dataframes
 
     def run(self):
-        IPAnalyzer.run(self.data)
+        IPAnalyzer.run(self.data, self.redis_client)
