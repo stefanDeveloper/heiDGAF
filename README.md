@@ -70,15 +70,15 @@ heidgaf process start -r data/...
 
 ### Data
 
-Currently, we support the data format scheme:
+Currently, we support the data format scheme provided by the [DNS-Collector](https://github.com/dmachard/go-dnscollector/):
 
 `{{ .timestamp }} {{ .return_code }} {{ .client_ip }} {{ .server_ip }} {{ .query }} {{ .type }} {{ .answer }} {{ .size }}b`
 
 For training our models, we rely on the following data sets:
 
-- CICBellDNS2021
-- DGTA Benchmark
-- Majestic Million
+- [CICBellDNS2021]()
+- [DGTA Benchmark]()
+- [Majestic Million]()
 
 ### Exploratory Data Analysis (EDA)
 

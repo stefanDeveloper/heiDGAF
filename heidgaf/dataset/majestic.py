@@ -1,12 +1,16 @@
 import os
 
-import pandas as pd
+import polars as pl
 
 from torch.utils.data.dataset import Dataset
 
 class MajesticMillionDataset(Dataset):
     def __init__(self, csv_file) -> None:
-        self.data = pd.read_csv(csv_file)
+        self.data = pl.read_csv(csv_file)
+    
+    def cache():
+        pass
+    
     
     def __len__(self):
         return len(self.data)

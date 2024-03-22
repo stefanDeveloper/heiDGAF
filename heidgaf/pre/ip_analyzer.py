@@ -1,43 +1,37 @@
 import polars as pl
 import logging
-import redis
 
 from heidgaf import ReturnCode
+from heidgaf.cache import DataFrameRedisCache
 from heidgaf.pre import Analyzer
 
 
 class IPAnalyzer(Analyzer):
-    IP_ANALYZER_KEY_IP = "client_ip_frequency"
-    IP_ANALYZER_KEY_SERVER = "dns_server_frequency"
+    KEY_IP_FREQUENCY = "client_ip_frequency"
+    KEY_DNS_SERVER = "dns_server_frequency"
     
     def __init__(self) -> None:
         super().__init__()
         self.threshold = 200
     
     @classmethod
-    def run(self, data: pl.DataFrame, redis_client: redis.Redis):           
+    def run(self, data: pl.DataFrame, redis_cache: DataFrameRedisCache):           
         # Filter data with no errors
         df = data.filter(pl.col("query") != "|").filter(pl.col("return_code") != ReturnCode.NOERROR.value).filter(pl.col("query").str.split(".").list.len() != 1)
-        # Get frequency count of distinct IP addresses and DNS servers
-        client_ip_frequency = df.group_by("client_ip").count()
-        logging.debug(f'Client IP freq: {client_ip_frequency}')
         
-        dns_server_frequency = df.group_by("dns_server").count()
-        logging.debug(f'DNS Server IP freq: {dns_server_frequency}')
+        # Update IP frequency based on errors
+        self.__update_count(df, "client_ip", self.KEY_IP_FREQUENCY, redis_cache)
+        self.__update_count(df, "dns_server", self.KEY_DNS_SERVER, redis_cache)
         
-        # Check if ip_frequency exists in redis cache
-        if redis_client.exists(self.IP_ANALYZER_KEY_IP):
-            redis_data = pl.read_ipc(redis_client.get(self.IP_ANALYZER_KEY_IP))
-            client_ip_frequency = pl.concat([redis_data, client_ip_frequency]).groupby('client_ip').agg(pl.sum('count')).sort(by="count")
-            logging.debug(f'Redis Data: {client_ip_frequency}')
-
+    def __update_count(df: pl.DataFrame, id: str, key: str, redis_cache: DataFrameRedisCache) -> None:
+        frequency = df.group_by(id).count()
+        
         # Check if dns_server_frequency exists in redis cache
-        if redis_client.exists(self.IP_ANALYZER_KEY_SERVER):
-            redis_data = pl.read_ipc(redis_client.get(self.IP_ANALYZER_KEY_SERVER))
-            dns_server_frequency = pl.concat([redis_data, dns_server_frequency]).groupby('dns_server').agg(pl.sum('count')).sort(by="count")
-            logging.debug(f'Redis Data: {dns_server_frequency}')
+        if  key in redis_cache:
+            frequency = pl.concat([redis_cache[key], frequency]).groupby(id).agg(pl.sum('count'))
+            logging.debug(f'Redis Data: {frequency}')
             
-
         # Store information in redis client
-        redis_client.set(self.IP_ANALYZER_KEY_IP, client_ip_frequency.write_ipc(file=None, compression="lz4").getvalue())
-        redis_client.set(self.IP_ANALYZER_KEY_SERVER, dns_server_frequency.write_ipc(file=None, compression="lz4").getvalue())
+        redis_cache[key] = frequency
+        
+    

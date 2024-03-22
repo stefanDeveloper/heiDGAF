@@ -1,3 +1,5 @@
+
+from heidgaf.cache import DataFrameRedisCache
 from heidgaf.pre import Analyzer
 
 
@@ -6,5 +8,5 @@ class TimeAnalyzer(Analyzer):
         super().__init__()
     
     @classmethod
-    def run(self, data: pl.DataFrame, redis_client: redis.Redis):
+    def run(self, data: pl.DataFrame, redis_cache: DataFrameRedisCache):
         pass
