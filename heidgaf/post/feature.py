@@ -1,13 +1,31 @@
+
 import polars as pl
+
+from typing import List
 
 from heidgaf.dataset.majestic import MajesticMillionDataset
 
-class Feature():
-    def __init__(self) -> None:
+class Preprocessor():
+
+    def __init__(self, features_to_drop: List):
+        """Init.
+        
+        Args:
+            feature_to_drop (list): list of feature to drop
+        """
+        self.features_to_drop = features_to_drop
         self.majesticmillion = MajesticMillionDataset()
-    
-    def lexical_features(self, dataframes: pl.DataFrame) -> pl.DataFrame:
-        dataframes = dataframes.with_columns(
+
+    def transform(self, x: pl.DataFrame) -> pl.DataFrame:
+        """Transform our dataset with new features
+        
+        Args:
+            x (pl.DataFrame): dataframe with our features
+        
+        Returns:
+            pl.DataFrame: preprocessed dataframe
+        """
+        x = x.with_columns(
             [
                 (pl.col("query").str.split(".").alias("labels")),
                 (pl.col("query").str.split(".").list.len().alias("label_length")),
@@ -16,7 +34,7 @@ class Feature():
             ]
         )
 
-        dataframes = dataframes.with_columns(
+        x = x.with_columns(
             [
                 # FQDN
                 (pl.when(pl.col("labels").list.len() > 2)
@@ -63,12 +81,11 @@ class Feature():
             ]
         )
         
-        dataframes = dataframes.with_columns([
+        x = x.with_columns([
             (pl.col("query").entropy(base=2).alias("FQDN_entropy")),
         ])
         
-        # TODO Add features
-    
-    def majesticmillion_rank_feature():
-        # TODO Implement feature rank
-        pass
+        # Drop features not useful anymore
+        x = x.drop(self.features_to_drop)
+
+        return x

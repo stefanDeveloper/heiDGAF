@@ -34,4 +34,6 @@ class IPAnalyzer(Analyzer):
         # Store information in redis client
         redis_cache[key] = frequency
         
+        # TODO: Process frequency and return values
+        
     

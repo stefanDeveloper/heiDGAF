@@ -77,8 +77,10 @@ Currently, we support the data format scheme provided by the [DNS-Collector](htt
 For training our models, we rely on the following data sets:
 
 - [CICBellDNS2021]()
-- [DGTA Benchmark]()
-- [Majestic Million]()
+- [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
+- [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
+- [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
+- [Majestic Million](https://de.majestic.com/reports/majestic-million)
 
 ### Exploratory Data Analysis (EDA)
 
@@ -89,4 +91,7 @@ In the folder `./example` we conducted a Exploratory Data Analysis (EDA) to veri
 Based on the following work we implement heiDGAF to find malicious behaviour in DNS request.
 
 - EXPOSURE: Finding Malicious Domains Using Passive DNS Analysis
-- 
+
+  A passiv DNS pipeline for finding malicious domains using J48 decision tree algorithm.
+
+- Real-Time Detection System for Data Exﬁltration over DNS Tunneling Using Machine Learning

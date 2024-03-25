@@ -1,13 +1,13 @@
 
+import torch
 from heidgaf.models import Model
 
 
-class LocalOutlierFactor(Model):
+class LocalOutlierFactor(torch.nn.Module):
+    """Local Outlier Factor 
+
+    Args:
+        torch (_type_): _description_
+    """
     def __init__(self) -> None:
-        super().__init__()
-    
-    def train():
-        pass
-    
-    def evaluate():
         pass

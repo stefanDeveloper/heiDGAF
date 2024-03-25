@@ -11,3 +11,4 @@ torch
 setuptools
 redis
 pytest
+feature-engineering-polars
