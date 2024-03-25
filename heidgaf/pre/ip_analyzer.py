@@ -1,5 +1,6 @@
-import polars as pl
 import logging
+
+import polars as pl
 
 from heidgaf import ReturnCode
 from heidgaf.cache import DataFrameRedisCache

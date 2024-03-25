@@ -1,6 +1,6 @@
+import numpy
 import polars as pl
 import torch
-import numpy
 
 
 class LogisticRegression(torch.nn.Module):

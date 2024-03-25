@@ -1,10 +1,13 @@
-import click
 import logging
+
+import click
+import torch
+
+from heidgaf import CONTEXT_SETTINGS
 from heidgaf.main import DNSAnalyzerPipeline
 from heidgaf.train import train
-from heidgaf import CONTEXT_SETTINGS
 from heidgaf.version import __version__
-import torch
+
 try:
     import click
 except ImportError:

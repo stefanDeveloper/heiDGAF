@@ -1,7 +1,9 @@
 
-from heidgaf.models import Model
-import xgboost as xgb
 import polars as pl
+import xgboost as xgb
+
+from heidgaf.models import Model
+
 
 class XGBoost(Model):
     def __init__(self, pre_trained_model: str, data: pl.DataFrame, train=True) -> None:

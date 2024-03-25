@@ -1,6 +1,5 @@
 import polars as pl
 
-
 from heidgaf.cache import DataFrameRedisCache
 from heidgaf.pre import Analyzer
 

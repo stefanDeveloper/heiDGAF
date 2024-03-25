@@ -1,8 +1,8 @@
 
-from heidgaf.dataset import DomainDataset
+from torch.utils.data.dataset import Dataset
 
 
-class DGTA(DomainDataset):
+class DGTA(Dataset):
     def __init__(self) -> None:
         pass
 

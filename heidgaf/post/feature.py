@@ -1,9 +1,10 @@
 
-import polars as pl
-
 from typing import List
 
+import polars as pl
+
 from heidgaf.dataset.majestic import MajesticMillionDataset
+
 
 class Preprocessor():
 

@@ -1,7 +1,9 @@
+import logging
 from typing import Any
+
 import polars as pl
 import redis
-import logging
+
 
 class DataFrameRedisCache(object):
     def __init__(self ,redis_host="localhost", redis_port=6379, redis_db=0, redis_max_connections=20,) -> None:

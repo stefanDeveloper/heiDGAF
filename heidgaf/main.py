@@ -1,8 +1,9 @@
 
-import os
-import polars as pl
 import logging
+import os
 from enum import Enum
+
+import polars as pl
 from click import Path
 
 from heidgaf.cache import DataFrameRedisCache
@@ -36,7 +37,8 @@ class DNSAnalyzerPipeline:
     def load_data(self, path, separator):
         dataframes = pl.read_csv(path, separator=separator, try_parse_dates=False,  has_header=False).with_columns(
             [
-                (pl.col('column_1').str.strptime(pl.Datetime).cast(pl.Datetime)),
+                (pl.col('column_1').str.strptime(pl.Datetime).cast(pl.Datetime).alias("timestamp")),
+                (pl.col('column_2').alias("return_code"))
             ]
         )
         

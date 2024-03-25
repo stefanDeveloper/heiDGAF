@@ -4,6 +4,7 @@ from fe_polars.imputing.base_imputing import Imputer
 from heidgaf.models.lr import LogisticRegression
 from heidgaf.post.feature import Preprocessor
 
+
 class Pipeline():
     """Pipeline runner for training of models
     """

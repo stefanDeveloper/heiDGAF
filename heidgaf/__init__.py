@@ -1,6 +1,6 @@
-from enum import Enum
 import logging
 import sys
+from enum import Enum
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], show_default=True)
 

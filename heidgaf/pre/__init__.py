@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+
 import polars as pl
 
 from heidgaf.cache import DataFrameRedisCache
