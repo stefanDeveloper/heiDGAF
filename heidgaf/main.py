@@ -7,7 +7,10 @@ import polars as pl
 from click import Path
 
 from heidgaf.cache import DataFrameRedisCache
+from heidgaf.post.feature import Preprocessor
+from heidgaf.pre.domain_analyzer import DomainAnalyzer
 from heidgaf.pre.ip_analyzer import IPAnalyzer
+from heidgaf.pre.time_analyer import TimeAnalyzer
 
 
 class FileType(Enum):
@@ -32,13 +35,12 @@ class DNSAnalyzerPipeline:
             logging.debug(f"Processing files: {path}/*.{filetype.value}")
             self.data = self.load_data(f'{path}/*.{filetype.value}', separator.value)
         
-        self.redis_cache["data"] = self.data
+        # self.redis_cache["data"] = self.data
 
     def load_data(self, path, separator):
         dataframes = pl.read_csv(path, separator=separator, try_parse_dates=False,  has_header=False).with_columns(
             [
-                (pl.col('column_1').str.strptime(pl.Datetime).cast(pl.Datetime).alias("timestamp")),
-                (pl.col('column_2').alias("return_code"))
+                (pl.col('column_1').str.strptime(pl.Datetime).cast(pl.Datetime))
             ]
         )
         
@@ -59,5 +61,10 @@ class DNSAnalyzerPipeline:
 
     def run(self):
         # Running modules to analyze log files
+        # TODO Multithreading
+        preprocessor = Preprocessor(features_to_drop=[])
+        processed_data = preprocessor.transform(self.data)
         
-        IPAnalyzer.run(self.data, self.redis_cache)
+        IPAnalyzer.run(processed_data, self.redis_cache)
+        DomainAnalyzer.run(processed_data, self.redis_cache)
+        TimeAnalyzer.run(processed_data, self.redis_cache)

@@ -6,8 +6,6 @@ from heidgaf.post.feature import Preprocessor
 
 
 class Pipeline():
-    """Pipeline runner for training of models
-    """
     def __init__(self, 
                  preprocessor: Preprocessor, 
                  mean_imputer: Imputer, 

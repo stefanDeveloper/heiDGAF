@@ -15,7 +15,8 @@ class Preprocessor():
             feature_to_drop (list): list of feature to drop
         """
         self.features_to_drop = features_to_drop
-        self.majesticmillion = MajesticMillionDataset()
+        # TODO Set majestic million score
+        # self.majesticmillion = MajesticMillionDataset()
 
     def transform(self, x: pl.DataFrame) -> pl.DataFrame:
         """Transform our dataset with new features

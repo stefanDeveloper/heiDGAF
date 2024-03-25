@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 import polars as pl
 
+from heidgaf import ReturnCode
 from heidgaf.cache import DataFrameRedisCache
 
 
@@ -12,4 +13,5 @@ class Analyzer(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def run(self, data: pl.DataFrame, redis_cache: DataFrameRedisCache):
-        pass
+        # Filter data with no errors
+        df = data.filter(pl.col("query") != "|").filter(pl.col("return_code") != ReturnCode.NOERROR.value).filter(pl.col("query").str.split(".").list.len() != 1)

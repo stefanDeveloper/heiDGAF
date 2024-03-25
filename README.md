@@ -88,10 +88,33 @@ In the folder `./example` we conducted a Exploratory Data Analysis (EDA) to veri
 
 ## Literature
 
-Based on the following work we implement heiDGAF to find malicious behaviour in DNS request.
+Based on the following work, we implement heiDGAF to find malicious behaviour such as tunneling or data exfiltration in DNS requests.
 
 - EXPOSURE: Finding Malicious Domains Using Passive DNS Analysis
 
   A passiv DNS pipeline for finding malicious domains using J48 decision tree algorithm.
 
 - Real-Time Detection System for Data Exﬁltration over DNS Tunneling Using Machine Learning
+
+  Propose a hybrid DNS tunneling detection system using Tabu-PIO for feature selection.
+
+- Classifying Malicious Domains using DNS Traffic Analysis
+  
+
+- [DeepDGA](https://github.com/roreagan/DeepDGA): Adversarially-Tuned Domain Generation and Detection
+  
+  DeepDGA detecting (and generating) domains on a per-domain basis which provides a simple and ﬂexible means to detect known DGA families. It uses GANs to bypass detectors and shows the effectiveness of such solutions.
+
+- Kitsune: An Ensemble of Autoencoders for Online Network Intrusion Detection
+
+- SHAP Interpretations of Tree and Neural Network DNS Classifiers for Analyzing DGA Family Characteristics
+
+
+
+### Similar Projects
+
+- [Deep Lookup](https://github.com/ybubnov/deep-lookup/) is a deep learning approach for DNS.
+- [DGA Detective](https://github.com/COSSAS/dgad)
+- https://github.com/Erxathos/DGA-Detector
+- https://github.com/gfek/Real-CyberSecurity-Datasets/
+- https://github.com/aasthac67/DNS-Tunneling-Detection/

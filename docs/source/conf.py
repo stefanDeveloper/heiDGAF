@@ -1,3 +1,6 @@
+import os
+import sys
+
 # Configuration file for the Sphinx documentation builder.
 
 # -- Project information
@@ -6,8 +9,11 @@ project = 'heidgaf'
 copyright = '2024, Stefan Machmeier'
 author = 'Stefan Machmeier'
 
-release = '0.1'
-version = '0.1.0'
+exec(open('../../heidgaf/version.py').read())
+
+version = __version__
+# The full version, including alpha/beta/rc tags
+release = __version__
 
 # -- Path setup --------------------------------------------------------------
 
@@ -15,8 +21,7 @@ version = '0.1.0'
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
+
 
 sys.path.insert(0, os.path.abspath('../..'))
 
@@ -39,6 +44,9 @@ extensions = [
     'myst_parser',
     'sphinx_design',
 ]
+
+# -- nbsphinx settings -------------------------------------------------------
+nbsphinx_execute = "auto"
 
 # -- apidoc settings ---------------------------------------------------------
 apidoc_module_dir = '../../heidgaf'
