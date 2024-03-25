@@ -1,6 +1,6 @@
-import pandas as pd
 import os
 
+import pandas as pd
 from ydata_profiling import ProfileReport
 
 if __name__ == "__main__":
