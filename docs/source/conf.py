@@ -9,6 +9,17 @@ author = 'Stefan Machmeier'
 release = '0.1'
 version = '0.1.0'
 
+# -- Path setup --------------------------------------------------------------
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+#
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath('../..'))
+
 # -- General configuration
 
 extensions = [
@@ -22,7 +33,11 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
+    'sphinx.ext.autosummary',
     'sphinxcontrib.apidoc',  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
+    'nbsphinx',
+    'myst_parser',
+    'sphinx_design',
 ]
 
 # -- apidoc settings ---------------------------------------------------------
@@ -32,6 +47,21 @@ apidoc_excluded_paths = ['**/*test*']
 apidoc_module_first = True
 apidoc_separate_modules = True
 apidoc_extra_args = ['-d 6']
+
+
+# Napoleon settings
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = True
+napoleon_include_private_with_doc = False
+napoleon_include_special_with_doc = True
+napoleon_use_admonition_for_examples = False
+napoleon_use_admonition_for_notes = False
+napoleon_use_admonition_for_references = False
+napoleon_use_ivar = False
+napoleon_use_param = True
+napoleon_use_rtype = False
+
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
