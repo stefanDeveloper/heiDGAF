@@ -8,5 +8,4 @@ COPY heidgaf/ heidgaf/
 
 RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  .
 
-# ENTRYPOINT [ "heidgaf"]
 CMD [ "heidgaf", "train" ]
