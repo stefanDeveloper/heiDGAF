@@ -1,5 +1,6 @@
-import polars as pl
 import pandas as pd
+import polars as pl
+
 
 def custom_decode(data):
     retL=[None] * len(data)
@@ -16,3 +17,4 @@ if __name__ == "__main__":
             pl.col('query').map(custom_decode)
         ]
     )
+    df_dgta.write_csv("dgta.csv")
