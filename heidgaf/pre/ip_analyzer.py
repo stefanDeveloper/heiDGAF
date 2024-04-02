@@ -28,11 +28,15 @@ class IPAnalyzer(Analyzer):
         self.__update_count(df, "SLD", self.KEY_SLD, redis_cache)
         
         # TODO: Process frequency and return values
+        
         # TODO: Check if IP has more than threshold error request -> if yes, check distribution.
         
         
     def __update_count(df: pl.DataFrame, id: str, key: str, redis_cache: DataFrameRedisCache) -> None:
         frequency = df.group_by(id).count()
+        
+        # TODO Dividing highest and lowest timestamp
+        df.max(pl.col("timestamp")) - df.min(pl.col("timestamp"))
         
         # Check if dns_server_frequency exists in redis cache
         if  key in redis_cache:

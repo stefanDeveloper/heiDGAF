@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from typing import Any
 
 import polars as pl
 
@@ -13,5 +14,9 @@ class Analyzer(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def run(self, data: pl.DataFrame, redis_cache: DataFrameRedisCache):
-        # Filter data with no errors
-        df = data.filter(pl.col("query") != "|").filter(pl.col("return_code") != ReturnCode.NOERROR.value).filter(pl.col("query").str.split(".").list.len() != 1)
+        pass
+    
+    @classmethod
+    @abstractmethod
+    def set_warning(self, data: Any, redis_cache: DataFrameRedisCache):
+        pass

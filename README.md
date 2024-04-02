@@ -76,11 +76,14 @@ Currently, we support the data format scheme provided by the [DNS-Collector](htt
 
 For training our models, we rely on the following data sets:
 
-- [CICBellDNS2021]()
+- [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)
 - [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
 - [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
 - [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
 - [Majestic Million](https://de.majestic.com/reports/majestic-million)
+
+However, we compute all feature separately and only rely on the `domain` and `class`.
+Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
 
 ### Exploratory Data Analysis (EDA)
 

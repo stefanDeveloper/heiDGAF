@@ -36,15 +36,6 @@ classifiers = [
 ]
 dynamic = ["dependencies"]
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
-
-[tool.autopep8]
-max_line_length = 180
-in-place = true
-recursive = true
-aggressive = 3
-
 [project.scripts]
 heidgaf = "heidgaf.cli:cli"
 
@@ -52,14 +43,30 @@ heidgaf = "heidgaf.cli:cli"
 "Homepage" = "https://github.com/stefanDeveloper/heiDGAF"
 "Bug Tracker" = "https://github.com/stefanDeveloper/heiDGAF/issues"
 
+[tool.autopep8]
+max_line_length = 180
+in-place = true
+recursive = true
+aggressive = 3
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
 [tool.setuptools.packages.find]
 include = [
     "heidgaf*",
+    "data"
 ]
 exclude = [
     "test*",
     "assets*",
 ]
+
+[tool.setuptools.package-data]
+"heidgaf.data" = ["*.csv"]
 
 [tool.poetry]
 name = "heiDGAF"

@@ -5,7 +5,8 @@ import torch
 
 from heidgaf import CONTEXT_SETTINGS
 from heidgaf.main import DNSAnalyzerPipeline
-from heidgaf.train import DNSAnalyzerTraining, ModelType
+from heidgaf.models.lr import LogisticRegression
+from heidgaf.train import DNSAnalyzerTraining
 from heidgaf.version import __version__
 
 try:
@@ -45,7 +46,7 @@ def training_model():
 
 @training_model.command(name="start")
 def training_start():
-    trainer = DNSAnalyzerTraining(model=ModelType.LOGISTIC_REGRESSION)
+    trainer = DNSAnalyzerTraining(model=LogisticRegression(input_dim=9, output_dim=1, epochs=5000))
     trainer.train()
 
 @cli.group(name="process", context_settings={"show_default": True})
