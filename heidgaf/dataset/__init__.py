@@ -52,8 +52,6 @@ class Dataset:
         else:
             self.data = pl.read_csv(data_path)
             
-        logging.info(self.data)
-
         self.X_train, self.X_val, self.X_test, self.Y_train, self.Y_val, self.Y_test = self.__train_test_val_split()
 
     def __len__(self):

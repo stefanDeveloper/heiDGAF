@@ -6,7 +6,7 @@ from enum import Enum
 import polars as pl
 from click import Path
 
-from heidgaf.cache import DataFrameRedisCache
+from heidgaf.cache import DataFrameRedisCache, StringRedisCache
 from heidgaf.post.feature import Preprocessor
 from heidgaf.pre.domain_analyzer import DomainAnalyzer
 from heidgaf.pre.ip_analyzer import IPAnalyzer
@@ -25,18 +25,16 @@ class Separator(Enum):
 
 class DNSAnalyzerPipeline:
     def __init__(self, path: Path, redis_host="localhost", redis_port=6379, redis_db=0, redis_max_connections=20, filetype=FileType.TXT, separator=Separator.SPACE) -> None:
-        self.redis_cache = DataFrameRedisCache(redis_host, redis_port, redis_db, redis_max_connections)
+        self.df_cache = DataFrameRedisCache(redis_host, redis_port, redis_db, redis_max_connections)
+        self.string_cache = StringRedisCache(redis_host, redis_port, redis_db, redis_max_connections)
         
         if os.path.isfile(path):
             logging.debug(f"Processing files: {path}")
             self.data = self.load_data(path, separator.value)
         elif os.path.isdir(path):
-            # TODO Handle large files, Currently redis cannot store more than 512 MB
             logging.debug(f"Processing files: {path}/*.{filetype.value}")
             self.data = self.load_data(f'{path}/*.{filetype.value}', separator.value)
         
-        # self.redis_cache["data"] = self.data
-
     def load_data(self, path, separator):
         dataframes = pl.read_csv(path, separator=separator, try_parse_dates=False,  has_header=False).with_columns(
             [
@@ -44,7 +42,7 @@ class DNSAnalyzerPipeline:
             ]
         )
         
-        dataframes = dataframes.rename(
+        dataframes = dataframes[:50000].rename(
             {
                 "column_1": "timestamp", 
                 "column_2": "return_code", 
@@ -60,11 +58,12 @@ class DNSAnalyzerPipeline:
         return dataframes
 
     def run(self):
+        
         # Running modules to analyze log files
         # TODO Multithreading
         preprocessor = Preprocessor(features_to_drop=[])
         processed_data = preprocessor.transform(self.data)
         
-        IPAnalyzer.run(processed_data, self.redis_cache)
-        DomainAnalyzer.run(processed_data, self.redis_cache)
-        TimeAnalyzer.run(processed_data, self.redis_cache)
+        IPAnalyzer.run(processed_data, self.df_cache)
+        DomainAnalyzer.run(processed_data, self.df_cache)
+        TimeAnalyzer.run(processed_data, self.df_cache)
