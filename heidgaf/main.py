@@ -36,13 +36,13 @@ class DNSAnalyzerPipeline:
             self.data = self.load_data(f'{path}/*.{filetype.value}', separator.value)
         
     def load_data(self, path, separator):
-        dataframes = pl.read_csv(path, separator=separator, try_parse_dates=False,  has_header=False).with_columns(
+        x = pl.read_csv(path, separator=separator, try_parse_dates=False,  has_header=False).with_columns(
             [
                 (pl.col('column_1').str.strptime(pl.Datetime).cast(pl.Datetime))
             ]
         )
         
-        dataframes = dataframes[:50000].rename(
+        x = x.rename(
             {
                 "column_1": "timestamp", 
                 "column_2": "return_code", 
@@ -55,15 +55,51 @@ class DNSAnalyzerPipeline:
             }
         )
 
-        return dataframes
+        x = x.with_columns(
+            [
+                (pl.col("query").str.split(".").alias("labels")),
+            ]
+        )
+        
+        x = x.with_columns(
+            [   
+                # FQDN
+                (pl.col("query")).alias("fqdn"),
+            ]
+        )
+        
+        x = x.with_columns(
+            [   
+                # Second-level domain
+                (pl.when(pl.col("labels").list.len() > 2)
+                    .then(
+                        pl.col("labels").list.get(-2)
+                    ).otherwise(
+                        pl.col("labels").list.get(0)
+                    ).alias("secondleveldomain"))
+            ]
+        )
+        
+        x = x.with_columns(
+            [   
+                # Third-level domain
+                (pl.when(pl.col("labels").list.len() > 2)
+                    .then(
+                    pl.col("labels").list.slice(0, pl.col("labels").list.len() - 2).list.join(".")
+                    ).otherwise(pl.lit("")).alias("thirdleveldomain")),
+            ]
+        )
+
+        return x
 
     def run(self):
         
         # Running modules to analyze log files
         # TODO Multithreading
-        preprocessor = Preprocessor(features_to_drop=[])
-        processed_data = preprocessor.transform(self.data)
+        # TODO Handle warnings for machine learning predictions
+        # preprocessor = Preprocessor(features_to_drop=[])
+        # processed_data = preprocessor.transform(self.data)
         
-        IPAnalyzer.run(processed_data, self.df_cache)
-        DomainAnalyzer.run(processed_data, self.df_cache)
-        TimeAnalyzer.run(processed_data, self.df_cache)
+        IPAnalyzer.run(self.data, self.df_cache)
+        # DomainAnalyzer.run(self.data, self.df_cache)
+        # TimeAnalyzer.run(self.data, self.df_cache)

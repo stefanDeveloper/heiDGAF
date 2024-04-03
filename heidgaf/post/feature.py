@@ -29,7 +29,6 @@ class Preprocessor():
         """
         x = x.with_columns(
             [
-                (pl.col("query").str.split(".").alias("labels")),
                 (pl.col("query").str.split(".").list.len().alias("label_length")),
                 (pl.col("query").str.split(".").list.max().str.len_chars().alias("label_max")),
                 (pl.col("query").str.strip_chars(".").str.len_chars().alias("label_average")),
@@ -46,24 +45,13 @@ class Preprocessor():
         x = x.with_columns(
             [   
                 # FQDN
-                (pl.col("query")).alias("fqdn"),
                 (pl.col("query").str.len_chars().alias("fqdn_full_count")),
                 (pl.col("query").str.count_matches(r"[a-zA-Z]").truediv(pl.col("query").str.len_chars())).alias("fqdn_alpha_count"),
                 (pl.col("query").str.count_matches(r"[0-9]").truediv(pl.col("query").str.len_chars())).alias("fqdn_numeric_count"),
                 (pl.col("query").str.count_matches(r"[^\w\s]").truediv(pl.col("query").str.len_chars())).alias("fqdn_special_count"),
             ]
         )
-        x = x.with_columns(
-            [   
-                # Second-level domain
-                (pl.when(pl.col("labels").list.len() > 2)
-                    .then(
-                        pl.col("labels").list.get(-2)
-                    ).otherwise(
-                        pl.col("labels").list.get(0)
-                    ).alias("secondleveldomain"))
-            ]
-        )
+        
         x = x.with_columns(
             [
                 (pl.col("secondleveldomain").str.len_chars().truediv(pl.col("secondleveldomain").str.len_chars()).alias("secondleveldomain_full_count")),
@@ -72,15 +60,7 @@ class Preprocessor():
                 (pl.col("secondleveldomain").str.count_matches(r"[^\w\s]").truediv(pl.col("secondleveldomain").str.len_chars())).alias("secondleveldomain_special_count"),
             ]
         )
-        x = x.with_columns(
-            [   
-                # Third-level domain
-                (pl.when(pl.col("labels").list.len() > 2)
-                    .then(
-                    pl.col("labels").list.slice(0, pl.col("labels").list.len() - 2).list.join(".")
-                    ).otherwise(pl.lit("")).alias("thirdleveldomain")),
-            ]
-        )
+
         x = x.with_columns(
             [
                 (pl.col("thirdleveldomain").str.len_chars().truediv(pl.col("thirdleveldomain").str.len_chars()).alias("thirdleveldomain_full_count")),

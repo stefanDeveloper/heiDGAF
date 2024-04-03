@@ -35,6 +35,7 @@ def cast_dgta(data_path: str) -> pl.DataFrame:
     
     df = pl.read_parquet(data_path)
     df = df.rename({"domain": "query"})
+
     # Drop unnecessary column
     df = df.drop("__index_level_0__")
     df = df.with_columns(
@@ -101,7 +102,12 @@ dgta_dataset = Dataset(
 )
 
 cic_dataset = Dataset(
-    data_path=["/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_benign.csv"],
+    data_path=[
+        "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_benign.csv",
+        "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_malware.csv",
+        "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_phishing.csv",
+        "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_spam.csv"
+    ],
     cast_dataset=cast_cic
 )
 
