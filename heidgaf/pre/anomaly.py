@@ -1,14 +1,13 @@
-from dataclasses import dataclass
 from abc import ABC
-from typing import List, Tuple, Dict, Union
+from dataclasses import dataclass
+from typing import Dict, List, Tuple, Union
 
-import numpy as np
-import polars as pl
-import pandas as pd
-
-import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
+import polars as pl
 from plotly.subplots import make_subplots
 
 
@@ -146,7 +145,7 @@ class PolarsAnomalyDetector:
         return fig
     
 
-    def interactive_plot(self, df: pl.DataFrame, column: str):
+    def interactive_plot(self, df: pl.DataFrame, column: str) -> go.Figure:
         signals = df['signal'].to_numpy()
         avg_filter = df[f"rolling_mean_n{self.lag}"]
         std_filter = df[f"rolling_std_n{self.lag}"]

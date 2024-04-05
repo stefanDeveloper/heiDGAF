@@ -4,7 +4,7 @@ import click
 import torch
 
 from heidgaf import CONTEXT_SETTINGS
-from heidgaf.main import DNSAnalyzerPipeline
+from heidgaf.main import DNSAnalyzerPipeline, Detector
 from heidgaf.models.lr import LogisticRegression
 from heidgaf.train import DNSAnalyzerTraining
 from heidgaf.version import __version__
@@ -26,17 +26,21 @@ def cli():
 @cli.command(name="check_gpu")
 def check_gpu():
     # setting device on GPU if available, else CPU
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    logging.info(f'Using device: {device}')
+    logging.info(f"Using device: {device}")
     if torch.cuda.is_available():
         logging.info("GPU detected")
         logging.info(f"\t{torch.cuda.get_device_name(0)}")
-        
-    if device.type == 'cuda':
+
+    if device.type == "cuda":
         logging.info("Memory Usage:")
-        logging.info(f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB")
-        logging.info(f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB")
+        logging.info(
+            f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
+        )
+        logging.info(
+            f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
+        )
 
 
 @cli.group(name="train", context_settings={"show_default": True})
@@ -46,8 +50,11 @@ def training_model():
 
 @training_model.command(name="start")
 def training_start():
-    trainer = DNSAnalyzerTraining(model=LogisticRegression(input_dim=9, output_dim=1, epochs=5000))
+    trainer = DNSAnalyzerTraining(
+        model=LogisticRegression(input_dim=9, output_dim=1, epochs=5000)
+    )
     trainer.train()
+
 
 @cli.group(name="process", context_settings={"show_default": True})
 def training_model():
@@ -56,7 +63,21 @@ def training_model():
 
 @training_model.command(name="start")
 @click.option("-r", "--read", "input_dir", required=True, type=click.Path())
-def training_start(input_dir):
+@click.option(
+    "-dt",
+    "--detector",
+    "detector",
+    type=click.Choice(Detector),
+    help="Sets the anomaly detector",
+)
+@click.option(
+    "-d",
+    "--delimiter",
+    "delimiter",
+    type=click.STRING,
+    help="Sets the anomaly detector",
+)
+def training_start(input_dir, detector, delimiter):
     pipeline = DNSAnalyzerPipeline(input_dir)
     pipeline.run()
 

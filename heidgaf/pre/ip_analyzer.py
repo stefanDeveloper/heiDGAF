@@ -12,26 +12,26 @@ from heidgaf.pre import Analyzer
 class IPAnalyzer(Analyzer):
     KEY_IP_FREQUENCY = "client_ip_error_frequency"
     KEY_DNS_SERVER = "dns_server_error_frequency"
-    
+
     def __init__(self) -> None:
         super().__init__()
-    
-    @classmethod
-    def run(self, data: pl.DataFrame, df_cache: DataFrameRedisCache) -> pl.DataFrame:    
-        # Dividing highest and lowest timestamp to get time range.
-        # By this, we can work on relative values and are able to compare new data
-        timestamp_range: datetime.timedelta = (data["timestamp"].max() - data["timestamp"].min())
-        timestamp_range = timestamp_range.seconds // 3600
-        logging.debug(f"Time range: {timestamp_range} hours")
-        if timestamp_range == 0:
-            timestamp_range = 1
 
+    @classmethod
+    def run(self, data: pl.DataFrame, df_cache: DataFrameRedisCache) -> pl.DataFrame:
         # Filter data with no errors
-        df = data.filter(pl.col("query") != "|").filter(pl.col("return_code") != ReturnCode.NOERROR.value).filter(pl.col("query").str.split(".").list.len() != 1)
-        
+        df = (
+            data.filter(pl.col("query") != "|")
+            .filter(pl.col("return_code") != ReturnCode.NOERROR.value)
+            .filter(pl.col("query").str.split(".").list.len() != 1)
+        )
+
         # Update frequencies based on errors
-        _, warning = self.update_count(self, df, "client_ip", self.KEY_IP_FREQUENCY, df_cache, 200, timestamp_range)
+        _, warning = self.update_count(
+            self, df, "client_ip", self.KEY_IP_FREQUENCY, df_cache
+        )
         self.set_warning(self, df, warning, "client_ip")
-        
-        _, warning = self.update_count(self, df, "dns_server", self.KEY_DNS_SERVER, df_cache, 200)
+
+        _, warning = self.update_count(
+            self, df, "dns_server", self.KEY_DNS_SERVER, df_cache
+        )
         self.set_warning(self, df, warning, "dns_server")
