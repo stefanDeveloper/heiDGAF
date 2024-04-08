@@ -17,7 +17,7 @@ class LogisticRegression(torch.nn.Module):
         Args:
             input_dim (int): input dimension
             output_dim (int): output dimension
-            epochs (int, optional): Number of training epochs. 
+            epochs (int, optional): Number of training epochs.
                                         Defaults to 5000.
             loss_func: Loss function.
         """
@@ -36,11 +36,11 @@ class LogisticRegression(torch.nn.Module):
 
     def fit(self, x: pl.DataFrame, y: pl.Series):
         """Fit.
-            
+
         Args:
             x (pl.DataFrame): training dataframe
             y (pl.Series): target series
-            
+
         Returns:
             None
         """
@@ -69,13 +69,13 @@ class LogisticRegression(torch.nn.Module):
 
     def predict_proba(self, x: numpy.ndarray):
         """Return probability of class.
-            
+
         Args:
             x (numpy.ndarray): dataframe to infer
-            
+
         Returns:
             numpy.ndarray: probability of survival
-            """
+        """
         x = torch.from_numpy(x.astype(numpy.float32))
 
         y_proba = self.forward(x)

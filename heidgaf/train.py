@@ -11,32 +11,24 @@ from heidgaf.cache import DataFrameRedisCache
 from heidgaf.models import Pipeline
 from heidgaf.models.lr import LogisticRegression
 from heidgaf.post.feature import Preprocessor
+from heidgaf.dataset import Dataset
 
 
 class DNSAnalyzerTraining:
-    def __init__(
-        self,
-        model: torch.nn.Module,
-        redis_host="localhost",
-        redis_port=6379,
-        redis_db=0,
-        redis_max_connections=20,
-    ) -> None:
-        """_summary_
+    def __init__(self, model: torch.nn.Module, dataset: Dataset) -> None:
+        """Trainer class to fit models on data sets.
 
         Args:
-            model (torch.nn.Module): _description_
-            redis_host (str, optional): _description_. Defaults to "localhost".
-            redis_port (int, optional): _description_. Defaults to 6379.
-            redis_db (int, optional): _description_. Defaults to 0.
-            redis_max_connections (int, optional): _description_. Defaults to 20.
+            model (torch.nn.Module): Fit model.
+            dataset (heidgaf.dataset.Dataset): Data set for training.
         """
-        self.redis_cache = DataFrameRedisCache(
-            redis_host, redis_port, redis_db, redis_max_connections
-        )
 
     def train(self, seed=42):
+        """Starts training of the model. Checks prior if GPU is available.
 
+        Args:
+            seed (int, optional): _description_. Defaults to 42.
+        """
         if seed > 0:
             np.random.seed(seed)
             torch.manual_seed(seed)

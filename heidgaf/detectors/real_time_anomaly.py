@@ -6,11 +6,10 @@ from .base_anomaly import AnomalyDetector, AnomalyDetectorConfig
 
 
 class RealTimeAnomalyDetector(AnomalyDetector):
-
     """
     Anomaly detector for real-time data streams based on moving average and standard deviation filter.
     """
-    
+
     def __init__(self, config: AnomalyDetectorConfig):
         super().__init__(config)
         self.signals: List[int] = []
@@ -23,21 +22,25 @@ class RealTimeAnomalyDetector(AnomalyDetector):
 
     def initialize_filters(self):
         if len(self.filtered_y) == self.lag:
-            avg, std = self.moving_average_std(self.filtered_y[-self.lag:], self.lag)
+            avg, std = self.moving_average_std(self.filtered_y[-self.lag :], self.lag)
             self.avg_filter.append(avg)
             self.std_filter.append(std)
 
     def calculate_signal(self, data: float):
-        is_outlier = self.is_outlier(data, self.avg_filter[-1], self.std_filter[-1], self.threshold)
+        is_outlier = self.is_outlier(
+            data, self.avg_filter[-1], self.std_filter[-1], self.threshold
+        )
         signal = np.sign(data - self.avg_filter[-1]) * is_outlier
         self.signals.append(signal)
         return is_outlier
 
     def update_filters(self, data: float, is_outlier: bool):
         if is_outlier:
-            filtered_data = self.update_filtered_series(data, self.influence, self.filtered_y[-2])
+            filtered_data = self.update_filtered_series(
+                data, self.influence, self.filtered_y[-2]
+            )
             self.filtered_y[-1] = filtered_data
-            avg, std = self.moving_average_std(self.filtered_y[-self.lag:], self.lag)
+            avg, std = self.moving_average_std(self.filtered_y[-self.lag :], self.lag)
             self.avg_filter.append(avg)
             self.std_filter.append(std)
         else:
@@ -54,4 +57,3 @@ class RealTimeAnomalyDetector(AnomalyDetector):
             is_outlier = self.calculate_signal(data)
             self.update_filters(data, is_outlier)
         return int(self.signals[-1])
-

@@ -20,9 +20,9 @@ from heidgaf.pre.time_analyer import TimeAnalyzer
 
 @unique
 class Detector(Enum):
-    THRESHOLDING = ThresholdingAnomalyDetector
-    EMA = EMAAnomalyDetector
-    ARIMA = ARIMAAnomalyDetector
+    THRESHOLDING = "threshold"
+    EMA = "ema"
+    ARIMA = "arima"
 
 
 @unique
@@ -36,21 +36,6 @@ class Separator(Enum):
     SPACE = " "
     COMMA = ","
 
-@dataclass
-class RedisCacheConfig:
-    redis_host: str ="localhost",
-    redis_port: int =6379,
-    redis_db: int =0,
-    redis_max_connections: int =20,
-
-@dataclass
-class DNSAnalyzerPipelineConfig:
-    lag: float = 15
-    n_standard_deviations: float = 3
-    anomaly_influence: float = 0.7
-    filetype: FileType = FileType.TXT,
-    separator: FileType = Separator.SPACE,
-
 
 class DNSAnalyzerPipeline:
     """Main analyzer pipeline. It loads new data and processes it through our analyzers. If an anomaly occurs, our models run"""
@@ -58,12 +43,16 @@ class DNSAnalyzerPipeline:
     def __init__(
         self,
         path: Path,
+        lag: float = 15,
+        n_standard_deviations: float = 3,
+        anomaly_influence: float = 0.7,
+        filetype=FileType.TXT,
+        separator=Separator.SPACE,
+        detector=Detector.THRESHOLDING,
         redis_host="localhost",
         redis_port=6379,
         redis_db=0,
         redis_max_connections=20,
-        filetype=FileType.TXT,
-        separator=Separator.SPACE,
     ) -> None:
         self.df_cache = DataFrameRedisCache(
             redis_host, redis_port, redis_db, redis_max_connections
@@ -80,6 +69,11 @@ class DNSAnalyzerPipeline:
             self.data = self.load_data(f"{path}/*.{filetype.value}", separator.value)
         else:
             FileNotFoundError(f"File or path not found: {path}")
+
+        self.lag = lag
+        self.n_standard_deviations = n_standard_deviations
+        self.anomaly_influence = anomaly_influence
+        self.detector = detector
 
     def load_data(self, path: str, separator: str) -> pl.DataFrame:
         """Loads data from csv files
@@ -154,19 +148,28 @@ class DNSAnalyzerPipeline:
         return x
 
     def run(self):
-        """_summary_"""
-        # Running modules to analyze log files
+        """Starts the analyzation tasks with given data input."""
+
         # TODO Multithreading
         # TODO Handle warnings for machine learning predictions
+
         # preprocessor = Preprocessor(features_to_drop=[])
         # processed_data = preprocessor.transform(self.data)
-        LAG = 15
-        N_STANDARD_DEVIATIONS = 3
-        ANOMALY_INFLUENCE = 0.7
 
-        config = AnomalyDetectorConfig(LAG, N_STANDARD_DEVIATIONS, ANOMALY_INFLUENCE)
-
-        thresholding_detector = ThresholdingAnomalyDetector(config)
+        # Creates anomaly detector
+        config = AnomalyDetectorConfig(
+            self.lag, self.n_standard_deviations, self.anomaly_influence
+        )
+        thresholding_detector
+        match self.detector:
+            case "threshold":
+                thresholding_detector = ThresholdingAnomalyDetector(config)
+            case "arima":
+                thresholding_detector = ARIMAAnomalyDetector(config)
+            case "threshold":
+                thresholding_detector = EMAAnomalyDetector(config)
+            case _:
+                NotImplementedError(f"Detector not implemented!")
 
         config = AnalyzerConfig()
 
