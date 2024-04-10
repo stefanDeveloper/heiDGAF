@@ -12,14 +12,14 @@ from heidgaf.detectors.base_anomaly import AnomalyDetectorConfig
 from heidgaf.detectors.exponential_thresholding import EMAAnomalyDetector
 from heidgaf.detectors.thresholding_algorithm import ThresholdingAnomalyDetector
 from heidgaf.post.feature import Preprocessor
-from heidgaf.pre import AnalyzerConfig
+from heidgaf.pre import Analyzer, AnalyzerConfig
 from heidgaf.pre.domain_analyzer import DomainAnalyzer
 from heidgaf.pre.ip_analyzer import IPAnalyzer
 from heidgaf.pre.time_analyer import TimeAnalyzer
 
 
 @unique
-class Detector(Enum):
+class Detector(str, Enum):
     THRESHOLDING = "threshold"
     EMA = "ema"
     ARIMA = "arima"
@@ -35,6 +35,20 @@ class FileType(Enum):
 class Separator(Enum):
     SPACE = " "
     COMMA = ","
+
+
+def analyzer_factory(source: str, config: AnalyzerConfig) -> Analyzer:
+    factory = {
+        "IP": (IPAnalyzer(config)),
+        "Domain": (DomainAnalyzer(config)),
+        "Time": (TimeAnalyzer(config)),
+    }
+    if source in factory:
+        return factory[source]
+    else:
+        raise ValueError(
+            f"source {source} is not supported. Please pass a valid source."
+        )
 
 
 class DNSAnalyzerPipeline:
@@ -53,11 +67,9 @@ class DNSAnalyzerPipeline:
         redis_port=6379,
         redis_db=0,
         redis_max_connections=20,
+        threshold=3
     ) -> None:
         self.df_cache = DataFrameRedisCache(
-            redis_host, redis_port, redis_db, redis_max_connections
-        )
-        self.string_cache = StringRedisCache(
             redis_host, redis_port, redis_db, redis_max_connections
         )
 
@@ -74,6 +86,7 @@ class DNSAnalyzerPipeline:
         self.n_standard_deviations = n_standard_deviations
         self.anomaly_influence = anomaly_influence
         self.detector = detector
+        self.threshold = 3
 
     def load_data(self, path: str, separator: str) -> pl.DataFrame:
         """Loads data from csv files
@@ -160,19 +173,18 @@ class DNSAnalyzerPipeline:
         config = AnomalyDetectorConfig(
             self.lag, self.n_standard_deviations, self.anomaly_influence
         )
-        thresholding_detector
+        detector = None
         match self.detector:
             case "threshold":
-                thresholding_detector = ThresholdingAnomalyDetector(config)
+                detector = ThresholdingAnomalyDetector(config)
             case "arima":
-                thresholding_detector = ARIMAAnomalyDetector(config)
+                detector = ARIMAAnomalyDetector(config)
             case "threshold":
-                thresholding_detector = EMAAnomalyDetector(config)
+                detector = EMAAnomalyDetector(config)
             case _:
-                NotImplementedError(f"Detector not implemented!")
+                raise NotImplementedError(f"Detector not implemented!")
 
-        config = AnalyzerConfig()
-
-        IPAnalyzer.run(self.data, self.df_cache)
-        # DomainAnalyzer.run(self.data, self.df_cache)
-        # TimeAnalyzer.run(self.data, self.df_cache)
+        # Run anaylzers to find anomalies in data
+        config = AnalyzerConfig(detector, self.df_cache, self.threshold)
+        for analyzer in ["IP"]:
+            analyzer_factory(analyzer, config).run(self.data)

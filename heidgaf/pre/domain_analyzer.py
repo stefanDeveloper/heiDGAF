@@ -3,7 +3,7 @@ import redis
 
 from heidgaf import ReturnCode
 from heidgaf.cache import DataFrameRedisCache
-from heidgaf.pre import Analyzer
+from heidgaf.pre import Analyzer, AnalyzerConfig
 
 
 class DomainAnalyzer(Analyzer):
@@ -11,10 +11,12 @@ class DomainAnalyzer(Analyzer):
     KEY_THIRD_LEVEL_DOMAIN = "thirdleveldomain_frequency"
     KEY_FQDN = "fqdn_frequency"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, config: AnalyzerConfig) -> None:
+        super().__init__(config)
+    
+    def update_threshold(threshould, tpr, fpr):
+        pass
 
-    @classmethod
     def run(self, data: pl.DataFrame, redis_cache: DataFrameRedisCache) -> pl.DataFrame:
         # Filter data with no errors
         df = data.filter(pl.col("query") != "|").filter(

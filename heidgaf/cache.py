@@ -49,7 +49,7 @@ class DataFrameRedisCache(object):
         redis_db=0,
         redis_max_connections=20,
     ) -> None:
-        logging.debug("Connect to Redis server")
+        logging.debug(f"Connect to Redis server {redis_host}:{redis_port}")
         self.pool = redis.ConnectionPool(
             host=redis_host,
             port=redis_port,

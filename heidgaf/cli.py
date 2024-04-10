@@ -4,7 +4,7 @@ import click
 import torch
 
 from heidgaf import CONTEXT_SETTINGS
-from heidgaf.main import DNSAnalyzerPipeline, Detector, Separator
+from heidgaf.main import DNSAnalyzerPipeline, Detector, FileType, Separator
 from heidgaf.models.lr import LogisticRegression
 from heidgaf.train import DNSAnalyzerTraining
 from heidgaf.version import __version__
@@ -20,7 +20,7 @@ except ImportError:
 @click.version_option(version=__version__)
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
-    logging.info("Starting heiDGAF CLI")
+    click.echo("Starting heiDGAF CLI")
 
 
 @cli.command(name="check_gpu")
@@ -28,40 +28,47 @@ def check_gpu():
     # setting device on GPU if available, else CPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    logging.info(f"Using device: {device}")
+    click.echo(f"Using device: {device}")
     if torch.cuda.is_available():
-        logging.info("GPU detected")
-        logging.info(f"\t{torch.cuda.get_device_name(0)}")
+        click.echo("GPU detected")
+        click.echo(f"\t{torch.cuda.get_device_name(0)}")
 
     if device.type == "cuda":
-        logging.info("Memory Usage:")
-        logging.info(
+        click.echo("Memory Usage:")
+        click.echo(
             f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
         )
-        logging.info(
+        click.echo(
             f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
         )
 
 
-@cli.group(name="train", context_settings={"show_default": True})
-def training_model():
-    logging.info("Start training of model.")
-
-
-@training_model.command(name="start")
-def training_start():
+@cli.command(name="train", context_settings={"show_default": True})
+@click.option(
+    "-m", 
+    "--model", 
+    "model", 
+    required=True, 
+    type=click.Path(), 
+    help="Input directory or file for analyzing."
+)
+@click.option(
+    "-d", 
+    "--dataset", 
+    "dataset", 
+    required=True, 
+    type=click.Path(), 
+    help="Input directory or file for analyzing."
+)
+def training_model(model, dataset):
+    click.echo("Start training of model.")
     trainer = DNSAnalyzerTraining(
         model=LogisticRegression(input_dim=9, output_dim=1, epochs=5000)
     )
     trainer.train()
 
 
-@cli.group(name="process", context_settings={"show_default": True})
-def analyse():
-    logging.info("Starts processing log lines of DNS traffic.")
-
-
-@analyse.command(name="start")
+@cli.command(name="process", context_settings={"show_default": True})
 @click.option(
     "-r", 
     "--read", 
@@ -82,14 +89,21 @@ def analyse():
     "-s",
     "--separator",
     "separator",
-    type=click.STRING,
-    default=Separator.COMMA.value,
+    type=click.Choice(Separator),
+    default=Separator.SPACE,
     help="Separator type of input.",
+)
+@click.option(
+    "--filetype",
+    "filetype",
+    type=click.Choice(FileType),
+    default=FileType.TXT,
+    help="File type of input.",
 )
 @click.option(
     "--lag",
     "lag",
-    type=click.FLOAT,
+    type=click.INT,
     default=15,
     help="Sets the anomaly detector lag.",
 )
@@ -136,8 +150,9 @@ def analyse():
     help="Sets Redis max connection for caching results.",
 )
 def training_start(
-    input_dir, detector, separator, lag, influence, n_standard_deviations, redis_host, redis_port, redis_db, redis_max_connection
+    input_dir, detector, separator, filetype, lag, influence, n_standard_deviations, redis_host, redis_port, redis_db, redis_max_connection
 ):
+    click.echo("Starts processing log lines of DNS traffic.")
     pipeline = DNSAnalyzerPipeline(
         path=input_dir,
         detector=detector,
@@ -145,6 +160,7 @@ def training_start(
         anomaly_influence=influence,
         n_standard_deviations=n_standard_deviations,
         separator=separator,
+        filetype=filetype,
         redis_host=redis_host,
         redis_port=redis_port,
         redis_db=redis_db,
