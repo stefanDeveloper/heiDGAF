@@ -20,8 +20,8 @@ class IPAnalyzer(Analyzer):
         pass
 
     def run(self, data: pl.DataFrame) -> pl.DataFrame:
-        min_date = data.select(["timestamp"]).min()
-        max_date = data.select(["timestamp"]).max()
+        min_date = data.select(["timestamp"]).min().item()
+        max_date = data.select(["timestamp"]).max().item()
         # Filter data with no errors
         df = (
             data.filter(pl.col("query") != "|")
@@ -30,6 +30,12 @@ class IPAnalyzer(Analyzer):
         )
 
         # Update frequencies based on errors
-        self.update_count(df, min_date, max_date,"client_ip", self.KEY_IP_FREQUENCY)
+        warnings = self.update_count(
+            df, min_date, max_date, "client_ip", self.KEY_IP_FREQUENCY
+        )
+        self.set_warning(data, warnings, "client_ip")
 
-        self.update_count(df, min_date, max_date, "dns_server", self.KEY_DNS_SERVER)
+        # warnings = self.update_count(
+        #     df, min_date, max_date, "dns_server", self.KEY_DNS_SERVER
+        # )
+        # self.set_warning(data, warnings, "dns_server")

@@ -1,3 +1,4 @@
+import logging
 import math
 from string import ascii_lowercase as alc
 from typing import List
@@ -26,6 +27,7 @@ class Preprocessor:
         Returns:
             pl.DataFrame: preprocessed dataframe
         """
+        logging.debug("Start data transformation")
         x = x.with_columns(
             [
                 (pl.col("query").str.split(".").list.len().alias("label_length")),
@@ -131,6 +133,7 @@ class Preprocessor:
             ]
         )
 
+        logging.debug("Start entropy calculation")
         for ent in ["fqdn", "thirdleveldomain", "secondleveldomain"]:
             x = x.with_columns(
                 [
@@ -158,10 +161,12 @@ class Preprocessor:
                 ]
             )
             x = x.drop("prob")
-
+        logging.debug("Finished entropy calculation")
         # Fill NaN
         x = x.fill_nan(0)
         # Drop features not useful anymore
         x = x.drop(self.features_to_drop)
 
+        logging.debug("Finished data transformation")
+        
         return x

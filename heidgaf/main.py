@@ -3,6 +3,7 @@ import logging
 import os
 from enum import Enum, unique
 
+import joblib
 import polars as pl
 from click import Path
 
@@ -67,7 +68,7 @@ class DNSAnalyzerPipeline:
         redis_port=6379,
         redis_db=0,
         redis_max_connections=20,
-        threshold=3
+        threshold=5
     ) -> None:
         self.df_cache = DataFrameRedisCache(
             redis_host, redis_port, redis_db, redis_max_connections
@@ -86,7 +87,7 @@ class DNSAnalyzerPipeline:
         self.n_standard_deviations = n_standard_deviations
         self.anomaly_influence = anomaly_influence
         self.detector = detector
-        self.threshold = 3
+        self.threshold = threshold
 
     def load_data(self, path: str, separator: str) -> pl.DataFrame:
         """Loads data from csv files
@@ -157,6 +158,10 @@ class DNSAnalyzerPipeline:
                 ),
             ]
         )
+        
+        # Filter invalid domains
+        x = x.filter(pl.col("query") != "|")
+        x = x.filter(pl.col("labels").list.len() > 1)
 
         return x
 
@@ -164,10 +169,6 @@ class DNSAnalyzerPipeline:
         """Starts the analyzation tasks with given data input."""
 
         # TODO Multithreading
-        # TODO Handle warnings for machine learning predictions
-
-        # preprocessor = Preprocessor(features_to_drop=[])
-        # processed_data = preprocessor.transform(self.data)
 
         # Creates anomaly detector
         config = AnomalyDetectorConfig(
@@ -185,6 +186,6 @@ class DNSAnalyzerPipeline:
                 raise NotImplementedError(f"Detector not implemented!")
 
         # Run anaylzers to find anomalies in data
-        config = AnalyzerConfig(detector, self.df_cache, self.threshold)
+        config = AnalyzerConfig(detector, self.df_cache, self.threshold, joblib.load("model.pkl"))
         for analyzer in ["IP"]:
             analyzer_factory(analyzer, config).run(self.data)

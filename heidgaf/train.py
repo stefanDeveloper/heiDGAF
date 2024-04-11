@@ -1,12 +1,17 @@
 import logging
 from enum import Enum
 
+import joblib
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
 import torch
 from fe_polars.encoding.target_encoding import TargetEncoder
 from fe_polars.imputing.base_imputing import Imputer
-
+from xgboost import XGBClassifier, XGBRFRegressor
+import polars as pl
 from heidgaf import dataset
+from heidgaf import models
 from heidgaf.cache import DataFrameRedisCache
 from heidgaf.models import Pipeline
 from heidgaf.models.lr import LogisticRegression
@@ -15,13 +20,17 @@ from heidgaf.dataset import Dataset
 
 
 class DNSAnalyzerTraining:
-    def __init__(self, model: torch.nn.Module, dataset: Dataset) -> None:
+    def __init__(
+        self, model: torch.nn.Module, dataset: Dataset = dataset.dgta_dataset
+    ) -> None:
         """Trainer class to fit models on data sets.
 
         Args:
             model (torch.nn.Module): Fit model.
             dataset (heidgaf.dataset.Dataset): Data set for training.
         """
+        self.model = model
+        self.dataset = dataset
 
     def train(self, seed=42):
         """Starts training of the model. Checks prior if GPU is available.
@@ -51,17 +60,55 @@ class DNSAnalyzerTraining:
             )
 
         logging.info(f"Loading data sets")
+        
+        params = {
+            'num_rounds': 100,
+            'max_depth': 8,
+            'max_leaves': 2**8,
+            'alpha': 0.9,
+            'eta': 0.1,
+            'gamma': 0.1,
+            'subsample': 1,
+            'reg_lambda': 1,
+            'scale_pos_weight': 2,
+            'objective': 'binary:logistic',
+            'verbose': True,
+            'gpu_id': 0,
+            'tree_method': 'hist',
+            # 'device': 'cuda'
+        }
 
         # Training model
         model_pipeline = Pipeline(
-            preprocessor=Preprocessor(features_to_drop=["query"]),
-            mean_imputer=Imputer(
-                features_to_impute=["FQDN_full_count"], strategy="mean"
+            preprocessor=Preprocessor(
+                features_to_drop=[
+                    "query",
+                    "labels",
+                    "thirdleveldomain",
+                    "secondleveldomain",
+                    "fqdn",
+                ]
             ),
+            mean_imputer=Imputer(features_to_impute=[], strategy="mean"),
             target_encoder=TargetEncoder(smoothing=100, features_to_encode=[]),
-            clf=LogisticRegression(input_dim=9, output_dim=1, epochs=5000),
+            clf=RandomForestClassifier(),
         )
+        
+        dataset_full = pl.concat([dataset.dgta_dataset.data, dataset.cic_dataset.data])
+        
+        dataset_full_data = Dataset(data_path="", data=dataset_full)
 
+        # model_pipeline.fit(
+        #     x_train=dataset.dgta_dataset.X_train, y_train=dataset.dgta_dataset.Y_train
+        # )
         model_pipeline.fit(
-            x_train=dataset.dgta_dataset.X_train, y_train=dataset.dgta_dataset.Y_train
+            x_train=dataset_full_data.X_train, y_train=dataset_full_data.Y_train
         )
+        
+        # y_pred = model_pipeline.predict(dataset.dgta_dataset.X_test)
+        # logging.info(classification_report(dataset.dgta_dataset.Y_test, y_pred, labels=[0,1]))
+        
+        y_pred = model_pipeline.predict(dataset_full_data.X_test)
+        logging.info(classification_report(dataset_full_data.Y_test, y_pred, labels=[0,1]))
+        
+        joblib.dump(model_pipeline.clf, "model.pkl")

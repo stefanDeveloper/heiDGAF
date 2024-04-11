@@ -44,23 +44,23 @@ def check_gpu():
 
 
 @cli.command(name="train", context_settings={"show_default": True})
-@click.option(
-    "-m", 
-    "--model", 
-    "model", 
-    required=True, 
-    type=click.Path(), 
-    help="Input directory or file for analyzing."
-)
-@click.option(
-    "-d", 
-    "--dataset", 
-    "dataset", 
-    required=True, 
-    type=click.Path(), 
-    help="Input directory or file for analyzing."
-)
-def training_model(model, dataset):
+# @click.option(
+#     "-m", 
+#     "--model", 
+#     "model", 
+#     required=True, 
+#     type=click.Path(), 
+#     help="Input directory or file for analyzing."
+# )
+# @click.option(
+#     "-d", 
+#     "--dataset", 
+#     "dataset", 
+#     required=True, 
+#     type=click.Path(), 
+#     help="Input directory or file for analyzing."
+# )
+def training_model():
     click.echo("Start training of model.")
     trainer = DNSAnalyzerTraining(
         model=LogisticRegression(input_dim=9, output_dim=1, epochs=5000)

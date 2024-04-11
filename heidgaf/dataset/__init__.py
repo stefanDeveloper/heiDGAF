@@ -2,9 +2,65 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Callable, List
 
+import numpy as np
 import polars as pl
 import sklearn.model_selection
 from torch.utils.data.dataset import Dataset
+from fe_polars.encoding.one_hot_encoding import OneHotEncoder
+
+
+def preprocess(x: pl.DataFrame):
+    x = x.with_columns(
+        [
+            (pl.col("query").str.split(".").alias("labels")),
+        ]
+    )
+
+    x = x.with_columns(
+        [
+            # FQDN
+            (pl.col("query")).alias("fqdn"),
+        ]
+    )
+
+    x = x.with_columns(
+        [
+            # Second-level domain
+            (
+                pl.when(pl.col("labels").list.len() > 2)
+                .then(pl.col("labels").list.get(-2))
+                .otherwise(pl.col("labels").list.get(0))
+                .alias("secondleveldomain")
+            )
+        ]
+    )
+
+    x = x.with_columns(
+        [
+            # Third-level domain
+            (
+                pl.when(pl.col("labels").list.len() > 2)
+                .then(
+                    pl.col("labels")
+                    .list.slice(0, pl.col("labels").list.len() - 2)
+                    .list.join(".")
+                )
+                .otherwise(pl.lit(""))
+                .alias("thirdleveldomain")
+            ),
+        ]
+    )
+    x = x.with_columns(
+            [
+                (
+                    pl.when(pl.col("class") == "legit")
+                        .then(pl.lit(0))
+                        .otherwise(pl.lit(1))
+                        .alias("class")
+                )
+            ]
+        )
+    return x
 
 
 def cast_cic(data_path: List[str]):
@@ -12,8 +68,12 @@ def cast_cic(data_path: List[str]):
     for data in data_path:
         y = data.split("_")[-1].split(".")[0]
         df = pl.read_csv(data, has_header=False)
-        df = df.with_columns([pl.lit(y).alias("class")])
+        if y == "benign":
+            df = df.with_columns([pl.lit("legit").alias("class")])
+        else:
+            df = df.with_columns([pl.lit(y).alias("class")])
         df = df.rename({"column_1": "query"})
+        df = preprocess(df)
         dataframes.append(df)
     return pl.concat(dataframes)
 
@@ -32,17 +92,22 @@ def cast_dgta(data_path: str) -> pl.DataFrame:
     # Drop unnecessary column
     df = df.drop("__index_level_0__")
     df = df.with_columns([pl.col("query").map(__custom_decode)])
+    df = preprocess(df)
     return df
 
 
 @dataclass
 class Dataset:
-    def __init__(self, data_path: Any, cast_dataset: Callable = None) -> None:
+    def __init__(self, data_path: Any, data: pl.DataFrame = None, cast_dataset: Callable = None) -> None:
         if cast_dataset != None:
             self.data = cast_dataset(data_path)
-        else:
+        elif data_path != "":
             self.data = pl.read_csv(data_path)
-
+        elif data != None:
+            self.data = data
+        else:
+            raise NotImplementedError("No data given")
+        self.label_encoder = OneHotEncoder(features_to_encode=["class"])
         self.X_train, self.X_val, self.X_test, self.Y_train, self.Y_val, self.Y_test = (
             self.__train_test_val_split()
         )
@@ -51,6 +116,10 @@ class Dataset:
         return len(self.data)
 
     def __train_test_val_split(self, train_frac=0.8, random_state=None):
+
+        # TODO binary and multiclass support
+        # self.data = self.label_encoder.transform(self.data)
+
         X_train, X_tmp, Y_train, Y_tmp = sklearn.model_selection.train_test_split(
             self.data.drop("class"),
             self.data.select("class"),
@@ -91,3 +160,4 @@ cic_dataset = Dataset(
     ],
     cast_dataset=cast_cic,
 )
+
