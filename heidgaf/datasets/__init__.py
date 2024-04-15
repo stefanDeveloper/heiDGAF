@@ -51,15 +51,15 @@ def preprocess(x: pl.DataFrame):
         ]
     )
     x = x.with_columns(
-            [
-                (
-                    pl.when(pl.col("class") == "legit")
-                        .then(pl.lit(0))
-                        .otherwise(pl.lit(1))
-                        .alias("class")
-                )
-            ]
-        )
+        [
+            (
+                pl.when(pl.col("class") == "legit")
+                .then(pl.lit(0))
+                .otherwise(pl.lit(1))
+                .alias("class")
+            )
+        ]
+    )
     return x
 
 
@@ -98,7 +98,24 @@ def cast_dgta(data_path: str) -> pl.DataFrame:
 
 @dataclass
 class Dataset:
-    def __init__(self, data_path: Any, data: pl.DataFrame = None, cast_dataset: Callable = None) -> None:
+    """Dataset class."""
+
+    def __init__(
+        self, data_path: Any, data: pl.DataFrame = None, cast_dataset: Callable = None
+    ) -> None:
+        """Initializes data.
+
+        Either a valid data_path is given to load data or the provided data is set. If callback for preprocessing is set, the callback is run by cast_dataset(data_path).
+
+
+        Args:
+            data_path (Any): _description_
+            data (pl.DataFrame, optional): _description_. Defaults to None.
+            cast_dataset (Callable, optional): _description_. Defaults to None.
+
+        Raises:
+            NotImplementedError: _description_
+        """
         if cast_dataset != None:
             self.data = cast_dataset(data_path)
         elif data_path != "":
@@ -113,12 +130,24 @@ class Dataset:
         )
 
     def __len__(self):
+        """Returns the length of data set.
+
+        Returns:
+            int: Length of the data set
+        """
         return len(self.data)
 
-    def __train_test_val_split(self, train_frac=0.8, random_state=None):
+    def __train_test_val_split(self, train_frac: float = 0.8, random_state: int = None) -> tuple[list, list, list, list, list, list]:
+        """Splits data set in train, test, and validation set
 
+        Args:
+            train_frac (float, optional): Training fraction. Defaults to 0.8.
+            random_state (int, optional): Random state. Defaults to None.
+
+        Returns:
+            tuple[list, list, list, list, list, list]: X_train, X_val, X_test, Y_train, Y_val, Y_test
+        """
         # TODO binary and multiclass support
-        # self.data = self.label_encoder.transform(self.data)
 
         X_train, X_tmp, Y_train, Y_tmp = sklearn.model_selection.train_test_split(
             self.data.drop("class"),
@@ -160,4 +189,3 @@ cic_dataset = Dataset(
     ],
     cast_dataset=cast_cic,
 )
-

@@ -1,12 +1,9 @@
-import logging
-
 import click
 import torch
 
 from heidgaf import CONTEXT_SETTINGS
-from heidgaf.main import Detector, DNSAnalyzerPipeline, FileType, Separator
-from heidgaf.models.lr import LogisticRegression
-from heidgaf.train import DNSAnalyzerTraining
+from heidgaf.main import Detector, DNSInspectorPipeline, FileType, Separator
+from heidgaf.train import Dataset, DNSAnalyzerTraining, Model
 from heidgaf.version import __version__
 
 try:
@@ -22,53 +19,42 @@ except ImportError:
 def cli():
     click.echo("Starting heiDGAF CLI")
 
-
-@cli.command(name="check_gpu")
-def check_gpu():
-    # setting device on GPU if available, else CPU
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    click.echo(f"Using device: {device}")
-    if torch.cuda.is_available():
-        click.echo("GPU detected")
-        click.echo(f"\t{torch.cuda.get_device_name(0)}")
-
-    if device.type == "cuda":
-        click.echo("Memory Usage:")
-        click.echo(
-            f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
-        )
-        click.echo(
-            f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
-        )
-
-
 @cli.command(name="train", context_settings={"show_default": True})
-# @click.option(
-#     "-m", 
-#     "--model", 
-#     "model", 
-#     required=True, 
-#     type=click.Path(), 
-#     help="Input directory or file for analyzing."
-# )
-# @click.option(
-#     "-d", 
-#     "--dataset", 
-#     "dataset", 
-#     required=True, 
-#     type=click.Path(), 
-#     help="Input directory or file for analyzing."
-# )
-def training_model():
+@click.option(
+    "-m", 
+    "--model", 
+    "model", 
+    required=True, 
+    type=click.Choice(Dataset),
+    help="Model for fitting."
+)
+@click.option(
+    "-d", 
+    "--dataset", 
+    "dataset", 
+    required=True, 
+    type=click.Choice(Dataset),
+    default=Dataset.ALL,
+    help="Dataset for fitting."
+)
+@click.option(
+    "-o", 
+    "--output_dir", 
+    "output_dir", 
+    required=True, 
+    type=click.STRING,
+    help="Output path of model."
+)
+def train(model, dataset, output_dir):
     click.echo("Start training of model.")
     trainer = DNSAnalyzerTraining(
-        model=LogisticRegression(input_dim=9, output_dim=1, epochs=5000)
+        model=model,
+        dataset=dataset
     )
-    trainer.train()
+    trainer.train(output_path=output_dir)
 
 
-@cli.command(name="process", context_settings={"show_default": True})
+@cli.command(name="inspect", context_settings={"show_default": True})
 @click.option(
     "-r", 
     "--read", 
@@ -149,11 +135,11 @@ def training_model():
     default=20,
     help="Sets Redis max connection for caching results.",
 )
-def training_start(
+def inspection(
     input_dir, detector, separator, filetype, lag, influence, n_standard_deviations, redis_host, redis_port, redis_db, redis_max_connection
 ):
     click.echo("Starts processing log lines of DNS traffic.")
-    pipeline = DNSAnalyzerPipeline(
+    pipeline = DNSInspectorPipeline(
         path=input_dir,
         detector=detector,
         lag=lag,

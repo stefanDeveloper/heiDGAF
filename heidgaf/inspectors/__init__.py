@@ -12,8 +12,8 @@ from fe_polars.imputing.base_imputing import Imputer
 
 from heidgaf.cache import DataFrameRedisCache
 from heidgaf.detectors.base_anomaly import AnomalyDetector
-from heidgaf.models import Pipeline
 from heidgaf.feature import Preprocessor
+from heidgaf.models import Pipeline
 
 
 @dataclass

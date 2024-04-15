@@ -9,10 +9,10 @@ class IPInspector(Inspector):
     KEY_DNS_SERVER = "dns_server_error_frequency"
 
     def __init__(self, config: InspectorConfig) -> None:
-        """IP analyzer class. It checks for anomalies of requests by client IPs.
+        """IP inspector class. It checks for anomalies of requests by client IPs.
 
         Args:
-            config (AnalyzerConfig): Analyzer configuraiton.
+            config (InspectorConfig): Inspector configuraiton.
         """
         super().__init__(config)
 

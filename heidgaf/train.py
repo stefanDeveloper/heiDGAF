@@ -1,5 +1,5 @@
 import logging
-from enum import Enum
+from enum import Enum, unique
 
 import joblib
 import numpy as np
@@ -9,19 +9,31 @@ from fe_polars.encoding.target_encoding import TargetEncoder
 from fe_polars.imputing.base_imputing import Imputer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
-from xgboost import XGBClassifier, XGBRFRegressor
 
-from heidgaf import datasets, models
-from heidgaf.cache import DataFrameRedisCache
+from heidgaf import datasets
+from heidgaf import models
 from heidgaf.datasets import Dataset
 from heidgaf.models import Pipeline
-from heidgaf.models.lr import LogisticRegression
 from heidgaf.feature import Preprocessor
+
+
+@unique
+class Dataset(str, Enum):
+    ALL = "all"
+    CIC = "cic"
+    DGTA = "dgta"
+
+
+@unique
+class Model(str, Enum):
+    RANDOM_FOREST_CLASSIFIER = "rf"
+    XG_BOOST_CLASSIFIER = "xg"
+    XG_BOOST_RANDOM_FOREST_CLASSIFIER = "xg-rf"
 
 
 class DNSAnalyzerTraining:
     def __init__(
-        self, model: torch.nn.Module, dataset: Dataset = datasets.dgta_dataset
+        self, model: Model.RANDOM_FOREST_CLASSIFIER, dataset: Dataset = Dataset.ALL
     ) -> None:
         """Trainer class to fit models on data sets.
 
@@ -29,10 +41,28 @@ class DNSAnalyzerTraining:
             model (torch.nn.Module): Fit model.
             dataset (heidgaf.dataset.Dataset): Data set for training.
         """
-        self.model = model
-        self.dataset = dataset
+        match dataset:
+            case "all":
+                self.dataset = Dataset(
+                    data_path="",
+                    data=pl.concat(
+                        [datasets.dgta_dataset.data, datasets.cic_dataset.data]
+                    ),
+                )
+            case "cic":
+                self.dataset = datasets.cic_dataset.data
+            case "dgta":
+                self.dataset = datasets.dgta_dataset.data
+            case _:
+                raise NotImplementedError(f"Dataset not implemented!")
 
-    def train(self, seed=42):
+        match model:
+            case "rf":
+                self.model = models.random_forest_model
+            case _:
+                raise NotImplementedError(f"Model not implemented!")
+
+    def train(self, seed=42, output_path: str = "model.pkl"):
         """Starts training of the model. Checks prior if GPU is available.
 
         Args:
@@ -60,23 +90,6 @@ class DNSAnalyzerTraining:
             )
 
         logging.info(f"Loading data sets")
-        
-        params = {
-            'num_rounds': 100,
-            'max_depth': 8,
-            'max_leaves': 2**8,
-            'alpha': 0.9,
-            'eta': 0.1,
-            'gamma': 0.1,
-            'subsample': 1,
-            'reg_lambda': 1,
-            'scale_pos_weight': 2,
-            'objective': 'binary:logistic',
-            'verbose': True,
-            'gpu_id': 0,
-            'tree_method': 'hist',
-            # 'device': 'cuda'
-        }
 
         # Training model
         model_pipeline = Pipeline(
@@ -91,18 +104,12 @@ class DNSAnalyzerTraining:
             ),
             mean_imputer=Imputer(features_to_impute=[], strategy="mean"),
             target_encoder=TargetEncoder(smoothing=100, features_to_encode=[]),
-            clf=RandomForestClassifier(),
+            clf=self.model,
         )
-        
-        dataset_full = pl.concat([datasets.dgta_dataset.data, datasets.cic_dataset.data])
-        
-        dataset_full_data = Dataset(data_path="", data=dataset_full)
 
-        model_pipeline.fit(
-            x_train=dataset_full_data.X_train, y_train=dataset_full_data.Y_train
-        )
-        
-        y_pred = model_pipeline.predict(dataset_full_data.X_test)
-        logging.info(classification_report(dataset_full_data.Y_test, y_pred, labels=[0,1]))
-        
-        joblib.dump(model_pipeline.clf, "model.pkl")
+        model_pipeline.fit(x_train=self.dataset.X_train, y_train=self.dataset.Y_train)
+
+        y_pred = model_pipeline.predict(self.dataset.X_test)
+        logging.info(classification_report(self.dataset.Y_test, y_pred, labels=[0, 1]))
+
+        joblib.dump(model_pipeline.clf, output_path)

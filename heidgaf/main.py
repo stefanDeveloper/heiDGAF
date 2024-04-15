@@ -25,13 +25,13 @@ class Detector(str, Enum):
 
 
 @unique
-class FileType(Enum):
+class FileType(str, Enum):
     CSV = "csv"
     TXT = "txt"
 
 
 @unique
-class Separator(Enum):
+class Separator(str, Enum):
     SPACE = " "
     COMMA = ","
 
@@ -49,7 +49,7 @@ def inspector_factory(source: str, config: InspectorConfig) -> Inspector:
         )
 
 
-class DNSAnalyzerPipeline:
+class DNSInspectorPipeline:
     """Main analyzer pipeline. It loads new data and processes it through our analyzers. If an anomaly occurs, our models run"""
 
     def __init__(
@@ -58,6 +58,7 @@ class DNSAnalyzerPipeline:
         lag: float = 15,
         n_standard_deviations: float = 3,
         anomaly_influence: float = 0.7,
+        order: tuple = (1, 1, 0),
         filetype=FileType.TXT,
         separator=Separator.SPACE,
         detector=Detector.THRESHOLDING,
@@ -85,6 +86,7 @@ class DNSAnalyzerPipeline:
         self.anomaly_influence = anomaly_influence
         self.detector = detector
         self.threshold = threshold
+        self.order = order
 
     def load_data(self, path: str, separator: str) -> pl.DataFrame:
         """Loads data from csv files
@@ -176,13 +178,13 @@ class DNSAnalyzerPipeline:
             case "threshold":
                 detector = ThresholdingAnomalyDetector(config)
             case "arima":
-                detector = ARIMAAnomalyDetector(config)
+                detector = ARIMAAnomalyDetector(config, self.order)
             case "ema":
                 detector = EMAAnomalyDetector(config)
             case _:
                 raise NotImplementedError(f"Detector not implemented!")
 
-        # Run anaylzers to find anomalies in data
+        # Run inspectors to find anomalies in data
         config = InspectorConfig(
             detector, self.df_cache, self.threshold, joblib.load("model.pkl")
         )

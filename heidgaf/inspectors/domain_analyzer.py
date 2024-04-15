@@ -14,6 +14,11 @@ class DomainInspector(Inspector):
     KEY_FQDN = "fqdn_frequency"
 
     def __init__(self, config: InspectorConfig) -> None:
+        """Domain inspector class. It checks for anomalies of requests.
+
+        Args:
+            config (InspectorConfig): Inspector configuraiton.
+        """
         super().__init__(config)
 
     def update_threshold(threshould, tpr, fpr):
