@@ -2,24 +2,23 @@ import datetime
 import logging
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Any, List
-import matplotlib.pyplot as plt
+from typing import List
+
 import numpy as np
 import polars as pl
 import torch
 from fe_polars.encoding.target_encoding import TargetEncoder
 from fe_polars.imputing.base_imputing import Imputer
-from heidgaf import ReturnCode
+
 from heidgaf.cache import DataFrameRedisCache
-from heidgaf.detectors.base_anomaly import AnomalyDetector, AnomalyDetectorConfig
-from heidgaf.detectors.thresholding_algorithm import ThresholdingAnomalyDetector
+from heidgaf.detectors.base_anomaly import AnomalyDetector
 from heidgaf.models import Pipeline
-from heidgaf.post.feature import Preprocessor
+from heidgaf.feature import Preprocessor
 
 
 @dataclass
-class AnalyzerConfig:
-    """Configuration class of Analyzers"""
+class InspectorConfig:
+    """Configuration class of inspectors."""
 
     detector: AnomalyDetector
     df_cache: DataFrameRedisCache
@@ -27,38 +26,25 @@ class AnalyzerConfig:
     model: torch.nn.Module
 
 
-class Analyzer(metaclass=ABCMeta):
-    """_summary_
+class Inspector(metaclass=ABCMeta):
+    """Metaclass to test DNS requests.
 
     Args:
-        metaclass (_type_, optional): _description_. Defaults to ABCMeta.
+        metaclass (_type_, optional): Metaclass object. Defaults to ABCMeta.
     """
 
-    def __init__(self, config: AnalyzerConfig) -> None:
+    def __init__(self, config: InspectorConfig) -> None:
+        """Initializes detector, cache, threshold, and model.
+
+        Args:
+            config (TesterConfig): TesterConfig.
+        """
         self.detector = config.detector
         self.df_cache = config.df_cache
         self.threshold = config.threshold
         self.model = config.model
 
-    @abstractmethod
-    def run(self, data: pl.DataFrame) -> None:
-        """_summary_
-
-        Args:
-            data (pl.DataFrame): _description_
-            df_cache (DataFrameRedisCache): _description_
-        """
-        pass
-
-    def set_warning(self, data: pl.DataFrame, warnings: List, id: str) -> None:
-        """Creates initial warning for classifiers
-
-        Args:
-            data (pl.DataFrame): _description_
-            warnings (pl.DataFrame): _description_
-            id (str): _description_
-        """
-        model_pipeline = Pipeline(
+        self.model_pipeline = Pipeline(
             preprocessor=Preprocessor(
                 features_to_drop=[
                     "timestamp",
@@ -80,22 +66,57 @@ class Analyzer(metaclass=ABCMeta):
             target_encoder=TargetEncoder(smoothing=100, features_to_encode=[]),
             clf=self.model,
         )
-        for warning in warnings:
-            logging.debug(f"Analyze data in depth for {warning}")
-            
-            data_id = data.filter(pl.col(id) == warning)
 
-            # Predict data based on model
-            y_pred = model_pipeline.predict(data_id)
-            
-            indices = np.where(y_pred == 1)[0]
-            data_id = data_id.with_row_count(name="idx", offset=0)
-            supicious_data = data_id.filter(pl.col("idx").is_in(indices))
-            
-            
-            if not supicious_data.is_empty():
-                print(f"{warning} has following errors")
-                print(supicious_data.select(["fqdn"]).unique())
+    @abstractmethod
+    def run(self, data: pl.DataFrame) -> pl.DataFrame:
+        """Runs tester.
+
+        Args:
+            data (pl.DataFrame): Preprocessed data
+
+        Returns:
+            pl.DataFrame: Suspicious Ids.
+        """
+        pass
+
+    def warnings(self, data: pl.DataFrame, suspicious: List, id: str) -> None:
+        """Creates initial warning for classifiers
+
+        Args:
+            data (pl.DataFrame): Preprocessed data.
+            suspicious (List): Suspicious Id's retrieved by detectors.
+            id (str): Id of column to process.
+        """
+
+        fqdn_distro = data.group_by("fqdn").agg(
+            pl.col("return_code")
+            .is_in(["NXDOMAIN", "SERVFAIL"])
+            .sum()
+            .truediv(
+                pl.col("client_ip").count().truediv(pl.col("client_ip").n_unique())
+            )
+            .alias("distro")
+        )
+        fqdn_distro = fqdn_distro.filter(pl.col("distro") > 0.1)
+
+        for warning in suspicious:
+            logging.debug(f"Analyze data in depth for {warning}")
+
+            data_id = data.filter(pl.col(id) == warning).filter(
+                pl.col("fqdn").is_in(fqdn_distro["fqdn"].to_list())
+            )
+            if not data_id.is_empty():
+                # Predict data based on model
+                y_pred = self.model_pipeline.predict(data_id)
+
+                indices = np.where(y_pred == 1)[0]
+                data_id = data_id.with_row_count(name="idx", offset=0)
+                supicious_data = data_id.filter(pl.col("idx").is_in(indices))
+
+                if not supicious_data.is_empty():
+                    logging.debug(f"{warning} has following errors")
+                    with pl.Config(tbl_rows=100):
+                        logging.debug(supicious_data.select(["fqdn"]).unique())
 
     def update_count(
         self,
@@ -126,14 +147,15 @@ class Analyzer(metaclass=ABCMeta):
         id_distribution = all_dates.join(
             id_distribution, how="left", on=[id, "timestamp"]
         ).fill_null(0)
-        
+
         # Iterate over all unique IDs
         unique_id = id_distribution.select([id]).unique()
         for row in unique_id.rows(named=True):
+
             # Run detector
             unique_id_distro = id_distribution.filter(pl.col(id) == row[id])
             detector_results = self.detector.run(unique_id_distro["count"])
-            
+
             # If total count of signals is higher than threshold, we append our supsicious IPs to our warnings list
             if np.sum(detector_results["signals"]) > self.threshold:
                 warnings.append(row[id])

@@ -5,8 +5,8 @@ from typing import Any, Callable, List
 import numpy as np
 import polars as pl
 import sklearn.model_selection
-from torch.utils.data.dataset import Dataset
 from fe_polars.encoding.one_hot_encoding import OneHotEncoder
+from torch.utils.data.dataset import Dataset
 
 
 def preprocess(x: pl.DataFrame):

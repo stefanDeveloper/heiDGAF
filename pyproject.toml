@@ -43,12 +43,6 @@ heidgaf = "heidgaf.cli:cli"
 "Homepage" = "https://github.com/stefanDeveloper/heiDGAF"
 "Bug Tracker" = "https://github.com/stefanDeveloper/heiDGAF/issues"
 
-[tool.autopep8]
-max_line_length = 180
-in-place = true
-recursive = true
-aggressive = 3
-
 [tool.setuptools]
 include-package-data = true
 
@@ -76,6 +70,6 @@ license = "EUPL-1.2"
 authors = ["Stefan Machmeier"]
 
 [[tool.poetry_bumpversion.replacements]]
-files = ["heidgaf/__init__.py", "heidgaf/exceptions/__init__.py", "heidgaf/images/__init__.py", "heidgaf/layers/__init__.py", "heidgaf/plugins/__init__.py", "heidgaf/protocols/__init__.py"]
+files = ["heidgaf/__init__.py", "heidgaf/detectors/__init__.py", "heidgaf/inspectors/__init__.py", "heidgaf/models/__init__.py", "heidgaf/datasets/__init__.py"]
 search = '__version__ = "{current_version}"'
 replace = '__version__ = "{new_version}"'

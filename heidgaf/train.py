@@ -3,25 +3,25 @@ from enum import Enum
 
 import joblib
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
+import polars as pl
 import torch
 from fe_polars.encoding.target_encoding import TargetEncoder
 from fe_polars.imputing.base_imputing import Imputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
 from xgboost import XGBClassifier, XGBRFRegressor
-import polars as pl
-from heidgaf import dataset
-from heidgaf import models
+
+from heidgaf import datasets, models
 from heidgaf.cache import DataFrameRedisCache
+from heidgaf.datasets import Dataset
 from heidgaf.models import Pipeline
 from heidgaf.models.lr import LogisticRegression
-from heidgaf.post.feature import Preprocessor
-from heidgaf.dataset import Dataset
+from heidgaf.feature import Preprocessor
 
 
 class DNSAnalyzerTraining:
     def __init__(
-        self, model: torch.nn.Module, dataset: Dataset = dataset.dgta_dataset
+        self, model: torch.nn.Module, dataset: Dataset = datasets.dgta_dataset
     ) -> None:
         """Trainer class to fit models on data sets.
 
@@ -94,19 +94,13 @@ class DNSAnalyzerTraining:
             clf=RandomForestClassifier(),
         )
         
-        dataset_full = pl.concat([dataset.dgta_dataset.data, dataset.cic_dataset.data])
+        dataset_full = pl.concat([datasets.dgta_dataset.data, datasets.cic_dataset.data])
         
         dataset_full_data = Dataset(data_path="", data=dataset_full)
 
-        # model_pipeline.fit(
-        #     x_train=dataset.dgta_dataset.X_train, y_train=dataset.dgta_dataset.Y_train
-        # )
         model_pipeline.fit(
             x_train=dataset_full_data.X_train, y_train=dataset_full_data.Y_train
         )
-        
-        # y_pred = model_pipeline.predict(dataset.dgta_dataset.X_test)
-        # logging.info(classification_report(dataset.dgta_dataset.Y_test, y_pred, labels=[0,1]))
         
         y_pred = model_pipeline.predict(dataset_full_data.X_test)
         logging.info(classification_report(dataset_full_data.Y_test, y_pred, labels=[0,1]))

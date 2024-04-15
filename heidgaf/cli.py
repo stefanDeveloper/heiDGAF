@@ -4,7 +4,7 @@ import click
 import torch
 
 from heidgaf import CONTEXT_SETTINGS
-from heidgaf.main import DNSAnalyzerPipeline, Detector, FileType, Separator
+from heidgaf.main import Detector, DNSAnalyzerPipeline, FileType, Separator
 from heidgaf.models.lr import LogisticRegression
 from heidgaf.train import DNSAnalyzerTraining
 from heidgaf.version import __version__

@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import logging
 import os
 from enum import Enum, unique
@@ -7,16 +6,15 @@ import joblib
 import polars as pl
 from click import Path
 
-from heidgaf.cache import DataFrameRedisCache, StringRedisCache
+from heidgaf.cache import DataFrameRedisCache
 from heidgaf.detectors.arima_anomaly_detector import ARIMAAnomalyDetector
 from heidgaf.detectors.base_anomaly import AnomalyDetectorConfig
 from heidgaf.detectors.exponential_thresholding import EMAAnomalyDetector
-from heidgaf.detectors.thresholding_algorithm import ThresholdingAnomalyDetector
-from heidgaf.post.feature import Preprocessor
-from heidgaf.pre import Analyzer, AnalyzerConfig
-from heidgaf.pre.domain_analyzer import DomainAnalyzer
-from heidgaf.pre.ip_analyzer import IPAnalyzer
-from heidgaf.pre.time_analyer import TimeAnalyzer
+from heidgaf.detectors.thresholding_algorithm import \
+    ThresholdingAnomalyDetector
+from heidgaf.inspectors import Inspector, InspectorConfig
+from heidgaf.inspectors.domain_analyzer import DomainInspector
+from heidgaf.inspectors.ip_analyzer import IPInspector
 
 
 @unique
@@ -38,11 +36,10 @@ class Separator(Enum):
     COMMA = ","
 
 
-def analyzer_factory(source: str, config: AnalyzerConfig) -> Analyzer:
+def inspector_factory(source: str, config: InspectorConfig) -> Inspector:
     factory = {
-        "IP": (IPAnalyzer(config)),
-        "Domain": (DomainAnalyzer(config)),
-        "Time": (TimeAnalyzer(config)),
+        "IP": (IPInspector(config)),
+        "Domain": (DomainInspector(config)),
     }
     if source in factory:
         return factory[source]
@@ -68,7 +65,7 @@ class DNSAnalyzerPipeline:
         redis_port=6379,
         redis_db=0,
         redis_max_connections=20,
-        threshold=5
+        threshold=5,
     ) -> None:
         self.df_cache = DataFrameRedisCache(
             redis_host, redis_port, redis_db, redis_max_connections
@@ -158,7 +155,7 @@ class DNSAnalyzerPipeline:
                 ),
             ]
         )
-        
+
         # Filter invalid domains
         x = x.filter(pl.col("query") != "|")
         x = x.filter(pl.col("labels").list.len() > 1)
@@ -180,12 +177,14 @@ class DNSAnalyzerPipeline:
                 detector = ThresholdingAnomalyDetector(config)
             case "arima":
                 detector = ARIMAAnomalyDetector(config)
-            case "threshold":
+            case "ema":
                 detector = EMAAnomalyDetector(config)
             case _:
                 raise NotImplementedError(f"Detector not implemented!")
 
         # Run anaylzers to find anomalies in data
-        config = AnalyzerConfig(detector, self.df_cache, self.threshold, joblib.load("model.pkl"))
-        for analyzer in ["IP"]:
-            analyzer_factory(analyzer, config).run(self.data)
+        config = InspectorConfig(
+            detector, self.df_cache, self.threshold, joblib.load("model.pkl")
+        )
+        for inspector in ["IP", "Domain"]:
+            inspector_factory(inspector, config).run(self.data)
