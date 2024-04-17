@@ -110,26 +110,105 @@ class Preprocessor:
         x = x.with_columns(
             [
                 (
-                    pl.col("thirdleveldomain")
-                    .str.len_chars()
-                    .truediv(pl.col("thirdleveldomain").str.len_chars())
-                    .alias("thirdleveldomain_full_count")
-                ),
+                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
+                    .then(pl.lit(0))
+                    .otherwise(
+                        pl.col("thirdleveldomain")
+                        .str.len_chars()
+                        .truediv(pl.col("thirdleveldomain").str.len_chars())
+                    )
+                ).alias("thirdleveldomain_full_count"),
                 (
-                    pl.col("thirdleveldomain")
-                    .str.count_matches(r"[a-zA-Z]")
-                    .truediv(pl.col("thirdleveldomain").str.len_chars())
+                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
+                    .then(pl.lit(0))
+                    .otherwise(
+                        pl.col("thirdleveldomain")
+                        .str.count_matches(r"[a-zA-Z]")
+                        .truediv(pl.col("thirdleveldomain").str.len_chars())
+                    )
                 ).alias("thirdleveldomain_alpha_count"),
                 (
-                    pl.col("thirdleveldomain")
-                    .str.count_matches(r"[0-9]")
-                    .truediv(pl.col("thirdleveldomain").str.len_chars())
+                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
+                    .then(pl.lit(0))
+                    .otherwise(
+                        pl.col("thirdleveldomain")
+                        .str.count_matches(r"[0-9]")
+                        .truediv(pl.col("thirdleveldomain").str.len_chars())
+                    )
                 ).alias("thirdleveldomain_numeric_count"),
                 (
-                    pl.col("thirdleveldomain")
-                    .str.count_matches(r"[^\w\s]")
-                    .truediv(pl.col("thirdleveldomain").str.len_chars())
+                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
+                    .then(pl.lit(0))
+                    .otherwise(
+                        pl.col("thirdleveldomain")
+                        .str.count_matches(r"[^\w\s]")
+                        .truediv(pl.col("thirdleveldomain").str.len_chars())
+                    )
                 ).alias("thirdleveldomain_special_count"),
+            ]
+        )
+        x = x.with_columns(
+            [
+                (
+                    pl.concat_list(
+                        pl.all().exclude(
+                            "tld",
+                            "query",
+                            "labels",
+                            "thirdleveldomain",
+                            "secondleveldomain",
+                            "fqdn",
+                            "class",
+                        )
+                    )
+                    .list.eval(pl.element().std())
+                    .list.get(0)
+                ).alias("std"),
+                (
+                    pl.concat_list(
+                        pl.all().exclude(
+                            "tld",
+                            "query",
+                            "labels",
+                            "thirdleveldomain",
+                            "secondleveldomain",
+                            "fqdn",
+                            "class",
+                        )
+                    )
+                    .list.eval(pl.element().var())
+                    .list.get(0)
+                ).alias("var"),
+                (
+                    pl.concat_list(
+                        pl.all().exclude(
+                            "tld",
+                            "query",
+                            "labels",
+                            "thirdleveldomain",
+                            "secondleveldomain",
+                            "fqdn",
+                            "class",
+                        )
+                    )
+                    .list.eval(pl.element().median())
+                    .list.get(0)
+                ).alias("median"),
+                (
+                    pl.concat_list(
+                        pl.all().exclude(
+                            "tld",
+                            "query",
+                            "labels",
+                            "thirdleveldomain",
+                            "secondleveldomain",
+                            "fqdn",
+                            "class",
+                        )
+                    )
+                    .list.eval(pl.element().mean())
+                    .list.get(0)
+                ).alias("mean"),
             ]
         )
 
@@ -162,11 +241,12 @@ class Preprocessor:
             )
             x = x.drop("prob")
         logging.debug("Finished entropy calculation")
+
         # Fill NaN
         x = x.fill_nan(0)
         # Drop features not useful anymore
         x = x.drop(self.features_to_drop)
 
         logging.debug("Finished data transformation")
-        
+
         return x

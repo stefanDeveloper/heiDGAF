@@ -4,6 +4,8 @@ from enum import Enum, unique
 
 import joblib
 import polars as pl
+import redis
+import redis.exceptions
 from click import Path
 
 from heidgaf.cache import DataFrameRedisCache
@@ -68,9 +70,13 @@ class DNSInspectorPipeline:
         redis_max_connections=20,
         threshold=5,
     ) -> None:
-        self.df_cache = DataFrameRedisCache(
-            redis_host, redis_port, redis_db, redis_max_connections
-        )
+        try:
+            self.df_cache = DataFrameRedisCache(
+                redis_host, redis_port, redis_db, redis_max_connections
+            )
+        except redis.exceptions.ConnectionError:
+            logging.warning("No connection to Redis host")
+            
 
         if os.path.isfile(path):
             logging.debug(f"Processing files: {path}")
@@ -120,6 +126,12 @@ class DNSInspectorPipeline:
         x = x.with_columns(
             [
                 (pl.col("query").str.split(".").alias("labels")),
+            ]
+        )
+
+        x = x.with_columns(
+            [
+                (pl.col("labels").get(-1).alias("tld")),
             ]
         )
 

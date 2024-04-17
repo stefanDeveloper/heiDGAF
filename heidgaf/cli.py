@@ -25,7 +25,7 @@ def cli():
     "--model", 
     "model", 
     required=True, 
-    type=click.Choice(Dataset),
+    type=click.Choice(Model),
     help="Model for fitting."
 )
 @click.option(

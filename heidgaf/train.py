@@ -10,11 +10,10 @@ from fe_polars.imputing.base_imputing import Imputer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 
-from heidgaf import datasets
-from heidgaf import models
+from heidgaf import datasets, models
 from heidgaf.datasets import Dataset
-from heidgaf.models import Pipeline
 from heidgaf.feature import Preprocessor
+from heidgaf.models import Pipeline
 
 
 @unique
@@ -43,10 +42,10 @@ class DNSAnalyzerTraining:
         """
         match dataset:
             case "all":
-                self.dataset = Dataset(
+                self.dataset = datasets.Dataset(
                     data_path="",
                     data=pl.concat(
-                        [datasets.dgta_dataset.data, datasets.cic_dataset.data]
+                        [datasets.dgta_dataset.data, datasets.cic_dataset.data, datasets.bambenek_dataset.data, datasets.dga_dataset.data]
                     ),
                 )
             case "cic":
@@ -59,6 +58,10 @@ class DNSAnalyzerTraining:
         match model:
             case "rf":
                 self.model = models.random_forest_model
+            case "xg":
+                self.model = models.xgboost_model
+            case "xg-rf":
+                self.model = models.xgboost_rf_model
             case _:
                 raise NotImplementedError(f"Model not implemented!")
 
@@ -102,8 +105,8 @@ class DNSAnalyzerTraining:
                     "fqdn",
                 ]
             ),
-            mean_imputer=Imputer(features_to_impute=[], strategy="mean"),
-            target_encoder=TargetEncoder(smoothing=100, features_to_encode=[]),
+            mean_imputer=Imputer(features_to_impute=["thirdleveldomain_full_count", "secondleveldomain_full_count", "fqdn_full_count"], strategy="mean"),
+            target_encoder=TargetEncoder(smoothing=100, features_to_encode=["tld"]),
             clf=self.model,
         )
 
@@ -111,5 +114,8 @@ class DNSAnalyzerTraining:
 
         y_pred = model_pipeline.predict(self.dataset.X_test)
         logging.info(classification_report(self.dataset.Y_test, y_pred, labels=[0, 1]))
+
+        y_pred = model_pipeline.predict(self.dataset.X_val)
+        logging.info(classification_report(self.dataset.Y_val, y_pred, labels=[0, 1]))
 
         joblib.dump(model_pipeline.clf, output_path)

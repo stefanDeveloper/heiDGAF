@@ -15,6 +15,12 @@ def preprocess(x: pl.DataFrame):
             (pl.col("query").str.split(".").alias("labels")),
         ]
     )
+    
+    x = x.with_columns(
+        [
+            (pl.col("labels").list.get(-1).alias("tld")),
+        ]
+    )
 
     x = x.with_columns(
         [
@@ -60,8 +66,25 @@ def preprocess(x: pl.DataFrame):
             )
         ]
     )
+ 
     return x
 
+
+def cast_dga(data_path: str):
+    df = pl.read_csv(data_path)
+    df = df.rename({"Domain": "query"})
+    df = df.drop(["DGA_family", "Type"])
+    df = df.with_columns([pl.lit("malicious").alias("class")])
+    df = preprocess(df)
+    return df
+
+def cast_bambenek(data_path: str):
+    df = pl.read_csv(data_path)
+    df = df.rename({"Domain": "query"})
+    df = df.drop(["DGA_family", "Type"])
+    df = df.with_columns([pl.lit("malicious").alias("class")])
+    df = preprocess(df)
+    return df
 
 def cast_cic(data_path: List[str]):
     dataframes = []
@@ -120,7 +143,7 @@ class Dataset:
             self.data = cast_dataset(data_path)
         elif data_path != "":
             self.data = pl.read_csv(data_path)
-        elif data != None:
+        elif not data is None:
             self.data = data
         else:
             raise NotImplementedError("No data given")
@@ -147,8 +170,10 @@ class Dataset:
         Returns:
             tuple[list, list, list, list, list, list]: X_train, X_val, X_test, Y_train, Y_val, Y_test
         """
-        # TODO binary and multiclass support
 
+        self.data = self.data.filter(pl.col("query").str.len_chars() > 0)
+        self.data = self.data.unique(subset="query")
+        
         X_train, X_tmp, Y_train, Y_tmp = sklearn.model_selection.train_test_split(
             self.data.drop("class"),
             self.data.select("class"),
@@ -178,6 +203,16 @@ class Dataset:
 dgta_dataset = Dataset(
     data_path="/home/smachmeier/projects/heiDGA/data/dgta/dgta-benchmark.parquet",
     cast_dataset=cast_dgta,
+)
+
+dga_dataset = Dataset(
+    data_path="/home/smachmeier/projects/heiDGA/data/360_dga_domain.csv",
+    cast_dataset=cast_dga,
+)
+
+bambenek_dataset = Dataset(
+    data_path="/home/smachmeier/projects/heiDGA/data/bambenek_dga_domain.csv",
+    cast_dataset=cast_bambenek,
 )
 
 cic_dataset = Dataset(

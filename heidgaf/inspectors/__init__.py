@@ -97,7 +97,7 @@ class Inspector(metaclass=ABCMeta):
             )
             .alias("distro")
         )
-        fqdn_distro = fqdn_distro.filter(pl.col("distro") > 0.1)
+        fqdn_distro = fqdn_distro.filter(pl.col("distro") > 0.05)
 
         for warning in suspicious:
             logging.debug(f"Analyze data in depth for {warning}")
