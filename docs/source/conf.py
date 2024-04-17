@@ -5,11 +5,11 @@ import sys
 
 # -- Project information
 
-project = 'heidgaf'
-copyright = '2024, Stefan Machmeier'
-author = 'Stefan Machmeier'
+project = "heidgaf"
+copyright = "2024, Stefan Machmeier"
+author = "Stefan Machmeier"
 
-exec(open('../../heidgaf/version.py').read())
+exec(open("../../heidgaf/version.py").read())
 
 version = __version__
 # The full version, including alpha/beta/rc tags
@@ -23,38 +23,38 @@ release = __version__
 #
 
 
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath("../.."))
 
 # -- General configuration
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon',
-    'sphinx_autodoc_typehints',
-    'sphinx.ext.autosummary',
-    'sphinxcontrib.apidoc',  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
-    'nbsphinx',
-    'myst_parser',
-    'sphinx_design',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",
+    "sphinx.ext.autosummary",
+    "sphinxcontrib.apidoc",  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
+    "nbsphinx",
+    "myst_parser",
+    "sphinx_design",
 ]
 
 # -- nbsphinx settings -------------------------------------------------------
 nbsphinx_execute = "auto"
 
 # -- apidoc settings ---------------------------------------------------------
-apidoc_module_dir = '../../heidgaf'
-apidoc_output_dir = 'api'
-apidoc_excluded_paths = ['**/*test*']
+apidoc_module_dir = "../../heidgaf"
+apidoc_output_dir = "api"
+apidoc_excluded_paths = ["**/*test*"]
 apidoc_module_first = True
 apidoc_separate_modules = True
-apidoc_extra_args = ['-d 6']
+apidoc_extra_args = ["-d 6"]
 
 
 # Napoleon settings
@@ -72,18 +72,18 @@ napoleon_use_rtype = False
 
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3/', None),
-    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
+    "python": ("https://docs.python.org/3/", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/master/", None),
 }
-intersphinx_disabled_domains = ['std']
+intersphinx_disabled_domains = ["std"]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # -- Options for HTML output
 
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # -- Options for EPUB output
-epub_show_urls = 'footnote'
+epub_show_urls = "footnote"
 
 language = "en"

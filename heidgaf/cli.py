@@ -1,5 +1,4 @@
 import click
-import torch
 
 from heidgaf import CONTEXT_SETTINGS
 from heidgaf.main import Detector, DNSInspectorPipeline, FileType, Separator

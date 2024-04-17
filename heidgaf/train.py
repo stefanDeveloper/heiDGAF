@@ -7,7 +7,6 @@ import polars as pl
 import torch
 from fe_polars.encoding.target_encoding import TargetEncoder
 from fe_polars.imputing.base_imputing import Imputer
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 
 from heidgaf import datasets, models
@@ -38,7 +37,7 @@ class DNSAnalyzerTraining:
 
         Args:
             model (torch.nn.Module): Fit model.
-            dataset (heidgaf.dataset.Dataset): Data set for training.
+            dataset (heidgaf.datasets.Dataset): Data set for training.
         """
         match dataset:
             case "all":
@@ -75,23 +74,6 @@ class DNSAnalyzerTraining:
             np.random.seed(seed)
             torch.manual_seed(seed)
 
-        # setting device on GPU if available, else CPU
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        logging.info(f"Using device: {device}")
-        if torch.cuda.is_available():
-            logging.info("GPU detected")
-            logging.info(f"\t{torch.cuda.get_device_name(0)}")
-
-        if device.type == "cuda":
-            logging.info("Memory Usage:")
-            logging.info(
-                f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
-            )
-            logging.info(
-                f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
-            )
-
         logging.info(f"Loading data sets")
 
         # Training model
@@ -103,10 +85,11 @@ class DNSAnalyzerTraining:
                     "thirdleveldomain",
                     "secondleveldomain",
                     "fqdn",
+                    "tld"
                 ]
             ),
-            mean_imputer=Imputer(features_to_impute=["thirdleveldomain_full_count", "secondleveldomain_full_count", "fqdn_full_count"], strategy="mean"),
-            target_encoder=TargetEncoder(smoothing=100, features_to_encode=["tld"]),
+            mean_imputer=Imputer(features_to_impute=[], strategy="mean"),
+            target_encoder=TargetEncoder(smoothing=100, features_to_encode=[]),
             clf=self.model,
         )
 
