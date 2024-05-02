@@ -15,7 +15,7 @@ def preprocess(x: pl.DataFrame):
             (pl.col("query").str.split(".").alias("labels")),
         ]
     )
-    
+
     x = x.with_columns(
         [
             (pl.col("labels").list.get(-1).alias("tld")),
@@ -66,7 +66,7 @@ def preprocess(x: pl.DataFrame):
             )
         ]
     )
- 
+
     return x
 
 
@@ -78,6 +78,7 @@ def cast_dga(data_path: str):
     df = preprocess(df)
     return df
 
+
 def cast_bambenek(data_path: str):
     df = pl.read_csv(data_path)
     df = df.rename({"Domain": "query"})
@@ -85,6 +86,7 @@ def cast_bambenek(data_path: str):
     df = df.with_columns([pl.lit("malicious").alias("class")])
     df = preprocess(df)
     return df
+
 
 def cast_cic(data_path: List[str]):
     dataframes = []
@@ -117,6 +119,50 @@ def cast_dgta(data_path: str) -> pl.DataFrame:
     df = df.with_columns([pl.col("query").map(__custom_decode)])
     df = preprocess(df)
     return df
+
+
+class DatasetLoader:
+    def __init__(self) -> None:
+        self.dgta_dataset = Dataset(
+            data_path="/home/smachmeier/projects/heiDGA/data/dgta/dgta-benchmark.parquet",
+            cast_dataset=cast_dgta,
+        )
+
+        self.dga_dataset = Dataset(
+            data_path="/home/smachmeier/projects/heiDGA/data/360_dga_domain.csv",
+            cast_dataset=cast_dga,
+        )
+
+        self.bambenek_dataset = Dataset(
+            data_path="/home/smachmeier/projects/heiDGA/data/bambenek_dga_domain.csv",
+            cast_dataset=cast_bambenek,
+        )
+
+        self.cic_dataset = Dataset(
+            data_path=[
+                "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_benign.csv",
+                "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_malware.csv",
+                "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_phishing.csv",
+                "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_spam.csv",
+            ],
+            cast_dataset=cast_cic,
+        )
+
+    @property
+    def dgta_dataset(self) -> Dataset:
+        return self.dgta_dataset
+
+    @property
+    def dga_dataset(self) -> Dataset:
+        return self.dga_dataset
+
+    @property
+    def bambenek_dataset(self) -> Dataset:
+        return self.bambenek_dataset
+
+    @property
+    def cic_dataset(self) -> Dataset:
+        return self.cic_dataset
 
 
 @dataclass
@@ -160,7 +206,9 @@ class Dataset:
         """
         return len(self.data)
 
-    def __train_test_val_split(self, train_frac: float = 0.8, random_state: int = None) -> tuple[list, list, list, list, list, list]:
+    def __train_test_val_split(
+        self, train_frac: float = 0.8, random_state: int = None
+    ) -> tuple[list, list, list, list, list, list]:
         """Splits data set in train, test, and validation set
 
         Args:
@@ -173,7 +221,7 @@ class Dataset:
 
         self.data = self.data.filter(pl.col("query").str.len_chars() > 0)
         self.data = self.data.unique(subset="query")
-        
+
         X_train, X_tmp, Y_train, Y_tmp = sklearn.model_selection.train_test_split(
             self.data.drop("class"),
             self.data.select("class"),
@@ -203,29 +251,3 @@ class Dataset:
     @property
     def val(self) -> dict:
         return {"X": self.X_val, "Y": self.Y_val}
-
-
-dgta_dataset = Dataset(
-    data_path="/home/smachmeier/projects/heiDGA/data/dgta/dgta-benchmark.parquet",
-    cast_dataset=cast_dgta,
-)
-
-dga_dataset = Dataset(
-    data_path="/home/smachmeier/projects/heiDGA/data/360_dga_domain.csv",
-    cast_dataset=cast_dga,
-)
-
-bambenek_dataset = Dataset(
-    data_path="/home/smachmeier/projects/heiDGA/data/bambenek_dga_domain.csv",
-    cast_dataset=cast_bambenek,
-)
-
-cic_dataset = Dataset(
-    data_path=[
-        "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_benign.csv",
-        "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_malware.csv",
-        "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_phishing.csv",
-        "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_spam.csv",
-    ],
-    cast_dataset=cast_cic,
-)

@@ -6,8 +6,8 @@ import joblib
 import polars as pl
 import redis
 import redis.exceptions
-from click import Path
 import requests
+from click import Path
 
 from heidgaf.cache import DataFrameRedisCache
 from heidgaf.detectors.arima_anomaly_detector import ARIMAAnomalyDetector
@@ -38,20 +38,23 @@ class FileType(str, Enum):
 class Separator(str, Enum):
     SPACE = " "
     COMMA = ","
+    
 
-
-def inspector_factory(source: str, config: InspectorConfig) -> Inspector:
-    factory = {
-        "IP": (IPInspector(config)),
-        "Domain": (DomainInspector(config)),
-    }
-    if source in factory:
-        return factory[source]
-    else:
-        raise ValueError(
-            f"source {source} is not supported. Please pass a valid source."
-        )
-
+class InspectorFactory:
+    def __init__(self, config) -> None:
+        self.config = config
+        self.factory = {
+            "IP": (IPInspector(config)),
+            "Domain": (DomainInspector(config)),
+        }
+    
+    def __getitem__(self, key: str) -> Inspector:
+        if key in self.factory:
+            return self.factory[key]
+        else:
+            raise ValueError(
+                f"source {key} is not supported. Please pass a valid source."
+            )
 
 class DNSInspectorPipeline:
     """Main analyzer pipeline. It loads new data and processes it through our analyzers. If an anomaly occurs, our models run"""
@@ -211,18 +214,26 @@ class DNSInspectorPipeline:
         config = InspectorConfig(
             detector, self.df_cache, self.threshold, self.model
         )
-        
+        factory = InspectorFactory(config)
         errors = []
         for inspector in ["IP", "Domain"]:
-            errors.append(inspector_factory(inspector, config).run(self.data))
+            errors.append(factory[inspector].run(self.data))
         
         errors_pl: pl.DataFrame  = pl.concat(errors)
         
-        group_errors_pl = errors_pl.group_by(["client_ip", "fqdn"])
+        group_errors_pl = errors_pl.group_by(["client_ip", "fqdn"]).count().sort("client_ip")
         with pl.Config(tbl_rows=100):
             logging.warning(group_errors_pl)
 
     def __get_model(self, model_type: Model):
+        """Downloads model from server.
+
+        Args:
+            model_type (Model): Model type.
+
+        Returns:
+            model: Model to predict data.
+        """
         response = requests.get(f"{self.MODELS_URL}/files/?p=%2F{model_type.value}.pkl&dl=1")
         
         response.raise_for_status()

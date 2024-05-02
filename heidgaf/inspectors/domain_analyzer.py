@@ -1,3 +1,5 @@
+import logging
+
 import polars as pl
 
 from heidgaf.inspectors import Inspector, InspectorConfig
@@ -44,16 +46,19 @@ class DomainInspector(Inspector):
         findings = []
         
         # Check anomalies in FQDN
+        logging.info("Analyze FQDN request anomalies")
         warnings = self.update_count(df, min_date, max_date, "fqdn", self.KEY_FQDN)
         findings.append(self.warnings(data, warnings, "fqdn"))
 
         # Check anomalies in second level
+        logging.info("Analyze second level domain anomalies")
         warnings = self.update_count(
             df, min_date, max_date, "secondleveldomain", self.KEY_SECOND_LEVEL_DOMAIN
         )
         findings.append(self.warnings(data, warnings, "secondleveldomain"))
 
         # Check anomalies in third level
+        logging.info("Analyze third level domain anomalies")
         warnings = self.update_count(
             df, min_date, max_date, "thirdleveldomain", self.KEY_THIRD_LEVEL_DOMAIN
         )

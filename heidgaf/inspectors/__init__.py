@@ -39,7 +39,7 @@ class Inspector(metaclass=ABCMeta):
         Args:
             config (TesterConfig): TesterConfig.
         """
-        self.detector = config.detector
+        self.detector: AnomalyDetector = config.detector
         self.df_cache = config.df_cache
         self.threshold = config.threshold
         self.model = config.model
@@ -100,7 +100,8 @@ class Inspector(metaclass=ABCMeta):
         )
         fqdn_distro = fqdn_distro.filter(pl.col("distro") > 0.05)
         
-        total_warnings = []
+        # Initialize empty array
+        total_warnings = [data.clear()]
 
         for warning in suspicious:
             logging.debug(f"Analyze data in depth for {warning}")
@@ -108,7 +109,7 @@ class Inspector(metaclass=ABCMeta):
             data_id = data.filter(pl.col(id) == warning).filter(
                 pl.col("fqdn").is_in(fqdn_distro["fqdn"].to_list())
             )
-            supicious_data = data.clear()
+            suspicious_data = data.clear()
             if not data_id.is_empty():
                 # Predict data based on model
                 # TODO Create ensemble classification
@@ -117,13 +118,14 @@ class Inspector(metaclass=ABCMeta):
 
                 indices = np.where(y_pred == 1)[0]
                 data_id = data_id.with_row_count(name="idx", offset=0)
-                supicious_data = data_id.filter(pl.col("idx").is_in(indices))
+                suspicious_data = data_id.filter(pl.col("idx").is_in(indices))
+                suspicious_data = suspicious_data.drop("idx")
 
-                if not supicious_data.is_empty():
+                if not suspicious_data.is_empty():
                     logging.debug(f"{warning} has following errors")
                     with pl.Config(tbl_rows=100):
-                        logging.debug(supicious_data.select(["fqdn"]).unique())
-                total_warnings.append(supicious_data)
+                        logging.debug(suspicious_data.select(["fqdn"]).unique())
+                    total_warnings.append(suspicious_data)
         
         return pl.concat(total_warnings)
                     
@@ -141,13 +143,13 @@ class Inspector(metaclass=ABCMeta):
         # Aggregate ids by timestamp in a moving window of 6h
         id_distribution = (
             df.sort("timestamp")
-            .group_by_dynamic("timestamp", every="6h", closed="right", by=id)
+            .group_by_dynamic("timestamp", every="3h", closed="right", by=id)
             .agg(pl.count())
         )
         # We generate empty datetime with zero values in a time range of 6h
         datetimes = id_distribution.select(
             pl.datetime_range(
-                min_date.replace(microsecond=0), max_date.replace(microsecond=0), "6h"
+                min_date.replace(microsecond=0), max_date.replace(microsecond=0), "3h"
             ).alias("timestamp")
         )
         ids = id_distribution.select(pl.col(id).unique())

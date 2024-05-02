@@ -10,7 +10,7 @@ from fe_polars.imputing.base_imputing import Imputer
 from sklearn.metrics import classification_report
 
 from heidgaf import datasets, models
-from heidgaf.datasets import Dataset
+from heidgaf.datasets import Dataset, DatasetLoader
 from heidgaf.feature import Preprocessor
 from heidgaf.models import Pipeline
 
@@ -39,18 +39,24 @@ class DNSAnalyzerTraining:
             model (torch.nn.Module): Fit model.
             dataset (heidgaf.datasets.Dataset): Data set for training.
         """
+        self.datasets = DatasetLoader()
         match dataset:
             case "all":
                 self.dataset = datasets.Dataset(
                     data_path="",
                     data=pl.concat(
-                        [datasets.dgta_dataset.data, datasets.cic_dataset.data, datasets.bambenek_dataset.data, datasets.dga_dataset.data]
+                        [
+                            self.datasets.dgta_dataset.data,
+                            self.datasets.cic_dataset.data,
+                            self.datasets.bambenek_dataset.data,
+                            self.datasets.dga_dataset.data,
+                        ]
                     ),
                 )
             case "cic":
-                self.dataset = datasets.cic_dataset.data
+                self.dataset = self.datasets.cic_dataset.data
             case "dgta":
-                self.dataset = datasets.dgta_dataset.data
+                self.dataset = self.datasets.dgta_dataset.data
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
 
@@ -85,7 +91,7 @@ class DNSAnalyzerTraining:
                     "thirdleveldomain",
                     "secondleveldomain",
                     "fqdn",
-                    "tld"
+                    "tld",
                 ]
             ),
             mean_imputer=Imputer(features_to_impute=[], strategy="mean"),

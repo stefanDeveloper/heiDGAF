@@ -2,7 +2,8 @@ from typing import List
 
 import numpy as np
 
-from heidgaf.detectors.base_anomaly import AnomalyDetector, AnomalyDetectorConfig
+from heidgaf.detectors.base_anomaly import (AnomalyDetector,
+                                            AnomalyDetectorConfig)
 
 
 class RealTimeAnomalyDetector(AnomalyDetector):

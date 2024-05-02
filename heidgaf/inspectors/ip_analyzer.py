@@ -1,3 +1,5 @@
+import logging
+
 import polars as pl
 
 from heidgaf import ReturnCode
@@ -41,11 +43,13 @@ class IPInspector(Inspector):
         findings = []
 
         # Update frequencies based on errors
+        logging.info("Analyze client IP requests anomalies")
         warnings = self.update_count(
             df, min_date, max_date, "client_ip", self.KEY_IP_FREQUENCY
         )
         findings.append(self.warnings(data, warnings, "client_ip"))
 
+        logging.info("Analyze DNS server requests anomalies")
         warnings = self.update_count(
             df, min_date, max_date, "dns_server", self.KEY_DNS_SERVER
         )
