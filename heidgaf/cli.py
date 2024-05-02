@@ -71,6 +71,14 @@ def train(model, dataset, output_dir):
     help="Sets the anomaly detector.",
 )
 @click.option(
+    "-m", 
+    "--model", 
+    "model", 
+    required=True, 
+    type=click.Choice(Model),
+    help="Model for prediction."
+)
+@click.option(
     "-s",
     "--separator",
     "separator",
@@ -135,12 +143,13 @@ def train(model, dataset, output_dir):
     help="Sets Redis max connection for caching results.",
 )
 def inspection(
-    input_dir, detector, separator, filetype, lag, influence, n_standard_deviations, redis_host, redis_port, redis_db, redis_max_connection
+    input_dir, detector, model, separator, filetype, lag, influence, n_standard_deviations, redis_host, redis_port, redis_db, redis_max_connection
 ):
     click.echo("Starts processing log lines of DNS traffic.")
     pipeline = DNSInspectorPipeline(
         path=input_dir,
         detector=detector,
+        model=model,
         lag=lag,
         anomaly_influence=influence,
         n_standard_deviations=n_standard_deviations,
@@ -149,7 +158,7 @@ def inspection(
         redis_host=redis_host,
         redis_port=redis_port,
         redis_db=redis_db,
-        redis_max_connections=redis_max_connection
+        redis_max_connections=redis_max_connection,
     )
     pipeline.run()
 

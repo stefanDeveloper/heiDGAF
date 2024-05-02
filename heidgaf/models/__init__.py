@@ -42,15 +42,15 @@ class Pipeline:
         logging.info(f"Using device: {self.device}")
 
         if torch.cuda.is_available():
-            logging.info("GPU detected")
-            logging.info(f"\t{torch.cuda.get_device_name(0)}")
+            logging.debug("GPU detected")
+            logging.debug(f"\t{torch.cuda.get_device_name(0)}")
 
         if self.device.type == "cuda":
-            logging.info("Memory Usage:")
-            logging.info(
+            logging.debug("Memory Usage:")
+            logging.debug(
                 f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
             )
-            logging.info(
+            logging.debug(
                 f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
             )
 
@@ -145,9 +145,9 @@ xgboost_rf_model = {
 random_forest_model = {
     "model": RandomForestClassifier(),
     "search": {
-        "n_estimators": [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)],
-        "max_features":  ['auto', 'sqrt'],
-        "max_depth": [int(x) for x in np.linspace(10, 110, num = 11)].append(None),
+        "n_estimators": [int(x) for x in np.linspace(start = 200, stop = 1000, num = 10)],
+        "max_features":  [42],
+        "max_depth": [int(x) for x in np.linspace(10, 110, num = 11)], #.append(None),
         "min_samples_split": [2, 5, 10],
         "min_samples_leaf": [1, 2, 4],
         "bootstrap": [True, False],

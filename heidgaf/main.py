@@ -7,6 +7,7 @@ import polars as pl
 import redis
 import redis.exceptions
 from click import Path
+import requests
 
 from heidgaf.cache import DataFrameRedisCache
 from heidgaf.detectors.arima_anomaly_detector import ARIMAAnomalyDetector
@@ -17,6 +18,7 @@ from heidgaf.detectors.thresholding_algorithm import \
 from heidgaf.inspectors import Inspector, InspectorConfig
 from heidgaf.inspectors.domain_analyzer import DomainInspector
 from heidgaf.inspectors.ip_analyzer import IPInspector
+from heidgaf.train import Model
 
 
 @unique
@@ -53,6 +55,8 @@ def inspector_factory(source: str, config: InspectorConfig) -> Inspector:
 
 class DNSInspectorPipeline:
     """Main analyzer pipeline. It loads new data and processes it through our analyzers. If an anomaly occurs, our models run"""
+    
+    MODELS_URL="https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021"
 
     def __init__(
         self,
@@ -69,6 +73,7 @@ class DNSInspectorPipeline:
         redis_db=0,
         redis_max_connections=20,
         threshold=5,
+        model=Model.RANDOM_FOREST_CLASSIFIER
     ) -> None:
         try:
             self.df_cache = DataFrameRedisCache(
@@ -76,6 +81,7 @@ class DNSInspectorPipeline:
             )
         except redis.exceptions.ConnectionError:
             logging.warning("No connection to Redis host")
+            self.df_cache = None
             
 
         if os.path.isfile(path):
@@ -93,6 +99,8 @@ class DNSInspectorPipeline:
         self.detector = detector
         self.threshold = threshold
         self.order = order
+        self.model = self.__get_model(model)
+        
 
     def load_data(self, path: str, separator: str) -> pl.DataFrame:
         """Loads data from csv files
@@ -128,10 +136,13 @@ class DNSInspectorPipeline:
                 (pl.col("query").str.split(".").alias("labels")),
             ]
         )
+        
+        x = x.filter(pl.col("query").str.len_chars() > 0)
+        x = x.filter(pl.col("labels").list.len() > 1)
 
         x = x.with_columns(
             [
-                (pl.col("labels").get(-1).alias("tld")),
+                (pl.col("labels").list.get(-1).alias("tld")),
             ]
         )
 
@@ -198,7 +209,25 @@ class DNSInspectorPipeline:
 
         # Run inspectors to find anomalies in data
         config = InspectorConfig(
-            detector, self.df_cache, self.threshold, joblib.load("model.pkl")
+            detector, self.df_cache, self.threshold, self.model
         )
+        
+        errors = []
         for inspector in ["IP", "Domain"]:
-            inspector_factory(inspector, config).run(self.data)
+            errors.append(inspector_factory(inspector, config).run(self.data))
+        
+        errors_pl: pl.DataFrame  = pl.concat(errors)
+        
+        group_errors_pl = errors_pl.group_by(["client_ip", "fqdn"])
+        with pl.Config(tbl_rows=100):
+            logging.warning(group_errors_pl)
+
+    def __get_model(self, model_type: Model):
+        response = requests.get(f"{self.MODELS_URL}/files/?p=%2F{model_type.value}.pkl&dl=1")
+        
+        response.raise_for_status()
+        
+        with open(rf'/tmp/{model_type.value}.pkl', 'wb') as f:
+            f.write(response.content)
+        
+        return joblib.load(f'/tmp/{model_type.value}.pkl')

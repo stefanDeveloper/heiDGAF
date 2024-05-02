@@ -60,6 +60,7 @@ class Inspector(metaclass=ABCMeta):
                     "thirdleveldomain",
                     "secondleveldomain",
                     "fqdn",
+                    "tld"
                 ]
             ),
             mean_imputer=Imputer(features_to_impute=[], strategy="mean"),
@@ -79,7 +80,7 @@ class Inspector(metaclass=ABCMeta):
         """
         pass
 
-    def warnings(self, data: pl.DataFrame, suspicious: List, id: str) -> None:
+    def warnings(self, data: pl.DataFrame, suspicious: List, id: str) -> pl.DataFrame:
         """Creates initial warning for classifiers
 
         Args:
@@ -98,6 +99,8 @@ class Inspector(metaclass=ABCMeta):
             .alias("distro")
         )
         fqdn_distro = fqdn_distro.filter(pl.col("distro") > 0.05)
+        
+        total_warnings = []
 
         for warning in suspicious:
             logging.debug(f"Analyze data in depth for {warning}")
@@ -105,8 +108,11 @@ class Inspector(metaclass=ABCMeta):
             data_id = data.filter(pl.col(id) == warning).filter(
                 pl.col("fqdn").is_in(fqdn_distro["fqdn"].to_list())
             )
+            supicious_data = data.clear()
             if not data_id.is_empty():
                 # Predict data based on model
+                # TODO Create ensemble classification
+                # TODO Set to regressor
                 y_pred = self.model_pipeline.predict(data_id)
 
                 indices = np.where(y_pred == 1)[0]
@@ -117,6 +123,10 @@ class Inspector(metaclass=ABCMeta):
                     logging.debug(f"{warning} has following errors")
                     with pl.Config(tbl_rows=100):
                         logging.debug(supicious_data.select(["fqdn"]).unique())
+                total_warnings.append(supicious_data)
+        
+        return pl.concat(total_warnings)
+                    
 
     def update_count(
         self,

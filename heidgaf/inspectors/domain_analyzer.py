@@ -40,19 +40,23 @@ class DomainInspector(Inspector):
         df = data.filter(pl.col("query") != "|").filter(
             pl.col("query").str.split(".").list.len() != 1
         )
-
+        
+        findings = []
+        
         # Check anomalies in FQDN
         warnings = self.update_count(df, min_date, max_date, "fqdn", self.KEY_FQDN)
-        self.warnings(data, warnings, "fqdn")
+        findings.append(self.warnings(data, warnings, "fqdn"))
 
         # Check anomalies in second level
         warnings = self.update_count(
             df, min_date, max_date, "secondleveldomain", self.KEY_SECOND_LEVEL_DOMAIN
         )
-        self.warnings(data, warnings, "secondleveldomain")
+        findings.append(self.warnings(data, warnings, "secondleveldomain"))
 
         # Check anomalies in third level
         warnings = self.update_count(
             df, min_date, max_date, "thirdleveldomain", self.KEY_THIRD_LEVEL_DOMAIN
         )
-        self.warnings(data, warnings, "thirdleveldomain")
+        findings.append(self.warnings(data, warnings, "thirdleveldomain"))
+        
+        return pl.concat(findings)

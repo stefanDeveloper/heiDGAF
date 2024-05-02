@@ -1,10 +1,8 @@
 from typing import Dict, List, Tuple
 
-import matplotlib.gridspec as gridspec
-import matplotlib.pyplot as plt
 import numpy as np
 
-from .base_anomaly import AnomalyDetector, AnomalyDetectorConfig
+from heidgaf.detectors.base_anomaly import AnomalyDetector, AnomalyDetectorConfig
 
 
 class EMAAnomalyDetector(AnomalyDetector):

@@ -152,7 +152,7 @@ class Dataset:
             self.__train_test_val_split()
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Returns the length of data set.
 
         Returns:
@@ -188,15 +188,20 @@ class Dataset:
         return X_train, X_val, X_test, Y_train, Y_val, Y_test
 
     @property
-    def train(self):
+    def train(self) -> dict:
+        """Training set
+
+        Returns:
+            dict: dictionary with features and labels.
+        """
         return {"X": self.X_train, "Y": self.Y_train}
 
     @property
-    def test(self):
+    def test(self) -> dict:
         return {"X": self.X_test, "Y": self.Y_test}
 
     @property
-    def val(self):
+    def val(self) -> dict:
         return {"X": self.X_val, "Y": self.Y_val}
 
 

@@ -37,14 +37,18 @@ class IPInspector(Inspector):
             .filter(pl.col("return_code") != ReturnCode.NOERROR.value)
             .filter(pl.col("query").str.split(".").list.len() != 1)
         )
+        
+        findings = []
 
         # Update frequencies based on errors
         warnings = self.update_count(
             df, min_date, max_date, "client_ip", self.KEY_IP_FREQUENCY
         )
-        self.warnings(data, warnings, "client_ip")
+        findings.append(self.warnings(data, warnings, "client_ip"))
 
         warnings = self.update_count(
             df, min_date, max_date, "dns_server", self.KEY_DNS_SERVER
         )
-        self.warnings(data, warnings, "dns_server")
+        findings.append(self.warnings(data, warnings, "dns_server"))
+        
+        return pl.concat(findings)

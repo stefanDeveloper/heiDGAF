@@ -65,14 +65,27 @@ heidgaf -h
 Run your analysis:
 
 ```sh
-heidgaf process start -r data/...
+heidgaf inspect -r data/...
 ```
+
+Train your own model:
+
+```sh
+heidgaf train -m xg -d all
+``` 
 
 ### Data
 
 Currently, we support the data format scheme provided by the [DNS-Collector](https://github.com/dmachard/go-dnscollector/):
 
-`{{ .timestamp }} {{ .return_code }} {{ .client_ip }} {{ .server_ip }} {{ .query }} {{ .type }} {{ .answer }} {{ .size }}b`
+- `{{ .timestamp }}`
+- `{{ .return_code }}`
+- `{{ .client_ip }}`
+- `{{ .server_ip }}`
+- `{{ .query }}`
+- `{{ .type }}`
+- `{{ .answer }}`
+- `{{ .size }}b`
 
 For training our models, we rely on the following data sets:
 
@@ -80,7 +93,7 @@ For training our models, we rely on the following data sets:
 - [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
 - [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
 - [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
-- [Majestic Million](https://de.majestic.com/reports/majestic-million)
+- [Real-CyberSecurity-Datasets](https://github.com/gfek/Real-CyberSecurity-Datasets/)
 
 However, we compute all feature separately and only rely on the `domain` and `class`.
 Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
@@ -112,12 +125,9 @@ Based on the following work, we implement heiDGAF to find malicious behaviour su
 
 - SHAP Interpretations of Tree and Neural Network DNS Classifiers for Analyzing DGA Family Characteristics
 
-
-
 ### Similar Projects
 
-- [Deep Lookup](https://github.com/ybubnov/deep-lookup/) is a deep learning approach for DNS.
-- [DGA Detective](https://github.com/COSSAS/dgad)
-- https://github.com/Erxathos/DGA-Detector
-- https://github.com/gfek/Real-CyberSecurity-Datasets/
-- https://github.com/aasthac67/DNS-Tunneling-Detection/
+- [Deep Lookup](https://github.com/ybubnov/deep-lookup/) is a deep learning approach for DNS detection.
+- [DGA Detective](https://github.com/COSSAS/dgad) is a temporal convolutional network approach for DNS detection.
+- [DGA Detector](https://github.com/Erxathos/DGA-Detector) is a NLP approach for DNS detection.
+- [DNS Tunneling Detection](https://github.com/aasthac67/DNS-Tunneling-Detection/)

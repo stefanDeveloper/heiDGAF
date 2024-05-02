@@ -2,7 +2,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
-from .base_anomaly import AnomalyDetector, AnomalyDetectorConfig
+from heidgaf.detectors.base_anomaly import AnomalyDetector, AnomalyDetectorConfig
 
 
 class ThresholdingAnomalyDetector(AnomalyDetector):

@@ -1,8 +1,8 @@
-from typing import Dict, List
+from typing import List
 
 import numpy as np
 
-from .base_anomaly import AnomalyDetector, AnomalyDetectorConfig
+from heidgaf.detectors.base_anomaly import AnomalyDetector, AnomalyDetectorConfig
 
 
 class RealTimeAnomalyDetector(AnomalyDetector):
