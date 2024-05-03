@@ -11,3 +11,6 @@ setuptools
 redis
 pytest
 feature-engineering-polars
+# cupy-cuda12x
+statsmodels
+xgboost

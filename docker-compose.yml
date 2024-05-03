@@ -5,19 +5,24 @@ volumes:
   heidgaf:
 
 services:
-  redis:
-    image: redis:latest
-    ports:
-      - "6379:6379"
+  # redis:
+  #   image: redis:latest
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis:/data
 
   heidgaf:
     build:
       context: .
       dockerfile: Dockerfile
-    deploy:
-      resources:
-        reservations:
-          devices:
-          - driver: nvidia
-            count: all
-            capabilities: [gpu]
+    command: ["heidgaf", "inspect", "-r", "/tmp/data", "-m", "xg"]
+    volumes:
+      - ./data/heicloud:/tmp/data
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #         - driver: nvidia
+  #           count: all
+  #           capabilities: [gpu]

@@ -125,6 +125,8 @@ Based on the following work, we implement heiDGAF to find malicious behaviour su
 
 - SHAP Interpretations of Tree and Neural Network DNS Classifiers for Analyzing DGA Family Characteristics
 
+- [FANCI](https://github.com/fanci-dga-detection/fanci/) : Feature-based Automated NXDomain Classification and Intelligence
+
 ### Similar Projects
 
 - [Deep Lookup](https://github.com/ybubnov/deep-lookup/) is a deep learning approach for DNS detection.
