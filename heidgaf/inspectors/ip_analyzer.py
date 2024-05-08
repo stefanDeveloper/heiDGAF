@@ -39,7 +39,7 @@ class IPInspector(Inspector):
             .filter(pl.col("return_code") != ReturnCode.NOERROR.value)
             .filter(pl.col("query").str.split(".").list.len() != 1)
         )
-        
+
         findings = []
 
         # Update frequencies based on errors
@@ -54,5 +54,5 @@ class IPInspector(Inspector):
             df, min_date, max_date, "dns_server", self.KEY_DNS_SERVER
         )
         findings.append(self.warnings(data, warnings, "dns_server"))
-        
+
         return pl.concat(findings)

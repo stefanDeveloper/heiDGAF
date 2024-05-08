@@ -18,49 +18,47 @@ except ImportError:
 def cli():
     click.echo("Starting heiDGAF CLI")
 
+
 @cli.command(name="train", context_settings={"show_default": True})
 @click.option(
-    "-m", 
-    "--model", 
-    "model", 
-    required=True, 
+    "-m",
+    "--model",
+    "model",
+    required=True,
     type=click.Choice(Model),
-    help="Model for fitting."
+    help="Model for fitting.",
 )
 @click.option(
-    "-d", 
-    "--dataset", 
-    "dataset", 
-    required=True, 
+    "-d",
+    "--dataset",
+    "dataset",
+    required=True,
     type=click.Choice(Dataset),
     default=Dataset.ALL,
-    help="Dataset for fitting."
+    help="Dataset for fitting.",
 )
 @click.option(
-    "-o", 
-    "--output_dir", 
-    "output_dir", 
-    required=True, 
+    "-o",
+    "--output_dir",
+    "output_dir",
+    required=True,
     type=click.STRING,
-    help="Output path of model."
+    help="Output path of model.",
 )
 def train(model, dataset, output_dir):
     click.echo("Start training of model.")
-    trainer = DNSAnalyzerTraining(
-        model=model,
-        dataset=dataset
-    )
+    trainer = DNSAnalyzerTraining(model=model, dataset=dataset)
     trainer.train(output_path=output_dir)
 
 
 @cli.command(name="inspect", context_settings={"show_default": True})
 @click.option(
-    "-r", 
-    "--read", 
-    "input_dir", 
-    required=True, 
-    type=click.Path(), 
-    help="Input directory or file for analyzing."
+    "-r",
+    "--read",
+    "input_dir",
+    required=True,
+    type=click.Path(),
+    help="Input directory or file for analyzing.",
 )
 @click.option(
     "-dt",
@@ -71,12 +69,12 @@ def train(model, dataset, output_dir):
     help="Sets the anomaly detector.",
 )
 @click.option(
-    "-m", 
-    "--model", 
-    "model", 
-    required=True, 
+    "-m",
+    "--model",
+    "model",
+    required=True,
     type=click.Choice(Model),
-    help="Model for prediction."
+    help="Model for prediction.",
 )
 @click.option(
     "-s",
@@ -143,7 +141,18 @@ def train(model, dataset, output_dir):
     help="Sets Redis max connection for caching results.",
 )
 def inspection(
-    input_dir, detector, model, separator, filetype, lag, influence, n_standard_deviations, redis_host, redis_port, redis_db, redis_max_connection
+    input_dir,
+    detector,
+    model,
+    separator,
+    filetype,
+    lag,
+    influence,
+    n_standard_deviations,
+    redis_host,
+    redis_port,
+    redis_db,
+    redis_max_connection,
 ):
     click.echo("Starts processing log lines of DNS traffic.")
     pipeline = DNSInspectorPipeline(
@@ -164,6 +173,4 @@ def inspection(
 
 
 if __name__ == "__main__":
-    """Default CLI entrypoint for Click interface
-    """
     cli()

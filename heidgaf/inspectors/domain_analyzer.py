@@ -11,6 +11,7 @@ class DomainInspector(Inspector):
     Args:
         Tester (Tester): Configuration.
     """
+
     KEY_SECOND_LEVEL_DOMAIN = "secondleveldomain_frequency"
     KEY_THIRD_LEVEL_DOMAIN = "thirdleveldomain_frequency"
     KEY_FQDN = "fqdn_frequency"
@@ -37,14 +38,14 @@ class DomainInspector(Inspector):
         """
         min_date = data.select(["timestamp"]).min().item()
         max_date = data.select(["timestamp"]).max().item()
-        
+
         # Filter data with no errors
         df = data.filter(pl.col("query") != "|").filter(
             pl.col("query").str.split(".").list.len() != 1
         )
-        
+
         findings = []
-        
+
         # Check anomalies in FQDN
         logging.info("Analyze FQDN request anomalies")
         warnings = self.update_count(df, min_date, max_date, "fqdn", self.KEY_FQDN)
@@ -63,5 +64,5 @@ class DomainInspector(Inspector):
             df, min_date, max_date, "thirdleveldomain", self.KEY_THIRD_LEVEL_DOMAIN
         )
         findings.append(self.warnings(data, warnings, "thirdleveldomain"))
-        
+
         return pl.concat(findings)

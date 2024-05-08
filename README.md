@@ -72,7 +72,7 @@ Train your own model:
 
 ```sh
 heidgaf train -m xg -d all
-``` 
+```
 
 ### Data
 
@@ -115,10 +115,10 @@ Based on the following work, we implement heiDGAF to find malicious behaviour su
   Propose a hybrid DNS tunneling detection system using Tabu-PIO for feature selection.
 
 - Classifying Malicious Domains using DNS Traffic Analysis
-  
+
 
 - [DeepDGA](https://github.com/roreagan/DeepDGA): Adversarially-Tuned Domain Generation and Detection
-  
+
   DeepDGA detecting (and generating) domains on a per-domain basis which provides a simple and ﬂexible means to detect known DGA families. It uses GANs to bypass detectors and shows the effectiveness of such solutions.
 
 - Kitsune: An Ensemble of Autoencoders for Online Network Intrusion Detection

@@ -60,7 +60,7 @@ class Inspector(metaclass=ABCMeta):
                     "thirdleveldomain",
                     "secondleveldomain",
                     "fqdn",
-                    "tld"
+                    "tld",
                 ]
             ),
             mean_imputer=Imputer(features_to_impute=[], strategy="mean"),
@@ -99,7 +99,7 @@ class Inspector(metaclass=ABCMeta):
             .alias("distro")
         )
         fqdn_distro = fqdn_distro.filter(pl.col("distro") > 0.05)
-        
+
         # Initialize empty array
         total_warnings = [data.clear()]
 
@@ -126,9 +126,8 @@ class Inspector(metaclass=ABCMeta):
                     with pl.Config(tbl_rows=100):
                         logging.debug(suspicious_data.select(["fqdn"]).unique())
                     total_warnings.append(suspicious_data)
-        
+
         return pl.concat(total_warnings)
-                    
 
     def update_count(
         self,

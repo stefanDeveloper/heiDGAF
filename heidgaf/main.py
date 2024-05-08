@@ -13,8 +13,7 @@ from heidgaf.cache import DataFrameRedisCache
 from heidgaf.detectors.arima_anomaly_detector import ARIMAAnomalyDetector
 from heidgaf.detectors.base_anomaly import AnomalyDetectorConfig
 from heidgaf.detectors.exponential_thresholding import EMAAnomalyDetector
-from heidgaf.detectors.thresholding_algorithm import \
-    ThresholdingAnomalyDetector
+from heidgaf.detectors.thresholding_algorithm import ThresholdingAnomalyDetector
 from heidgaf.inspectors import Inspector, InspectorConfig
 from heidgaf.inspectors.domain_analyzer import DomainInspector
 from heidgaf.inspectors.ip_analyzer import IPInspector
@@ -38,7 +37,7 @@ class FileType(str, Enum):
 class Separator(str, Enum):
     SPACE = " "
     COMMA = ","
-    
+
 
 class InspectorFactory:
     def __init__(self, config) -> None:
@@ -47,7 +46,7 @@ class InspectorFactory:
             "IP": (IPInspector(config)),
             "Domain": (DomainInspector(config)),
         }
-    
+
     def __getitem__(self, key: str) -> Inspector:
         if key in self.factory:
             return self.factory[key]
@@ -56,10 +55,11 @@ class InspectorFactory:
                 f"source {key} is not supported. Please pass a valid source."
             )
 
+
 class DNSInspectorPipeline:
     """Main analyzer pipeline. It loads new data and processes it through our analyzers. If an anomaly occurs, our models run"""
-    
-    MODELS_URL="https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021"
+
+    MODELS_URL = "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021"
 
     def __init__(
         self,
@@ -76,7 +76,7 @@ class DNSInspectorPipeline:
         redis_db=0,
         redis_max_connections=20,
         threshold=5,
-        model=Model.RANDOM_FOREST_CLASSIFIER
+        model=Model.RANDOM_FOREST_CLASSIFIER,
     ) -> None:
         try:
             self.df_cache = DataFrameRedisCache(
@@ -85,7 +85,6 @@ class DNSInspectorPipeline:
         except redis.exceptions.ConnectionError:
             logging.warning("No connection to Redis host")
             self.df_cache = None
-            
 
         if os.path.isfile(path):
             logging.debug(f"Processing files: {path}")
@@ -103,7 +102,6 @@ class DNSInspectorPipeline:
         self.threshold = threshold
         self.order = order
         self.model = self.__get_model(model)
-        
 
     def load_data(self, path: str, separator: str) -> pl.DataFrame:
         """Loads data from csv files
@@ -139,7 +137,7 @@ class DNSInspectorPipeline:
                 (pl.col("query").str.split(".").alias("labels")),
             ]
         )
-        
+
         x = x.filter(pl.col("query").str.len_chars() > 0)
         x = x.filter(pl.col("labels").list.len() > 1)
 
@@ -211,18 +209,18 @@ class DNSInspectorPipeline:
                 raise NotImplementedError(f"Detector not implemented!")
 
         # Run inspectors to find anomalies in data
-        config = InspectorConfig(
-            detector, self.df_cache, self.threshold, self.model
-        )
+        config = InspectorConfig(detector, self.df_cache, self.threshold, self.model)
         factory = InspectorFactory(config)
         errors = []
         for inspector in ["IP", "Domain"]:
             errors.append(factory[inspector].run(self.data))
-        
-        errors_pl: pl.DataFrame  = pl.concat(errors)
-        
-        group_errors_pl = errors_pl.group_by(["client_ip", "fqdn"]).count().sort("client_ip")
-        with pl.Config(tbl_rows=100):
+
+        errors_pl: pl.DataFrame = pl.concat(errors)
+
+        group_errors_pl = (
+            errors_pl.group_by(["client_ip", "fqdn"]).count().sort("client_ip")
+        )
+        with pl.Config(fmt_str_lengths=1000):
             logging.warning(group_errors_pl)
 
     def __get_model(self, model_type: Model):
@@ -234,11 +232,13 @@ class DNSInspectorPipeline:
         Returns:
             model: Model to predict data.
         """
-        response = requests.get(f"{self.MODELS_URL}/files/?p=%2F{model_type.value}.pkl&dl=1")
-        
+        response = requests.get(
+            f"{self.MODELS_URL}/files/?p=%2F{model_type.value}.pkl&dl=1"
+        )
+
         response.raise_for_status()
-        
-        with open(rf'/tmp/{model_type.value}.pkl', 'wb') as f:
+
+        with open(rf"/tmp/{model_type.value}.pkl", "wb") as f:
             f.write(response.content)
-        
-        return joblib.load(f'/tmp/{model_type.value}.pkl')
+
+        return joblib.load(f"/tmp/{model_type.value}.pkl")

@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
 
-from heidgaf.detectors.base_anomaly import (AnomalyDetector,
-                                            AnomalyDetectorConfig)
+from heidgaf.detectors.base_anomaly import AnomalyDetector, AnomalyDetectorConfig
 
 
 class ARIMAAnomalyDetector(AnomalyDetector):

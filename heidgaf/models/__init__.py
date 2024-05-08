@@ -36,7 +36,7 @@ class Pipeline:
         self.mean_imputer = mean_imputer
         self.target_encoder = target_encoder
         self.clf = clf
-        
+
         # setting device on GPU if available, else CPU
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logging.info(f"Using device: {self.device}")
@@ -74,7 +74,7 @@ class Pipeline:
             verbose=2,
             n_jobs=-1,
         )
-        
+
         start = time()
         model = clf.fit(x_train.to_numpy(), y_train.to_numpy().ravel())
         logging.info(
@@ -125,13 +125,12 @@ xgboost_model = {
     "search": {
         "eta": list(np.linspace(0.1, 0.6, 6)),
         "gamma": [int(x) for x in np.linspace(0, 10, 10)],
-        'learning_rate': [0.03, 0.01, 0.003, 0.001],
-        'min_child_weight': [1,3, 5,7, 10],
-        'subsample': [0.6, 0.8, 1.0, 1.2, 1.4],
-        'colsample_bytree': [0.6, 0.8, 1.0, 1.2, 1.4],
-        'max_depth': [3, 4, 5, 6, 7, 8, 9 ,10, 12, 14],
-        'reg_lambda':np.array([0.4, 0.6, 0.8, 1, 1.2, 1.4])
-
+        "learning_rate": [0.03, 0.01, 0.003, 0.001],
+        "min_child_weight": [1, 3, 5, 7, 10],
+        "subsample": [0.6, 0.8, 1.0, 1.2, 1.4],
+        "colsample_bytree": [0.6, 0.8, 1.0, 1.2, 1.4],
+        "max_depth": [3, 4, 5, 6, 7, 8, 9, 10, 12, 14],
+        "reg_lambda": np.array([0.4, 0.6, 0.8, 1, 1.2, 1.4]),
     },
 }
 xgboost_rf_model = {
@@ -145,9 +144,9 @@ xgboost_rf_model = {
 random_forest_model = {
     "model": RandomForestClassifier(),
     "search": {
-        "n_estimators": [int(x) for x in np.linspace(start = 200, stop = 1000, num = 10)],
-        "max_features":  [42],
-        "max_depth": [int(x) for x in np.linspace(10, 110, num = 11)], #.append(None),
+        "n_estimators": [int(x) for x in np.linspace(start=200, stop=1000, num=10)],
+        "max_features": [42],
+        "max_depth": [int(x) for x in np.linspace(10, 110, num=11)],  # .append(None),
         "min_samples_split": [2, 5, 10],
         "min_samples_leaf": [1, 2, 4],
         "bootstrap": [True, False],
