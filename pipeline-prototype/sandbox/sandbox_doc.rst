@@ -1,13 +1,11 @@
 Erste Versuche mit Kafka
 ========================
 
-Das Ziel des ersten Versuchs war die Erstellung zweier möglichst simpler
-Dateien: ``consumer.py`` und ``producer.py``. Diese sollten die Grundlagen
-von Apache Kafka einführen.
+Versuch 1
+---------
 
-Vorgehen
---------
---------
+Das Ziel des ersten Versuchs war die Erstellung zweier möglichst simpler Dateien: ``consumer.py`` und ``producer.py``.
+Diese sollten die Grundlagen von Apache Kafka einführen.
 
 1. **Hinzufügen der Dependencies**
 
@@ -15,9 +13,8 @@ Vorgehen
 
 2. **Verwendung eines Docker-Containers**
 
-Die Datei ``docker-compose.yml`` konfiguriert die Verwendung des
-Kafka-Containers und des Zookeeper-Containers. Alternativ könnten Kafka
-und Zookeeper auch direkt auf dem System installiert und gestartet werden.
+Die Datei ``docker-compose.yml`` konfiguriert die Verwendung des Kafka-Containers und des Zookeeper-Containers.
+Alternativ könnten Kafka und Zookeeper auch direkt auf dem System installiert und gestartet werden.
 
 Start der Container::
 
@@ -27,8 +24,7 @@ Start der Container::
 
     docker ps
 
-Hinzufügen des Topics, das in ``consumer.py`` und ``producer.py``
-verwendet wird (``my_topic``) im Kafka-Container::
+Hinzufügen des Topics, das in ``consumer.py`` und ``producer.py`` verwendet wird (``my_topic``) im Kafka-Container::
 
     docker exec c9e0d1a873d6 ../../bin/kafka-topics --create --topic my_topic --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1
 
@@ -48,3 +44,9 @@ Der Producer erstellt und sendet 10 Nachrichten in ``my_topic``::
 
     python .\producer.py
 
+Versuch 2
+---------
+
+Der nächste Versuch (``log_producer.py``) sollte die Funktionsweise von ``sockets`` zeigen. Auf einem oder mehreren Sockets sollen später die
+Logfiles anliegen, die dann im ersten Schritt verarbeitet, d. h. in ihre Bestandteile zerlegt und an den Kafka-Broker
+produced werden.
