@@ -1,7 +1,25 @@
-from kafka import KafkaConsumer
+from confluent_kafka import Consumer, KafkaError
 
-consumer = KafkaConsumer('test_topic', bootstrap_servers=['localhost:9999'], api_version=(1, 3, 5))
-print("Consumer created")
+conf = {
+    'bootstrap.servers': "localhost:9092",
+    'group.id': "my_group",
+    'auto.offset.reset': 'earliest'
+}
 
-for msg in consumer:
-    print(msg)
+consumer = Consumer(conf)
+consumer.subscribe(['my_topic'])
+
+try:
+    while True:
+        msg = consumer.poll(timeout=1.0)
+        if msg is None:
+            continue
+        if msg.error():
+            if msg.error().code() == KafkaError._PARTITION_EOF:
+                continue
+            else:
+                print(msg.error())
+                break
+        print('Received message: {}'.format(msg.value().decode('utf-8')))
+finally:
+    consumer.close()
