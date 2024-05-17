@@ -50,3 +50,8 @@ Versuch 2
 Der nächste Versuch (``log_producer.py``) sollte die Funktionsweise von ``sockets`` zeigen. Auf einem oder mehreren Sockets sollen später die
 Logfiles anliegen, die dann im ersten Schritt verarbeitet, d. h. in ihre Bestandteile zerlegt und an den Kafka-Broker
 produced werden.
+
+Coding 1
+--------
+
+Beginn: ``heidgaf_log_collector`` inklusive Tests
