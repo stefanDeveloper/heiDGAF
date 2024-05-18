@@ -26,12 +26,12 @@ class LogServer:
 
     async def open(self):
         send_server = await asyncio.start_server(
-            self.handle_connection,
+            self.handle_send_logline,
             str(self.host),
             self.send_port
         )
         receive_server = await asyncio.start_server(
-            self.receive_logline,
+            self.handle_receive_logline,
             str(self.host),
             self.receive_port
         )
@@ -55,14 +55,17 @@ class LogServer:
             receive_server.wait_closed()
         )
 
-    async def handle_connection(self, reader, writer):
+    async def handle_connection(self, reader, writer, sending: bool):
         if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
             self.number_of_connections += 1
             client_address = writer.get_extra_info('peername')
             logger.debug(f"Connection from {client_address} accepted")
 
             try:
-                await self.send_logline(writer, self.get_next_logline())
+                if sending:
+                    await self.send_logline(writer, self.get_next_logline())
+                else:
+                    await self.receive_logline(reader)
             except asyncio.CancelledError:
                 pass
             finally:
@@ -78,34 +81,11 @@ class LogServer:
             writer.close()
             await writer.wait_closed()
 
-    async def receive_logline(self, reader, writer):
-        if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
-            self.number_of_connections += 1
-            client_address = writer.get_extra_info('peername')
-            logger.debug(f"Connection from {client_address} accepted")
+    async def handle_send_logline(self, reader, writer):
+        await self.handle_connection(reader, writer, True)
 
-            try:
-                while True:
-                    data = await reader.read(1024)
-                    if not data:
-                        break
-                    received_message = data.decode()
-                    logger.info(f"Received message: {received_message}")
-                    self.data_queue.put(received_message)
-            except asyncio.CancelledError:
-                pass
-            finally:
-                logger.debug(f"Connection to {client_address} closed")
-                writer.close()
-                await writer.wait_closed()
-                self.number_of_connections -= 1
-        else:
-            client_address = writer.get_extra_info('peername')
-            logger.warning(
-                f"Client connection to {client_address} denied. Max number of connections reached!"
-            )
-            writer.close()
-            await writer.wait_closed()
+    async def handle_receive_logline(self, reader, writer):
+        await self.handle_connection(reader, writer, False)
 
     @staticmethod
     async def send_logline(writer, logline):
@@ -116,6 +96,15 @@ class LogServer:
             return
 
         logger.info("No logline available")
+
+    async def receive_logline(self, reader):
+        while True:
+            data = await reader.read(1024)
+            if not data:
+                break
+            received_message = data.decode()
+            logger.info(f"Received message: {received_message}")
+            self.data_queue.put(received_message)
 
     def get_next_logline(self) -> str | None:
         if not self.data_queue.empty():
