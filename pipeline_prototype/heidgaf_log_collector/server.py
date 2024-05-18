@@ -78,20 +78,6 @@ class LogServer:
             writer.close()
             await writer.wait_closed()
 
-    async def send_logline(self, writer, logline):
-        if logline:
-            writer.write(logline.encode('utf-8'))
-            await writer.drain()
-            logger.info(f"Logline sent: {logline}")
-            return
-
-        logger.info("No logline available")
-
-    def get_next_logline(self) -> str | None:
-        if not self.data_queue.empty():
-            return self.data_queue.get()
-        return None
-
     async def receive_logline(self, reader, writer):
         if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
             self.number_of_connections += 1
@@ -120,6 +106,21 @@ class LogServer:
             )
             writer.close()
             await writer.wait_closed()
+
+    @staticmethod
+    async def send_logline(writer, logline):
+        if logline:
+            writer.write(logline.encode('utf-8'))
+            await writer.drain()
+            logger.info(f"Logline sent: {logline}")
+            return
+
+        logger.info("No logline available")
+
+    def get_next_logline(self) -> str | None:
+        if not self.data_queue.empty():
+            return self.data_queue.get()
+        return None
 
 
 server = LogServer("127.0.0.1", 9998, 9999)
