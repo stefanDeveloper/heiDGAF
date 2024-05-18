@@ -88,16 +88,33 @@ class LogServer:
         return None
 
     async def receive_logline(self, reader, writer):
-        # TODO: Implement, currently only mock method
-        while True:
-            data = await reader.read(1024)
-            if not data:
-                break
-            received_message = data.decode()
-            print(f"Received message: {received_message}")
-            self.data_queue.put(received_message)
-        writer.close()
-        await writer.wait_closed()
+        if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
+            self.number_of_connections += 1
+            client_address = writer.get_extra_info('peername')
+            print(f"Connection from {client_address} accepted.")  # TODO: Change to logging line
+
+            try:
+                while True:
+                    data = await reader.read(1024)
+                    if not data:
+                        break
+                    received_message = data.decode()
+                    print(f"Received message: {received_message}")
+                    self.data_queue.put(received_message)
+            except asyncio.CancelledError:
+                pass
+            finally:
+                print(f"Connection to {client_address} closed.")  # TODO: Change to logging line
+                writer.close()
+                await writer.wait_closed()
+                self.number_of_connections -= 1
+        else:
+            client_address = writer.get_extra_info('peername')
+            print(
+                f"Client connection to {client_address} denied. Max number of connections reached!"
+            )  # TODO: Change to logging line
+            writer.close()
+            await writer.wait_closed()
 
 
 server = LogServer("127.0.0.1", 9998, 9999)
