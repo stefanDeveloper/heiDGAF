@@ -74,7 +74,7 @@ class LogServer:
             client_address = writer.get_extra_info('peername')
             logger.warning(
                 f"Client connection to {client_address} denied. Max number of connections reached!"
-            )  # TODO: Change to logging line
+            )
             writer.close()
             await writer.wait_closed()
 
@@ -117,7 +117,7 @@ class LogServer:
             client_address = writer.get_extra_info('peername')
             logger.warning(
                 f"Client connection to {client_address} denied. Max number of connections reached!"
-            )  # TODO: Change to logging line
+            )
             writer.close()
             await writer.wait_closed()
 
