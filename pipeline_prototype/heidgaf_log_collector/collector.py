@@ -1,6 +1,11 @@
+import logging
 import socket
 
 from pipeline_prototype.heidgaf_log_collector import utils
+from pipeline_prototype.logging_config import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 class LogCollector:
@@ -19,7 +24,7 @@ class LogCollector:
                 if not data:
                     break
                 logline = data.decode('utf-8')
-                print(f"Received logline: {logline}")
+                logger.info(f"Received logline: {logline}")
 
 
 collector = LogCollector("127.0.0.1", 9998)

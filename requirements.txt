@@ -20,3 +20,4 @@ joblib~=1.4.2
 requests~=2.31.0
 matplotlib~=3.8.4
 confluent-kafka
+colorlog~=6.8.2
