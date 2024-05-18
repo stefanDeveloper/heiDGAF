@@ -2,7 +2,7 @@ import socket
 
 from pipeline_prototype.heidgaf_log_collector import utils
 
-MAX_NUMBER_OF_CONNECTIONS = 5
+MAX_NUMBER_OF_CONNECTIONS = 1
 
 
 class LogServer:
@@ -18,7 +18,7 @@ class LogServer:
 
     def open(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.server_socket:
-            self.server_socket.bind((self.host, self.port))
+            self.server_socket.bind((str(self.host), self.port))
             self.server_socket.listen()
             self.active = True
             print(f"LogServer running on {self.host}:{self.port}")  # TODO: Change to logging line
@@ -52,3 +52,9 @@ class LogServer:
 
     def close(self):
         self.active = False
+        # TODO: Add await for async methods open() and handle_connection()
+        self.server_socket.close()
+
+
+server = LogServer("127.0.0.1", 9999)
+server.open()
