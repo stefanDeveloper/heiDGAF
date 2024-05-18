@@ -1,4 +1,5 @@
 import asyncio
+import queue
 
 from pipeline_prototype.heidgaf_log_collector import utils
 
@@ -7,31 +8,47 @@ MAX_NUMBER_OF_CONNECTIONS = 5
 
 class LogServer:
     host = None
-    port = None
+    send_port = None
+    receive_port = None
     socket = None
     number_of_connections = 0
-    active = False
 
-    def __init__(self, host: str, port: int) -> None:
+    def __init__(self, host: str, send_port: int, receive_port: int) -> None:
         self.host = utils.validate_host(host)
-        self.port = utils.validate_port(port)
+        self.send_port = utils.validate_port(send_port)
+        self.receive_port = utils.validate_port(receive_port)
+        self.data_queue = queue.Queue()
 
     async def open(self):
-        active_server = await asyncio.start_server(
+        send_server = await asyncio.start_server(
             self.handle_connection,
             str(self.host),
-            self.port
+            self.send_port
         )
-        self.active = True
-        print(f"LogServer running on {self.host}:{self.port}")  # TODO: Change to logging line
+        receive_server = await asyncio.start_server(
+            self.receive_logline,
+            str(self.host),
+            self.receive_port
+        )
+        print(
+            f"LogServer running on {self.host}:{self.send_port} for sending,",
+            f"and on {self.host}:{self.receive_port} for receiving"
+        )  # TODO: Change to logging line
 
         try:
-            await active_server.serve_forever()
+            await asyncio.gather(
+                send_server.serve_forever(),
+                receive_server.serve_forever()
+            )
         except KeyboardInterrupt:
             pass
 
-        active_server.close()
-        await active_server.wait_closed()
+        send_server.close()
+        receive_server.close()
+        await asyncio.gather(
+            send_server.wait_closed(),
+            receive_server.wait_closed()
+        )
 
     async def handle_connection(self, reader, writer):
         if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
@@ -57,17 +74,31 @@ class LogServer:
             await writer.wait_closed()
 
     async def send_logline(self, writer, logline):
-        writer.write(logline.encode('utf-8'))
-        await writer.drain()
-        print(f"Logline sent: {logline}")  # TODO: Change to logging line
+        if logline:
+            writer.write(logline.encode('utf-8'))
+            await writer.drain()
+            print(f"Logline sent: {logline}")  # TODO: Change to logging line
+            return
 
-    def get_next_logline(self) -> str:
+        print("No logline available")  # TODO: Change to logging line
+
+    def get_next_logline(self) -> str | None:
+        if not self.data_queue.empty():
+            return self.data_queue.get()
+        return None
+
+    async def receive_logline(self, reader, writer):
         # TODO: Implement, currently only mock method
-        return "this is a mock logline"
+        while True:
+            data = await reader.read(1024)
+            if not data:
+                break
+            received_message = data.decode()
+            print(f"Received message: {received_message}")
+            self.data_queue.put(received_message)
+        writer.close()
+        await writer.wait_closed()
 
-    def receive_data(self):
-        pass
 
-
-server = LogServer("127.0.0.1", 9999)
+server = LogServer("127.0.0.1", 9998, 9999)
 asyncio.run(server.open())
