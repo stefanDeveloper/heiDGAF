@@ -11,12 +11,12 @@ class TestServer(unittest.TestCase):
         port = 9999
         server_instance = LogServer(host, port)
         self.assertEqual(server_instance.host, ipaddress.IPv4Address("192.168.0.1"))
-        self.assertEqual(server_instance.send_port, 9999)
+        self.assertEqual(server_instance.port_out, 9999)
 
     def test_init_with_no_host(self):
         with self.assertRaises(TypeError):
             # noinspection PyArgumentList
-            LogServer(send_port=9999)
+            LogServer(port_out=9999)
 
     def test_init_with_no_port(self):
         with self.assertRaises(TypeError):

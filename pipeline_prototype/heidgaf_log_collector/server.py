@@ -16,31 +16,31 @@ logger = logging.getLogger(__name__)
 
 class LogServer:
     host = None
-    send_port = None
-    receive_port = None
+    port_out = None
+    port_in = None
     socket = None
     number_of_connections = 0
 
-    def __init__(self, host: str, send_port: int, receive_port: int) -> None:
+    def __init__(self, host: str, port_out: int, port_in: int) -> None:
         self.host = utils.validate_host(host)
-        self.send_port = utils.validate_port(send_port)
-        self.receive_port = utils.validate_port(receive_port)
+        self.port_out = utils.validate_port(port_out)
+        self.port_in = utils.validate_port(port_in)
         self.data_queue = queue.Queue()
 
     async def open(self):
         send_server = await asyncio.start_server(
             self.handle_send_logline,
             str(self.host),
-            self.send_port
+            self.port_out
         )
         receive_server = await asyncio.start_server(
             self.handle_receive_logline,
             str(self.host),
-            self.receive_port
+            self.port_in
         )
         logger.info(
-            f"LogServer running on {self.host}:{self.send_port} for sending, " +
-            f"and on {self.host}:{self.receive_port} for receiving"
+            f"LogServer running on {self.host}:{self.port_out} for sending, " +
+            f"and on {self.host}:{self.port_in} for receiving"
         )
 
         try:
