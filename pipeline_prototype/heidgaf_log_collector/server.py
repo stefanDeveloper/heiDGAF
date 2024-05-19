@@ -1,9 +1,13 @@
 import asyncio
 import logging
+import os  # needed for Terminal execution
 import queue
+import sys  # needed for Terminal execution
 
 from pipeline_prototype.heidgaf_log_collector import utils
 from pipeline_prototype.logging_config import setup_logging
+
+sys.path.append(os.getcwd())  # needed for Terminal execution
 
 MAX_NUMBER_OF_CONNECTIONS = 5
 

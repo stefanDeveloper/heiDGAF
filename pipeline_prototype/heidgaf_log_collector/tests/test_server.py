@@ -5,7 +5,7 @@ from pipeline_prototype.heidgaf_log_collector.server import LogServer
 
 
 class TestServer(unittest.TestCase):
-    # TESTS FOR __init__(self, host: str, port: int) -> None
+    # TESTS FOR __init__
     def test_init(self):
         host = "192.168.0.1"
         port = 9999
@@ -41,7 +41,7 @@ class TestServer(unittest.TestCase):
             # noinspection PyTypeChecker
             LogServer("127.0.0.1", "9999")
 
-    # TESTS FOR
+    # TESTS FOR get_next_logline
     def test_get_next_logline(self):
         server_instance = LogServer("127.0.0.1", 9999)
         self.assertEqual(server_instance.get_next_logline(), "this is a mock logline")
