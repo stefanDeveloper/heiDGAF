@@ -26,11 +26,11 @@ Start der Container::
 
 Hinzufügen des Topics, das in ``consumer.py`` und ``producer.py`` verwendet wird (``my_topic``) im Kafka-Container::
 
-    docker exec c9e0d1a873d6 ../../bin/kafka-topics --create --topic my_topic --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1
+    docker exec CONTAINER_ID ../../bin/kafka-topics --create --topic my_topic --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1
 
 Überprüfung durch::
 
-    docker exec c9e0d1a873d6 ../../bin/kafka-topics --list --bootstrap-server localhost:9092
+    docker exec CONTAINER_ID ../../bin/kafka-topics --list --bootstrap-server localhost:9092
 
 3. **Ausführen des Consumer-Codes**
 
