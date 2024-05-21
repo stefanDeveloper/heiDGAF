@@ -11,6 +11,12 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
+# LOG FORMAT:
+# TIMESTAMP STATUS_TEXT CLIENT_IP DNS_IP HOST_DOMAIN_NAME RECORD_TIME RESPONSE_IP SIZE
+# EXAMPLE:
+# 2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A
+# b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b
+
 class LogCollector:
     server_host = None
     server_port = None
