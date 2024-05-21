@@ -21,10 +21,10 @@ class LogServer:
     socket = None
     number_of_connections = 0
 
-    def __init__(self, host: str, port_out: int, port_in: int) -> None:
+    def __init__(self, host: str, port_in: int, port_out: int) -> None:
         self.host = utils.validate_host(host)
-        self.port_out = utils.validate_port(port_out)
         self.port_in = utils.validate_port(port_in)
+        self.port_out = utils.validate_port(port_out)
         self.data_queue = queue.Queue()
 
     async def open(self):
@@ -116,5 +116,5 @@ class LogServer:
 
 
 if __name__ == '__main__':
-    server = LogServer("127.0.0.1", 9998, 9999)
+    server = LogServer("127.0.0.1", 9999, 9998)
     asyncio.run(server.open())
