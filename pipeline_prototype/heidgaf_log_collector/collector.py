@@ -78,6 +78,7 @@ class LogCollector:
             self.dns_ip = validate_host(parts[3])
             self.response_ip = validate_host(parts[6])
         except ValueError as e:
+            self.client_ip, self.dns_ip, self.response_ip = None, None, None
             raise ValueError(f"Incorrect logline: {e}")
 
         self.timestamp = parts[0]

@@ -1,6 +1,88 @@
 import unittest
+from ipaddress import IPv4Address, IPv6Address
+from unittest.mock import patch
 
 from pipeline_prototype.heidgaf_log_collector.collector import LogCollector
+
+
+class TestInit(unittest.TestCase):
+    def test_valid_init(self):
+        host = "192.168.0.1"
+        port = 9999
+        collector_instance = LogCollector(host, port)
+        self.assertEqual(IPv4Address(host), collector_instance.server_host)
+        self.assertEqual(port, collector_instance.server_port)
+
+    def test_invalid_init_with_no_host(self):
+        with self.assertRaises(TypeError):
+            # noinspection PyArgumentList
+            LogCollector(server_port=9999)
+
+    def test_invalid_init_with_no_port(self):
+        with self.assertRaises(TypeError):
+            # noinspection PyArgumentList
+            LogCollector(server_host="192.168.2.1")
+
+    def test_invalid_init_with_invalid_host(self):
+        with self.assertRaises(ValueError):
+            LogCollector("256.256.256.256", 9999)
+
+    def test_invalid_init_with_invalid_port(self):
+        with self.assertRaises(ValueError):
+            LogCollector("192.168.0.1", 70000)
+
+
+class TestFetchLogline(unittest.TestCase):
+    @patch('socket.socket')
+    def test_fetch_logline(self, mock_socket):
+        mock_socket_instance = mock_socket.return_value.__enter__.return_value
+        mock_socket_instance.connect.return_value = None
+        mock_socket_instance.recv.side_effect = ["fake data".encode('utf-8'), b""]
+
+        host = "127.0.0.1"
+        port = 12345
+
+        collector_instance = LogCollector(host, port)
+        collector_instance.fetch_logline()
+
+        mock_socket_instance.connect.assert_called_with((host, port))
+        mock_socket_instance.recv.assert_called_with(1024)
+        self.assertEqual("fake data", collector_instance.logline)
+
+
+class TestValidateAndExtractLogline(unittest.TestCase):
+    def test_valid_logline(self):
+        # Valid logline (randomly generated)
+        collector_instance = LogCollector("127.0.0.1", 9999)
+        collector_instance.logline = ("2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
+                                      "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b")
+        collector_instance.validate_and_extract_logline()
+        self.assertEqual("2024-05-21T19:27:15.583Z", collector_instance.timestamp)
+        self.assertEqual("NOERROR", collector_instance.status)
+        self.assertEqual(IPv4Address("192.168.0.253"), collector_instance.client_ip)
+        self.assertEqual(IPv4Address("8.8.8.8"), collector_instance.dns_ip)
+        self.assertEqual("www.uni-hd-theologie.de", collector_instance.host_domain_name)
+        self.assertEqual("A", collector_instance.record_type)
+        self.assertEqual(IPv6Address("b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d"), collector_instance.response_ip)
+        self.assertEqual("86b", collector_instance.size)
+
+    def test_invalid_logline_wrong_response_ip(self):
+        # Invalid logline: Incorrect Response IP
+        collector_instance = LogCollector("127.0.0.1", 9999)
+        collector_instance.logline = ("2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
+                                      "A b49c:50f9:a37:f8e2:ff81:3e88:d27d 86b")
+
+        with self.assertRaises(ValueError):
+            collector_instance.validate_and_extract_logline()
+
+        self.assertEqual(None, collector_instance.timestamp)
+        self.assertEqual(None, collector_instance.status)
+        self.assertEqual(None, collector_instance.client_ip)
+        self.assertEqual(None, collector_instance.dns_ip)
+        self.assertEqual(None, collector_instance.host_domain_name)
+        self.assertEqual(None, collector_instance.record_type)
+        self.assertEqual(None, collector_instance.response_ip)
+        self.assertEqual(None, collector_instance.size)
 
 
 class TestCheckLength(unittest.TestCase):
