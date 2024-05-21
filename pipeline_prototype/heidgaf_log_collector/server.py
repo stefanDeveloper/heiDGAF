@@ -115,5 +115,6 @@ class LogServer:
         return None
 
 
-server = LogServer("127.0.0.1", 9998, 9999)
-asyncio.run(server.open())
+if __name__ == '__main__':
+    server = LogServer("127.0.0.1", 9998, 9999)
+    asyncio.run(server.open())
