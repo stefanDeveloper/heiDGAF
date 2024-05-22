@@ -1,19 +1,31 @@
 import asyncio
 import unittest
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from pipeline_prototype.heidgaf_log_collector.server import LogServer, MAX_NUMBER_OF_CONNECTIONS
 
 
 class TestInit(unittest.TestCase):
-    def test_valid_init(self):
+    def test_valid_init_ipv4(self):
         host = "192.168.0.1"
         port_in = 9998
         port_out = 9999
 
         server_instance = LogServer(host, port_in, port_out)
         self.assertEqual(IPv4Address(host), server_instance.host)
+        self.assertEqual(port_in, server_instance.port_in)
+        self.assertEqual(port_out, server_instance.port_out)
+        self.assertTrue(server_instance.data_queue.empty())
+        self.assertEqual(0, server_instance.number_of_connections)
+
+    def test_valid_init_ipv6(self):
+        host = "fe80::1"
+        port_in = 9998
+        port_out = 9999
+
+        server_instance = LogServer(host, port_in, port_out)
+        self.assertEqual(IPv6Address(host), server_instance.host)
         self.assertEqual(port_in, server_instance.port_in)
         self.assertEqual(port_out, server_instance.port_out)
         self.assertTrue(server_instance.data_queue.empty())

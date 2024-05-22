@@ -6,11 +6,18 @@ from pipeline_prototype.heidgaf_log_collector.collector import LogCollector
 
 
 class TestInit(unittest.TestCase):
-    def test_valid_init(self):
+    def test_valid_init_ipv4(self):
         host = "192.168.0.1"
         port = 9999
         collector_instance = LogCollector(host, port)
         self.assertEqual(IPv4Address(host), collector_instance.server_host)
+        self.assertEqual(port, collector_instance.server_port)
+
+    def test_valid_init_ipv6(self):
+        host = "fe80::1"
+        port = 9999
+        collector_instance = LogCollector(host, port)
+        self.assertEqual(IPv6Address(host), collector_instance.server_host)
         self.assertEqual(port, collector_instance.server_port)
 
     def test_invalid_init_with_no_host(self):
