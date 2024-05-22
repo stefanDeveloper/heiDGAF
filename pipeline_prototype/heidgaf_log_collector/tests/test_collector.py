@@ -12,6 +12,15 @@ class TestInit(unittest.TestCase):
         collector_instance = LogCollector(host, port)
         self.assertEqual(IPv4Address(host), collector_instance.server_host)
         self.assertEqual(port, collector_instance.server_port)
+        self.assertEqual(None, collector_instance.logline)
+        self.assertEqual(None, collector_instance.timestamp)
+        self.assertEqual(None, collector_instance.status)
+        self.assertEqual(None, collector_instance.client_ip)
+        self.assertEqual(None, collector_instance.dns_ip)
+        self.assertEqual(None, collector_instance.host_domain_name)
+        self.assertEqual(None, collector_instance.record_type)
+        self.assertEqual(None, collector_instance.response_ip)
+        self.assertEqual(None, collector_instance.size)
 
     def test_valid_init_ipv6(self):
         host = "fe80::1"
@@ -19,6 +28,15 @@ class TestInit(unittest.TestCase):
         collector_instance = LogCollector(host, port)
         self.assertEqual(IPv6Address(host), collector_instance.server_host)
         self.assertEqual(port, collector_instance.server_port)
+        self.assertEqual(None, collector_instance.logline)
+        self.assertEqual(None, collector_instance.timestamp)
+        self.assertEqual(None, collector_instance.status)
+        self.assertEqual(None, collector_instance.client_ip)
+        self.assertEqual(None, collector_instance.dns_ip)
+        self.assertEqual(None, collector_instance.host_domain_name)
+        self.assertEqual(None, collector_instance.record_type)
+        self.assertEqual(None, collector_instance.response_ip)
+        self.assertEqual(None, collector_instance.size)
 
     def test_invalid_init_with_no_host(self):
         with self.assertRaises(TypeError):
