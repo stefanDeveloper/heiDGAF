@@ -60,18 +60,21 @@ class LogCollector:
     def validate_and_extract_logline(self):
         parts = self.logline.split()
 
-        if not self.check_length(parts):
-            raise ValueError(f"Logline does not contain exactly 8 values, but {len(parts)} values were found.")
-        if not self.check_timestamp(parts[0]):
-            raise ValueError(f"Incorrect logline: Invalid timestamp")
-        if not self.check_status(parts[1]):
-            raise ValueError(f"Incorrect logline: Invalid status")
-        if not self.check_domain_name(parts[4]):
-            raise ValueError(f"Incorrect logline: Invalid domain name")
-        if not self.check_record_type(parts[5]):
-            raise ValueError(f"Incorrect logline: Invalid record type")
-        if not self.check_size(parts[7]):
-            raise ValueError(f"Incorrect logline: Invalid size value")
+        try:
+            if not self.check_length(parts):
+                raise ValueError(f"Logline does not contain exactly 8 values, but {len(parts)} values were found.")
+            if not self.check_timestamp(parts[0]):
+                raise ValueError(f"Invalid timestamp")
+            if not self.check_status(parts[1]):
+                raise ValueError(f"Invalid status")
+            if not self.check_domain_name(parts[4]):
+                raise ValueError(f"Invalid domain name")
+            if not self.check_record_type(parts[5]):
+                raise ValueError(f"Invalid record type")
+            if not self.check_size(parts[7]):
+                raise ValueError(f"Invalid size value")
+        except ValueError as e:
+            raise ValueError(f"Incorrect logline: {e}")
 
         try:
             self.client_ip = validate_host(parts[2])
