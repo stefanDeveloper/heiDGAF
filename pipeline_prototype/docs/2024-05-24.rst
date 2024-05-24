@@ -1,0 +1,128 @@
+Kafka Consumer Load Balancing
+=============================
+
+This document describes how to implement a scenario where the next free consumer in a Kafka system picks up the job, bypassing Kafka's built-in mechanisms.
+
+Overview
+--------
+
+Kafka itself doesn't natively support routing messages to consumers based on their current load or availability. Instead, Kafka consumers in a consumer group will consume messages from partitions in a round-robin or sticky assignment manner, without knowledge of each other's workload. To achieve this, you need to manage the consumer workload outside of Kafka's built-in mechanisms.
+
+Implementation
+--------------
+
+1. Implement Consumer Load Balancing with an External Coordinator
+
+You can implement an external coordinator that monitors the load on each consumer and assigns messages accordingly.
+
+**Steps:**
+
+- **External Coordinator Service**: Develop a service that keeps track of the status (busy/free) of each consumer. This service can be a lightweight microservice or a simple daemon.
+- **Consumer Registration**: Consumers need to register themselves with the coordinator service and update their status (busy/free) based on their workload.
+- **Producer Notification**: The producer should consult this coordinator service to determine which consumer is free before sending a message. The coordinator service will then inform the producer of the appropriate partition or topic to send the message to, or directly send the message to the consumer.
+
+External Coordinator Service
+----------------------------
+
+This service will maintain a list of consumers and their statuses.
+
+.. code-block:: python
+
+    from flask import Flask, request, jsonify
+    from threading import Lock
+
+    app = Flask(__name__)
+    consumers = {}
+    lock = Lock()
+
+    @app.route('/register', methods=['POST'])
+    def register():
+        consumer_id = request.json['consumer_id']
+        with lock:
+            consumers[consumer_id] = 'free'
+        return jsonify(status='registered'), 200
+
+    @app.route('/status', methods=['POST'])
+    def update_status():
+        consumer_id = request.json['consumer_id']
+        status = request.json['status']
+        with lock:
+            consumers[consumer_id] = status
+        return jsonify(status='updated'), 200
+
+    @app.route('/next_free', methods=['GET'])
+    def next_free():
+        with lock:
+            for consumer_id, status in consumers.items():
+                if status == 'free':
+                    return jsonify(consumer_id=consumer_id), 200
+        return jsonify(error='No free consumers'), 503
+
+    if __name__ == '__main__':
+        app.run(host='0.0.0.0', port=5000)
+
+Consumer
+--------
+
+Consumers will need to register themselves and update their status with the coordinator.
+
+.. code-block:: python
+
+    import requests
+
+    def register_consumer(consumer_id):
+        response = requests.post('http://coordinator-service:5000/register', json={'consumer_id': consumer_id})
+        if response.status_code == 200:
+            print('Consumer registered successfully')
+
+    def update_status(consumer_id, status):
+        response = requests.post('http://coordinator-service:5000/status', json={'consumer_id': consumer_id, 'status': status})
+        if response.status_code == 200:
+            print('Status updated successfully')
+
+    # Register consumer on startup
+    consumer_id = 'consumer-1'
+    register_consumer(consumer_id)
+
+    # Update status to 'busy' when processing a message
+    update_status(consumer_id, 'busy')
+
+    # Update status to 'free' when done processing
+    update_status(consumer_id, 'free')
+
+Producer
+--------
+
+Before producing a message, the producer will consult the coordinator to find the next free consumer.
+
+.. code-block:: python
+
+    import requests
+    from kafka import KafkaProducer
+
+    def get_next_free_consumer():
+        response = requests.get('http://coordinator-service:5000/next_free')
+        if response.status_code == 200:
+            return response.json()['consumer_id']
+        else:
+            raise Exception('No free consumers available')
+
+    producer = KafkaProducer(bootstrap_servers='kafka-broker:9092')
+
+    while True:
+        # Fetch the next free consumer
+        try:
+            free_consumer = get_next_free_consumer()
+            # Produce a message to the free consumer's topic/partition
+            producer.send(f'topic-{free_consumer}', b'message')
+        except Exception as e:
+            print(e)
+
+Considerations
+--------------
+
+- **Fault Tolerance**: Ensure that the coordinator service is highly available and can handle failures gracefully.
+- **Scalability**: Make sure the system can handle an increasing number of consumers and producers.
+- **Security**: Implement authentication and authorization mechanisms to secure communication between components.
+
+This solution involves additional components and complexity, but it provides the necessary control over consumer workload management that Kafka alone does not offer.
