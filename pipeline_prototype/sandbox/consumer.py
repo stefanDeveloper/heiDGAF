@@ -6,8 +6,14 @@ conf = {
     'auto.offset.reset': 'earliest'
 }
 
+# utils.create_kafka_topic(
+#     KAFKA_BROKER_HOST,
+#     KAFKA_BROKER_PORT,
+#     "Test",
+# )
+
 consumer = Consumer(conf)
-consumer.subscribe(['my_topic'])
+consumer.subscribe(['192.168.0.x'])
 
 try:
     while True:

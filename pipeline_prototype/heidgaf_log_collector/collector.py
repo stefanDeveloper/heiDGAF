@@ -1,3 +1,5 @@
+import ipaddress
+import json
 import logging
 import os  # needed for Terminal execution
 import re
@@ -6,9 +8,9 @@ import sys  # needed for Terminal execution
 
 from confluent_kafka import Producer
 
-from pipeline_prototype.heidgaf_log_collector.utils import validate_host
-
 sys.path.append(os.getcwd())  # needed for Terminal execution
+from pipeline_prototype.heidgaf_log_collector.utils import validate_host
+from pipeline_prototype.heidgaf_log_collector.utils import kafka_delivery_report
 from pipeline_prototype.heidgaf_log_collector import utils
 from pipeline_prototype.logging_config import setup_logging
 
@@ -21,8 +23,9 @@ logger = logging.getLogger(__name__)
 # 2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A
 # b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b
 
-KAFKA_BROKER_HOST = "localhost"
-KAFKA_BROKER_PORT = 9092
+KAFKA_BROKER_HOST = "localhost"  # TODO: Move to config file
+KAFKA_BROKER_PORT = 9092  # TODO: Move to config file
+SUBNET_CUTOFF_LENGTH = 24
 
 valid_statuses = [
     "NOERROR",
@@ -77,17 +80,17 @@ class LogCollector:
         parts = self.logline.split()
 
         try:
-            if not self.check_length(parts):
+            if not self._check_length(parts):
                 raise ValueError(f"Logline does not contain exactly 8 values, but {len(parts)} values were found.")
-            if not self.check_timestamp(parts[0]):
+            if not self._check_timestamp(parts[0]):
                 raise ValueError(f"Invalid timestamp")
-            if not self.check_status(parts[1]):
+            if not self._check_status(parts[1]):
                 raise ValueError(f"Invalid status")
-            if not self.check_domain_name(parts[4]):
+            if not self._check_domain_name(parts[4]):
                 raise ValueError(f"Invalid domain name")
-            if not self.check_record_type(parts[5]):
+            if not self._check_record_type(parts[5]):
                 raise ValueError(f"Invalid record type")
-            if not self.check_size(parts[7]):
+            if not self._check_size(parts[7]):
                 raise ValueError(f"Invalid size value")
         except ValueError as e:
             raise ValueError(f"Incorrect logline: {e}")
@@ -109,36 +112,63 @@ class LogCollector:
         self.log_data["size"] = parts[7]
 
     def produce(self):
+        log_entry = self.log_data.copy()
+        log_entry["client_ip"] = str(self.log_data["client_ip"])
+        log_entry["dns_ip"] = str(self.log_data["dns_ip"])
+        log_entry["response_ip"] = str(self.log_data["response_ip"])
+
+        self.kafka_producer.produce(
+            topic=self._get_topic_name(),
+            key=log_entry["client_ip"],
+            value=json.dumps(log_entry),
+            callback=kafka_delivery_report,
+        )
+
+        self.kafka_producer.flush()
+
+    def _get_topic_name(self) -> str:
+        # address = self.log_data.get("client_ip")
+        #
+        # if isinstance(address, ipaddress.IPv4Address):
+        #     cutoff_address = utils.get_first_part_of_ipv4_address(address, SUBNET_CUTOFF_LENGTH)
+        # # TODO: How to handle IPv6?
+        # else:
+        #     raise ValueError("Invalid IP address format")
+        #
+        # first_decimal = '.'.join(str(byte) for byte in str(cutoff_address))
+        #
+        # return f"{first_decimal}.x"
+        # TODO: Finish
         pass
 
     @staticmethod
-    def check_length(parts: list[str]) -> bool:
+    def _check_length(parts: list[str]) -> bool:
         return len(parts) == 8
 
     @staticmethod
-    def check_timestamp(timestamp: str) -> bool:
+    def _check_timestamp(timestamp: str) -> bool:
         pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"
         if re.match(pattern, timestamp):
             return True
         return False
 
     @staticmethod
-    def check_status(status: str):
+    def _check_status(status: str):
         return status in valid_statuses
 
     @staticmethod
-    def check_domain_name(domain_name: str):
+    def _check_domain_name(domain_name: str):
         pattern = r"^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$"
         if re.match(pattern, domain_name):
             return True
         return False
 
     @staticmethod
-    def check_record_type(record_type: str):
+    def _check_record_type(record_type: str):
         return record_type in valid_record_types
 
     @staticmethod
-    def check_size(size: str):
+    def _check_size(size: str):
         pattern = r"^\d+b$"
 
         if re.match(pattern, size):
@@ -148,5 +178,6 @@ class LogCollector:
 
 if __name__ == '__main__':
     collector = LogCollector("127.0.0.1", 9998)
-    collector.fetch_logline()
+    collector.logline = "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b"
     collector.validate_and_extract_logline()
+    collector.produce()
