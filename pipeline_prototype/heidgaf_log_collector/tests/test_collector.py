@@ -10,33 +10,34 @@ class TestInit(unittest.TestCase):
         host = "192.168.0.1"
         port = 9999
         collector_instance = LogCollector(host, port)
-        self.assertEqual(IPv4Address(host), collector_instance.server_host)
-        self.assertEqual(port, collector_instance.server_port)
+        self.assertEqual(IPv4Address(host), collector_instance.log_server.get("host"))
+        self.assertEqual(port, collector_instance.log_server.get("port"))
         self.assertEqual(None, collector_instance.logline)
-        self.assertEqual(None, collector_instance.timestamp)
-        self.assertEqual(None, collector_instance.status)
-        self.assertEqual(None, collector_instance.client_ip)
-        self.assertEqual(None, collector_instance.dns_ip)
-        self.assertEqual(None, collector_instance.host_domain_name)
-        self.assertEqual(None, collector_instance.record_type)
-        self.assertEqual(None, collector_instance.response_ip)
-        self.assertEqual(None, collector_instance.size)
+        self.assertEqual(None, collector_instance.log_data.get("timestamp"))
+        self.assertEqual(None, collector_instance.log_data.get("status"))
+        self.assertEqual(None, collector_instance.log_data.get("client_ip"))
+        self.assertEqual(None, collector_instance.log_data.get("dns_ip"))
+        self.assertEqual(None, collector_instance.log_data.get("host_domain_name"))
+        self.assertEqual(None, collector_instance.log_data.get("record_type"))
+        self.assertEqual(None, collector_instance.log_data.get("response_ip"))
+        self.assertEqual(None, collector_instance.log_data.get("size"))
 
     def test_valid_init_ipv6(self):
         host = "fe80::1"
         port = 9999
         collector_instance = LogCollector(host, port)
-        self.assertEqual(IPv6Address(host), collector_instance.server_host)
-        self.assertEqual(port, collector_instance.server_port)
+        self.assertEqual(IPv6Address(host), collector_instance.log_server.get("host"))
+        self.assertEqual(port, collector_instance.log_server.get("port"))
+        self.assertEqual(port, collector_instance.log_server.get("port"))
         self.assertEqual(None, collector_instance.logline)
-        self.assertEqual(None, collector_instance.timestamp)
-        self.assertEqual(None, collector_instance.status)
-        self.assertEqual(None, collector_instance.client_ip)
-        self.assertEqual(None, collector_instance.dns_ip)
-        self.assertEqual(None, collector_instance.host_domain_name)
-        self.assertEqual(None, collector_instance.record_type)
-        self.assertEqual(None, collector_instance.response_ip)
-        self.assertEqual(None, collector_instance.size)
+        self.assertEqual(None, collector_instance.log_data.get("timestamp"))
+        self.assertEqual(None, collector_instance.log_data.get("status"))
+        self.assertEqual(None, collector_instance.log_data.get("client_ip"))
+        self.assertEqual(None, collector_instance.log_data.get("dns_ip"))
+        self.assertEqual(None, collector_instance.log_data.get("host_domain_name"))
+        self.assertEqual(None, collector_instance.log_data.get("record_type"))
+        self.assertEqual(None, collector_instance.log_data.get("response_ip"))
+        self.assertEqual(None, collector_instance.log_data.get("size"))
 
     def test_invalid_init_with_no_host(self):
         with self.assertRaises(TypeError):
@@ -82,14 +83,15 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         collector_instance.logline = ("2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
                                       "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b")
         collector_instance.validate_and_extract_logline()
-        self.assertEqual("2024-05-21T19:27:15.583Z", collector_instance.timestamp)
-        self.assertEqual("NOERROR", collector_instance.status)
-        self.assertEqual(IPv4Address("192.168.0.253"), collector_instance.client_ip)
-        self.assertEqual(IPv4Address("8.8.8.8"), collector_instance.dns_ip)
-        self.assertEqual("www.uni-hd-theologie.de", collector_instance.host_domain_name)
-        self.assertEqual("A", collector_instance.record_type)
-        self.assertEqual(IPv6Address("b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d"), collector_instance.response_ip)
-        self.assertEqual("86b", collector_instance.size)
+        self.assertEqual("2024-05-21T19:27:15.583Z", collector_instance.log_data.get("timestamp"))
+        self.assertEqual("NOERROR", collector_instance.log_data.get("status"))
+        self.assertEqual(IPv4Address("192.168.0.253"), collector_instance.log_data.get("client_ip"))
+        self.assertEqual(IPv4Address("8.8.8.8"), collector_instance.log_data.get("dns_ip"))
+        self.assertEqual("www.uni-hd-theologie.de", collector_instance.log_data.get("host_domain_name"))
+        self.assertEqual("A", collector_instance.log_data.get("record_type"))
+        self.assertEqual(IPv6Address("b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d"),
+                         collector_instance.log_data.get("response_ip"))
+        self.assertEqual("86b", collector_instance.log_data.get("size"))
 
     def test_invalid_logline_wrong_response_ip(self):
         # Invalid logline: Incorrect Response IP
@@ -100,14 +102,14 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         with self.assertRaises(ValueError):
             collector_instance.validate_and_extract_logline()
 
-        self.assertEqual(None, collector_instance.timestamp)
-        self.assertEqual(None, collector_instance.status)
-        self.assertEqual(None, collector_instance.client_ip)
-        self.assertEqual(None, collector_instance.dns_ip)
-        self.assertEqual(None, collector_instance.host_domain_name)
-        self.assertEqual(None, collector_instance.record_type)
-        self.assertEqual(None, collector_instance.response_ip)
-        self.assertEqual(None, collector_instance.size)
+        self.assertEqual(None, collector_instance.log_data.get("timestamp"))
+        self.assertEqual(None, collector_instance.log_data.get("status"))
+        self.assertEqual(None, collector_instance.log_data.get("client_ip"))
+        self.assertEqual(None, collector_instance.log_data.get("dns_ip"))
+        self.assertEqual(None, collector_instance.log_data.get("host_domain_name"))
+        self.assertEqual(None, collector_instance.log_data.get("record_type"))
+        self.assertEqual(None, collector_instance.log_data.get("response_ip"))
+        self.assertEqual(None, collector_instance.log_data.get("size"))
 
 
 class TestCheckLength(unittest.TestCase):

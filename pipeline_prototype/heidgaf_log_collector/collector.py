@@ -31,25 +31,31 @@ valid_record_types = [
 
 
 class LogCollector:
-    server_host = None
-    server_port = None
+    log_server = {
+        # Are filled in the methods, all values empty at the beginning.
+        # "host": None,
+        # "port": None,
+    }
     logline = None
-    timestamp = None
-    status = None
-    client_ip = None
-    dns_ip = None
-    host_domain_name = None
-    record_type = None
-    response_ip = None
-    size = None
+    log_data = {
+        # Are filled in the methods, all values empty at the beginning.
+        # "timestamp": None,
+        # "status": None,
+        # "client_ip": None,
+        # "dns_ip": None,
+        # "host_domain_name": None,
+        # "record_type": None,
+        # "response_ip": None,
+        # "size": None,
+    }
 
     def __init__(self, server_host, server_port):
-        self.server_host = utils.validate_host(server_host)
-        self.server_port = utils.validate_port(server_port)
+        self.log_server["host"] = utils.validate_host(server_host)
+        self.log_server["port"] = utils.validate_port(server_port)
 
     def fetch_logline(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.client_socket:
-            self.client_socket.connect((str(self.server_host), self.server_port))
+            self.client_socket.connect((str(self.log_server.get("host")), self.log_server.get("port")))
             while True:
                 data = self.client_socket.recv(1024)
                 if not data:
@@ -77,18 +83,23 @@ class LogCollector:
             raise ValueError(f"Incorrect logline: {e}")
 
         try:
-            self.client_ip = validate_host(parts[2])
-            self.dns_ip = validate_host(parts[3])
-            self.response_ip = validate_host(parts[6])
+            self.log_data["client_ip"] = validate_host(parts[2])
+            self.log_data["dns_ip"] = validate_host(parts[3])
+            self.log_data["response_ip"] = validate_host(parts[6])
         except ValueError as e:
-            self.client_ip, self.dns_ip, self.response_ip = None, None, None
+            self.log_data["client_ip"] = None
+            self.log_data["dns_ip"] = None
+            self.log_data["response_ip"] = None
             raise ValueError(f"Incorrect logline: {e}")
 
-        self.timestamp = parts[0]
-        self.status = parts[1]
-        self.host_domain_name = parts[4]
-        self.record_type = parts[5]
-        self.size = parts[7]
+        self.log_data["timestamp"] = parts[0]
+        self.log_data["status"] = parts[1]
+        self.log_data["host_domain_name"] = parts[4]
+        self.log_data["record_type"] = parts[5]
+        self.log_data["size"] = parts[7]
+
+    def produce(self):
+        pass
 
     @staticmethod
     def check_length(parts: list[str]) -> bool:
@@ -129,4 +140,3 @@ if __name__ == '__main__':
     collector = LogCollector("127.0.0.1", 9998)
     collector.fetch_logline()
     collector.validate_and_extract_logline()
-    print(collector.status)
