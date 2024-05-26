@@ -4,7 +4,7 @@ conf = {'bootstrap.servers': "localhost:9092"}
 producer = Producer(conf)
 
 
-def delivery_report(err, msg):
+def kafka_delivery_report(err, msg):
     if err is not None:
         print('Message delivery failed: {}'.format(err))
     else:
@@ -12,7 +12,7 @@ def delivery_report(err, msg):
 
 
 for i in range(10):
-    producer.produce('my_topic', key=str(i), value='my_value', callback=delivery_report)
+    producer.produce('my_topic', key=str(i), value='my_value', callback=kafka_delivery_report)
     producer.poll(0)
 
 producer.flush()

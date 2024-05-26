@@ -2,14 +2,19 @@ import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import patch
 
-from pipeline_prototype.heidgaf_log_collector.collector import LogCollector
+from pipeline_prototype.heidgaf_log_collector.collector import LogCollector, KAFKA_BROKER_HOST, KAFKA_BROKER_PORT
 
 
 class TestInit(unittest.TestCase):
-    def test_valid_init_ipv4(self):
+    @patch('pipeline_prototype.heidgaf_log_collector.collector.Producer')
+    def test_valid_init_ipv4(self, mock_producer):
         host = "192.168.0.1"
         port = 9999
         collector_instance = LogCollector(host, port)
+        expected_conf = {'bootstrap.servers': f'{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}'}
+
+        mock_producer.assert_called_once_with(expected_conf)
+        self.assertIsNotNone(collector_instance.kafka_producer)
         self.assertEqual(IPv4Address(host), collector_instance.log_server.get("host"))
         self.assertEqual(port, collector_instance.log_server.get("port"))
         self.assertEqual(None, collector_instance.logline)
@@ -22,12 +27,16 @@ class TestInit(unittest.TestCase):
         self.assertEqual(None, collector_instance.log_data.get("response_ip"))
         self.assertEqual(None, collector_instance.log_data.get("size"))
 
-    def test_valid_init_ipv6(self):
+    @patch('pipeline_prototype.heidgaf_log_collector.collector.Producer')
+    def test_valid_init_ipv6(self, mock_producer):
         host = "fe80::1"
         port = 9999
         collector_instance = LogCollector(host, port)
+        expected_conf = {'bootstrap.servers': f'{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}'}
+
+        mock_producer.assert_called_once_with(expected_conf)
+        self.assertIsNotNone(collector_instance.kafka_producer)
         self.assertEqual(IPv6Address(host), collector_instance.log_server.get("host"))
-        self.assertEqual(port, collector_instance.log_server.get("port"))
         self.assertEqual(port, collector_instance.log_server.get("port"))
         self.assertEqual(None, collector_instance.logline)
         self.assertEqual(None, collector_instance.log_data.get("timestamp"))

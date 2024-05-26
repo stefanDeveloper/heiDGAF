@@ -1,6 +1,8 @@
 import ipaddress
 import unittest
+from unittest.mock import MagicMock, patch
 
+from pipeline_prototype.heidgaf_log_collector.utils import kafka_delivery_report
 from pipeline_prototype.heidgaf_log_collector.utils import validate_host
 from pipeline_prototype.heidgaf_log_collector.utils import validate_port
 
@@ -55,6 +57,29 @@ class TestValidatePort(unittest.TestCase):
         large_port = 65536
         with self.assertRaises(ValueError):
             validate_port(large_port)
+
+
+class TestKafkaDeliveryReport(unittest.TestCase):
+    @patch('builtins.print')
+    def test_kafka_delivery_report_success(self, mock_print):
+        err = None
+        msg = MagicMock()
+        msg.topic.return_value = 'test_topic'
+        msg.partition.return_value = 1
+
+        kafka_delivery_report(err, msg)
+
+        mock_print.assert_called_once_with('Message delivered to test_topic [1]')
+
+    @patch('builtins.print')
+    def test_kafka_delivery_report_failure(self, mock_print):
+        err = MagicMock()
+        err.__str__.return_value = 'some error'
+        msg = None
+
+        kafka_delivery_report(err, msg)
+
+        mock_print.assert_called_once_with('Message delivery failed: some error')
 
 
 if __name__ == '__main__':

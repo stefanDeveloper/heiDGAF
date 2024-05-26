@@ -4,6 +4,8 @@ import re
 import socket
 import sys  # needed for Terminal execution
 
+from confluent_kafka import Producer
+
 from pipeline_prototype.heidgaf_log_collector.utils import validate_host
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
@@ -18,6 +20,9 @@ logger = logging.getLogger(__name__)
 # EXAMPLE:
 # 2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A
 # b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b
+
+KAFKA_BROKER_HOST = "localhost"
+KAFKA_BROKER_PORT = 9092
 
 valid_statuses = [
     "NOERROR",
@@ -37,6 +42,7 @@ class LogCollector:
         # "port": None,
     }
     logline = None
+    kafka_producer = None
     log_data = {
         # Are filled in the methods, all values empty at the beginning.
         # "timestamp": None,
@@ -52,6 +58,10 @@ class LogCollector:
     def __init__(self, server_host, server_port):
         self.log_server["host"] = utils.validate_host(server_host)
         self.log_server["port"] = utils.validate_port(server_port)
+
+        # Kafka setup
+        conf = {'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"}
+        self.kafka_producer = Producer(conf)
 
     def fetch_logline(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.client_socket:
