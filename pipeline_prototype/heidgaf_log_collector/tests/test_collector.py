@@ -261,5 +261,98 @@ class TestCheckSize(unittest.TestCase):
         self.assertFalse(LogCollector._check_size("abc"))
 
 
+class TestGetTopicName(unittest.TestCase):
+    def test_valid_24_bits(self):
+        collector_instance = LogCollector("192.168.2.1", 9999)
+        collector_instance.log_data["client_ip"] = '192.168.1.1'
+
+        topic_name = collector_instance._get_topic_name(length=24)
+        expected_topic_name = '192.168.1.0/24'
+        self.assertEqual(expected_topic_name, topic_name)
+
+        collector_instance.log_data["client_ip"] = None
+
+    def test_valid_12_bits(self):
+        collector_instance = LogCollector("192.168.2.1", 9999)
+        collector_instance.log_data["client_ip"] = '192.168.1.1'
+
+        topic_name = collector_instance._get_topic_name(length=12)
+        expected_topic_name = '192.160.0.0/12'
+        self.assertEqual(expected_topic_name, topic_name)
+
+        collector_instance.log_data["client_ip"] = None
+
+    def test_zero_24_bits(self):
+        collector_instance = LogCollector("192.168.2.1", 9999)
+        collector_instance.log_data["client_ip"] = '0.0.0.1'
+
+        topic_name = collector_instance._get_topic_name(length=24)
+        expected_topic_name = '0.0.0.0/24'
+        self.assertEqual(expected_topic_name, topic_name)
+
+        collector_instance.log_data["client_ip"] = None
+
+    def test_max_24_bits(self):
+        collector_instance = LogCollector("192.168.2.1", 9999)
+        collector_instance.log_data["client_ip"] = '255.255.255.1'
+
+        topic_name = collector_instance._get_topic_name(length=24)
+        expected_topic_name = '255.255.255.0/24'
+        self.assertEqual(expected_topic_name, topic_name)
+
+        collector_instance.log_data["client_ip"] = None
+
+    def test_invalid_24_bits(self):
+        collector_instance = LogCollector("192.168.2.1", 9999)
+        collector_instance.log_data["client_ip"] = '2001:0db8:85a3:0000:0000:8a2e:0370:7334'
+
+        with self.assertRaises(ValueError):
+            # noinspection PyTypeChecker
+            collector_instance._get_topic_name(length=24)
+
+        collector_instance.log_data["client_ip"] = None
+
+    def test_zero_length(self):
+        collector_instance = LogCollector("192.168.2.1", 9999)
+        collector_instance.log_data["client_ip"] = '192.168.1.1'
+
+        topic_name = collector_instance._get_topic_name(length=0)
+        expected_topic_name = '0.0.0.0/0'
+        self.assertEqual(expected_topic_name, topic_name)
+
+        collector_instance.log_data["client_ip"] = None
+
+    def test_full_length(self):
+        collector_instance = LogCollector("192.168.2.1", 9999)
+        collector_instance.log_data["client_ip"] = '192.168.1.1'
+
+        topic_name = collector_instance._get_topic_name(length=32)
+        expected_topic_name = '192.168.1.1/32'
+        self.assertEqual(expected_topic_name, topic_name)
+
+        collector_instance.log_data["client_ip"] = None
+
+    def test_invalid_length(self):
+        collector_instance = LogCollector("192.168.2.1", 9999)
+        collector_instance.log_data["client_ip"] = '192.168.1.1'
+
+        with self.assertRaises(ValueError):
+            collector_instance._get_topic_name(length=-1)
+        with self.assertRaises(ValueError):
+            collector_instance._get_topic_name(length=33)
+
+        collector_instance.log_data["client_ip"] = None
+
+    def test_invalid_format(self):
+        collector_instance = LogCollector("192.168.2.1", 9999)
+        collector_instance.log_data["client_ip"] = '2001:0db8:85a3:0000:0000:8a2e:0370:7334'
+
+        with self.assertRaises(ValueError):
+            # noinspection PyTypeChecker
+            collector_instance._get_topic_name(length=12)
+
+        collector_instance.log_data["client_ip"] = None
+
+
 if __name__ == '__main__':
     unittest.main()

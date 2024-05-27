@@ -44,9 +44,10 @@ def get_first_part_of_ipv4_address(address: ipaddress.IPv4Address, length: int) 
         first_part_binary = binary_string[:length]
         first_part_binary_padded = first_part_binary.ljust(32, '0')
         first_part_address = ipaddress.IPv4Address(int(first_part_binary_padded, 2))
-        return first_part_address
     else:
         raise ValueError("Invalid IP address format")
+
+    return first_part_address
 
 # UNTESTED:
 # def create_kafka_topic(broker_host, broker_port, topic_name, num_partitions=1, replication_factor=1):

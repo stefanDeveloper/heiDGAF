@@ -126,20 +126,15 @@ class LogCollector:
 
         self.kafka_producer.flush()
 
-    def _get_topic_name(self) -> str:
-        # address = self.log_data.get("client_ip")
-        #
-        # if isinstance(address, ipaddress.IPv4Address):
-        #     cutoff_address = utils.get_first_part_of_ipv4_address(address, SUBNET_CUTOFF_LENGTH)
-        # # TODO: How to handle IPv6?
-        # else:
-        #     raise ValueError("Invalid IP address format")
-        #
-        # first_decimal = '.'.join(str(byte) for byte in str(cutoff_address))
-        #
-        # return f"{first_decimal}.x"
-        # TODO: Finish
-        pass
+    def _get_topic_name(self, length: int = SUBNET_CUTOFF_LENGTH) -> str:
+        try:
+            address = ipaddress.IPv4Address(self.log_data.get("client_ip"))
+        except ValueError as e:
+            raise ValueError(f"Invalid IP address format: {e}")
+
+        cutoff_address = utils.get_first_part_of_ipv4_address(address, length)
+
+        return f"{cutoff_address}/{length}"
 
     @staticmethod
     def _check_length(parts: list[str]) -> bool:

@@ -89,12 +89,6 @@ class TestGetFirstPartOfIPv4Address(unittest.TestCase):
             # noinspection PyTypeChecker
             get_first_part_of_ipv4_address(ipv6_address, 24)
 
-    def test_get_first_part_of_ipv4_address_valid(self):
-        ipv4_address = ipaddress.IPv4Address('192.168.1.1')
-        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 12)
-        expected_first_part = ipaddress.IPv4Address('192.160.0.0')
-        self.assertEqual(first_part_ipv4, expected_first_part)
-
     def test_get_first_part_of_ipv4_address_zero_length(self):
         ipv4_address = ipaddress.IPv4Address('192.168.1.1')
         first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 0)
