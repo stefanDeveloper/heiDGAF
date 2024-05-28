@@ -267,7 +267,7 @@ class TestGetTopicName(unittest.TestCase):
         collector_instance.log_data["client_ip"] = '192.168.1.1'
 
         topic_name = collector_instance._get_topic_name(length=24)
-        expected_topic_name = '192.168.1.0/24'
+        expected_topic_name = '192.168.1.0_24'
         self.assertEqual(expected_topic_name, topic_name)
 
         collector_instance.log_data["client_ip"] = None
@@ -277,7 +277,7 @@ class TestGetTopicName(unittest.TestCase):
         collector_instance.log_data["client_ip"] = '192.168.1.1'
 
         topic_name = collector_instance._get_topic_name(length=12)
-        expected_topic_name = '192.160.0.0/12'
+        expected_topic_name = '192.160.0.0_12'
         self.assertEqual(expected_topic_name, topic_name)
 
         collector_instance.log_data["client_ip"] = None
@@ -287,7 +287,7 @@ class TestGetTopicName(unittest.TestCase):
         collector_instance.log_data["client_ip"] = '0.0.0.1'
 
         topic_name = collector_instance._get_topic_name(length=24)
-        expected_topic_name = '0.0.0.0/24'
+        expected_topic_name = '0.0.0.0_24'
         self.assertEqual(expected_topic_name, topic_name)
 
         collector_instance.log_data["client_ip"] = None
@@ -297,7 +297,7 @@ class TestGetTopicName(unittest.TestCase):
         collector_instance.log_data["client_ip"] = '255.255.255.1'
 
         topic_name = collector_instance._get_topic_name(length=24)
-        expected_topic_name = '255.255.255.0/24'
+        expected_topic_name = '255.255.255.0_24'
         self.assertEqual(expected_topic_name, topic_name)
 
         collector_instance.log_data["client_ip"] = None
@@ -317,7 +317,7 @@ class TestGetTopicName(unittest.TestCase):
         collector_instance.log_data["client_ip"] = '192.168.1.1'
 
         topic_name = collector_instance._get_topic_name(length=0)
-        expected_topic_name = '0.0.0.0/0'
+        expected_topic_name = '0.0.0.0_0'
         self.assertEqual(expected_topic_name, topic_name)
 
         collector_instance.log_data["client_ip"] = None
@@ -327,7 +327,7 @@ class TestGetTopicName(unittest.TestCase):
         collector_instance.log_data["client_ip"] = '192.168.1.1'
 
         topic_name = collector_instance._get_topic_name(length=32)
-        expected_topic_name = '192.168.1.1/32'
+        expected_topic_name = '192.168.1.1_32'
         self.assertEqual(expected_topic_name, topic_name)
 
         collector_instance.log_data["client_ip"] = None
