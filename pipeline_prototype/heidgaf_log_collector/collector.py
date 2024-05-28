@@ -134,7 +134,9 @@ class LogCollector:
 
         cutoff_address = utils.get_first_part_of_ipv4_address(address, length)
 
-        return f"{cutoff_address}/{length}"
+        # ONLY FOR TESTING # TODO: Remove
+        # return '192.168.0.0_24'
+        return f"{cutoff_address}_{length}"  # TODO: Activate
 
     @staticmethod
     def _check_length(parts: list[str]) -> bool:

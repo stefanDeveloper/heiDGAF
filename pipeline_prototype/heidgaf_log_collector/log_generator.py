@@ -42,9 +42,10 @@ def generate_dns_log_line():
     return f"{timestamp} {status} {client_ip} 8.8.8.8 {hostname} {record_type} {response} {size}"
 
 
-dns_log_lines = [generate_dns_log_line() for _ in range(100000)]
+if __name__ == "__main__":
+    dns_log_lines = [generate_dns_log_line() for _ in range(100000)]
 
-# Writing to a file
-with open("../sandbox/dns_log.txt", "w") as file:
-    for line in dns_log_lines:
-        file.write(line + "\n")
+    # Writing to a file
+    with open("../sandbox/dns_log.txt", "w") as file:
+        for line in dns_log_lines:
+            file.write(line + "\n")

@@ -19,5 +19,5 @@ polars~=0.19.19
 joblib~=1.4.2
 requests~=2.31.0
 matplotlib~=3.8.4
-confluent-kafka
+confluent-kafka~=2.4.0
 colorlog~=6.8.2

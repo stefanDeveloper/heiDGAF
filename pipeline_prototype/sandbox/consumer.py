@@ -13,7 +13,7 @@ conf = {
 # )
 
 consumer = Consumer(conf)
-consumer.subscribe(['192.168.0.x'])
+consumer.subscribe(['192.168.0.0_24'])
 
 try:
     while True:
