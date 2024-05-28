@@ -31,5 +31,6 @@ class LogGenerator:
             logger.info(f"Sent {logline} to server")
 
 
-not_a_real_connector = LogGenerator("127.0.0.1", 9999)
-not_a_real_connector.send_logline(generate_random_logline())
+if __name__ == "__main__":
+    generator = LogGenerator("127.0.0.1", 9999)
+    generator.send_logline(generate_random_logline())

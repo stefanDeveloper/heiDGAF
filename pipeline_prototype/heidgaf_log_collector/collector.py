@@ -134,9 +134,7 @@ class LogCollector:
 
         cutoff_address = utils.get_first_part_of_ipv4_address(address, length)
 
-        # ONLY FOR TESTING # TODO: Remove
-        # return '192.168.0.0_24'
-        return f"{cutoff_address}_{length}"  # TODO: Activate
+        return f"{cutoff_address}_{length}"
 
     @staticmethod
     def _check_length(parts: list[str]) -> bool:
@@ -175,6 +173,6 @@ class LogCollector:
 
 if __name__ == '__main__':
     collector = LogCollector("127.0.0.1", 9998)
-    collector.logline = "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b"
+    collector.fetch_logline()
     collector.validate_and_extract_logline()
     collector.produce()

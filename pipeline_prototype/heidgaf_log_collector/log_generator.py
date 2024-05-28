@@ -39,6 +39,10 @@ def generate_dns_log_line():
     response = str(ipaddress.IPv6Address(random.randint(0, 2 ** 128 - 1)))
     size = f"{random.randint(50, 150)}b"
 
+    # ONLY FOR TESTING # TODO: Remove
+    client_ip = '192.168.0.0_24'
+    #################################
+
     return f"{timestamp} {status} {client_ip} 8.8.8.8 {hostname} {record_type} {response} {size}"
 
 
