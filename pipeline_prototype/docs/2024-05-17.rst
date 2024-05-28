@@ -1,0 +1,57 @@
+Erste Versuche mit Kafka
+========================
+
+Versuch 1
+---------
+
+Das Ziel des ersten Versuchs war die Erstellung zweier möglichst simpler Dateien: ``consumer.py`` und ``producer.py``.
+Diese sollten die Grundlagen von Apache Kafka einführen.
+
+1. **Hinzufügen der Dependencies**
+
+``requirements.txt`` um ``confluent-kafka`` erweitert
+
+2. **Verwendung eines Docker-Containers**
+
+Die Datei ``docker-compose.yml`` konfiguriert die Verwendung des Kafka-Containers und des Zookeeper-Containers.
+Alternativ könnten Kafka und Zookeeper auch direkt auf dem System installiert und gestartet werden.
+
+Start der Container::
+
+    docker compose up -d
+
+Überprüfung durch::
+
+    docker ps
+
+Hinzufügen des Topics, das in ``consumer.py`` und ``producer.py`` verwendet wird (``my_topic``) im Kafka-Container::
+
+    docker exec CONTAINER_ID ../../bin/kafka-topics --create --topic my_topic --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1
+
+Überprüfung durch::
+
+    docker exec CONTAINER_ID ../../bin/kafka-topics --list --bootstrap-server localhost:9092
+
+3. **Ausführen des Consumer-Codes**
+
+Der Consumer "abonniert" das erstellte Topic und empfängt die Nachrichten::
+
+    python .\consumer.py
+
+4. **Ausführen des Producer-Codes**
+
+Der Producer erstellt und sendet 10 Nachrichten in ``my_topic``::
+
+    python .\producer.py
+
+Versuch 2
+---------
+
+Der nächste Versuch (``log_producer.py``) sollte die Funktionsweise von ``sockets`` zeigen. Auf einem oder mehreren Sockets sollen später die
+Logfiles anliegen, die dann im ersten Schritt verarbeitet, d. h. in ihre Bestandteile zerlegt und an den Kafka-Broker
+produced werden.
+
+Coding 1
+--------
+
+Beginn: ``heidgaf_log_collector`` inklusive Tests

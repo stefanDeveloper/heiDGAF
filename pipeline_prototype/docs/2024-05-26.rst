@@ -1,0 +1,110 @@
+Kafka Producer: Loglines with IP Addresses
+==========================================
+
+When sending loglines that each include an IP address to Kafka, consider the following best practices regarding the use of keys and the format of the messages.
+
+Should You Use the IP Address as a Key?
+---------------------------------------
+
+Yes, using the IP address as a key can be beneficial for several reasons:
+
+1. **Message Order**:
+   All messages with the same IP address will be written to the same partition, ensuring the order of messages for a particular IP address is maintained.
+
+2. **Scalability**:
+   Distributing messages across multiple partitions can parallelize processing and improve scalability.
+
+Should You Send the Logline as a Single String or in Parts?
+------------------------------------------------------------
+
+This depends on how you plan to process the data later. Here are the pros and cons of each approach:
+
+Logline as a Single String
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Advantages**:
+- **Simplicity**:
+  Sending the logline as a single string is straightforward to implement.
+- **Compactness**:
+  It saves space and reduces the complexity of the message.
+
+**Disadvantages**:
+- **Processing Complexity**:
+  The consumer must parse the logline to extract individual fields, adding overhead.
+- **Error-Prone**:
+  Parsing strings can be error-prone, especially if the logline format changes.
+
+Logline in Parts
+~~~~~~~~~~~~~~~~
+
+**Advantages**:
+- **Structured Data**:
+  Each message contains structured data, making processing easier.
+- **Flexibility**:
+  Changes to the logline structure can be handled more easily without significant changes to the consumption process.
+- **Type Safety**:
+  The consumer receives data in the correct types, simplifying processing and reducing errors.
+
+**Disadvantages**:
+- **Complexity**:
+  Requires additional serialization and deserialization of messages (e.g., JSON, Avro).
+- **Larger Messages**:
+  Can lead to slightly larger messages.
+
+Decision
+--------
+
+For this use case, the decision is to send the logline in parts, as this simplifies later processing and provides greater flexibility.
+
+Example: Sending Logline in Parts
+---------------------------------
+
+Assuming you choose JSON as the format:
+
+.. code-block:: python
+
+    import json
+    from confluent_kafka import Producer
+
+    def delivery_report(err, msg):
+        if err is not None:
+            print('Message delivery failed: {}'.format(err))
+        else:
+            print('Message delivered to {} [{}]'.format(msg.topic(), msg.partition()))
+
+    conf = {
+        'bootstrap.servers': 'localhost:9092'
+    }
+    producer = Producer(conf)
+
+    # Example logline
+    log_entry = {
+        'ip_address': '192.168.0.1',
+        'status_code': 200,
+        'request_method': 'GET',
+        'url': '/index.html',
+        'response_time': 123
+    }
+
+    # Send message
+    producer.produce(
+        topic='log_lines',
+        key=log_entry['ip_address'],
+        value=json.dumps(log_entry),
+        callback=delivery_report
+    )
+
+    # Flush the producer to ensure all messages are sent
+    producer.flush()
+
+Explanation
+~~~~~~~~~~~
+
+- **JSON Format**:
+  The logline is sent as a JSON-formatted string, allowing structured data.
+- **Key**:
+  The IP address is used as the key to control message distribution across partitions.
+- **Value**:
+  The entire logline is sent as a JSON string containing all relevant fields.
+
+This approach allows for flexible and scalable processing of loglines and simplifies parsing and consuming the data for consumers.
