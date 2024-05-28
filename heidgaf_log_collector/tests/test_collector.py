@@ -2,11 +2,11 @@ import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import patch
 
-from pipeline_prototype.heidgaf_log_collector.collector import LogCollector, KAFKA_BROKER_HOST, KAFKA_BROKER_PORT
+from heidgaf_log_collector.collector import LogCollector, KAFKA_BROKER_HOST, KAFKA_BROKER_PORT
 
 
 class TestInit(unittest.TestCase):
-    @patch('pipeline_prototype.heidgaf_log_collector.collector.Producer')
+    @patch('heidgaf_log_collector.collector.Producer')
     def test_valid_init_ipv4(self, mock_producer):
         host = "192.168.0.1"
         port = 9999
@@ -27,7 +27,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual(None, collector_instance.log_data.get("response_ip"))
         self.assertEqual(None, collector_instance.log_data.get("size"))
 
-    @patch('pipeline_prototype.heidgaf_log_collector.collector.Producer')
+    @patch('heidgaf_log_collector.collector.Producer')
     def test_valid_init_ipv6(self, mock_producer):
         host = "fe80::1"
         port = 9999

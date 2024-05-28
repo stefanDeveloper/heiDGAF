@@ -1,9 +1,9 @@
 import ipaddress
 import unittest
 
-from pipeline_prototype.heidgaf_log_collector.utils import get_first_part_of_ipv4_address
-from pipeline_prototype.heidgaf_log_collector.utils import validate_host
-from pipeline_prototype.heidgaf_log_collector.utils import validate_port
+from heidgaf_log_collector.utils import get_first_part_of_ipv4_address
+from heidgaf_log_collector.utils import validate_host
+from heidgaf_log_collector.utils import validate_port
 
 
 class TestValidateHosts(unittest.TestCase):

@@ -9,9 +9,9 @@ import sys  # needed for Terminal execution
 from confluent_kafka import Producer
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from pipeline_prototype.heidgaf_log_collector.utils import validate_host
-from pipeline_prototype.heidgaf_log_collector.utils import kafka_delivery_report
-from pipeline_prototype.heidgaf_log_collector import utils
+from heidgaf_log_collector.utils import validate_host
+from heidgaf_log_collector.utils import kafka_delivery_report
+from heidgaf_log_collector import utils
 from pipeline_prototype.logging_config import setup_logging
 
 setup_logging()

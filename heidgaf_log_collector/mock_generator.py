@@ -4,9 +4,9 @@ import socket
 import sys  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from pipeline_prototype.heidgaf_log_collector import utils
+from heidgaf_log_collector import utils
 from pipeline_prototype.logging_config import setup_logging
-from pipeline_prototype.heidgaf_log_collector.log_generator import generate_dns_log_line
+from heidgaf_log_collector.log_generator import generate_dns_log_line
 
 setup_logging()
 logger = logging.getLogger(__name__)

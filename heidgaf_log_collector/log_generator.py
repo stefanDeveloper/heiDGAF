@@ -40,7 +40,7 @@ def generate_dns_log_line():
     size = f"{random.randint(50, 150)}b"
 
     # ONLY FOR TESTING # TODO: Remove
-    client_ip = '192.168.0.0_24'
+    client_ip = '192.168.0.160'
     #################################
 
     return f"{timestamp} {status} {client_ip} 8.8.8.8 {hostname} {record_type} {response} {size}"
@@ -50,6 +50,6 @@ if __name__ == "__main__":
     dns_log_lines = [generate_dns_log_line() for _ in range(100000)]
 
     # Writing to a file
-    with open("../sandbox/dns_log.txt", "w") as file:
+    with open("../pipeline_prototype/sandbox/dns_log.txt", "w") as file:
         for line in dns_log_lines:
             file.write(line + "\n")

@@ -3,7 +3,7 @@ import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from pipeline_prototype.heidgaf_log_collector.server import LogServer, MAX_NUMBER_OF_CONNECTIONS
+from heidgaf_log_collector.server import LogServer, MAX_NUMBER_OF_CONNECTIONS
 
 
 class TestInit(unittest.TestCase):
@@ -53,7 +53,7 @@ class TestInit(unittest.TestCase):
 
 class TestOpen(unittest.IsolatedAsyncioTestCase):
 
-    @patch('pipeline_prototype.heidgaf_log_collector.server.asyncio.start_server')
+    @patch('heidgaf_log_collector.server.asyncio.start_server')
     async def test_open(self, mock_start_server):
         server_instance = LogServer("127.0.0.1", 12346, 12345)
 
