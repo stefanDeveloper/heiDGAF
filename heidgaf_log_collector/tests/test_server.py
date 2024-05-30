@@ -221,7 +221,7 @@ class TestGetNextLogline(unittest.TestCase):
 
     def test_valid_from_empty_queue(self):
         server_instance = LogServer("127.0.0.1", 9998, 9999)
-        self.assertEqual(None, server_instance.get_next_logline())
+        self.assertIsNone(server_instance.get_next_logline())
 
 
 if __name__ == '__main__':

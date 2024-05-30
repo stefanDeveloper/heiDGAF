@@ -1,4 +1,3 @@
-import ipaddress
 import json
 import logging
 import os  # needed for Terminal execution
@@ -6,11 +5,10 @@ import re
 import socket
 import sys  # needed for Terminal execution
 
-from confluent_kafka import Producer
+from heidgaf_log_collector.batch_handler import KafkaBatchSender
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_log_collector.utils import validate_host
-from heidgaf_log_collector.utils import kafka_delivery_report
 from heidgaf_log_collector import utils
 from pipeline_prototype.logging_config import setup_logging
 
@@ -23,48 +21,30 @@ logger = logging.getLogger(__name__)
 # 2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A
 # b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b
 
-KAFKA_BROKER_HOST = "localhost"  # TODO: Move to config file
-KAFKA_BROKER_PORT = 9092  # TODO: Move to config file
+
 SUBNET_CUTOFF_LENGTH = 24
 
 valid_statuses = [
     "NOERROR",
     "NXDOMAIN",
-]
+]  # TODO: Maybe change to enum
 
 valid_record_types = [
     "AAAA",
     "A",
-]
+]  # TODO: Maybe change to enum
 
 
 class LogCollector:
-    log_server = {
-        # Are filled in the methods, all values empty at the beginning.
-        # "host": None,
-        # "port": None,
-    }
+    log_server = {}
     logline = None
-    kafka_producer = None
-    log_data = {
-        # Are filled in the methods, all values empty at the beginning.
-        # "timestamp": None,
-        # "status": None,
-        # "client_ip": None,
-        # "dns_ip": None,
-        # "host_domain_name": None,
-        # "record_type": None,
-        # "response_ip": None,
-        # "size": None,
-    }
+    log_data = {}
 
     def __init__(self, server_host, server_port):
         self.log_server["host"] = utils.validate_host(server_host)
         self.log_server["port"] = utils.validate_port(server_port)
 
-        # Kafka setup
-        conf = {'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"}
-        self.kafka_producer = Producer(conf)
+        self.batch_handler = KafkaBatchSender(topic="Test")
 
     def fetch_logline(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.client_socket:
@@ -111,30 +91,17 @@ class LogCollector:
         self.log_data["record_type"] = parts[5]
         self.log_data["size"] = parts[7]
 
-    def produce(self):
+    def add_to_batch(self):
         log_entry = self.log_data.copy()
         log_entry["client_ip"] = str(self.log_data["client_ip"])
         log_entry["dns_ip"] = str(self.log_data["dns_ip"])
         log_entry["response_ip"] = str(self.log_data["response_ip"])
 
-        self.kafka_producer.produce(
-            topic=self._get_topic_name(),
-            key=log_entry["client_ip"],
-            value=json.dumps(log_entry),
-            callback=kafka_delivery_report,
-        )
+        self.batch_handler.add_message(json.dumps(log_entry))
 
-        self.kafka_producer.flush()
-
-    def _get_topic_name(self, length: int = SUBNET_CUTOFF_LENGTH) -> str:
-        try:
-            address = ipaddress.IPv4Address(self.log_data.get("client_ip"))
-        except ValueError as e:
-            raise ValueError(f"Invalid IP address format: {e}")
-
-        cutoff_address = utils.get_first_part_of_ipv4_address(address, length)
-
-        return f"{cutoff_address}_{length}"
+    def clear_logline(self):
+        self.logline = None
+        self.log_data = {}
 
     @staticmethod
     def _check_length(parts: list[str]) -> bool:

@@ -2,51 +2,49 @@ import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import patch
 
-from heidgaf_log_collector.collector import LogCollector, KAFKA_BROKER_HOST, KAFKA_BROKER_PORT
+from heidgaf_log_collector.collector import LogCollector
 
 
 class TestInit(unittest.TestCase):
-    @patch('heidgaf_log_collector.collector.Producer')
-    def test_valid_init_ipv4(self, mock_producer):
+    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
+    def test_valid_init_ipv4(self, mock_batch_handler):
         host = "192.168.0.1"
         port = 9999
         collector_instance = LogCollector(host, port)
-        expected_conf = {'bootstrap.servers': f'{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}'}
 
-        mock_producer.assert_called_once_with(expected_conf)
-        self.assertIsNotNone(collector_instance.kafka_producer)
+        mock_batch_handler.assert_called_once_with(topic="Test")
+        self.assertIsNotNone(collector_instance.batch_handler)
         self.assertEqual(IPv4Address(host), collector_instance.log_server.get("host"))
         self.assertEqual(port, collector_instance.log_server.get("port"))
-        self.assertEqual(None, collector_instance.logline)
-        self.assertEqual(None, collector_instance.log_data.get("timestamp"))
-        self.assertEqual(None, collector_instance.log_data.get("status"))
-        self.assertEqual(None, collector_instance.log_data.get("client_ip"))
-        self.assertEqual(None, collector_instance.log_data.get("dns_ip"))
-        self.assertEqual(None, collector_instance.log_data.get("host_domain_name"))
-        self.assertEqual(None, collector_instance.log_data.get("record_type"))
-        self.assertEqual(None, collector_instance.log_data.get("response_ip"))
-        self.assertEqual(None, collector_instance.log_data.get("size"))
+        self.assertIsNone(collector_instance.logline)
+        self.assertIsNone(collector_instance.log_data.get("timestamp"))
+        self.assertIsNone(collector_instance.log_data.get("status"))
+        self.assertIsNone(collector_instance.log_data.get("client_ip"))
+        self.assertIsNone(collector_instance.log_data.get("dns_ip"))
+        self.assertIsNone(collector_instance.log_data.get("host_domain_name"))
+        self.assertIsNone(collector_instance.log_data.get("record_type"))
+        self.assertIsNone(collector_instance.log_data.get("response_ip"))
+        self.assertIsNone(collector_instance.log_data.get("size"))
 
-    @patch('heidgaf_log_collector.collector.Producer')
-    def test_valid_init_ipv6(self, mock_producer):
+    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
+    def test_valid_init_ipv6(self, mock_batch_handler):
         host = "fe80::1"
         port = 9999
         collector_instance = LogCollector(host, port)
-        expected_conf = {'bootstrap.servers': f'{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}'}
 
-        mock_producer.assert_called_once_with(expected_conf)
-        self.assertIsNotNone(collector_instance.kafka_producer)
+        mock_batch_handler.assert_called_once_with(topic="Test")
+        self.assertIsNotNone(collector_instance.batch_handler)
         self.assertEqual(IPv6Address(host), collector_instance.log_server.get("host"))
         self.assertEqual(port, collector_instance.log_server.get("port"))
-        self.assertEqual(None, collector_instance.logline)
-        self.assertEqual(None, collector_instance.log_data.get("timestamp"))
-        self.assertEqual(None, collector_instance.log_data.get("status"))
-        self.assertEqual(None, collector_instance.log_data.get("client_ip"))
-        self.assertEqual(None, collector_instance.log_data.get("dns_ip"))
-        self.assertEqual(None, collector_instance.log_data.get("host_domain_name"))
-        self.assertEqual(None, collector_instance.log_data.get("record_type"))
-        self.assertEqual(None, collector_instance.log_data.get("response_ip"))
-        self.assertEqual(None, collector_instance.log_data.get("size"))
+        self.assertIsNone(collector_instance.logline)
+        self.assertIsNone(collector_instance.log_data.get("timestamp"))
+        self.assertIsNone(collector_instance.log_data.get("status"))
+        self.assertIsNone(collector_instance.log_data.get("client_ip"))
+        self.assertIsNone(collector_instance.log_data.get("dns_ip"))
+        self.assertIsNone(collector_instance.log_data.get("host_domain_name"))
+        self.assertIsNone(collector_instance.log_data.get("record_type"))
+        self.assertIsNone(collector_instance.log_data.get("response_ip"))
+        self.assertIsNone(collector_instance.log_data.get("size"))
 
     def test_invalid_init_with_no_host(self):
         with self.assertRaises(TypeError):
@@ -111,14 +109,63 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         with self.assertRaises(ValueError):
             collector_instance.validate_and_extract_logline()
 
-        self.assertEqual(None, collector_instance.log_data.get("timestamp"))
-        self.assertEqual(None, collector_instance.log_data.get("status"))
-        self.assertEqual(None, collector_instance.log_data.get("client_ip"))
-        self.assertEqual(None, collector_instance.log_data.get("dns_ip"))
-        self.assertEqual(None, collector_instance.log_data.get("host_domain_name"))
-        self.assertEqual(None, collector_instance.log_data.get("record_type"))
-        self.assertEqual(None, collector_instance.log_data.get("response_ip"))
-        self.assertEqual(None, collector_instance.log_data.get("size"))
+        self.assertIsNone(collector_instance.log_data.get("timestamp"))
+        self.assertIsNone(collector_instance.log_data.get("status"))
+        self.assertIsNone(collector_instance.log_data.get("client_ip"))
+        self.assertIsNone(collector_instance.log_data.get("dns_ip"))
+        self.assertIsNone(collector_instance.log_data.get("host_domain_name"))
+        self.assertIsNone(collector_instance.log_data.get("record_type"))
+        self.assertIsNone(collector_instance.log_data.get("response_ip"))
+        self.assertIsNone(collector_instance.log_data.get("size"))
+
+
+class TestAddToBatch(unittest.TestCase):
+    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
+    def test_add_to_batch(self, mock_batch_handler):
+        collector_instance = LogCollector("127.0.0.1", 9999)
+        collector_instance.log_data = {
+            "timestamp": "2024-05-21T08:31:28.119Z",
+            "status": "NOERROR",
+            "client_ip": IPv4Address("192.168.0.105"),
+            "dns_ip": IPv4Address("8.8.8.8"),
+            "host_domain_name": "www.heidelberg-botanik.de",
+            "record_type": "A",
+            "response_ip": IPv6Address("b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1"),
+            "size": "150b",
+        }
+        collector_instance.batch_handler = mock_batch_handler
+        expected_message = ('{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+                            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", '
+                            '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
+                            '"size": "150b"}')
+
+        collector_instance.add_to_batch()
+
+        mock_batch_handler.add_message.assert_called_once_with(expected_message)
+
+
+class TestClearLogline(unittest.TestCase):
+    def test_clear_logline(self):
+        collector_instance = LogCollector("127.0.0.1", 9999)
+        collector_instance.logline = ("2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 "
+                                      "www.heidelberg-botanik.de A b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b")
+        collector_instance.log_data = {
+            "timestamp": "2024-05-21T08:31:28.119Z",
+            "status": "NOERROR",
+            "client_ip": IPv4Address("192.168.0.105"),
+            "dns_ip": IPv4Address("8.8.8.8"),
+            "host_domain_name": "www.heidelberg-botanik.de",
+            "record_type": "A",
+            "response_ip": IPv6Address("b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1"),
+            "size": "150b",
+        }
+
+        collector_instance.clear_logline()
+
+        self.assertIsNone(collector_instance.logline)
+        self.assertEqual({}, collector_instance.log_data)
+        self.assertEqual(IPv4Address("127.0.0.1"), collector_instance.log_server["host"])
+        self.assertEqual(9999, collector_instance.log_server["port"])
 
 
 class TestCheckLength(unittest.TestCase):
@@ -259,99 +306,6 @@ class TestCheckSize(unittest.TestCase):
     def test_invalid_size_non_numeric(self):
         # Invalid size - Non-numeric value
         self.assertFalse(LogCollector._check_size("abc"))
-
-
-class TestGetTopicName(unittest.TestCase):
-    def test_valid_24_bits(self):
-        collector_instance = LogCollector("192.168.2.1", 9999)
-        collector_instance.log_data["client_ip"] = '192.168.1.1'
-
-        topic_name = collector_instance._get_topic_name(length=24)
-        expected_topic_name = '192.168.1.0_24'
-        self.assertEqual(expected_topic_name, topic_name)
-
-        collector_instance.log_data["client_ip"] = None
-
-    def test_valid_12_bits(self):
-        collector_instance = LogCollector("192.168.2.1", 9999)
-        collector_instance.log_data["client_ip"] = '192.168.1.1'
-
-        topic_name = collector_instance._get_topic_name(length=12)
-        expected_topic_name = '192.160.0.0_12'
-        self.assertEqual(expected_topic_name, topic_name)
-
-        collector_instance.log_data["client_ip"] = None
-
-    def test_zero_24_bits(self):
-        collector_instance = LogCollector("192.168.2.1", 9999)
-        collector_instance.log_data["client_ip"] = '0.0.0.1'
-
-        topic_name = collector_instance._get_topic_name(length=24)
-        expected_topic_name = '0.0.0.0_24'
-        self.assertEqual(expected_topic_name, topic_name)
-
-        collector_instance.log_data["client_ip"] = None
-
-    def test_max_24_bits(self):
-        collector_instance = LogCollector("192.168.2.1", 9999)
-        collector_instance.log_data["client_ip"] = '255.255.255.1'
-
-        topic_name = collector_instance._get_topic_name(length=24)
-        expected_topic_name = '255.255.255.0_24'
-        self.assertEqual(expected_topic_name, topic_name)
-
-        collector_instance.log_data["client_ip"] = None
-
-    def test_invalid_24_bits(self):
-        collector_instance = LogCollector("192.168.2.1", 9999)
-        collector_instance.log_data["client_ip"] = '2001:0db8:85a3:0000:0000:8a2e:0370:7334'
-
-        with self.assertRaises(ValueError):
-            # noinspection PyTypeChecker
-            collector_instance._get_topic_name(length=24)
-
-        collector_instance.log_data["client_ip"] = None
-
-    def test_zero_length(self):
-        collector_instance = LogCollector("192.168.2.1", 9999)
-        collector_instance.log_data["client_ip"] = '192.168.1.1'
-
-        topic_name = collector_instance._get_topic_name(length=0)
-        expected_topic_name = '0.0.0.0_0'
-        self.assertEqual(expected_topic_name, topic_name)
-
-        collector_instance.log_data["client_ip"] = None
-
-    def test_full_length(self):
-        collector_instance = LogCollector("192.168.2.1", 9999)
-        collector_instance.log_data["client_ip"] = '192.168.1.1'
-
-        topic_name = collector_instance._get_topic_name(length=32)
-        expected_topic_name = '192.168.1.1_32'
-        self.assertEqual(expected_topic_name, topic_name)
-
-        collector_instance.log_data["client_ip"] = None
-
-    def test_invalid_length(self):
-        collector_instance = LogCollector("192.168.2.1", 9999)
-        collector_instance.log_data["client_ip"] = '192.168.1.1'
-
-        with self.assertRaises(ValueError):
-            collector_instance._get_topic_name(length=-1)
-        with self.assertRaises(ValueError):
-            collector_instance._get_topic_name(length=33)
-
-        collector_instance.log_data["client_ip"] = None
-
-    def test_invalid_format(self):
-        collector_instance = LogCollector("192.168.2.1", 9999)
-        collector_instance.log_data["client_ip"] = '2001:0db8:85a3:0000:0000:8a2e:0370:7334'
-
-        with self.assertRaises(ValueError):
-            # noinspection PyTypeChecker
-            collector_instance._get_topic_name(length=12)
-
-        collector_instance.log_data["client_ip"] = None
 
 
 if __name__ == '__main__':

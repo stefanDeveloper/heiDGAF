@@ -34,21 +34,6 @@ def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
     else:
         logger.info('Message delivered to {} [{}]'.format(msg.topic(), msg.partition()))
 
-
-def get_first_part_of_ipv4_address(address: ipaddress.IPv4Address, length: int) -> ipaddress.IPv4Address:
-    if length < 0 or length > 32:
-        raise ValueError("Invalid length. Must be between 0 and 32.")
-
-    if isinstance(address, ipaddress.IPv4Address):
-        binary_string = ''.join(format(byte, '08b') for byte in address.packed)
-        first_part_binary = binary_string[:length]
-        first_part_binary_padded = first_part_binary.ljust(32, '0')
-        first_part_address = ipaddress.IPv4Address(int(first_part_binary_padded, 2))
-    else:
-        raise ValueError("Invalid IP address format")
-
-    return first_part_address
-
 # UNTESTED:
 # def create_kafka_topic(broker_host, broker_port, topic_name, num_partitions=1, replication_factor=1):
 #     admin_client = AdminClient({'bootstrap.servers': f"{broker_host}:{broker_port}"})
