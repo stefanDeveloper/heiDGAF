@@ -21,18 +21,25 @@ BATCH_TIMEOUT = 5.0  # TODO: Move to config file
 
 class KafkaBatchSender:
     def __init__(self, topic: str):
-        self._start_kafka_producer()
-
         self.topic = topic
         self.messages = []
         self.lock = Lock()
         self.timer = None
+        self.kafka_producer = None
 
-    def _start_kafka_producer(self):
+    def start_kafka_producer(self):
+        if self.kafka_producer:
+            logger.warning(f"Kafka Producer already running on {KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}.")
+            return
+
         conf = {'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"}
         self.kafka_producer = Producer(conf)
 
     def _send_batch(self):
+        if not self.kafka_producer:
+            logger.error(f"Kafka Producer not running!")
+            return
+
         with self.lock:
             if self.messages:
                 self.kafka_producer.produce(
