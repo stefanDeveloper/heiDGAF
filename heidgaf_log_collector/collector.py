@@ -21,8 +21,6 @@ logger = logging.getLogger(__name__)
 # b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b
 
 
-SUBNET_CUTOFF_LENGTH = 24
-
 valid_statuses = [
     "NOERROR",
     "NXDOMAIN",

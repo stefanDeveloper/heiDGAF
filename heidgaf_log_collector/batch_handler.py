@@ -9,14 +9,10 @@ from confluent_kafka import Producer
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_log_collector.utils import kafka_delivery_report
 from pipeline_prototype.logging_config import setup_logging
+from heidgaf_log_collector.config import *
 
 setup_logging()
 logger = logging.getLogger(__name__)
-
-KAFKA_BROKER_HOST = "localhost"  # TODO: Move to config file
-KAFKA_BROKER_PORT = 9092  # TODO: Move to config file
-BATCH_SIZE = 1000  # TODO: Move to config file
-BATCH_TIMEOUT = 5.0  # TODO: Move to config file
 
 
 class KafkaBatchSender:

@@ -7,8 +7,7 @@ import sys  # needed for Terminal execution
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_log_collector import utils
 from pipeline_prototype.logging_config import setup_logging
-
-MAX_NUMBER_OF_CONNECTIONS = 5
+from heidgaf_log_collector.config import *
 
 setup_logging()
 logger = logging.getLogger(__name__)

@@ -3,9 +3,8 @@ import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from heidgaf_log_collector.config import *
 from heidgaf_log_collector.server import LogServer
-
-MAX_NUMBER_OF_CONNECTIONS = 5
 
 
 class TestInit(unittest.TestCase):

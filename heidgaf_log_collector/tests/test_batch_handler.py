@@ -4,12 +4,7 @@ from unittest.mock import patch, MagicMock
 
 from heidgaf_log_collector import utils
 from heidgaf_log_collector.batch_handler import KafkaBatchSender
-
-# placeholders
-KAFKA_BROKER_HOST = "localhost"
-KAFKA_BROKER_PORT = 9092
-BATCH_TIMEOUT = 5.0
-BATCH_SIZE = 1000
+from heidgaf_log_collector.config import *
 
 
 class TestInit(unittest.TestCase):
