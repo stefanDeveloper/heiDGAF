@@ -8,6 +8,7 @@ from heidgaf_log_collector.batch_handler import KafkaBatchSender
 KAFKA_BROKER_HOST = "localhost"
 KAFKA_BROKER_PORT = 9092
 BATCH_TIMEOUT = 5.0
+BATCH_SIZE = 1000
 
 
 class TestInit(unittest.TestCase):
@@ -87,6 +88,41 @@ class TestResetTimer(unittest.TestCase):
         mock_timer.assert_called_once_with(BATCH_TIMEOUT, sender_instance._send_batch)
         self.assertIsNotNone(sender_instance.timer)
         sender_instance.timer.start.assert_called_once()
+
+
+class TestAddMessage(unittest.TestCase):
+    @patch('heidgaf_log_collector.batch_handler.KafkaBatchSender._send_batch')
+    @patch('heidgaf_log_collector.batch_handler.KafkaBatchSender._reset_timer')
+    def test_add_message_normal(self, mock_send_batch, mock_reset_timer):
+        sender_instance = KafkaBatchSender(topic="test_topic")
+        sender_instance.timer = MagicMock()
+
+        sender_instance.add_message("Message")
+
+        mock_send_batch.assert_not_called()
+        mock_reset_timer.assert_not_called()
+
+    @patch('heidgaf_log_collector.batch_handler.KafkaBatchSender._send_batch')
+    def test_add_message_full_messages(self, mock_send_batch):
+        sender_instance = KafkaBatchSender(topic="test_topic")
+        sender_instance.timer = MagicMock()
+
+        for i in range(BATCH_SIZE - 1):
+            sender_instance.add_message(f"Message {i}")
+
+        mock_send_batch.assert_not_called()
+
+        sender_instance.add_message(f"Message {BATCH_SIZE}")
+
+        mock_send_batch.assert_called_once()
+
+    @patch('heidgaf_log_collector.batch_handler.KafkaBatchSender._reset_timer')
+    def test_add_message_no_timer(self, mock_reset_timer):
+        sender_instance = KafkaBatchSender(topic="test_topic")
+        sender_instance.timer = None
+
+        sender_instance.add_message("Message")
+        mock_reset_timer.assert_called_once()
 
 
 # TODO: Add the rest of the tests
