@@ -33,11 +33,11 @@ valid_record_types = [
 
 
 class LogCollector:
-    log_server = {}
-    logline = None
-    log_data = {}
-
     def __init__(self, server_host, server_port):
+        self.log_server = {}
+        self.logline = None
+        self.log_data = {}
+
         self.log_server["host"] = utils.validate_host(server_host)
         self.log_server["port"] = utils.validate_port(server_port)
 

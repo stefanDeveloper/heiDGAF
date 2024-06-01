@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 class LogServer:
-    host = None
-    port_out = None
-    port_in = None
-    socket = None
-    number_of_connections = 0
-
     def __init__(self, host: str, port_in: int, port_out: int) -> None:
+        self.host = None
+        self.port_out = None
+        self.port_in = None
+        self.socket = None
+        self.number_of_connections = 0
+
         self.host = utils.validate_host(host)
         self.port_in = utils.validate_port(port_in)
         self.port_out = utils.validate_port(port_out)

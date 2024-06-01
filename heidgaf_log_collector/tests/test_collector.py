@@ -120,13 +120,21 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         self.assertIsNone(collector_instance.log_data.get("response_ip"))
         self.assertIsNone(collector_instance.log_data.get("size"))
 
-
-class TestAddToBatch(unittest.TestCase):
-    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
-    def test_add_to_batch(self, mock_batch_handler):
+    def test_invalid_logline_no_data(self):
         collector_instance = LogCollector("127.0.0.1", 9999)
-        collector_instance.logline = ("2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 "
-                                      "www.heidelberg-botanik.de A b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b")
+        collector_instance.logline = None
+
+        with self.assertRaises(ValueError):
+            collector_instance.validate_and_extract_logline()
+
+
+class TestAddLoglineToBatch(unittest.TestCase):
+    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
+    def test_add_to_batch_with_data(self, mock_batch_handler):
+        collector_instance = LogCollector("127.0.0.1", 9999)
+        collector_instance.logline = (
+                "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de " +
+                "A b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b")
         collector_instance.log_data = {
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status": "NOERROR",
@@ -146,6 +154,18 @@ class TestAddToBatch(unittest.TestCase):
         collector_instance.add_logline_to_batch()
 
         mock_batch_handler.add_message.assert_called_once_with(expected_message)
+
+    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
+    def test_add_to_batch_without_data(self, mock_batch_handler):
+        collector_instance = LogCollector("127.0.0.1", 9999)
+        collector_instance.logline = None
+        collector_instance.log_data = {}
+        collector_instance.batch_handler = mock_batch_handler
+
+        with self.assertRaises(ValueError):
+            collector_instance.add_logline_to_batch()
+
+        mock_batch_handler.add_message.assert_not_called()
 
 
 class TestClearLogline(unittest.TestCase):
