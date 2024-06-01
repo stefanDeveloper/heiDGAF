@@ -12,7 +12,7 @@ class TestInit(unittest.TestCase):
         port = 9999
         collector_instance = LogCollector(host, port)
 
-        mock_batch_handler.assert_called_once_with(topic="Test")
+        mock_batch_handler.assert_called_once_with(topic="Prefilter")
         self.assertIsNotNone(collector_instance.batch_handler)
         self.assertEqual(IPv4Address(host), collector_instance.log_server.get("host"))
         self.assertEqual(port, collector_instance.log_server.get("port"))
@@ -25,6 +25,7 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(collector_instance.log_data.get("record_type"))
         self.assertIsNone(collector_instance.log_data.get("response_ip"))
         self.assertIsNone(collector_instance.log_data.get("size"))
+        collector_instance.batch_handler.start_kafka_producer.assert_called_once()
 
     @patch('heidgaf_log_collector.collector.KafkaBatchSender')
     def test_valid_init_ipv6(self, mock_batch_handler):
@@ -32,7 +33,7 @@ class TestInit(unittest.TestCase):
         port = 9999
         collector_instance = LogCollector(host, port)
 
-        mock_batch_handler.assert_called_once_with(topic="Test")
+        mock_batch_handler.assert_called_once_with(topic="Prefilter")
         self.assertIsNotNone(collector_instance.batch_handler)
         self.assertEqual(IPv6Address(host), collector_instance.log_server.get("host"))
         self.assertEqual(port, collector_instance.log_server.get("port"))
@@ -45,6 +46,7 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(collector_instance.log_data.get("record_type"))
         self.assertIsNone(collector_instance.log_data.get("response_ip"))
         self.assertIsNone(collector_instance.log_data.get("size"))
+        collector_instance.batch_handler.start_kafka_producer.assert_called_once()
 
     def test_invalid_init_with_no_host(self):
         with self.assertRaises(TypeError):
@@ -123,6 +125,8 @@ class TestAddToBatch(unittest.TestCase):
     @patch('heidgaf_log_collector.collector.KafkaBatchSender')
     def test_add_to_batch(self, mock_batch_handler):
         collector_instance = LogCollector("127.0.0.1", 9999)
+        collector_instance.logline = ("2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 "
+                                      "www.heidelberg-botanik.de A b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b")
         collector_instance.log_data = {
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status": "NOERROR",
@@ -139,7 +143,7 @@ class TestAddToBatch(unittest.TestCase):
                             '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
                             '"size": "150b"}')
 
-        collector_instance.add_to_batch()
+        collector_instance.add_logline_to_batch()
 
         mock_batch_handler.add_message.assert_called_once_with(expected_message)
 

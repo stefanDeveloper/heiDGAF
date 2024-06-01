@@ -1,3 +1,6 @@
+import json
+import ast
+
 from confluent_kafka import Consumer, KafkaError
 
 conf = {
@@ -13,7 +16,7 @@ conf = {
 # )
 
 consumer = Consumer(conf)
-consumer.subscribe(['192.168.0.0_24'])
+consumer.subscribe(['Prefilter'])
 
 try:
     while True:
@@ -26,6 +29,10 @@ try:
             else:
                 print(msg.error())
                 break
-        print('Received message: {}'.format(msg.value().decode('utf-8')))
+        # print('Received message: {}'.format(msg.value().decode('utf-8')))
+
+        decoded_msg = msg.value().decode('utf-8')
+        liste = json.loads(decoded_msg)
+        print(ast.literal_eval(liste[0])["client_ip"])
 finally:
     consumer.close()

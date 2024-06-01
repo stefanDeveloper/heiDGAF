@@ -5,9 +5,8 @@ import re
 import socket
 import sys  # needed for Terminal execution
 
-from heidgaf_log_collector.batch_handler import KafkaBatchSender
-
 sys.path.append(os.getcwd())  # needed for Terminal execution
+from heidgaf_log_collector.batch_handler import KafkaBatchSender
 from heidgaf_log_collector.utils import validate_host
 from heidgaf_log_collector import utils
 from pipeline_prototype.logging_config import setup_logging
@@ -44,7 +43,8 @@ class LogCollector:
         self.log_server["host"] = utils.validate_host(server_host)
         self.log_server["port"] = utils.validate_port(server_port)
 
-        self.batch_handler = KafkaBatchSender(topic="Test")
+        self.batch_handler = KafkaBatchSender(topic="Prefilter")
+        self.batch_handler.start_kafka_producer()
 
     def fetch_logline(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.client_socket:
@@ -57,6 +57,9 @@ class LogCollector:
                 logger.info(f"Received logline: {self.logline}")
 
     def validate_and_extract_logline(self):
+        if not self.logline:
+            raise ValueError("Failed to extract logline: No logline.")
+
         parts = self.logline.split()
 
         try:
@@ -91,7 +94,10 @@ class LogCollector:
         self.log_data["record_type"] = parts[5]
         self.log_data["size"] = parts[7]
 
-    def add_to_batch(self):
+    def add_logline_to_batch(self):
+        if not self.logline or self.log_data == {}:
+            raise ValueError("Failed to add logline to batch: No logline or extracted data.")
+
         log_entry = self.log_data.copy()
         log_entry["client_ip"] = str(self.log_data["client_ip"])
         log_entry["dns_ip"] = str(self.log_data["dns_ip"])
@@ -138,8 +144,22 @@ class LogCollector:
         return False
 
 
-if __name__ == '__main__':
+def main():
     collector = LogCollector("127.0.0.1", 9998)
-    collector.fetch_logline()
-    collector.validate_and_extract_logline()
-    collector.produce()
+
+    while True:
+        try:
+            collector.fetch_logline()
+            collector.validate_and_extract_logline()
+            collector.add_logline_to_batch()
+        except ValueError as e:
+            logger.debug(e)
+        except KeyboardInterrupt:
+            logger.info("Closing down.")
+            break
+        finally:
+            collector.clear_logline()
+
+
+if __name__ == '__main__':
+    main()
