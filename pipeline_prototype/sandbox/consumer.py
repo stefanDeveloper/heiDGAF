@@ -16,7 +16,7 @@ conf = {
 # )
 
 consumer = Consumer(conf)
-consumer.subscribe(['Prefilter'])
+consumer.subscribe(['Inspect'])
 
 try:
     while True:
@@ -33,6 +33,6 @@ try:
 
         decoded_msg = msg.value().decode('utf-8')
         liste = json.loads(decoded_msg)
-        print(ast.literal_eval(liste[0])["client_ip"])
+        print(liste)
 finally:
     consumer.close()

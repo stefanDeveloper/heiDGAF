@@ -6,7 +6,7 @@ import sys  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_log_collector import utils
-from pipeline_prototype.logging_config import setup_logging
+from heidgaf_log_collector.logging_config import setup_logging
 from heidgaf_log_collector.config import *
 
 setup_logging()
@@ -97,7 +97,7 @@ class LogServer:
             logger.info(f"Logline sent: {logline}")
             return
 
-        logger.info("No logline available")
+        logger.debug("No logline available")
 
     async def receive_logline(self, reader):
         while True:

@@ -22,7 +22,7 @@ def setup_logging():
     handler.setFormatter(formatter)
 
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     logger.addHandler(handler)
 
     if len(logger.handlers) > 1:

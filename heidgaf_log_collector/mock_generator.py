@@ -5,7 +5,7 @@ import sys  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_log_collector import utils
-from pipeline_prototype.logging_config import setup_logging
+from heidgaf_log_collector.logging_config import setup_logging
 from heidgaf_log_collector.log_generator import generate_dns_log_line
 
 setup_logging()

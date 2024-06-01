@@ -8,7 +8,7 @@ from confluent_kafka import Producer
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_log_collector.utils import kafka_delivery_report
-from pipeline_prototype.logging_config import setup_logging
+from heidgaf_log_collector.logging_config import setup_logging
 from heidgaf_log_collector.config import *
 
 setup_logging()

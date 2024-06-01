@@ -9,7 +9,7 @@ from confluent_kafka import Consumer
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_log_collector.batch_handler import KafkaBatchSender
 from heidgaf_log_collector.config import *
-from pipeline_prototype.logging_config import setup_logging
+from heidgaf_log_collector.logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class InspectPrefilter:
             return
 
         self.kafka_consumer = Consumer(self.conf)
-        self.kafka_consumer.subscribe(['Inspect'])
+        self.kafka_consumer.subscribe(['Prefilter'])
 
     # TODO: Test
     def consume_and_extract_data(self):
@@ -59,7 +59,8 @@ class InspectPrefilter:
         if self.unfiltered_data:
             logger.warning("Overwriting existing data by new message.")
 
-        self.unfiltered_data = ast.literal_eval(json_from_message)
+        for e in json_from_message:
+            self.unfiltered_data.append(ast.literal_eval(e))
 
     def filter_by_error(self):
         for e in self.unfiltered_data:
@@ -70,7 +71,7 @@ class InspectPrefilter:
         if not self.filtered_data:
             raise ValueError("Failed to add data to batch: No filtered data.")
 
-        self.batch_handler.add_message(json.dumps(self.filtered_data.copy()))
+        self.batch_handler.add_message(json.dumps(self.filtered_data))
 
     def clear_data(self):
         self.unfiltered_data = []
@@ -84,8 +85,11 @@ def main():
 
     while True:
         try:
+            logger.debug("Before consuming and extracting")
             prefilter.consume_and_extract_data()
+            logger.debug("Before filtering by error")
             prefilter.filter_by_error()
+            logger.debug("Before adding filtered data to batch")
             prefilter.add_filtered_data_to_batch()
         except IOError as e:
             logger.error(e)

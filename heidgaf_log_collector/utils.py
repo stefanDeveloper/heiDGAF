@@ -3,9 +3,7 @@ import logging
 
 from confluent_kafka import KafkaError, Message
 
-from pipeline_prototype.logging_config import setup_logging
-
-# from confluent_kafka.admin import AdminClient, import NewTopic
+from heidgaf_log_collector.logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -52,4 +50,5 @@ def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
 #         print(f"Exception while creating topic: {e}")
 #
 #
-# create_kafka_topic("localhost", "9092", "192.168.0.x")
+# create_kafka_topic("localhost", "9092", "Prefilter")
+# create_kafka_topic("localhost", "9092", "Inspect")
