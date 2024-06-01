@@ -11,11 +11,17 @@ BATCH_TIMEOUT = 5.0
 
 
 class TestInit(unittest.TestCase):
-    def test_init(self):
-        test_topic = 'test_topic'
-        sender_instance = KafkaBatchSender(topic=test_topic)
+    @patch('heidgaf_log_collector.batch_handler.Producer')
+    def test_init(self, mock_producer):
+        mock_producer_instance = MagicMock()
+        mock_producer.return_value = mock_producer_instance
+        sender_instance = KafkaBatchSender(topic="test_topic")
 
-        self.assertEqual(sender_instance.topic, test_topic)
+        expected_conf = {'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"}
+        mock_producer.assert_called_once_with(expected_conf)
+
+        self.assertIs(sender_instance.kafka_producer, mock_producer_instance)
+        self.assertEqual(sender_instance.topic, "test_topic")
         self.assertEqual(sender_instance.messages, [])
         self.assertIsInstance(sender_instance.lock, type(Lock()))
         self.assertIsNone(sender_instance.timer)
@@ -24,17 +30,18 @@ class TestInit(unittest.TestCase):
 class TestStartKafkaProducer(unittest.TestCase):
     @patch('heidgaf_log_collector.batch_handler.Producer')
     def test_start_kafka_producer(self, mock_producer):
-        mock_producer_instance = mock_producer.return_value
+        mock_producer_instance = MagicMock()
+        mock_producer.return_value = mock_producer_instance
         sender_instance = KafkaBatchSender(topic="test_topic")
 
-        sender_instance._start_kafka_producer()
+        expected_conf = {'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"}
+        mock_producer.assert_called_once_with(expected_conf)
 
-        mock_producer.assert_called_once_with({'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"})
-        self.assertEqual(sender_instance.kafka_producer, mock_producer_instance)
+        self.assertIs(sender_instance.kafka_producer, mock_producer_instance)
 
 
 class TestClose(unittest.TestCase):
-    @patch('threading.Timer')
+    @patch('heidgaf_log_collector.batch_handler.Timer')
     def test_close_with_active_timer(self, mock_timer):
         sender_instance = KafkaBatchSender(topic="test_topic")
         sender_instance.timer = mock_timer

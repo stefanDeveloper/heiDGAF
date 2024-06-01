@@ -21,6 +21,8 @@ BATCH_TIMEOUT = 5.0  # TODO: Move to config file
 
 class KafkaBatchSender:
     def __init__(self, topic: str):
+        self._start_kafka_producer()
+
         self.topic = topic
         self.messages = []
         self.lock = Lock()
