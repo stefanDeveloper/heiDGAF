@@ -22,14 +22,14 @@ class KafkaBatchSender:
         self.lock = Lock()
         self.timer = None
         self.kafka_producer = None
+        self.conf = {'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"}
 
     def start_kafka_producer(self):
         if self.kafka_producer:
             logger.warning(f"Kafka Producer already running on {KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}.")
             return
 
-        conf = {'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"}
-        self.kafka_producer = Producer(conf)
+        self.kafka_producer = Producer(self.conf)
 
     def _send_batch(self):
         if not self.kafka_producer:

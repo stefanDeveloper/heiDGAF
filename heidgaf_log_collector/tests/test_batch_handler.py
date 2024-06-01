@@ -16,6 +16,10 @@ class TestInit(unittest.TestCase):
         self.assertIsInstance(sender_instance.lock, type(Lock()))
         self.assertIsNone(sender_instance.timer)
         self.assertIsNone(sender_instance.kafka_producer)
+        self.assertEqual(
+            {'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"},
+            sender_instance.conf,
+        )
 
 
 class TestStartKafkaProducer(unittest.TestCase):

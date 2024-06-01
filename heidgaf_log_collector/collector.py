@@ -142,6 +142,7 @@ class LogCollector:
         return False
 
 
+# TODO: Test
 def main():
     collector = LogCollector("127.0.0.1", 9998)
 
@@ -153,7 +154,7 @@ def main():
         except ValueError as e:
             logger.debug(e)
         except KeyboardInterrupt:
-            logger.info("Closing down.")
+            logger.info("Closing down LogCollector.")
             break
         finally:
             collector.clear_logline()

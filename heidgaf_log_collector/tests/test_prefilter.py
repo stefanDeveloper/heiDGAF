@@ -1,6 +1,7 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
+from heidgaf_log_collector.config import *
 from heidgaf_log_collector.prefilter import InspectPrefilter
 
 
@@ -8,13 +9,49 @@ class TestInit(unittest.TestCase):
     @patch('heidgaf_log_collector.prefilter.KafkaBatchSender')
     def test_valid_init(self, mock_batch_handler):
         prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
+        expected_conf = {
+            'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}",
+            'group.id': "my_group",
+            'auto.offset.reset': 'earliest'
+        }
 
         mock_batch_handler.assert_called_once_with(topic="Inspect")
         self.assertEqual([], prefilter_instance.unfiltered_data)
         self.assertEqual([], prefilter_instance.filtered_data)
         self.assertEqual("NXDOMAIN", prefilter_instance.error_type)
         self.assertIsNotNone(prefilter_instance.batch_handler)
+        self.assertEqual(expected_conf, prefilter_instance.conf)
+        self.assertIsNone(prefilter_instance.kafka_consumer)
         prefilter_instance.batch_handler.start_kafka_producer.assert_called_once()
+
+
+class TestStartKafkaConsumer(unittest.TestCase):
+    @patch('heidgaf_log_collector.prefilter.Consumer')
+    def test_start_kafka_producer(self, mock_consumer):
+        mock_producer_instance = MagicMock()
+        mock_consumer.return_value = mock_producer_instance
+        prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
+        expected_conf = {
+            'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}",
+            'group.id': "my_group",
+            'auto.offset.reset': 'earliest'
+        }
+
+        prefilter_instance.start_kafka_consumer()
+
+        mock_consumer.assert_called_once_with(expected_conf)
+
+        self.assertIs(prefilter_instance.kafka_consumer, mock_producer_instance)
+
+    @patch('heidgaf_log_collector.prefilter.Consumer')
+    def test_start_kafka_consumer_already_running(self, mock_consumer):
+        mock_consumer_instance = MagicMock()
+        mock_consumer.return_value = mock_consumer_instance
+        prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
+
+        prefilter_instance.kafka_consumer = MagicMock()
+
+        mock_consumer.assert_not_called()
 
 
 class TestFilterByError(unittest.TestCase):
