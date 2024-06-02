@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class InspectPrefilter:
+    # TODO: Test
     def __init__(self, error_type: str):
         self.unfiltered_data = []
         self.filtered_data = []

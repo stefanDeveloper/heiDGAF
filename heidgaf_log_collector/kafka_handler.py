@@ -3,6 +3,7 @@ import logging
 import yaml
 from confluent_kafka import KafkaError, Producer, Consumer
 
+from heidgaf_log_collector.config import *
 from heidgaf_log_collector.logging_config import setup_logging
 from heidgaf_log_collector.utils import kafka_delivery_report
 
@@ -23,7 +24,7 @@ class KafkaHandler:
     def __init__(self):
         self.consumer = None
 
-        with open('kafka_config.yaml', 'r') as file:
+        with open(CONFIG_FILEPATH, 'r') as file:
             self.config = yaml.safe_load(file)
 
         self.brokers = ",".join(

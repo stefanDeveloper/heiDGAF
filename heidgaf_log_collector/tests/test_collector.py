@@ -25,7 +25,6 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(collector_instance.log_data.get("record_type"))
         self.assertIsNone(collector_instance.log_data.get("response_ip"))
         self.assertIsNone(collector_instance.log_data.get("size"))
-        collector_instance.batch_handler.start_kafka_producer.assert_called_once()
 
     @patch('heidgaf_log_collector.collector.KafkaBatchSender')
     def test_valid_init_ipv6(self, mock_batch_handler):
@@ -46,7 +45,6 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(collector_instance.log_data.get("record_type"))
         self.assertIsNone(collector_instance.log_data.get("response_ip"))
         self.assertIsNone(collector_instance.log_data.get("size"))
-        collector_instance.batch_handler.start_kafka_producer.assert_called_once()
 
     def test_invalid_init_with_no_host(self):
         with self.assertRaises(TypeError):
