@@ -21,3 +21,4 @@ requests~=2.31.0
 matplotlib~=3.8.4
 confluent-kafka~=2.4.0
 colorlog~=6.8.2
+PyYAML~=6.0.1

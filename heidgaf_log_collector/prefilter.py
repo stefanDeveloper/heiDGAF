@@ -1,8 +1,8 @@
 import ast
 import json
 import logging
-import os
-import sys
+import os  # needed for Terminal execution
+import sys  # needed for Terminal execution
 
 from confluent_kafka import Consumer
 
@@ -13,10 +13,6 @@ from heidgaf_log_collector.logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
-
-
-class KafkaMessageFetchError(Exception):
-    pass
 
 
 class InspectPrefilter:
