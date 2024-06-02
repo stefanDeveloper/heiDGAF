@@ -29,10 +29,6 @@ try:
             else:
                 print(msg.error())
                 break
-        # print('Received message: {}'.format(msg.value().decode('utf-8')))
-
-        decoded_msg = msg.value().decode('utf-8')
-        liste = json.loads(decoded_msg)
-        print(liste)
+        print('Received message: {}'.format(msg.value().decode('utf-8')))
 finally:
     consumer.close()

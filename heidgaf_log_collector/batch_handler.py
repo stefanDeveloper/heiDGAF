@@ -4,10 +4,9 @@ import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
 from threading import Timer, Lock
 
-from confluent_kafka import Producer
+from heidgaf_log_collector.kafka_handler import KafkaProduceHandler
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_log_collector.utils import kafka_delivery_report
 from heidgaf_log_collector.logging_config import setup_logging
 from heidgaf_log_collector.config import *
 
@@ -21,30 +20,15 @@ class KafkaBatchSender:
         self.messages = []
         self.lock = Lock()
         self.timer = None
-        self.kafka_producer = None
-        self.conf = {'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}"}
-
-    def start_kafka_producer(self):
-        if self.kafka_producer:
-            logger.warning(f"Kafka Producer already running on {KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}.")
-            return
-
-        self.kafka_producer = Producer(self.conf)
+        self.kafka_produce_handler = KafkaProduceHandler()
 
     def _send_batch(self):
-        if not self.kafka_producer:
-            logger.error(f"Kafka Producer not running!")
-            return
-
         with self.lock:
             if self.messages:
-                self.kafka_producer.produce(
+                self.kafka_produce_handler.send(
                     topic=self.topic,
-                    key=None,  # could maybe add a key here
-                    value=json.dumps(self.messages).encode('utf-8'),
-                    callback=kafka_delivery_report,
+                    data=json.dumps(self.messages),
                 )
-                self.kafka_producer.flush()
                 self.messages = []
             self._reset_timer()
 

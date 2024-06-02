@@ -4,11 +4,9 @@ import logging
 import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
 
-from confluent_kafka import Consumer
-
 sys.path.append(os.getcwd())  # needed for Terminal execution
+from heidgaf_log_collector.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
 from heidgaf_log_collector.batch_handler import KafkaBatchSender
-from heidgaf_log_collector.config import *
 from heidgaf_log_collector.logging_config import setup_logging
 
 setup_logging()
@@ -22,35 +20,21 @@ class InspectPrefilter:
         self.error_type = error_type
 
         self.batch_handler = KafkaBatchSender(topic="Inspect")
-        self.batch_handler.start_kafka_producer()
-
-        self.kafka_consumer = None
-        self.conf = {
-            'bootstrap.servers': f"{KAFKA_BROKER_HOST}:{KAFKA_BROKER_PORT}",
-            'group.id': "my_group",  # TODO: Do something with this
-            'auto.offset.reset': 'earliest'  # TODO: Do something with this
-        }
-
-    def start_kafka_consumer(self):
-        if self.kafka_consumer:
-            logger.warning(f"Kafka Consumer already running!")
-            return
-
-        self.kafka_consumer = Consumer(self.conf)
-        self.kafka_consumer.subscribe(['Prefilter'])
+        self.kafka_consume_broker = KafkaConsumeHandler(topics=['Prefilter'])
 
     # TODO: Test
     def consume_and_extract_data(self):
-        message = self.kafka_consumer.poll(timeout=1.0)
+        try:
+            message = self.kafka_consume_broker.receive()
+            logger.info(f"Received message: {message}")
+        except KafkaMessageFetchException as e:
+            logger.debug(e)
+            return
+        except IOError as e:
+            logger.error(e)
+            raise
 
-        if not message:
-            raise KafkaMessageFetchError("No message fetched from Kafka broker.")
-
-        if message.error():
-            raise IOError(f"An error occurred while consuming: {message.error()}")
-
-        decoded_message = message.value().decode('utf-8')
-        json_from_message = json.loads(decoded_message)
+        json_from_message = json.loads(message)
 
         if self.unfiltered_data:
             logger.warning("Overwriting existing data by new message.")
@@ -77,7 +61,6 @@ class InspectPrefilter:
 # TODO: Test
 def main():
     prefilter = InspectPrefilter(error_type="NXDOMAIN")
-    prefilter.start_kafka_consumer()
 
     while True:
         try:
@@ -91,8 +74,8 @@ def main():
             logger.error(e)
             raise
         except ValueError as e:
-            logger.warning(e)
-        except KafkaMessageFetchError as e:
+            logger.debug(e)
+        except KafkaMessageFetchException as e:
             logger.debug(e)
             continue
         except KeyboardInterrupt:
