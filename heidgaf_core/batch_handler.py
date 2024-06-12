@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaBatchSender:
-    # TODO: Test
     def __init__(self, topic: str):
         self.topic = topic
         self.messages = []
@@ -23,7 +22,6 @@ class KafkaBatchSender:
         self.timer = None
         self.kafka_produce_handler = KafkaProduceHandler()
 
-    # TODO: Test
     def _send_batch(self):
         with self.lock:
             if self.messages:
