@@ -5,9 +5,9 @@ import queue
 import sys  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_log_collector import utils
-from heidgaf_log_collector.logging_config import setup_logging
-from heidgaf_log_collector.config import *
+from heidgaf_core import utils
+from heidgaf_core.logging import setup_logging
+from heidgaf_core.config import *
 
 setup_logging()
 logger = logging.getLogger(__name__)

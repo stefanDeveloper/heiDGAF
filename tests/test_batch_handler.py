@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from heidgaf_log_collector.batch_handler import KafkaBatchSender
-from heidgaf_log_collector.config import *
+from heidgaf_core.batch_handler import KafkaBatchSender
+from heidgaf_core.config import *
 
 
 # class TestInit(unittest.TestCase):
@@ -57,7 +57,7 @@ from heidgaf_log_collector.config import *
 
 
 class TestClose(unittest.TestCase):
-    @patch('heidgaf_log_collector.batch_handler.Timer')
+    @patch('heidgaf_core.batch_handler.Timer')
     def test_close_with_active_timer(self, mock_timer):
         sender_instance = KafkaBatchSender(topic="test_topic")
         sender_instance.timer = mock_timer
@@ -78,7 +78,7 @@ class TestClose(unittest.TestCase):
 
 
 class TestResetTimer(unittest.TestCase):
-    @patch('heidgaf_log_collector.batch_handler.Timer')
+    @patch('heidgaf_core.batch_handler.Timer')
     def test_reset_timer_with_existing_timer(self, mock_timer):
         sender_instance = KafkaBatchSender(topic="test_topic")
         mock_timer_instance = MagicMock()
@@ -93,7 +93,7 @@ class TestResetTimer(unittest.TestCase):
         self.assertIsNotNone(sender_instance.timer)
         sender_instance.timer.start.assert_called_once()
 
-    @patch('heidgaf_log_collector.batch_handler.Timer')
+    @patch('heidgaf_core.batch_handler.Timer')
     def test_reset_timer_without_existing_timer(self, mock_timer):
         sender_instance = KafkaBatchSender(topic="test_topic")
         sender_instance._send_batch = MagicMock()
@@ -106,8 +106,8 @@ class TestResetTimer(unittest.TestCase):
 
 
 class TestAddMessage(unittest.TestCase):
-    @patch('heidgaf_log_collector.batch_handler.KafkaBatchSender._send_batch')
-    @patch('heidgaf_log_collector.batch_handler.KafkaBatchSender._reset_timer')
+    @patch('heidgaf_core.batch_handler.KafkaBatchSender._send_batch')
+    @patch('heidgaf_core.batch_handler.KafkaBatchSender._reset_timer')
     def test_add_message_normal(self, mock_send_batch, mock_reset_timer):
         sender_instance = KafkaBatchSender(topic="test_topic")
         sender_instance.timer = MagicMock()
@@ -117,7 +117,7 @@ class TestAddMessage(unittest.TestCase):
         mock_send_batch.assert_not_called()
         mock_reset_timer.assert_not_called()
 
-    @patch('heidgaf_log_collector.batch_handler.KafkaBatchSender._send_batch')
+    @patch('heidgaf_core.batch_handler.KafkaBatchSender._send_batch')
     def test_add_message_full_messages(self, mock_send_batch):
         sender_instance = KafkaBatchSender(topic="test_topic")
         sender_instance.timer = MagicMock()
@@ -131,7 +131,7 @@ class TestAddMessage(unittest.TestCase):
 
         mock_send_batch.assert_called_once()
 
-    @patch('heidgaf_log_collector.batch_handler.KafkaBatchSender._reset_timer')
+    @patch('heidgaf_core.batch_handler.KafkaBatchSender._reset_timer')
     def test_add_message_no_timer(self, mock_reset_timer):
         sender_instance = KafkaBatchSender(topic="test_topic")
         sender_instance.timer = None

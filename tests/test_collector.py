@@ -2,11 +2,11 @@ import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import patch
 
-from heidgaf_log_collector.collector import LogCollector
+from heidgaf_log_collection.collector import LogCollector
 
 
 class TestInit(unittest.TestCase):
-    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
+    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
     def test_valid_init_ipv4(self, mock_batch_handler):
         host = "192.168.0.1"
         port = 9999
@@ -26,7 +26,7 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(collector_instance.log_data.get("response_ip"))
         self.assertIsNone(collector_instance.log_data.get("size"))
 
-    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
+    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
     def test_valid_init_ipv6(self, mock_batch_handler):
         host = "fe80::1"
         port = 9999
@@ -127,7 +127,7 @@ class TestValidateAndExtractLogline(unittest.TestCase):
 
 
 class TestAddLoglineToBatch(unittest.TestCase):
-    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
+    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
     def test_add_to_batch_with_data(self, mock_batch_handler):
         collector_instance = LogCollector("127.0.0.1", 9999)
         collector_instance.logline = (
@@ -153,7 +153,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
 
         mock_batch_handler.add_message.assert_called_once_with(expected_message)
 
-    @patch('heidgaf_log_collector.collector.KafkaBatchSender')
+    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
     def test_add_to_batch_without_data(self, mock_batch_handler):
         collector_instance = LogCollector("127.0.0.1", 9999)
         collector_instance.logline = None

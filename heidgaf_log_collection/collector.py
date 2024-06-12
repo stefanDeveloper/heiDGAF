@@ -6,10 +6,10 @@ import socket
 import sys  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_log_collector.batch_handler import KafkaBatchSender
-from heidgaf_log_collector.utils import validate_host
-from heidgaf_log_collector import utils
-from heidgaf_log_collector.logging_config import setup_logging
+from heidgaf_core.batch_handler import KafkaBatchSender
+from heidgaf_core.utils import validate_host
+from heidgaf_core import utils
+from heidgaf_core.logging import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)

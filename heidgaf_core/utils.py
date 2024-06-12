@@ -3,7 +3,7 @@ import logging
 
 from confluent_kafka import KafkaError, Message
 
-from heidgaf_log_collector.logging_config import setup_logging
+from heidgaf_core.logging import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)

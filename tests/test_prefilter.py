@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from heidgaf_log_collector.prefilter import InspectPrefilter
+from heidgaf_log_collection.prefilter import InspectPrefilter
 
 
 # class TestInit(unittest.TestCase):
@@ -75,7 +75,7 @@ class TestFilterByError(unittest.TestCase):
 
 
 class TestAddFilteredDataToBatch(unittest.TestCase):
-    @patch('heidgaf_log_collector.prefilter.KafkaBatchSender')
+    @patch('heidgaf_log_collection.prefilter.KafkaBatchSender')
     def test_add_to_batch_with_data(self, mock_batch_handler):
         prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
 
@@ -115,7 +115,7 @@ class TestAddFilteredDataToBatch(unittest.TestCase):
 
         mock_batch_handler.add_message.assert_called_once_with(expected_message)
 
-    @patch('heidgaf_log_collector.prefilter.KafkaBatchSender')
+    @patch('heidgaf_log_collection.prefilter.KafkaBatchSender')
     def test_add_to_batch_without_data(self, mock_batch_handler):
         prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
         prefilter_instance.filtered_data = []

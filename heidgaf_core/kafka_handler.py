@@ -3,9 +3,9 @@ import logging
 import yaml
 from confluent_kafka import KafkaError, Producer, Consumer
 
-from heidgaf_log_collector.config import *
-from heidgaf_log_collector.logging_config import setup_logging
-from heidgaf_log_collector.utils import kafka_delivery_report
+from heidgaf_core.config import *
+from heidgaf_core.logging import setup_logging
+from heidgaf_core.utils import kafka_delivery_report
 
 setup_logging()
 logger = logging.getLogger(__name__)
