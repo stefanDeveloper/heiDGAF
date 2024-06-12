@@ -19,7 +19,6 @@ class KafkaMessageFetchException(Exception):
     pass
 
 
-# TODO: Test
 class KafkaHandler:
     def __init__(self):
         self.consumer = None
@@ -32,6 +31,7 @@ class KafkaHandler:
         )
 
 
+# TODO: Test
 class KafkaProduceHandler(KafkaHandler):
     def __init__(self):
         super().__init__()
