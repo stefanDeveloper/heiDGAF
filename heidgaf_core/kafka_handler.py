@@ -22,6 +22,7 @@ class KafkaMessageFetchException(Exception):
 class KafkaHandler:
     def __init__(self):
         self.consumer = None
+        self.producer = None
 
         with open(CONFIG_FILEPATH, 'r') as file:
             self.config = yaml.safe_load(file)
@@ -31,7 +32,6 @@ class KafkaHandler:
         )
 
 
-# TODO: Test
 class KafkaProduceHandler(KafkaHandler):
     def __init__(self):
         super().__init__()
