@@ -43,7 +43,7 @@ class KafkaProduceHandler(KafkaHandler):
         #     'enable.idempotence': self.config['kafka']['producer']['enable_idempotence']
         # }
 
-        conf = {'bootstrap.servers': 'localhost:9092'}
+        conf = {'bootstrap.servers': self.brokers}
 
         try:
             self.producer = Producer(conf)
@@ -76,9 +76,9 @@ class KafkaConsumeHandler(KafkaHandler):
         # }
 
         conf = {
-            'bootstrap.servers': 'localhost:9092',
+            'bootstrap.servers': self.brokers,
             'group.id': "my_group",  # TODO: Do something with this
-            'auto.offset.reset': 'earliest'  # TODO: Do something with this
+            'auto.offset.reset': 'earliest'
         }
 
         try:

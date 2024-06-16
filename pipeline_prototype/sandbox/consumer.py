@@ -1,19 +1,10 @@
-import json
-import ast
-
 from confluent_kafka import Consumer, KafkaError
 
 conf = {
-    'bootstrap.servers': "localhost:9092",
+    'bootstrap.servers': "localhost:8097,localhost:8098,localhost:8099",
     'group.id': "my_group",
     'auto.offset.reset': 'earliest'
 }
-
-# utils.create_kafka_topic(
-#     KAFKA_BROKER_HOST,
-#     KAFKA_BROKER_PORT,
-#     "Test",
-# )
 
 consumer = Consumer(conf)
 consumer.subscribe(['Inspect'])

@@ -1,11 +1,11 @@
 kafka:
   brokers:
     - hostname: localhost
-      port: 9092
+      port: 8097
     - hostname: localhost
-      port: 9093
+      port: 8098
     - hostname: localhost
-      port: 9094
+      port: 8099
   producer:
     transactional_id: your_transactional_id
     acks: all
