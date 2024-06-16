@@ -4,10 +4,10 @@ import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
 from threading import Timer, Lock
 
-from heidgaf_core.kafka_handler import KafkaProduceHandler
+from heidgaf_core.kafka_handler import KafkaProducerWrapper
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_core.logging import setup_logging
+from heidgaf_core.log_config import setup_logging
 from heidgaf_core.config import *
 
 setup_logging()
@@ -20,7 +20,7 @@ class KafkaBatchSender:
         self.messages = []
         self.lock = Lock()
         self.timer = None
-        self.kafka_produce_handler = KafkaProduceHandler()
+        self.kafka_produce_handler = KafkaProducerWrapper()
 
     def _send_batch(self):
         with self.lock:

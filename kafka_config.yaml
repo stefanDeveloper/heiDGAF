@@ -1,4 +1,5 @@
 kafka:
+
   brokers:
     - hostname: localhost
       port: 8097
@@ -6,11 +7,9 @@ kafka:
       port: 8098
     - hostname: localhost
       port: 8099
+
   producer:
-    transactional_id: your_transactional_id
-    acks: all
-    enable_idempotence: true
+    transactional_id: my_transactional_id
+
   consumer:
-    group_id: your_group_id
-    enable_auto_commit: false
-    isolation_level: read_committed
+    group_id: my_group

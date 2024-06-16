@@ -6,7 +6,7 @@ import sys  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_core import utils
-from heidgaf_core.logging import setup_logging
+from heidgaf_core.log_config import setup_logging
 from heidgaf_core.config import *
 
 setup_logging()

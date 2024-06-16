@@ -1,10 +1,15 @@
+# Inspired by https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/eos-transactions.py
+
 import logging
+import os  # needed for Terminal execution
+import sys  # needed for Terminal execution
 
 import yaml
-from confluent_kafka import KafkaError, Producer, Consumer
+from confluent_kafka import KafkaError, Producer, Consumer, TopicPartition
 
+sys.path.append(os.getcwd())  # needed for Terminal execution
+from heidgaf_core.log_config import setup_logging
 from heidgaf_core.config import *
-from heidgaf_core.logging import setup_logging
 from heidgaf_core.utils import kafka_delivery_report
 
 setup_logging()
@@ -32,58 +37,57 @@ class KafkaHandler:
 
 
 # TODO: Test
-class KafkaProduceHandler(KafkaHandler):
+class KafkaProducerWrapper(KafkaHandler):
     def __init__(self):
         super().__init__()
 
-        # conf = {
-        #     'bootstrap.servers': 'localhost:9092', # TODO: Change to self.brokers
-        #     'transactional.id': self.config['kafka']['producer']['transactional_id'],
-        #     'acks': self.config['kafka']['producer']['acks'],
-        #     'enable.idempotence': self.config['kafka']['producer']['enable_idempotence']
-        # }
-
-        conf = {'bootstrap.servers': self.brokers}
+        conf = {
+            'bootstrap.servers': self.brokers,
+            'transactional.id': self.config['kafka']['producer']['transactional_id'],
+        }
 
         try:
             self.producer = Producer(conf)
+            self.producer.init_transactions()
         except KafkaError as e:
             logger.error(f"Producer initialization failed: {e}")
             raise
 
     def send(self, topic: str, data: str):
-        self.producer.produce(
-            topic=topic,
-            key=None,  # could maybe add a key here
-            value=data.encode('utf-8'),
-            callback=kafka_delivery_report,
-        )
+        self.producer.begin_transaction()
+        try:
+            self.producer.produce(
+                topic=topic,
+                key=None,  # could maybe add a key here
+                value=data.encode('utf-8'),
+                callback=kafka_delivery_report,
+            )
+            self.producer.commit_transaction()
+            logger.debug(f"Transaction for {data=} committed.")
+        except Exception as e:
+            logger.warning(f"Transaction for {data=} failed: {e}")
+            self.producer.abort_transaction()
 
+    def close(self):
         self.producer.flush()
 
 
 # TODO: Test
 class KafkaConsumeHandler(KafkaHandler):
-    def __init__(self, topics):
+    def __init__(self, topic):
         super().__init__()
-
-        # conf = {
-        #     'bootstrap.servers': self.brokers,
-        #     'group.id': self.config['kafka']['consumer']['group_id'],
-        #     'enable.auto.commit': self.config['kafka']['consumer']['enable_auto_commit'],
-        #     'auto.offset.reset': 'earliest',
-        #     'enable.partition.eof': True,
-        # }
 
         conf = {
             'bootstrap.servers': self.brokers,
-            'group.id': "my_group",  # TODO: Do something with this
-            'auto.offset.reset': 'earliest'
+            'group.id': self.config['kafka']['consumer']['group_id'],
+            'enable.auto.commit': False,
+            'auto.offset.reset': 'earliest',
+            'enable.partition.eof': True,
         }
 
         try:
             self.consumer = Consumer(conf)
-            self.consumer.subscribe(topics)
+            self.consumer.assign([TopicPartition(topic, 0)])
         except KafkaError as e:
             logger.error(f"Consumer initialization failed: {e}")
             raise
@@ -92,19 +96,33 @@ class KafkaConsumeHandler(KafkaHandler):
         if self.consumer:
             self.consumer.close()
 
-    def receive(self) -> str:
-        message = self.consumer.poll(timeout=1.0)
-
-        if not message:
-            raise KafkaMessageFetchException("No message fetched from Kafka Broker.")
-
-        if message.error():
-            raise IOError(message.error())
-
-        self.consumer.commit(message)
-        return message.value().decode('utf-8')
+    def consume(self) -> tuple[str | None, str | None]:
+        try:
+            while True:
+                msg = self.consumer.poll(timeout=1.0)
+                if msg is None:
+                    continue
+                if msg.error():
+                    if msg.error().code() == KafkaError._PARTITION_EOF:
+                        continue
+                    else:
+                        logger.error(f"Consumer error: {msg.error()}")
+                        break
+                key = msg.key().decode('utf-8') if msg.key() else None
+                value = msg.value().decode('utf-8') if msg.value() else None
+                logger.info(f"Received message: Key={key}, Value={value}")
+                self.consumer.commit(msg)
+                return key, value
+        except KeyboardInterrupt:
+            logger.info("Shutting down Kafka Consume Handler...")
+            raise KeyboardInterrupt
+        except Exception as e:
+            logger.error(f"Error in Kafka Consume Handler: {e}")
 
 
 if __name__ == '__main__':
-    handler = KafkaProduceHandler()
-    handler.send("test", "TestDaten")
+    producer_handler = KafkaProducerWrapper()
+    producer_handler.send("test", "Test")
+
+    consumer_handler = KafkaConsumeHandler("test")
+    consumer_handler.consume()
