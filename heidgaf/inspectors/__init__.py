@@ -142,29 +142,34 @@ class Inspector(metaclass=ABCMeta):
         # Aggregate ids by timestamp in a moving window of 6h
         id_distribution = (
             df.sort("timestamp")
-            .group_by_dynamic("timestamp", every="3h", closed="right", by=id)
+            .group_by_dynamic("timestamp", every="3h", closed="right", by=[id, "fqdn"])
             .agg(pl.count())
         )
+
         # We generate empty datetime with zero values in a time range of 6h
         datetimes = id_distribution.select(
             pl.datetime_range(
                 min_date.replace(microsecond=0), max_date.replace(microsecond=0), "3h"
             ).alias("timestamp")
         )
-        ids = id_distribution.select(pl.col(id).unique())
+
+        ids = id_distribution.select([id, "fqdn"]).unique()
         # Cross joining all domain
         all_dates = datetimes.join(ids, how="cross")
         # Fill with null
         id_distribution = all_dates.join(
-            id_distribution, how="left", on=[id, "timestamp"]
+            id_distribution, how="left", on=[id, "fqdn", "timestamp"]
         ).fill_null(0)
 
         # Iterate over all unique IDs
-        unique_id = id_distribution.select([id]).unique()
+        unique_id = id_distribution.select([id, "fqdn"]).unique()
+        # print(unique_id)
         for row in unique_id.rows(named=True):
 
             # Run detector
-            unique_id_distro = id_distribution.filter(pl.col(id) == row[id])
+            unique_id_distro = id_distribution.filter(
+                (pl.col(id) == row[id]) & (pl.col("fqdn") == row["fqdn"])
+            )
             detector_results = self.detector.run(unique_id_distro["count"])
 
             # If total count of signals is higher than threshold, we append our supsicious IPs to our warnings list

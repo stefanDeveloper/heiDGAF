@@ -98,6 +98,18 @@ class DNSAnalyzerTraining:
             target_encoder=TargetEncoder(smoothing=100, features_to_encode=[]),
             clf=self.model,
         )
+        processor = Preprocessor(
+            features_to_drop=[
+                "query",
+                "labels",
+                "thirdleveldomain",
+                "secondleveldomain",
+                "fqdn",
+                "tld",
+            ]
+        )
+        data = processor.transform(self.dataset.data)
+        data.write_csv("full_data.csv")
 
         model_pipeline.fit(x_train=self.dataset.X_train, y_train=self.dataset.Y_train)
 
