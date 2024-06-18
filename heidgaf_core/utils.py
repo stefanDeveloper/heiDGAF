@@ -1,9 +1,12 @@
 import ipaddress
 import logging
+import os
+import sys
 
 from confluent_kafka import KafkaError, Message
 
-from heidgaf_core.logging import setup_logging
+sys.path.append(os.getcwd())
+from heidgaf_core.log_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)

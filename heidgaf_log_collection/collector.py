@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_core.batch_handler import KafkaBatchSender
 from heidgaf_core.utils import validate_host
 from heidgaf_core import utils
-from heidgaf_core.logging import setup_logging
+from heidgaf_core.log_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)

@@ -7,7 +7,7 @@ import sys  # needed for Terminal execution
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_core.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
 from heidgaf_core.batch_handler import KafkaBatchSender
-from heidgaf_core.logging import setup_logging
+from heidgaf_core.log_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -21,21 +21,26 @@ class InspectPrefilter:
         self.error_type = error_type
 
         self.batch_handler = KafkaBatchSender(topic="Inspect")
-        self.kafka_consume_broker = KafkaConsumeHandler(topics=['Prefilter'])
+        self.kafka_consume_broker = KafkaConsumeHandler(topic='Prefilter')
 
     # TODO: Test
     def consume_and_extract_data(self):
         try:
-            message = self.kafka_consume_broker.receive()
-            logger.info(f"Received message: {message}")
+            key, value = self.kafka_consume_broker.consume()
+
+            if not key and not value:
+                logger.debug("No data returned.")
+                return
         except KafkaMessageFetchException as e:
             logger.debug(e)
+            return
+        except KeyboardInterrupt:
             return
         except IOError as e:
             logger.error(e)
             raise
 
-        json_from_message = json.loads(message)
+        json_from_message = json.loads(value)
 
         if self.unfiltered_data:
             logger.warning("Overwriting existing data by new message.")

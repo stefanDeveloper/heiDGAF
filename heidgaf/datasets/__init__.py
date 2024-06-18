@@ -123,22 +123,22 @@ def cast_dgta(data_path: str) -> pl.DataFrame:
 
 class DatasetLoader:
     def __init__(self) -> None:
-        self.dgta_dataset = Dataset(
+        self.dgta_data = Dataset(
             data_path="/home/smachmeier/projects/heiDGA/data/dgta/dgta-benchmark.parquet",
             cast_dataset=cast_dgta,
         )
 
-        self.dga_dataset = Dataset(
+        self.dga_data = Dataset(
             data_path="/home/smachmeier/projects/heiDGA/data/360_dga_domain.csv",
             cast_dataset=cast_dga,
         )
 
-        self.bambenek_dataset = Dataset(
+        self.bambenek_data = Dataset(
             data_path="/home/smachmeier/projects/heiDGA/data/bambenek_dga_domain.csv",
             cast_dataset=cast_bambenek,
         )
 
-        self.cic_dataset = Dataset(
+        self.cic_data = Dataset(
             data_path=[
                 "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_benign.csv",
                 "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_malware.csv",
@@ -150,19 +150,19 @@ class DatasetLoader:
 
     @property
     def dgta_dataset(self) -> Dataset:
-        return self.dgta_dataset
+        return self.dgta_data
 
     @property
     def dga_dataset(self) -> Dataset:
-        return self.dga_dataset
+        return self.dga_data
 
     @property
     def bambenek_dataset(self) -> Dataset:
-        return self.bambenek_dataset
+        return self.bambenek_data
 
     @property
     def cic_dataset(self) -> Dataset:
-        return self.cic_dataset
+        return self.cic_data
 
 
 @dataclass

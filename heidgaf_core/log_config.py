@@ -2,7 +2,7 @@ import logging
 
 import colorlog
 
-DEBUG = True
+DEBUG = False
 
 
 def setup_logging():
