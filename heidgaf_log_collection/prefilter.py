@@ -20,7 +20,7 @@ class InspectPrefilter:
         self.filtered_data = []
         self.error_type = error_type
 
-        self.batch_handler = KafkaBatchSender(topic="Inspect")
+        self.batch_handler = KafkaBatchSender(topic="Inspect", transactional_id="prefilter")
         self.kafka_consume_broker = KafkaConsumeHandler(topic='Prefilter')
 
     # TODO: Test

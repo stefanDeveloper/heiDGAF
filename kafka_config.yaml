@@ -7,8 +7,5 @@ kafka:
     - hostname: localhost
       port: 8099
 
-  producer:
-    transactional_id: my_transactional_id
-
   consumer:
     group_id: my_group

@@ -41,7 +41,7 @@ class LogCollector:
         self.log_server["host"] = utils.validate_host(server_host)
         self.log_server["port"] = utils.validate_port(server_port)
 
-        self.batch_handler = KafkaBatchSender(topic="Prefilter")
+        self.batch_handler = KafkaBatchSender(topic="Prefilter", transactional_id="collector")
 
     def fetch_logline(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.client_socket:

@@ -3,9 +3,10 @@
 import logging
 import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
+import time
 
 import yaml
-from confluent_kafka import KafkaError, Producer, Consumer, TopicPartition
+from confluent_kafka import KafkaError, Producer, Consumer, TopicPartition, KafkaException
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_core.log_config import setup_logging
@@ -38,12 +39,12 @@ class KafkaHandler:
 
 # TODO: Test
 class KafkaProducerWrapper(KafkaHandler):
-    def __init__(self):
+    def __init__(self, transactional_id: str):
         super().__init__()
 
         conf = {
             'bootstrap.servers': self.brokers,
-            'transactional.id': self.config['kafka']['producer']['transactional_id'],
+            'transactional.id': transactional_id,
         }
 
         try:
@@ -62,11 +63,30 @@ class KafkaProducerWrapper(KafkaHandler):
                 value=data.encode('utf-8'),
                 callback=kafka_delivery_report,
             )
-            self.producer.commit_transaction()
+            self.commit_transaction_with_retry()
             logger.debug(f"Transaction for {data=} committed.")
         except Exception as e:
             logger.warning(f"Transaction for {data=} failed: {e}")
             self.producer.abort_transaction()
+
+    def commit_transaction_with_retry(self, max_retries=3, retry_interval_ms=1000):
+        committed = False
+        retry_count = 0
+
+        while not committed and retry_count < max_retries:
+            try:
+                self.producer.commit_transaction()
+                committed = True
+            except KafkaException as e:
+                if "Conflicting commit_transaction API call is already in progress" in str(e):
+                    retry_count += 1
+                    logger.debug("Conflicting commit_transaction API call is already in progress: Retrying")
+                    time.sleep(retry_interval_ms / 1000.0)
+                else:
+                    raise e
+
+        if not committed:
+            raise RuntimeError("Failed to commit transaction after retries")
 
     def close(self):
         self.producer.flush()

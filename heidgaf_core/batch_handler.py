@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaBatchSender:
-    def __init__(self, topic: str):
+    def __init__(self, topic: str, transactional_id: str):
         self.topic = topic
         self.messages = []
         self.lock = Lock()
         self.timer = None
-        self.kafka_produce_handler = KafkaProducerWrapper()
+        self.kafka_produce_handler = KafkaProducerWrapper(transactional_id=transactional_id)
 
     def _send_batch(self):
         with self.lock:
