@@ -1,5 +1,4 @@
 kafka:
-
   brokers:
     - hostname: localhost
       port: 8097
