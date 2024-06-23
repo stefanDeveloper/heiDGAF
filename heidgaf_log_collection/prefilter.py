@@ -23,7 +23,7 @@ class Prefilter:
         self.kafka_consume_handler = KafkaConsumeHandler(topic='Prefilter')
 
     # TODO: Test
-    def get_data(self):
+    def get_and_fill_data(self):
         if self.unfiltered_data:
             logger.warning("Overwriting existing data by new message.")
 
@@ -54,12 +54,17 @@ def main():
 
     while True:
         try:
-            logger.debug("Before consuming and extracting")
-            prefilter.get_data()
+            logger.debug("Before getting and filling data")
+            prefilter.get_and_fill_data()
+            logger.debug("After getting and filling data")
+
             logger.debug("Before filtering by error")
             prefilter.filter_by_error()
+            logger.debug("After filtering by error")
+
             logger.debug("Before adding filtered data to batch")
             prefilter.add_filtered_data_to_batch()
+            logger.debug("After adding filtered data to batch")
         except IOError as e:
             logger.error(e)
             raise
@@ -69,10 +74,11 @@ def main():
             logger.debug(e)
             continue
         except KeyboardInterrupt:
-            logger.info("Closing down InspectPrefilter.")
+            logger.info("Closing down Prefilter...")
             break
         finally:
             prefilter.clear_data()
+            logger.debug("Cleared data")
 
 
 if __name__ == '__main__':

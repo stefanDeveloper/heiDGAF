@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from heidgaf_core.kafka_handler import KafkaProduceHandler
+from heidgaf_core.kafka_handler import KafkaProducerWrapper
 
 
 class TestInit(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestInit(unittest.TestCase):
         mock_producer.return_value = mock_producer_instance
         expected_conf = {'bootstrap.servers': 'localhost:9092'}
 
-        handler_instance = KafkaProduceHandler()
+        handler_instance = KafkaProducerWrapper()
 
         self.assertIsNone(handler_instance.consumer)
         self.assertEqual(mock_producer_instance, handler_instance.producer)
