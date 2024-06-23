@@ -26,7 +26,7 @@ class TestGetData(unittest.TestCase):
         mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = []
 
         sut = Inspector()
-        sut.get_and_fill_messages()
+        sut.get_and_fill_data()
 
         self.assertEqual([], sut.messages)
         self.assertEqual(False, sut.busy)
@@ -40,7 +40,7 @@ class TestGetData(unittest.TestCase):
 
         sut = Inspector()
         sut.busy = False
-        sut.get_and_fill_messages()
+        sut.get_and_fill_data()
 
         self.assertEqual(["test_message_1", "test_message_2"], sut.messages)
         self.assertEqual(True, sut.busy)
@@ -55,7 +55,7 @@ class TestGetData(unittest.TestCase):
         sut = Inspector()
         sut.messages = ["test_data"]
         sut.busy = True
-        sut.get_and_fill_messages()
+        sut.get_and_fill_data()
 
         self.assertEqual(["test_data"], sut.messages)
         self.assertEqual(True, sut.busy)
@@ -69,7 +69,7 @@ class TestGetData(unittest.TestCase):
         sut = Inspector()
         sut.messages = ["test_data"]
         sut.busy = False
-        sut.get_and_fill_messages()
+        sut.get_and_fill_data()
 
         self.assertEqual([], sut.messages)
         self.assertEqual(False, sut.busy)

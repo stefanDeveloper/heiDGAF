@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class Prefilter:
-    # TODO: Test
     def __init__(self, error_type: str):
         self.unfiltered_data = []
         self.filtered_data = []
@@ -22,11 +21,9 @@ class Prefilter:
         self.batch_handler = KafkaBatchSender(topic="Inspect", transactional_id="prefilter")
         self.kafka_consume_handler = KafkaConsumeHandler(topic='Prefilter')
 
-    # TODO: Test
     def get_and_fill_data(self):
         if self.unfiltered_data:
             logger.warning("Overwriting existing data by new message.")
-
         self.clear_data()
 
         self.unfiltered_data = self.kafka_consume_handler.consume_and_return_json_data()

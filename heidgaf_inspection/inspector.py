@@ -13,7 +13,7 @@ class Inspector:
         self.busy = False
         self.kafka_consume_handler = KafkaConsumeHandler(topic='Inspect')
 
-    def get_and_fill_messages(self):
+    def get_and_fill_data(self):
         if self.busy:
             logger.warning("Inspector is busy! Not consuming new messages.")
             return
@@ -37,7 +37,7 @@ def main():
     while True:
         try:
             logger.debug("Before getting and filling messages")
-            inspector.get_and_fill_messages()
+            inspector.get_and_fill_data()
             logger.debug("After getting and filling messages")
             # TODO: Implement functionality here
         except IOError as e:
