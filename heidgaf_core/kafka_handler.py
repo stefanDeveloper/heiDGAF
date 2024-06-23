@@ -170,7 +170,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
 if __name__ == '__main__':
     producer_handler = KafkaProduceHandler("test_id")
-    producer_handler.send("test", "Test")
+    producer_handler.send("test", "Test2")
 
     consumer_handler = KafkaConsumeHandler("test")
     consumer_handler.consume()
