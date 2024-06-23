@@ -56,6 +56,10 @@ class KafkaProduceHandler(KafkaHandler):
             raise
 
     def send(self, topic: str, data: str):
+        if not data:
+            logger.warning("No data! Not sending any data.")
+            return
+
         self.producer.begin_transaction()
         try:
             self.producer.produce(

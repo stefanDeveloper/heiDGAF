@@ -57,5 +57,10 @@ class TestValidatePort(unittest.TestCase):
             validate_port(large_port)
 
 
+class TestKafkaDeliveryReport(unittest.TestCase):
+    # No need to be tested: only logging messages
+    pass
+
+
 if __name__ == '__main__':
     unittest.main()
