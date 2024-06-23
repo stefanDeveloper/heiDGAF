@@ -39,7 +39,7 @@ class KafkaHandler:
 
 
 # TODO: Test
-class KafkaProducerWrapper(KafkaHandler):
+class KafkaProduceHandler(KafkaHandler):
     def __init__(self, transactional_id: str):
         super().__init__()
 
@@ -167,7 +167,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
 
 if __name__ == '__main__':
-    producer_handler = KafkaProducerWrapper()
+    producer_handler = KafkaProduceHandler("test_id")
     producer_handler.send("test", "Test")
 
     consumer_handler = KafkaConsumeHandler("test")

@@ -81,7 +81,7 @@ class TestFetchLogline(unittest.TestCase):
     def test_fetch_logline(self, mock_socket, mock_batch_handler):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
         mock_socket_instance.connect.return_value = None
-        mock_socket_instance.recv.side_effect = ["fake data".encode('utf-8'), b""]
+        mock_socket_instance.recv.side_effect = ["fake messages".encode('utf-8'), b""]
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
@@ -93,7 +93,7 @@ class TestFetchLogline(unittest.TestCase):
 
         mock_socket_instance.connect.assert_called_with((host, port))
         mock_socket_instance.recv.assert_called_with(1024)
-        self.assertEqual("fake data", sut.logline)
+        self.assertEqual("fake messages", sut.logline)
 
 
 class TestValidateAndExtractLogline(unittest.TestCase):

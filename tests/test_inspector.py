@@ -12,7 +12,7 @@ class TestInit(unittest.TestCase):
 
         sut = Inspector()
 
-        self.assertEqual([], sut.data)
+        self.assertEqual([], sut.messages)
         self.assertEqual(False, sut.busy)
         self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
         mock_kafka_consume_handler.assert_called_once_with(topic='Inspect')
@@ -26,9 +26,9 @@ class TestGetData(unittest.TestCase):
         mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = []
 
         sut = Inspector()
-        sut.get_and_fill_data()
+        sut.get_and_fill_messages()
 
-        self.assertEqual([], sut.data)
+        self.assertEqual([], sut.messages)
         self.assertEqual(False, sut.busy)
 
     @patch('heidgaf_inspection.inspector.KafkaConsumeHandler')
@@ -40,9 +40,9 @@ class TestGetData(unittest.TestCase):
 
         sut = Inspector()
         sut.busy = False
-        sut.get_and_fill_data()
+        sut.get_and_fill_messages()
 
-        self.assertEqual(["test_message_1", "test_message_2"], sut.data)
+        self.assertEqual(["test_message_1", "test_message_2"], sut.messages)
         self.assertEqual(True, sut.busy)
 
     @patch('heidgaf_inspection.inspector.KafkaConsumeHandler')
@@ -53,11 +53,11 @@ class TestGetData(unittest.TestCase):
                                                                                          "test_message_2"]
 
         sut = Inspector()
-        sut.data = ["test_data"]
+        sut.messages = ["test_data"]
         sut.busy = True
-        sut.get_and_fill_data()
+        sut.get_and_fill_messages()
 
-        self.assertEqual(["test_data"], sut.data)
+        self.assertEqual(["test_data"], sut.messages)
         self.assertEqual(True, sut.busy)
 
     @patch('heidgaf_inspection.inspector.KafkaConsumeHandler')
@@ -67,49 +67,49 @@ class TestGetData(unittest.TestCase):
         mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = []
 
         sut = Inspector()
-        sut.data = ["test_data"]
+        sut.messages = ["test_data"]
         sut.busy = False
-        sut.get_and_fill_data()
+        sut.get_and_fill_messages()
 
-        self.assertEqual([], sut.data)
+        self.assertEqual([], sut.messages)
         self.assertEqual(False, sut.busy)
 
 
 class TestClearData(unittest.TestCase):
     def test_clear_data_busy_without_existing_data(self):
         sut = Inspector()
-        sut.data = []
+        sut.messages = []
         sut.busy = True
         sut.clear_data()
 
-        self.assertEqual([], sut.data)
+        self.assertEqual([], sut.messages)
         self.assertEqual(False, sut.busy)
 
     def test_clear_data_busy_with_existing_data(self):
         sut = Inspector()
-        sut.data = ["test_data"]
+        sut.messages = ["test_data"]
         sut.busy = True
         sut.clear_data()
 
-        self.assertEqual([], sut.data)
+        self.assertEqual([], sut.messages)
         self.assertEqual(False, sut.busy)
 
     def test_clear_data_not_busy_without_existing_data(self):
         sut = Inspector()
-        sut.data = []
+        sut.messages = []
         sut.busy = False
         sut.clear_data()
 
-        self.assertEqual([], sut.data)
+        self.assertEqual([], sut.messages)
         self.assertEqual(False, sut.busy)
 
     def test_clear_data_not_busy_with_existing_data(self):
         sut = Inspector()
-        sut.data = ["test_data"]
+        sut.messages = ["test_data"]
         sut.busy = False
         sut.clear_data()
 
-        self.assertEqual([], sut.data)
+        self.assertEqual([], sut.messages)
         self.assertEqual(False, sut.busy)
 
 
