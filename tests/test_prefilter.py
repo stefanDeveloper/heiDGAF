@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from heidgaf_log_collection.prefilter import InspectPrefilter
+from heidgaf_log_collection.prefilter import Prefilter
 
 
 # class TestInit(unittest.TestCase):
@@ -26,7 +26,7 @@ from heidgaf_log_collection.prefilter import InspectPrefilter
 
 class TestFilterByError(unittest.TestCase):
     def test_filter_by_error_empty_data(self):
-        prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
+        prefilter_instance = Prefilter(error_type="NXDOMAIN")
         prefilter_instance.unfiltered_data = []
 
         prefilter_instance.filter_by_error()
@@ -34,7 +34,7 @@ class TestFilterByError(unittest.TestCase):
         self.assertEqual([], prefilter_instance.filtered_data)
 
     def test_filter_by_error_with_data(self):
-        prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
+        prefilter_instance = Prefilter(error_type="NXDOMAIN")
 
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
@@ -77,7 +77,7 @@ class TestFilterByError(unittest.TestCase):
 class TestAddFilteredDataToBatch(unittest.TestCase):
     @patch('heidgaf_log_collection.prefilter.KafkaBatchSender')
     def test_add_to_batch_with_data(self, mock_batch_handler):
-        prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
+        prefilter_instance = Prefilter(error_type="NXDOMAIN")
 
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
@@ -117,7 +117,7 @@ class TestAddFilteredDataToBatch(unittest.TestCase):
 
     @patch('heidgaf_log_collection.prefilter.KafkaBatchSender')
     def test_add_to_batch_without_data(self, mock_batch_handler):
-        prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
+        prefilter_instance = Prefilter(error_type="NXDOMAIN")
         prefilter_instance.filtered_data = []
         prefilter_instance.batch_handler = mock_batch_handler
 
@@ -129,7 +129,7 @@ class TestAddFilteredDataToBatch(unittest.TestCase):
 
 class TestClearData(unittest.TestCase):
     def test_clear_data_with_data(self):
-        prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
+        prefilter_instance = Prefilter(error_type="NXDOMAIN")
 
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
@@ -161,7 +161,7 @@ class TestClearData(unittest.TestCase):
         self.assertEqual([], prefilter_instance.filtered_data)
 
     def test_clear_data_without_data(self):
-        prefilter_instance = InspectPrefilter(error_type="NXDOMAIN")
+        prefilter_instance = Prefilter(error_type="NXDOMAIN")
 
         prefilter_instance.unfiltered_data = []
         prefilter_instance.filtered_data = []

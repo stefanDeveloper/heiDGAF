@@ -1,5 +1,6 @@
 # Inspired by https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/eos-transactions.py
-
+import ast
+import json
 import logging
 import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
@@ -138,6 +139,31 @@ class KafkaConsumeHandler(KafkaHandler):
             raise KeyboardInterrupt
         except Exception as e:
             logger.error(f"Error in Kafka Consume Handler: {e}")
+
+    # TODO: Test
+    def consume_and_return_json_data(self) -> list:
+        try:
+            key, value = self.consume()
+
+            if not key and not value:
+                logger.debug("No data returned.")
+                return []
+        except KafkaMessageFetchException as e:
+            logger.debug(e)
+            raise
+        except KeyboardInterrupt:
+            raise
+        except IOError as e:
+            logger.error(e)
+            raise
+
+        json_from_message = json.loads(value)
+        json_data = []
+
+        for e in json_from_message:
+            json_data.append(ast.literal_eval(e))
+
+        return json_data
 
 
 if __name__ == '__main__':

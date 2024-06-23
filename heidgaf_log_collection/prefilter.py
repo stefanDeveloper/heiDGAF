@@ -1,4 +1,3 @@
-import ast
 import json
 import logging
 import os  # needed for Terminal execution
@@ -13,7 +12,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
-class InspectPrefilter:
+class Prefilter:
     # TODO: Test
     def __init__(self, error_type: str):
         self.unfiltered_data = []
@@ -21,32 +20,17 @@ class InspectPrefilter:
         self.error_type = error_type
 
         self.batch_handler = KafkaBatchSender(topic="Inspect", transactional_id="prefilter")
-        self.kafka_consume_broker = KafkaConsumeHandler(topic='Prefilter')
+        self.kafka_consume_handler = KafkaConsumeHandler(topic='Prefilter')
 
     # TODO: Test
-    def consume_and_extract_data(self):
-        try:
-            key, value = self.kafka_consume_broker.consume()
-
-            if not key and not value:
-                logger.debug("No data returned.")
-                return
-        except KafkaMessageFetchException as e:
-            logger.debug(e)
-            return
-        except KeyboardInterrupt:
-            return
-        except IOError as e:
-            logger.error(e)
-            raise
-
-        json_from_message = json.loads(value)
-
+    def get_data(self):
         if self.unfiltered_data:
             logger.warning("Overwriting existing data by new message.")
 
-        for e in json_from_message:
-            self.unfiltered_data.append(ast.literal_eval(e))
+        self.clear_data()
+
+        self.unfiltered_data = self.kafka_consume_handler.consume_and_return_json_data()
+        logger.debug("Received consumer message as json data.")
 
     def filter_by_error(self):
         for e in self.unfiltered_data:
@@ -66,12 +50,12 @@ class InspectPrefilter:
 
 # TODO: Test
 def main():
-    prefilter = InspectPrefilter(error_type="NXDOMAIN")
+    prefilter = Prefilter(error_type="NXDOMAIN")
 
     while True:
         try:
             logger.debug("Before consuming and extracting")
-            prefilter.consume_and_extract_data()
+            prefilter.get_data()
             logger.debug("Before filtering by error")
             prefilter.filter_by_error()
             logger.debug("Before adding filtered data to batch")
