@@ -38,7 +38,6 @@ class KafkaHandler:
         )
 
 
-# TODO: Test
 class KafkaProduceHandler(KafkaHandler):
     def __init__(self, transactional_id: str):
         super().__init__()
@@ -144,7 +143,6 @@ class KafkaConsumeHandler(KafkaHandler):
         except Exception as e:
             logger.error(f"Error in Kafka Consume Handler: {e}")
 
-    # TODO: Test
     def consume_and_return_json_data(self) -> list:
         try:
             key, value = self.consume()

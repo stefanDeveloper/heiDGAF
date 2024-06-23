@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
+from confluent_kafka import KafkaException
+
 from heidgaf_core.kafka_handler import KafkaProduceHandler
 
 
@@ -54,6 +56,82 @@ class TestSend(unittest.TestCase):
         mock_producer.begin_transaction.assert_not_called()
         mock_producer.produce.assert_not_called()
         mock_producer.commit_transaction_with_retry.assert_not_called()
+
+
+class TestCommitTransactionWithRetry(unittest.TestCase):
+    # def test_commit_transaction_with_retry(self):
+    @patch('heidgaf_core.kafka_handler.Producer')
+    @patch('time.sleep', return_value=None)
+    def test_commit_successful(self, mock_sleep, mock_producer):
+        mock_producer_instance = MagicMock()
+        mock_producer.return_value = mock_producer_instance
+        mock_producer.commit_transaction.return_value = None
+
+        sut = KafkaProduceHandler(transactional_id="test_transactional_id")
+        sut.commit_transaction_with_retry()
+
+        mock_producer_instance.commit_transaction.assert_called_once()
+        mock_sleep.assert_not_called()
+
+    @patch('heidgaf_core.kafka_handler.Producer')
+    @patch('time.sleep', return_value=None)
+    def test_commit_retries_then_successful(self, mock_sleep, mock_producer):
+        mock_producer_instance = MagicMock()
+        mock_producer.return_value = mock_producer_instance
+        mock_producer_instance.commit_transaction.side_effect = [
+            KafkaException("Conflicting commit_transaction API call is already in progress"),
+            None
+        ]
+
+        sut = KafkaProduceHandler(transactional_id="test_transactional_id")
+        sut.commit_transaction_with_retry()
+
+        self.assertEqual(mock_producer_instance.commit_transaction.call_count, 2)
+        mock_sleep.assert_called_once_with(1.0)
+
+    @patch('heidgaf_core.kafka_handler.Producer')
+    @patch('time.sleep', return_value=None)
+    def test_commit_retries_and_fails(self, mock_sleep, mock_producer):
+        mock_producer_instance = MagicMock()
+        mock_producer.return_value = mock_producer_instance
+        mock_producer_instance.commit_transaction.side_effect = KafkaException(
+            "Conflicting commit_transaction API call is already in progress"
+        )
+
+        sut = KafkaProduceHandler(transactional_id="test_transactional_id")
+        with self.assertRaises(RuntimeError) as context:
+            sut.commit_transaction_with_retry()
+
+        self.assertEqual(mock_producer_instance.commit_transaction.call_count, 3)
+        self.assertEqual(str(context.exception), "Failed to commit transaction after retries")
+        self.assertEqual(mock_sleep.call_count, 3)
+
+    @patch('heidgaf_core.kafka_handler.Producer')
+    @patch('time.sleep', return_value=None)
+    def test_commit_fails_with_other_exception(self, mock_sleep, mock_producer):
+        mock_producer_instance = MagicMock()
+        mock_producer.return_value = mock_producer_instance
+        mock_producer_instance.commit_transaction.side_effect = KafkaException("Some other error")
+
+        sut = KafkaProduceHandler(transactional_id="test_transactional_id")
+        with self.assertRaises(KafkaException) as context:
+            sut.commit_transaction_with_retry()
+
+        mock_producer_instance.commit_transaction.assert_called_once()
+        self.assertEqual(str(context.exception), "Some other error")
+        mock_sleep.assert_not_called()
+
+
+class TestClose(unittest.TestCase):
+    @patch('heidgaf_core.kafka_handler.Producer')
+    def test_close(self, mock_producer):
+        mock_producer_instance = MagicMock()
+        mock_producer.return_value = mock_producer_instance
+
+        sut = KafkaProduceHandler(transactional_id="test_transactional_id")
+        sut.close()
+
+        mock_producer_instance.flush.assert_called_once()
 
 
 if __name__ == '__main__':
