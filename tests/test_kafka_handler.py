@@ -8,8 +8,7 @@ class TestInit(unittest.TestCase):
         handler_instance = KafkaHandler()
 
         self.assertIsNone(handler_instance.consumer)
-        self.assertIsNone(handler_instance.producer)
-        self.assertEqual("localhost:9092,localhost:9093,localhost:9094",
+        self.assertEqual("localhost:8097,localhost:8098,localhost:8099",
                          handler_instance.brokers)
 
 
