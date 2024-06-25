@@ -10,23 +10,17 @@ logger = logging.getLogger(__name__)
 class Inspector:
     def __init__(self):
         self.messages = []
-        self.busy = False
         self.kafka_consume_handler = KafkaConsumeHandler(topic='Inspect')
 
     def get_and_fill_data(self):
-        if self.busy:
+        if self.messages:
             logger.warning("Inspector is busy! Not consuming new messages.")
             return
 
         self.messages = self.kafka_consume_handler.consume_and_return_json_data()
 
-        if self.messages:
-            self.busy = True
-
     def clear_data(self):
         self.messages = []
-        self.busy = False
-
         logger.info("Cleared messages. Inspector is now available.")
 
 
