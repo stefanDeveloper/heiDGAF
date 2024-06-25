@@ -15,17 +15,20 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaBatchSender:
-    def __init__(self, topic: str, transactional_id: str):
+    def __init__(self, topic: str, transactional_id: str, puffer: bool = False):
         self.topic = topic
-        self.messages = []
+        self.latest_messages = []
+        self.earlier_messages = []
+        self.puffer = puffer
         self.lock = Lock()
         self.timer = None
         self.kafka_produce_handler = KafkaProduceHandler(transactional_id=transactional_id)
 
     def add_message(self, message: str):
         with self.lock:
-            self.messages.append(message)
-            if len(self.messages) >= BATCH_SIZE:
+            self.latest_messages.append(message)
+
+            if len(self.latest_messages) >= BATCH_SIZE:
                 self._send_batch()
             elif not self.timer:
                 self._reset_timer()
@@ -33,20 +36,27 @@ class KafkaBatchSender:
     def close(self):
         if self.timer:
             self.timer.cancel()
+
         self._send_batch()
 
     def _send_batch(self):
         with self.lock:
-            if self.messages:
+            if self.earlier_messages or self.latest_messages:
                 self.kafka_produce_handler.send(
                     topic=self.topic,
-                    data=json.dumps(self.messages),
+                    data=json.dumps(self.earlier_messages + self.latest_messages),
                 )
-                self.messages = []
+
+                if self.puffer:
+                    self.earlier_messages = self.latest_messages
+
+                self.latest_messages = []
+
             self._reset_timer()
 
     def _reset_timer(self):
         if self.timer:
             self.timer.cancel()
+
         self.timer = Timer(BATCH_TIMEOUT, self._send_batch)
         self.timer.start()

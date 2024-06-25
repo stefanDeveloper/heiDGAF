@@ -9,7 +9,7 @@ from heidgaf_core.config import *
 class TestInit(unittest.TestCase):
     @patch('heidgaf_core.batch_handler.KafkaProduceHandler')
     @patch('heidgaf_core.batch_handler.Lock')
-    def test_init(self, mock_lock, mock_kafka_produce_handler):
+    def test_init_without_puffer(self, mock_lock, mock_kafka_produce_handler):
         mock_lock_instance = MagicMock()
         mock_lock.return_value = mock_lock_instance
         mock_handler_instance = MagicMock()
@@ -17,8 +17,31 @@ class TestInit(unittest.TestCase):
 
         sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id")
 
-        self.assertEqual(sut.topic, "test_topic")
-        self.assertEqual(sut.messages, [])
+        self.assertEqual("test_topic", sut.topic)
+        self.assertEqual([], sut.latest_messages)
+        self.assertEqual([], sut.earlier_messages)
+        self.assertEqual(False, sut.puffer)
+        self.assertIsNone(sut.timer)
+        self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
+        self.assertEqual(mock_lock_instance, sut.lock)
+
+        mock_lock.assert_called_once()
+        mock_kafka_produce_handler.assert_called_once_with(transactional_id="test_transactional_id")
+
+    @patch('heidgaf_core.batch_handler.KafkaProduceHandler')
+    @patch('heidgaf_core.batch_handler.Lock')
+    def test_init_with_puffer(self, mock_lock, mock_kafka_produce_handler):
+        mock_lock_instance = MagicMock()
+        mock_lock.return_value = mock_lock_instance
+        mock_handler_instance = MagicMock()
+        mock_kafka_produce_handler.return_value = mock_handler_instance
+
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+
+        self.assertEqual("test_topic", sut.topic)
+        self.assertEqual([], sut.latest_messages)
+        self.assertEqual([], sut.earlier_messages)
+        self.assertEqual(True, sut.puffer)
         self.assertIsNone(sut.timer)
         self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
         self.assertEqual(mock_lock_instance, sut.lock)
@@ -100,16 +123,17 @@ class TestClose(unittest.TestCase):
 
 class TestSendBatch(unittest.TestCase):
     @patch('heidgaf_core.batch_handler.KafkaProduceHandler')
-    def test_send_batch_with_messages(self, mock_produce_handler):
+    def test_send_batch_with_messages_without_puffer(self, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
         sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id")
         sut._reset_timer = MagicMock()
-        sut.messages = ["message1", "message2"]
+        sut.latest_messages = ["message1", "message2"]
         sut._send_batch()
 
-        self.assertEqual(sut.messages, [])
+        self.assertEqual(sut.latest_messages, [])
+        self.assertEqual(sut.earlier_messages, [])
         mock_produce_handler_instance.send.assert_called_once_with(
             topic="test_topic",
             data=json.dumps(["message1", "message2"])
@@ -118,17 +142,96 @@ class TestSendBatch(unittest.TestCase):
         sut._reset_timer.assert_called_once()
 
     @patch('heidgaf_core.batch_handler.KafkaProduceHandler')
-    def test_send_batch_without_messages(self, mock_produce_handler):
+    def test_send_batch_without_messages_without_puffer(self, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
         sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id")
         sut._reset_timer = MagicMock()
-        sut.messages = []
+        sut.latest_messages = []
         sut._send_batch()
 
-        self.assertEqual(sut.messages, [])
+        self.assertEqual(sut.latest_messages, [])
+        self.assertEqual(sut.earlier_messages, [])
 
+        mock_produce_handler_instance.send.assert_not_called()
+        sut._reset_timer.assert_called_once()
+
+    @patch('heidgaf_core.batch_handler.KafkaProduceHandler')
+    def test_send_batch_with_messages_with_empty_puffer(self, mock_produce_handler):
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+        sut._reset_timer = MagicMock()
+        sut.earlier_messages = []
+        sut.latest_messages = ["message1", "message2"]
+        sut._send_batch()
+
+        self.assertEqual([], sut.latest_messages)
+        self.assertEqual(["message1", "message2"], sut.earlier_messages)
+        mock_produce_handler_instance.send.assert_called_once_with(
+            topic="test_topic",
+            data=json.dumps(["message1", "message2"])
+        )
+
+        sut._reset_timer.assert_called_once()
+
+    @patch('heidgaf_core.batch_handler.KafkaProduceHandler')
+    def test_send_batch_without_messages_with_empty_puffer(self, mock_produce_handler):
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+        sut._reset_timer = MagicMock()
+        sut.earlier_messages = []
+        sut.latest_messages = []
+        sut._send_batch()
+
+        self.assertEqual([], sut.latest_messages)
+        self.assertEqual([], sut.earlier_messages)
+
+        mock_produce_handler_instance.send.assert_not_called()
+        sut._reset_timer.assert_called_once()
+
+    @patch('heidgaf_core.batch_handler.KafkaProduceHandler')
+    def test_send_batch_with_messages_with_full_puffer(self, mock_produce_handler):
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+        sut._reset_timer = MagicMock()
+        sut.earlier_messages = ["message1", "message2"]
+        sut.latest_messages = ["message3", "message4"]
+        sut._send_batch()
+
+        self.assertEqual([], sut.latest_messages)
+        self.assertEqual(["message3", "message4"], sut.earlier_messages)
+        mock_produce_handler_instance.send.assert_called_once_with(
+            topic="test_topic",
+            data=json.dumps(["message1", "message2", "message3", "message4"])
+        )
+
+        sut._reset_timer.assert_called_once()
+
+    @patch('heidgaf_core.batch_handler.KafkaProduceHandler')
+    def test_send_batch_without_messages_with_full_puffer(self, mock_produce_handler):
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+        sut._reset_timer = MagicMock()
+        sut.earlier_messages = ["message1", "message2"]
+        sut.latest_messages = []
+        sut._send_batch()
+
+        self.assertEqual([], sut.latest_messages)
+        self.assertEqual([], sut.earlier_messages)
+
+        mock_produce_handler_instance.send.assert_called_once_with(
+            topic="test_topic",
+            data=json.dumps(["message1", "message2"])
+        )
         sut._reset_timer.assert_called_once()
 
 
@@ -167,8 +270,6 @@ class TestResetTimer(unittest.TestCase):
         mock_timer.assert_called_once_with(BATCH_TIMEOUT, sut._send_batch)
         sut.timer.start.assert_called_once()
 
-
-# TODO: Add the rest of the tests
 
 if __name__ == '__main__':
     unittest.main()
