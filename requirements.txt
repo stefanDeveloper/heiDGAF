@@ -1,24 +1,9 @@
-pandas~=2.2.2
 scikit-learn~=1.4.2
 scipy
 numpy~=1.26.4
-alibi
-tldextract
 pyarrow
-click~=8.1.7
-torch~=2.3.0
-setuptools
-redis~=5.0.4
-pytest~=8.2.0
-feature-engineering-polars
-# cupy-cuda12x
-statsmodels~=0.14.2
-xgboost~=2.0.3
 
-polars~=0.19.19
 joblib~=1.4.2
 requests~=2.31.0
-matplotlib~=3.8.4
-confluent-kafka~=2.4.0
-colorlog~=6.8.2
-PyYAML~=6.0.1
+
+pytest~=8.2.0

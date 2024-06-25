@@ -1,0 +1,12 @@
+FROM python:3
+
+WORKDIR /usr/src/app
+
+COPY requirements.lc.txt ./
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.insp.txt
+
+COPY heidgaf_core ./heidgaf_core
+COPY heidgaf_inspection ./heidgaf_inspection
+COPY kafka_config.yaml .
+
+CMD [ "python", "heidgaf_inspection/inspector.py"]
