@@ -1,5 +1,8 @@
 import logging
+import os
+import sys
 
+sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_core.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
 from heidgaf_core.log_config import setup_logging
 
