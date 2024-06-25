@@ -6,24 +6,24 @@ services:
       dockerfile: docker_files/Dockerfile.lc
       network: host
     restart: "unless-stopped"
+    depends_on:
+      - zookeeper
+      - kafka1
+      - kafka2
+      - kafka3
     networks:
       heidgaf:
         ipv4_address: 172.27.0.7
-    # volumes:
-    #   - ./data/heicloud:/tmp/data
-    # memswap_limit: 42G
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '6'
-    #       memory: 32g
-    #     reservations:
-    #       cpus: '4'
-    #       memory: 24g
-          # devices:
-          # - driver: nvidia
-          #   count: all
-          #   capabilities: [gpu]
+    memswap_limit: 768m
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+
 
   insp:
     build:
@@ -31,12 +31,24 @@ services:
       dockerfile: docker_files/Dockerfile.insp
       network: host
     restart: "unless-stopped"
+    depends_on:
+      - zookeeper
+      - kafka1
+      - kafka2
+      - kafka3
     networks:
       heidgaf:
         ipv4_address: 172.27.0.6
-    # deploy:
-    #   mode: "replicated"
-    #   replicas: 1
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
 
   # dtc:
   #   build:
@@ -69,12 +81,17 @@ services:
       - "29092:29092"
     depends_on:
       - zookeeper
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka1:8097", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:8097,DOCKER://host.docker.internal:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://172.27.0.3:8097,DOCKER://host.docker.internal:29092
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
@@ -93,11 +110,16 @@ services:
       - "29093:29093"
     depends_on:
       - zookeeper
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka2:8098", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:8098,DOCKER://host.docker.internal:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://172.27.0.4:8098,DOCKER://host.docker.internal:29093
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
@@ -115,11 +137,16 @@ services:
       - "29094:29094"
     depends_on:
       - zookeeper
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka3:8099", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:8099,DOCKER://host.docker.internal:29094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://172.27.0.5:8099,DOCKER://host.docker.internal:29094
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer

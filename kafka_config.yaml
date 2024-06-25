@@ -1,10 +1,10 @@
 kafka:
   brokers:
-    - hostname: 172.26.0.3
+    - hostname: 172.27.0.3
       port: 8097
-    - hostname: 172.26.0.4
+    - hostname: 172.27.0.4
       port: 8098
-    - hostname: 172.26.0.5
+    - hostname: 172.27.0.5
       port: 8099
 
   consumer:
