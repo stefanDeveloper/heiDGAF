@@ -20,7 +20,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual("test_topic", sut.topic)
         self.assertEqual([], sut.latest_messages)
         self.assertEqual([], sut.earlier_messages)
-        self.assertEqual(False, sut.puffer)
+        self.assertEqual(False, sut.buffer)
         self.assertIsNone(sut.timer)
         self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
         self.assertEqual(mock_lock_instance, sut.lock)
@@ -36,12 +36,12 @@ class TestInit(unittest.TestCase):
         mock_handler_instance = MagicMock()
         mock_kafka_produce_handler.return_value = mock_handler_instance
 
-        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", buffer=True)
 
         self.assertEqual("test_topic", sut.topic)
         self.assertEqual([], sut.latest_messages)
         self.assertEqual([], sut.earlier_messages)
-        self.assertEqual(True, sut.puffer)
+        self.assertEqual(True, sut.buffer)
         self.assertIsNone(sut.timer)
         self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
         self.assertEqual(mock_lock_instance, sut.lock)
@@ -162,7 +162,7 @@ class TestSendBatch(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", buffer=True)
         sut._reset_timer = MagicMock()
         sut.earlier_messages = []
         sut.latest_messages = ["message1", "message2"]
@@ -182,7 +182,7 @@ class TestSendBatch(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", buffer=True)
         sut._reset_timer = MagicMock()
         sut.earlier_messages = []
         sut.latest_messages = []
@@ -199,7 +199,7 @@ class TestSendBatch(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", buffer=True)
         sut._reset_timer = MagicMock()
         sut.earlier_messages = ["message1", "message2"]
         sut.latest_messages = ["message3", "message4"]
@@ -219,7 +219,7 @@ class TestSendBatch(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", puffer=True)
+        sut = KafkaBatchSender(topic="test_topic", transactional_id="test_transactional_id", buffer=True)
         sut._reset_timer = MagicMock()
         sut.earlier_messages = ["message1", "message2"]
         sut.latest_messages = []

@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaBatchSender:
-    def __init__(self, topic: str, transactional_id: str, puffer: bool = False):
+    def __init__(self, topic: str, transactional_id: str, buffer: bool = False):
         self.topic = topic
         self.latest_messages = []
         self.earlier_messages = []
-        self.puffer = puffer
+        self.buffer = buffer
         self.lock = Lock()
         self.timer = None
         self.kafka_produce_handler = KafkaProduceHandler(transactional_id=transactional_id)
@@ -47,7 +47,7 @@ class KafkaBatchSender:
                     data=json.dumps(self.earlier_messages + self.latest_messages),
                 )
 
-                if self.puffer:
+                if self.buffer:
                     self.earlier_messages = self.latest_messages
 
                 self.latest_messages = []
