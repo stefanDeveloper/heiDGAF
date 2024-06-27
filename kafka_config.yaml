@@ -1,3 +1,10 @@
+heidgaf:
+  lc:
+    logserver:
+      hostname: 172.27.0.8
+      portin: 9998
+      portout: 9999
+
 kafka:
   brokers:
     - hostname: 172.27.0.3

@@ -3,9 +3,12 @@ import logging
 import os  # needed for Terminal execution
 import re
 import socket
-import sys  # needed for Terminal execution
+import sys
+
+import yaml
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
+from heidgaf_core.config import CONFIG_FILEPATH  # needed for Terminal execution
 from heidgaf_core.batch_handler import KafkaBatchSender
 from heidgaf_core.utils import validate_host
 from heidgaf_core import utils
@@ -33,24 +36,35 @@ valid_record_types = [
 
 
 class LogCollector:
-    def __init__(self, server_host, server_port):
+    def __init__(self):
         self.log_server = {}
         self.logline = None
         self.log_data = {}
 
-        self.log_server["host"] = utils.validate_host(server_host)
-        self.log_server["port"] = utils.validate_port(server_port)
+        with open(CONFIG_FILEPATH, "r") as file:
+            self.config = yaml.safe_load(file)
 
-        self.batch_handler = KafkaBatchSender(topic="Prefilter", transactional_id="collector")
+        self.log_server["host"] = utils.validate_host(
+            self.config["heidgaf"]["lc"]["logserver"]["hostname"]
+        )
+        self.log_server["port"] = utils.validate_port(
+            self.config["heidgaf"]["lc"]["logserver"]["portout"]
+        )
+
+        self.batch_handler = KafkaBatchSender(
+            topic="Prefilter", transactional_id="collector"
+        )
 
     def fetch_logline(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.client_socket:
-            self.client_socket.connect((str(self.log_server.get("host")), self.log_server.get("port")))
+            self.client_socket.connect(
+                (str(self.log_server.get("host")), self.log_server.get("port"))
+            )
             while True:
                 data = self.client_socket.recv(1024)
                 if not data:
                     break
-                self.logline = data.decode('utf-8')
+                self.logline = data.decode("utf-8")
                 logger.info(f"Received logline: {self.logline}")
 
     def validate_and_extract_logline(self):
@@ -61,7 +75,9 @@ class LogCollector:
 
         try:
             if not self._check_length(parts):
-                raise ValueError(f"Logline does not contain exactly 8 values, but {len(parts)} values were found.")
+                raise ValueError(
+                    f"Logline does not contain exactly 8 values, but {len(parts)} values were found."
+                )
             if not self._check_timestamp(parts[0]):
                 raise ValueError(f"Invalid timestamp")
             if not self._check_status(parts[1]):
@@ -93,7 +109,9 @@ class LogCollector:
 
     def add_logline_to_batch(self):
         if not self.logline or self.log_data == {}:
-            raise ValueError("Failed to add logline to batch: No logline or extracted data.")
+            raise ValueError(
+                "Failed to add logline to batch: No logline or extracted data."
+            )
 
         log_entry = self.log_data.copy()
         log_entry["client_ip"] = str(self.log_data["client_ip"])
@@ -143,7 +161,7 @@ class LogCollector:
 
 # TODO: Test
 def main():
-    collector = LogCollector("127.0.0.1", 9998)
+    collector = LogCollector()
 
     while True:
         try:
@@ -159,5 +177,5 @@ def main():
             collector.clear_logline()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

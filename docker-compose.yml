@@ -24,6 +24,30 @@ services:
           cpus: '1'
           memory: 256m
 
+  ls:
+    build:
+      context: .
+      dockerfile: docker_files/Dockerfile.ls
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      - zookeeper
+      - kafka1
+      - kafka2
+      - kafka3
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.8
+    memswap_limit: 768m
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+
 
   insp:
     build:
@@ -67,7 +91,6 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_SERVERS: zookeeper:2888:3888
 
   kafka1:
     image: confluentinc/cp-kafka:7.3.2
