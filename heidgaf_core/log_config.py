@@ -14,14 +14,27 @@ def setup_logging():
         'CRITICAL': 'red,bg_white',
     }
 
-    formatter = colorlog.ColoredFormatter(
+    # Formatter for INFO and WARNING levels
+    simple_formatter = colorlog.ColoredFormatter(
         fmt='%(log_color)s[%(asctime)s, %(levelname)s] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         log_colors=log_colors
     )
 
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
+    # Formatter for DEBUG, ERROR, and CRITICAL levels
+    detailed_formatter = colorlog.ColoredFormatter(
+        fmt='%(log_color)s[%(asctime)s, %(filename)s, %(levelname)s, %(funcName)s:%(lineno)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        log_colors=log_colors
+    )
+
+    class CustomHandler(logging.StreamHandler):
+        def format(self, record):
+            if record.levelno in (logging.INFO, logging.WARNING):
+                return simple_formatter.format(record)
+            return detailed_formatter.format(record)
+
+    handler = CustomHandler()
 
     logger = logging.getLogger()
 

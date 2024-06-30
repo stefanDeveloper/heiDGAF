@@ -161,6 +161,12 @@ class LogCollector:
 
 # TODO: Test
 def main():
+    logger.critical("This is a test critical logline.")
+    logger.error("This is a test error logline.")
+    logger.warning("This is a test warning logline.")
+    logger.info("This is a test info logline.")
+    logger.debug("This is a test debug logline.")
+
     collector = LogCollector()
 
     while True:
