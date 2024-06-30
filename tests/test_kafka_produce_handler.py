@@ -5,6 +5,9 @@ from confluent_kafka import KafkaException
 
 from heidgaf_core.kafka_handler import KafkaProduceHandler
 
+BROKER_1 = "172.27.0.3:8097"
+BROKER_2 = "172.27.0.4:8098"
+BROKER_3 = "172.27.0.5:8099"
 
 class TestInit(unittest.TestCase):
     @patch('heidgaf_core.kafka_handler.Producer')
@@ -13,14 +16,14 @@ class TestInit(unittest.TestCase):
         mock_producer.return_value = mock_producer_instance
 
         expected_conf = {
-            'bootstrap.servers': "localhost:8097,localhost:8098,localhost:8099",
+            'bootstrap.servers': f"{BROKER_1},{BROKER_2},{BROKER_3}",
             'transactional.id': "test_transactional_id"
         }
 
         sut = KafkaProduceHandler(transactional_id="test_transactional_id")
 
         self.assertIsNone(sut.consumer)
-        self.assertEqual("localhost:8097,localhost:8098,localhost:8099",
+        self.assertEqual(f"{BROKER_1},{BROKER_2},{BROKER_3}",
                          sut.brokers)
         self.assertEqual(mock_producer_instance, sut.producer)
 

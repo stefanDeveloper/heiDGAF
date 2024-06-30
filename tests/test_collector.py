@@ -4,6 +4,9 @@ from unittest.mock import patch, MagicMock
 
 from heidgaf_log_collection.collector import LogCollector
 
+LOG_SERVER_IP_ADDR = "172.27.0.8"
+LOG_SERVER_PORT = 9999
+
 
 class TestInit(unittest.TestCase):
     @patch('heidgaf_log_collection.collector.KafkaBatchSender')
@@ -11,10 +14,10 @@ class TestInit(unittest.TestCase):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
-        host = "192.168.0.1"
-        port = 9999
+        host = LOG_SERVER_IP_ADDR
+        port = LOG_SERVER_PORT
 
-        sut = LogCollector(host, port)
+        sut = LogCollector()
 
         self.assertEqual(IPv4Address(host), sut.log_server.get("host"))
         self.assertEqual(port, sut.log_server.get("port"))
@@ -37,7 +40,7 @@ class TestInit(unittest.TestCase):
         mock_batch_handler.return_value = mock_batch_handler_instance
 
         host = "fe80::1"
-        port = 9999
+        port = LOG_SERVER_PORT
 
         sut = LogCollector(host, port)
 
@@ -85,13 +88,10 @@ class TestFetchLogline(unittest.TestCase):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
-        host = "127.0.0.1"
-        port = 12345
-
-        sut = LogCollector(host, port)
+        sut = LogCollector()
         sut.fetch_logline()
 
-        mock_socket_instance.connect.assert_called_with((host, port))
+        mock_socket_instance.connect.assert_called_with((LOG_SERVER_IP_ADDR, LOG_SERVER_PORT))
         mock_socket_instance.recv.assert_called_with(1024)
         self.assertEqual("fake messages", sut.logline)
 
@@ -102,7 +102,7 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
-        sut = LogCollector("127.0.0.1", 9999)
+        sut = LogCollector()
         sut.logline = ("2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
                        "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b")
         sut.validate_and_extract_logline()
@@ -122,7 +122,7 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
-        sut = LogCollector("127.0.0.1", 9999)
+        sut = LogCollector()
         sut.logline = ("2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
                        "A b49c:50f9:a37:f8e2:ff81:3e88:d27d 86b")
 
@@ -143,7 +143,7 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
-        sut = LogCollector("127.0.0.1", 9999)
+        sut = LogCollector()
         sut.logline = None
 
         with self.assertRaises(ValueError):
@@ -161,7 +161,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
                             '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
                             '"size": "150b"}')
 
-        sut = LogCollector("127.0.0.1", 9999)
+        sut = LogCollector()
         sut.logline = (
             "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A "
             "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b")
@@ -184,7 +184,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
-        sut = LogCollector("127.0.0.1", 9999)
+        sut = LogCollector()
         sut.logline = None
         sut.log_data = {}
 
@@ -200,7 +200,7 @@ class TestClearLogline(unittest.TestCase):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
-        sut = LogCollector("127.0.0.1", 9999)
+        sut = LogCollector()
         sut.logline = ("2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 "
                        "www.heidelberg-botanik.de A b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b")
         sut.log_data = {
@@ -217,8 +217,8 @@ class TestClearLogline(unittest.TestCase):
 
         self.assertIsNone(sut.logline)
         self.assertEqual({}, sut.log_data)
-        self.assertEqual(IPv4Address("127.0.0.1"), sut.log_server["host"])
-        self.assertEqual(9999, sut.log_server["port"])
+        self.assertEqual(IPv4Address(LOG_SERVER_IP_ADDR), sut.log_server["host"])
+        self.assertEqual(LOG_SERVER_PORT, sut.log_server["port"])
 
 
 class TestCheckLength(unittest.TestCase):

@@ -6,17 +6,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from heidgaf_core.config import *
 from heidgaf_log_collection.server import LogServer
 
+LOG_SERVER_IP_ADDR = "192.168.0.1"
+LOG_SERVER_PORT_IN = 9998
+LOG_SERVER_PORT_OUT = 9999
 
 class TestInit(unittest.TestCase):
     def test_valid_init_ipv4(self):
-        host = "192.168.0.1"
-        port_in = 9998
-        port_out = 9999
-
-        server_instance = LogServer(host, port_in, port_out)
-        self.assertEqual(IPv4Address(host), server_instance.host)
-        self.assertEqual(port_in, server_instance.port_in)
-        self.assertEqual(port_out, server_instance.port_out)
+        server_instance = LogServer()
+        self.assertEqual(IPv4Address(LOG_SERVER_IP_ADDR), server_instance.host)
+        self.assertEqual(LOG_SERVER_PORT_IN, server_instance.port_in)
+        self.assertEqual(LOG_SERVER_PORT_OUT, server_instance.port_out)
         self.assertTrue(server_instance.data_queue.empty())
         self.assertEqual(0, server_instance.number_of_connections)
 
@@ -25,7 +24,7 @@ class TestInit(unittest.TestCase):
         port_in = 9998
         port_out = 9999
 
-        server_instance = LogServer(host, port_in, port_out)
+        server_instance = LogServer()
         self.assertEqual(IPv6Address(host), server_instance.host)
         self.assertEqual(port_in, server_instance.port_in)
         self.assertEqual(port_out, server_instance.port_out)
@@ -96,7 +95,7 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
 
 class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
     async def test_handle_connection_sending(self):
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         server_instance.send_logline = AsyncMock()
         server_instance.get_next_logline = MagicMock(return_value="test logline")
 
@@ -112,7 +111,7 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(0, server_instance.number_of_connections)
 
     async def test_handle_connection_receiving(self):
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         server_instance.receive_logline = AsyncMock()
 
         reader = AsyncMock()
@@ -127,7 +126,7 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(0, server_instance.number_of_connections)
 
     async def test_handle_connection_rejected(self):
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         server_instance.number_of_connections = MAX_NUMBER_OF_CONNECTIONS
 
         reader = AsyncMock()
@@ -143,7 +142,7 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
 
 class TestHandleSendLogline(unittest.IsolatedAsyncioTestCase):
     async def test_handle_send_logline(self):
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         server_instance.handle_connection = AsyncMock()
 
         reader = AsyncMock()
@@ -156,7 +155,7 @@ class TestHandleSendLogline(unittest.IsolatedAsyncioTestCase):
 
 class TestHandleReceiveLogline(unittest.IsolatedAsyncioTestCase):
     async def test_handle_receive_logline(self):
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         server_instance.handle_connection = AsyncMock()
 
         reader = AsyncMock()
@@ -169,7 +168,7 @@ class TestHandleReceiveLogline(unittest.IsolatedAsyncioTestCase):
 
 class TestSendLogline(unittest.IsolatedAsyncioTestCase):
     async def test_send_logline_with_logline(self):
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         writer = AsyncMock()
         logline = "Test logline"
 
@@ -179,7 +178,7 @@ class TestSendLogline(unittest.IsolatedAsyncioTestCase):
         writer.drain.assert_called_once()
 
     async def test_send_logline_no_logline(self):
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         writer = AsyncMock()
         logline = ""
 
@@ -193,7 +192,7 @@ class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
     async def test_receive_logline(self):
         reader = AsyncMock()
         data_queue = MagicMock()
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         server_instance.data_queue = data_queue
 
         reader.read = AsyncMock(side_effect=[
@@ -213,7 +212,7 @@ class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
 
 class TestGetNextLogline(unittest.TestCase):
     def test_valid(self):
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         server_instance.data_queue.put("Element 1")
         server_instance.data_queue.put("Element 2")
 
@@ -221,7 +220,7 @@ class TestGetNextLogline(unittest.TestCase):
         self.assertEqual("Element 2", server_instance.get_next_logline())
 
     def test_valid_from_empty_queue(self):
-        server_instance = LogServer("127.0.0.1", 9998, 9999)
+        server_instance = LogServer()
         self.assertIsNone(server_instance.get_next_logline())
 
 

@@ -121,9 +121,9 @@ class KafkaProduceHandler(KafkaHandler):
 
         if not committed:
             logger.error("Transaction could not be committed.")
-            raise RuntimeError("Failed to commit transaction after retries")
+            raise RuntimeError("Failed to commit transaction after retries.")
 
-        logger.debug(f"Successfully committed transaction after {retry_count} retries.")
+        logger.debug(f"Successfully committed transaction after {retry_count} retry/retries.")
 
     def close(self):  # TODO: Change to __del__
         logger.debug("Closing KafkaProduceHandler...")
