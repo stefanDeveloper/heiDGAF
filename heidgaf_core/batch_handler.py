@@ -15,15 +15,16 @@ logger = logging.getLogger(__name__)
 
 class KafkaBatchSender:
     def __init__(self, topic: str, transactional_id: str, buffer: bool = False):
-        logger.debug(f"Initializing {self.__class__.__name__} ({topic=}, {transactional_id=} and {buffer=})...")
+        logger.debug(f"Initializing KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})...")
         self.topic = topic
         self.latest_messages = []
         self.earlier_messages = []
         self.buffer = buffer
         self.lock = Lock()
         self.timer = None
+        logger.debug(f"Calling KafkaProduceHandler({transactional_id=})...")
         self.kafka_produce_handler = KafkaProduceHandler(transactional_id=transactional_id)
-        logger.debug(f"Initialized {self.__class__.__name__} ({topic=}, {transactional_id=} and {buffer=}).")
+        logger.debug(f"Initialized KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=}).")
 
     def add_message(self, message: str):
         logger.debug(f"Adding message '{message}' to batch.")
@@ -39,7 +40,7 @@ class KafkaBatchSender:
         logger.debug(f"Message '{message}' successfully added to batch.")
 
     def close(self):  # TODO: Change to __del__
-        logger.debug(f"Closing {self.__class__.__name__} ({self.topic=} and {self.buffer=})...")
+        logger.debug(f"Closing KafkaBatchSender ({self.topic=} and {self.buffer=})...")
         if self.timer:
             logger.debug("Timer is active. Cancelling timer...")
             self.timer.cancel()
@@ -47,7 +48,7 @@ class KafkaBatchSender:
 
         logger.debug("Calling _send_batch()...")
         self._send_batch()
-        logger.debug(f"Closed {self.__class__.__name__} ({self.topic=} and {self.buffer=}).")
+        logger.debug(f"Closed KafkaBatchSender ({self.topic=} and {self.buffer=}).")
 
     def _send_batch(self):
         logger.debug("Starting to send the batch...")
