@@ -12,15 +12,27 @@ logger = logging.getLogger(__name__)
 
 class Inspector:
     def __init__(self):
+        logger.debug(f"Initializing Inspector...")
         self.messages = []
+        logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
         self.kafka_consume_handler = KafkaConsumeHandler(topic='Inspect')
+        logger.debug(f"Initialized Inspector.")
 
     def get_and_fill_data(self):
+        logger.debug("Getting and filling data...")
         if self.messages:
-            logger.warning("Inspector is busy! Not consuming new messages.")
+            logger.warning("Inspector is busy: Not consuming new messages. Wait for the Inspector to finish the "
+                           "current workload.")
             return
 
+        logger.debug("Inspector is not busy: Calling KafkaConsumeHandler to consume new JSON messages...")
         self.messages = self.kafka_consume_handler.consume_and_return_json_data()
+
+        if not self.messages:
+            logger.debug("Received empty data from KafkaConsumeHandler.")
+
+        logger.debug("Received data from KafkaConsumeHandler.")
+        logger.debug(f"(data={self.messages})")
 
     def clear_data(self):
         self.messages = []
@@ -33,9 +45,7 @@ def main():
 
     while True:
         try:
-            logger.debug("Before getting and filling messages")
             inspector.get_and_fill_data()
-            logger.debug("After getting and filling messages")
             # TODO: Implement functionality here
         except IOError as e:
             logger.error(e)
