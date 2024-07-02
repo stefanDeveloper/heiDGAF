@@ -5,9 +5,9 @@ import sys  # needed for Terminal execution
 from threading import Lock, Timer
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_core.config import *
-from heidgaf_core.kafka_handler import KafkaProduceHandler
-from heidgaf_core.log_config import setup_logging
+from src.base.config import *
+from src.base.kafka_handler import KafkaProduceHandler
+from src.base.log_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from confluent_kafka import KafkaException
 
-from heidgaf_core.kafka_handler import KafkaProduceHandler
+from src.base.kafka_handler import KafkaProduceHandler
 
 BROKER_1 = "172.27.0.3:8097"
 BROKER_2 = "172.27.0.4:8098"
@@ -11,7 +11,7 @@ BROKER_3 = "172.27.0.5:8099"
 
 
 class TestInit(unittest.TestCase):
-    @patch("heidgaf_core.kafka_handler.Producer")
+    @patch("src.base.kafka_handler.Producer")
     def test_init(self, mock_producer):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
@@ -32,11 +32,9 @@ class TestInit(unittest.TestCase):
 
 
 class TestSend(unittest.TestCase):
-    @patch("heidgaf_core.kafka_handler.Producer")
-    @patch(
-        "heidgaf_core.kafka_handler.KafkaProduceHandler.commit_transaction_with_retry"
-    )
-    @patch("heidgaf_core.kafka_handler.kafka_delivery_report")
+    @patch("src.base.kafka_handler.Producer")
+    @patch("src.base.kafka_handler.KafkaProduceHandler.commit_transaction_with_retry")
+    @patch("src.base.kafka_handler.kafka_delivery_report")
     def test_send_with_data(
         self,
         mock_kafka_delivery_report,
@@ -58,7 +56,7 @@ class TestSend(unittest.TestCase):
         mock_commit_transaction_with_retry.assert_called_once()
         mock_producer_instance.begin_transaction.assert_called_once()
 
-    @patch("heidgaf_core.kafka_handler.Producer")
+    @patch("src.base.kafka_handler.Producer")
     def test_send_with_empty_data_string(self, mock_producer):
         sut = KafkaProduceHandler(transactional_id="test_transactional_id")
         sut.send("test_topic", "")
@@ -70,7 +68,7 @@ class TestSend(unittest.TestCase):
 
 class TestCommitTransactionWithRetry(unittest.TestCase):
     # def test_commit_transaction_with_retry(self):
-    @patch("heidgaf_core.kafka_handler.Producer")
+    @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
     def test_commit_successful(self, mock_sleep, mock_producer):
         mock_producer_instance = MagicMock()
@@ -83,7 +81,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         mock_producer_instance.commit_transaction.assert_called_once()
         mock_sleep.assert_not_called()
 
-    @patch("heidgaf_core.kafka_handler.Producer")
+    @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
     def test_commit_retries_then_successful(self, mock_sleep, mock_producer):
         mock_producer_instance = MagicMock()
@@ -101,7 +99,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         self.assertEqual(mock_producer_instance.commit_transaction.call_count, 2)
         mock_sleep.assert_called_once_with(1.0)
 
-    @patch("heidgaf_core.kafka_handler.Producer")
+    @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
     def test_commit_retries_and_fails(self, mock_sleep, mock_producer):
         mock_producer_instance = MagicMock()
@@ -120,7 +118,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         )
         self.assertEqual(mock_sleep.call_count, 3)
 
-    @patch("heidgaf_core.kafka_handler.Producer")
+    @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
     def test_commit_fails_with_other_exception(self, mock_sleep, mock_producer):
         mock_producer_instance = MagicMock()
@@ -139,7 +137,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
 
 
 class TestClose(unittest.TestCase):
-    @patch("heidgaf_core.kafka_handler.Producer")
+    @patch("src.base.kafka_handler.Producer")
     def test_close(self, mock_producer):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance

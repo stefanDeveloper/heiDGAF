@@ -16,9 +16,9 @@ from confluent_kafka import (
 )
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_core.config import *
-from heidgaf_core.log_config import setup_logging
-from heidgaf_core.utils import kafka_delivery_report
+from src.base.config import *
+from src.base.log_config import setup_logging
+from src.base.utils import kafka_delivery_report
 
 setup_logging()
 logger = logging.getLogger(__name__)

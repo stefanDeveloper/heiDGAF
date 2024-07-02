@@ -1,7 +1,7 @@
 import ipaddress
 import unittest
 
-from heidgaf_core.utils import validate_host, validate_port
+from src.base.utils import validate_host, validate_port
 
 
 class TestValidateHosts(unittest.TestCase):

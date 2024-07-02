@@ -5,8 +5,8 @@ WORKDIR /usr/src/app
 COPY requirements.inspector.txt ./
 RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.inspector.txt
 
-COPY heidgaf_core ./heidgaf_core
-COPY heidgaf_inspection ./heidgaf_inspection
+COPY src/base ./src/base
+COPY src/inspector ./src/inspector
 COPY config.yaml .
 
-CMD [ "python", "heidgaf_inspection/inspector.py"]
+CMD [ "python", "src/inspector/inspector.py"]

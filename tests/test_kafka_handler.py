@@ -1,6 +1,6 @@
 import unittest
 
-from heidgaf_core.kafka_handler import KafkaHandler
+from src.base.kafka_handler import KafkaHandler
 
 BROKER_1 = "172.27.0.3:8097"
 BROKER_2 = "172.27.0.4:8098"

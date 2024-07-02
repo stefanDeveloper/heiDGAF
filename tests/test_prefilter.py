@@ -1,12 +1,12 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from heidgaf_log_collection.prefilter import Prefilter
+from src.prefilter.prefilter import Prefilter
 
 
 class TestInit(unittest.TestCase):
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_valid_init(self, mock_batch_handler, mock_consume_handler):
         sut = Prefilter(error_type="NXDOMAIN")
 
@@ -23,8 +23,8 @@ class TestInit(unittest.TestCase):
 
 
 class TestGetAndFillData(unittest.TestCase):
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_get_data_without_new_data(self, mock_batch_handler, mock_consume_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -40,8 +40,8 @@ class TestGetAndFillData(unittest.TestCase):
 
         mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
 
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_get_data_with_new_data(self, mock_batch_handler, mock_consume_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -59,8 +59,8 @@ class TestGetAndFillData(unittest.TestCase):
 
         mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
 
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_get_data_with_existing_data(
         self, mock_batch_handler, mock_consume_handler
     ):
@@ -68,8 +68,8 @@ class TestGetAndFillData(unittest.TestCase):
 
 
 class TestFilterByError(unittest.TestCase):
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_filter_by_error_empty_data(self, mock_batch_handler, mock_consume_handler):
         sut = Prefilter(error_type="NXDOMAIN")
         sut.unfiltered_data = []
@@ -77,8 +77,8 @@ class TestFilterByError(unittest.TestCase):
 
         self.assertEqual([], sut.filtered_data)
 
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_filter_by_error_with_data(self, mock_batch_handler, mock_consume_handler):
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
@@ -119,8 +119,8 @@ class TestFilterByError(unittest.TestCase):
 
 
 class TestAddFilteredDataToBatch(unittest.TestCase):
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_add_to_batch_with_data(self, mock_batch_handler, mock_consume_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -163,8 +163,8 @@ class TestAddFilteredDataToBatch(unittest.TestCase):
             expected_message
         )
 
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_add_to_batch_without_data(self, mock_batch_handler, mock_consume_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -179,8 +179,8 @@ class TestAddFilteredDataToBatch(unittest.TestCase):
 
 
 class TestClearData(unittest.TestCase):
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_clear_data_with_data(self, mock_batch_handler, mock_consume_handler):
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
@@ -211,8 +211,8 @@ class TestClearData(unittest.TestCase):
         self.assertEqual([], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
 
-    @patch("heidgaf_log_collection.prefilter.KafkaConsumeHandler")
-    @patch("heidgaf_log_collection.prefilter.KafkaBatchSender")
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaBatchSender")
     def test_clear_data_without_data(self, mock_batch_handler, mock_consume_handler):
         sut = Prefilter(error_type="NXDOMAIN")
         sut.unfiltered_data = []

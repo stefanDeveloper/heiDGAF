@@ -2,13 +2,13 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from heidgaf_core.batch_handler import KafkaBatchSender
-from heidgaf_core.config import *
+from src.base.batch_handler import KafkaBatchSender
+from src.base.config import *
 
 
 class TestInit(unittest.TestCase):
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
-    @patch("heidgaf_core.batch_handler.Lock")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.Lock")
     def test_init_without_puffer(self, mock_lock, mock_kafka_produce_handler):
         mock_lock_instance = MagicMock()
         mock_lock.return_value = mock_lock_instance
@@ -32,8 +32,8 @@ class TestInit(unittest.TestCase):
             transactional_id="test_transactional_id"
         )
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
-    @patch("heidgaf_core.batch_handler.Lock")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.Lock")
     def test_init_with_puffer(self, mock_lock, mock_kafka_produce_handler):
         mock_lock_instance = MagicMock()
         mock_lock.return_value = mock_lock_instance
@@ -59,9 +59,9 @@ class TestInit(unittest.TestCase):
 
 
 class TestAddMessage(unittest.TestCase):
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
-    @patch("heidgaf_core.batch_handler.KafkaBatchSender._send_batch")
-    @patch("heidgaf_core.batch_handler.KafkaBatchSender._reset_timer")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaBatchSender._send_batch")
+    @patch("src.base.batch_handler.KafkaBatchSender._reset_timer")
     def test_add_message_normal(
         self, mock_send_batch, mock_reset_timer, mock_produce_handler
     ):
@@ -77,8 +77,8 @@ class TestAddMessage(unittest.TestCase):
         mock_send_batch.assert_not_called()
         mock_reset_timer.assert_not_called()
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
-    @patch("heidgaf_core.batch_handler.KafkaBatchSender._send_batch")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaBatchSender._send_batch")
     def test_add_message_full_messages(self, mock_send_batch, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -95,8 +95,8 @@ class TestAddMessage(unittest.TestCase):
         sut.add_message(f"Message {BATCH_SIZE}")
         mock_send_batch.assert_called_once()
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
-    @patch("heidgaf_core.batch_handler.KafkaBatchSender._reset_timer")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaBatchSender._reset_timer")
     def test_add_message_no_timer(self, mock_reset_timer, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -111,8 +111,8 @@ class TestAddMessage(unittest.TestCase):
 
 
 class TestClose(unittest.TestCase):
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
-    @patch("heidgaf_core.batch_handler.Timer")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.Timer")
     def test_close_with_active_timer(self, mock_timer, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -127,7 +127,7 @@ class TestClose(unittest.TestCase):
         sut.timer.cancel.assert_called_once()
         sut._send_batch.assert_called_once()
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
     def test_close_without_timer(self, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -142,7 +142,7 @@ class TestClose(unittest.TestCase):
 
 
 class TestSendBatch(unittest.TestCase):
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
     def test_send_batch_with_messages_without_puffer(self, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -162,7 +162,7 @@ class TestSendBatch(unittest.TestCase):
 
         sut._reset_timer.assert_called_once()
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
     def test_send_batch_without_messages_without_puffer(self, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -180,7 +180,7 @@ class TestSendBatch(unittest.TestCase):
         mock_produce_handler_instance.send.assert_not_called()
         sut._reset_timer.assert_called_once()
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
     def test_send_batch_with_messages_with_empty_puffer(self, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -201,7 +201,7 @@ class TestSendBatch(unittest.TestCase):
 
         sut._reset_timer.assert_called_once()
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
     def test_send_batch_without_messages_with_empty_puffer(self, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -220,7 +220,7 @@ class TestSendBatch(unittest.TestCase):
         mock_produce_handler_instance.send.assert_not_called()
         sut._reset_timer.assert_called_once()
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
     def test_send_batch_with_messages_with_full_puffer(self, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -242,7 +242,7 @@ class TestSendBatch(unittest.TestCase):
 
         sut._reset_timer.assert_called_once()
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
     def test_send_batch_without_messages_with_full_puffer(self, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -265,8 +265,8 @@ class TestSendBatch(unittest.TestCase):
 
 
 class TestResetTimer(unittest.TestCase):
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
-    @patch("heidgaf_core.batch_handler.Timer")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.Timer")
     def test_reset_timer_with_existing_timer(self, mock_timer, mock_produce_handler):
         mock_timer_instance = MagicMock()
         mock_timer.return_value = mock_timer_instance
@@ -286,8 +286,8 @@ class TestResetTimer(unittest.TestCase):
         mock_timer.assert_called_once_with(BATCH_TIMEOUT, sut._send_batch)
         sut.timer.start.assert_called_once()
 
-    @patch("heidgaf_core.batch_handler.KafkaProduceHandler")
-    @patch("heidgaf_core.batch_handler.Timer")
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.Timer")
     def test_reset_timer_without_existing_timer(self, mock_timer, mock_produce_handler):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance

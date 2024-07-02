@@ -5,9 +5,9 @@ import sys
 from time import sleep  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_core import utils
-from heidgaf_core.log_config import setup_logging
-from heidgaf_log_collection.mock.log_generator import generate_dns_log_line
+from src.base import utils
+from src.base.log_config import setup_logging
+from src.mock.log_generator import generate_dns_log_line
 
 setup_logging()
 logger = logging.getLogger(__name__)

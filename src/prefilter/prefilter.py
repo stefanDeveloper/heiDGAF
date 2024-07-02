@@ -4,9 +4,9 @@ import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_core.batch_handler import KafkaBatchSender
-from heidgaf_core.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
-from heidgaf_core.log_config import setup_logging
+from src.base.batch_handler import KafkaBatchSender
+from src.base.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
+from src.base.log_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)

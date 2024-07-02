@@ -3,8 +3,8 @@ import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from heidgaf_core.config import *
-from heidgaf_log_collection.server import LogServer
+from src.base.config import *
+from src.logserver.server import LogServer
 
 LOG_SERVER_IP_ADDR = "192.168.0.1"
 LOG_SERVER_PORT_IN = 9998
@@ -54,7 +54,7 @@ class TestInit(unittest.TestCase):
 
 class TestOpen(unittest.IsolatedAsyncioTestCase):
 
-    @patch("heidgaf_log_collection.server.asyncio.start_server")
+    @patch("src.logserver.server.asyncio.start_server")
     async def test_open(self, mock_start_server):
         server_instance = LogServer()
 

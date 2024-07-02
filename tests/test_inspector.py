@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from heidgaf_inspection.inspector import Inspector
+from src.inspector.inspector import Inspector
 
 
 class TestInit(unittest.TestCase):
-    @patch("heidgaf_inspection.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_init(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -18,7 +18,7 @@ class TestInit(unittest.TestCase):
 
 
 class TestGetData(unittest.TestCase):
-    @patch("heidgaf_inspection.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_get_data_without_return_data(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -31,7 +31,7 @@ class TestGetData(unittest.TestCase):
 
         self.assertEqual([], sut.messages)
 
-    @patch("heidgaf_inspection.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_get_data_with_return_data(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -46,7 +46,7 @@ class TestGetData(unittest.TestCase):
 
         self.assertEqual(["test_message_1", "test_message_2"], sut.messages)
 
-    @patch("heidgaf_inspection.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_get_data_while_busy(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance

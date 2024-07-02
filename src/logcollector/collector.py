@@ -8,11 +8,11 @@ import sys
 import yaml
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_core import utils
-from heidgaf_core.batch_handler import KafkaBatchSender
-from heidgaf_core.config import CONFIG_FILEPATH  # needed for Terminal execution
-from heidgaf_core.log_config import setup_logging
-from heidgaf_core.utils import validate_host
+from src.base import utils
+from src.base.batch_handler import KafkaBatchSender
+from src.base.config import CONFIG_FILEPATH  # needed for Terminal execution
+from src.base.log_config import setup_logging
+from src.base.utils import validate_host
 
 setup_logging()
 logger = logging.getLogger(__name__)

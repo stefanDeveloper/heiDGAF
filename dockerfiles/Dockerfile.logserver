@@ -5,8 +5,8 @@ WORKDIR /usr/src/app
 COPY requirements.logcollector.txt ./
 RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.logcollector.txt
 
-COPY heidgaf_core ./heidgaf_core
-COPY heidgaf_log_collection ./heidgaf_log_collection
+COPY src/base ./src/base
+COPY src/logserver ./src/logserver
 COPY config.yaml .
 
-CMD [ "python", "heidgaf_log_collection/server.py"]
+CMD [ "python", "src/logserver/server.py"]
