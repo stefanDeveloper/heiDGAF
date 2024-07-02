@@ -10,6 +10,7 @@ LOG_SERVER_IP_ADDR = "192.168.0.1"
 LOG_SERVER_PORT_IN = 9998
 LOG_SERVER_PORT_OUT = 9999
 
+
 class TestInit(unittest.TestCase):
     def test_valid_init_ipv4(self):
         server_instance = LogServer()
@@ -53,9 +54,9 @@ class TestInit(unittest.TestCase):
 
 class TestOpen(unittest.IsolatedAsyncioTestCase):
 
-    @patch('heidgaf_log_collection.server.asyncio.start_server')
+    @patch("heidgaf_log_collection.server.asyncio.start_server")
     async def test_open(self, mock_start_server):
-        server_instance = LogServer("127.0.0.1", 12346, 12345)
+        server_instance = LogServer()
 
         send_server = AsyncMock()
         receive_server = AsyncMock()
@@ -84,8 +85,12 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
         except asyncio.CancelledError:
             pass
 
-        mock_start_server.assert_any_call(server_instance.handle_send_logline, "127.0.0.1", 12345)
-        mock_start_server.assert_any_call(server_instance.handle_receive_logline, "127.0.0.1", 12346)
+        mock_start_server.assert_any_call(
+            server_instance.handle_send_logline, "127.0.0.1", 12345
+        )
+        mock_start_server.assert_any_call(
+            server_instance.handle_receive_logline, "127.0.0.1", 12346
+        )
 
         send_server.close.assert_called_once()
         receive_server.close.assert_called_once()
@@ -137,7 +142,9 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
 
         writer.close.assert_called_once()
         writer.wait_closed.assert_awaited_once()
-        self.assertEqual(MAX_NUMBER_OF_CONNECTIONS, server_instance.number_of_connections)
+        self.assertEqual(
+            MAX_NUMBER_OF_CONNECTIONS, server_instance.number_of_connections
+        )
 
 
 class TestHandleSendLogline(unittest.IsolatedAsyncioTestCase):
@@ -163,7 +170,9 @@ class TestHandleReceiveLogline(unittest.IsolatedAsyncioTestCase):
 
         await server_instance.handle_receive_logline(reader, writer)
 
-        server_instance.handle_connection.assert_awaited_once_with(reader, writer, False)
+        server_instance.handle_connection.assert_awaited_once_with(
+            reader, writer, False
+        )
 
 
 class TestSendLogline(unittest.IsolatedAsyncioTestCase):
@@ -174,7 +183,7 @@ class TestSendLogline(unittest.IsolatedAsyncioTestCase):
 
         await server_instance.send_logline(writer, logline)
 
-        writer.write.assert_called_once_with(logline.encode('utf-8'))
+        writer.write.assert_called_once_with(logline.encode("utf-8"))
         writer.drain.assert_called_once()
 
     async def test_send_logline_no_logline(self):
@@ -195,11 +204,7 @@ class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
         server_instance = LogServer()
         server_instance.data_queue = data_queue
 
-        reader.read = AsyncMock(side_effect=[
-            b'Test message 1',
-            b'Test message 2',
-            b''
-        ])
+        reader.read = AsyncMock(side_effect=[b"Test message 1", b"Test message 2", b""])
 
         receive_task = asyncio.create_task(server_instance.receive_logline(reader))
         await receive_task
@@ -224,5 +229,5 @@ class TestGetNextLogline(unittest.TestCase):
         self.assertIsNone(server_instance.get_next_logline())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -8,11 +8,11 @@ import sys
 import yaml
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_core.config import CONFIG_FILEPATH  # needed for Terminal execution
-from heidgaf_core.batch_handler import KafkaBatchSender
-from heidgaf_core.utils import validate_host
 from heidgaf_core import utils
+from heidgaf_core.batch_handler import KafkaBatchSender
+from heidgaf_core.config import CONFIG_FILEPATH  # needed for Terminal execution
 from heidgaf_core.log_config import setup_logging
+from heidgaf_core.utils import validate_host
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class LogCollector:
 
         try:
             logger.debug(f"Opening configuration file at {CONFIG_FILEPATH}...")
-            with open(CONFIG_FILEPATH, 'r') as file:
+            with open(CONFIG_FILEPATH, "r") as file:
                 self.config = yaml.safe_load(file)
         except FileNotFoundError:
             logger.critical(f"File {CONFIG_FILEPATH} not does not exist. Aborting...")
@@ -61,7 +61,9 @@ class LogCollector:
         )
         logger.debug(f"LogServer outgoing port was set to {self.log_server['port']}.")
 
-        logger.debug(f"Calling KafkaBatchSender(topic=Prefilter, transactional_id=collector)...")
+        logger.debug(
+            f"Calling KafkaBatchSender(topic=Prefilter, transactional_id=collector)..."
+        )
         self.batch_handler = KafkaBatchSender(
             topic="Prefilter", transactional_id="collector"
         )
@@ -70,8 +72,12 @@ class LogCollector:
     def fetch_logline(self):
         logger.info("Fetching new logline from LogServer...")
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.client_socket:
-                logger.debug(f"Trying to connect to LogServer ({self.log_server['host']}:{self.log_server['port']})...")
+            with socket.socket(
+                socket.AF_INET, socket.SOCK_STREAM
+            ) as self.client_socket:
+                logger.debug(
+                    f"Trying to connect to LogServer ({self.log_server['host']}:{self.log_server['port']})..."
+                )
                 self.client_socket.connect(
                     (str(self.log_server.get("host")), self.log_server.get("port"))
                 )
@@ -85,7 +91,9 @@ class LogCollector:
                     logger.info(f"Received logline.")
                     logger.debug(f"{self.logline=}")
         except ConnectionError:
-            logger.error(f"Could not connect to LogServer ({self.log_server['host']}:{self.log_server['port']}).")
+            logger.error(
+                f"Could not connect to LogServer ({self.log_server['host']}:{self.log_server['port']})."
+            )
             raise
 
     def validate_and_extract_logline(self):
@@ -150,12 +158,14 @@ class LogCollector:
         logger.debug(f"Checking the size of the given list {parts}...")
         size = len(parts)
         allowed_size = 8
-        return_value = (size == allowed_size)
+        return_value = size == allowed_size
 
         if return_value:
             logger.debug("Size of given list is valid.")
         else:
-            logger.warning(f"Size of given list is invalid. Is: {size}, Should be: {allowed_size}.")
+            logger.warning(
+                f"Size of given list is invalid. Is: {size}, Should be: {allowed_size}."
+            )
 
         return return_value
 
@@ -179,7 +189,9 @@ class LogCollector:
         if return_value:
             logger.debug(f"Status code {status} is valid.")
         else:
-            logger.warning(f"Status code {status} is invalid: Allowed status codes: {valid_statuses}.")
+            logger.warning(
+                f"Status code {status} is invalid: Allowed status codes: {valid_statuses}."
+            )
 
         return return_value
 
@@ -203,7 +215,9 @@ class LogCollector:
         if return_value:
             logger.debug(f"Record type {record_type} is valid.")
         else:
-            logger.warning(f"Record type {record_type} is invalid: Allowed record types: {valid_record_types}.")
+            logger.warning(
+                f"Record type {record_type} is invalid: Allowed record types: {valid_record_types}."
+            )
 
         return return_value
 

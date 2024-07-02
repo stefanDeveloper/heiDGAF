@@ -1,6 +1,6 @@
 import unittest
 from ipaddress import IPv4Address, IPv6Address
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from heidgaf_log_collection.collector import LogCollector
 
@@ -9,7 +9,7 @@ LOG_SERVER_PORT = 9999
 
 
 class TestInit(unittest.TestCase):
-    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
+    @patch("heidgaf_log_collection.collector.KafkaBatchSender")
     def test_valid_init_ipv4(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -32,9 +32,11 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(sut.log_data.get("size"))
         self.assertEqual(mock_batch_handler_instance, sut.batch_handler)
 
-        mock_batch_handler.assert_called_once_with(topic="Prefilter", transactional_id='collector')
+        mock_batch_handler.assert_called_once_with(
+            topic="Prefilter", transactional_id="collector"
+        )
 
-    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
+    @patch("heidgaf_log_collection.collector.KafkaBatchSender")
     def test_valid_init_ipv6(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -57,7 +59,9 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(sut.log_data.get("size"))
         self.assertEqual(mock_batch_handler_instance, sut.batch_handler)
 
-        mock_batch_handler.assert_called_once_with(topic="Prefilter", transactional_id='collector')
+        mock_batch_handler.assert_called_once_with(
+            topic="Prefilter", transactional_id="collector"
+        )
 
     def test_invalid_init_with_no_host(self):
         with self.assertRaises(TypeError):
@@ -79,52 +83,62 @@ class TestInit(unittest.TestCase):
 
 
 class TestFetchLogline(unittest.TestCase):
-    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
-    @patch('socket.socket')
+    @patch("heidgaf_log_collection.collector.KafkaBatchSender")
+    @patch("socket.socket")
     def test_fetch_logline(self, mock_socket, mock_batch_handler):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
         mock_socket_instance.connect.return_value = None
-        mock_socket_instance.recv.side_effect = ["fake messages".encode('utf-8'), b""]
+        mock_socket_instance.recv.side_effect = ["fake messages".encode("utf-8"), b""]
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
         sut = LogCollector()
         sut.fetch_logline()
 
-        mock_socket_instance.connect.assert_called_with((LOG_SERVER_IP_ADDR, LOG_SERVER_PORT))
+        mock_socket_instance.connect.assert_called_with(
+            (LOG_SERVER_IP_ADDR, LOG_SERVER_PORT)
+        )
         mock_socket_instance.recv.assert_called_with(1024)
         self.assertEqual("fake messages", sut.logline)
 
 
 class TestValidateAndExtractLogline(unittest.TestCase):
-    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
+    @patch("heidgaf_log_collection.collector.KafkaBatchSender")
     def test_valid_logline(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
         sut = LogCollector()
-        sut.logline = ("2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
-                       "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b")
+        sut.logline = (
+            "2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
+            "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b"
+        )
         sut.validate_and_extract_logline()
 
         self.assertEqual("2024-05-21T19:27:15.583Z", sut.log_data.get("timestamp"))
         self.assertEqual("NOERROR", sut.log_data.get("status"))
         self.assertEqual(IPv4Address("192.168.0.253"), sut.log_data.get("client_ip"))
         self.assertEqual(IPv4Address("8.8.8.8"), sut.log_data.get("dns_ip"))
-        self.assertEqual("www.uni-hd-theologie.de", sut.log_data.get("host_domain_name"))
+        self.assertEqual(
+            "www.uni-hd-theologie.de", sut.log_data.get("host_domain_name")
+        )
         self.assertEqual("A", sut.log_data.get("record_type"))
-        self.assertEqual(IPv6Address("b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d"),
-                         sut.log_data.get("response_ip"))
+        self.assertEqual(
+            IPv6Address("b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d"),
+            sut.log_data.get("response_ip"),
+        )
         self.assertEqual("86b", sut.log_data.get("size"))
 
-    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
+    @patch("heidgaf_log_collection.collector.KafkaBatchSender")
     def test_invalid_logline_wrong_response_ip(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
         sut = LogCollector()
-        sut.logline = ("2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
-                       "A b49c:50f9:a37:f8e2:ff81:3e88:d27d 86b")
+        sut.logline = (
+            "2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
+            "A b49c:50f9:a37:f8e2:ff81:3e88:d27d 86b"
+        )
 
         with self.assertRaises(ValueError):
             sut.validate_and_extract_logline()
@@ -138,7 +152,7 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         self.assertIsNone(sut.log_data.get("response_ip"))
         self.assertIsNone(sut.log_data.get("size"))
 
-    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
+    @patch("heidgaf_log_collection.collector.KafkaBatchSender")
     def test_invalid_logline_no_data(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -151,20 +165,23 @@ class TestValidateAndExtractLogline(unittest.TestCase):
 
 
 class TestAddLoglineToBatch(unittest.TestCase):
-    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
+    @patch("heidgaf_log_collection.collector.KafkaBatchSender")
     def test_add_to_batch_with_data(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
-        expected_message = ('{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
-                            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", '
-                            '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
-                            '"size": "150b"}')
+        expected_message = (
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", '
+            '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
+            '"size": "150b"}'
+        )
 
         sut = LogCollector()
         sut.logline = (
             "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A "
-            "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b")
+            "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b"
+        )
         sut.log_data = {
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status": "NOERROR",
@@ -177,9 +194,11 @@ class TestAddLoglineToBatch(unittest.TestCase):
         }
         sut.add_logline_to_batch()
 
-        mock_batch_handler_instance.add_message.assert_called_once_with(expected_message)
+        mock_batch_handler_instance.add_message.assert_called_once_with(
+            expected_message
+        )
 
-    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
+    @patch("heidgaf_log_collection.collector.KafkaBatchSender")
     def test_add_to_batch_without_data(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -195,14 +214,16 @@ class TestAddLoglineToBatch(unittest.TestCase):
 
 
 class TestClearLogline(unittest.TestCase):
-    @patch('heidgaf_log_collection.collector.KafkaBatchSender')
+    @patch("heidgaf_log_collection.collector.KafkaBatchSender")
     def test_clear_logline(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
         sut = LogCollector()
-        sut.logline = ("2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 "
-                       "www.heidelberg-botanik.de A b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b")
+        sut.logline = (
+            "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 "
+            "www.heidelberg-botanik.de A b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b"
+        )
         sut.log_data = {
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status": "NOERROR",
@@ -361,5 +382,5 @@ class TestCheckSize(unittest.TestCase):
         self.assertFalse(LogCollector._check_size("abc"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

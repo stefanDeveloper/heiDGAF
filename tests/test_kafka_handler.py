@@ -15,5 +15,5 @@ class TestInit(unittest.TestCase):
         self.assertEqual(f"{BROKER_1},{BROKER_2},{BROKER_3}", handler_instance.brokers)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

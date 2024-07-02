@@ -1,11 +1,11 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from heidgaf_inspection.inspector import Inspector
 
 
 class TestInit(unittest.TestCase):
-    @patch('heidgaf_inspection.inspector.KafkaConsumeHandler')
+    @patch("heidgaf_inspection.inspector.KafkaConsumeHandler")
     def test_init(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -14,27 +14,31 @@ class TestInit(unittest.TestCase):
 
         self.assertEqual([], sut.messages)
         self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
-        mock_kafka_consume_handler.assert_called_once_with(topic='Inspect')
+        mock_kafka_consume_handler.assert_called_once_with(topic="Inspect")
 
 
 class TestGetData(unittest.TestCase):
-    @patch('heidgaf_inspection.inspector.KafkaConsumeHandler')
+    @patch("heidgaf_inspection.inspector.KafkaConsumeHandler")
     def test_get_data_without_return_data(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = []
+        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = (
+            []
+        )
 
         sut = Inspector()
         sut.get_and_fill_data()
 
         self.assertEqual([], sut.messages)
 
-    @patch('heidgaf_inspection.inspector.KafkaConsumeHandler')
+    @patch("heidgaf_inspection.inspector.KafkaConsumeHandler")
     def test_get_data_with_return_data(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = ["test_message_1",
-                                                                                         "test_message_2"]
+        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = [
+            "test_message_1",
+            "test_message_2",
+        ]
 
         sut = Inspector()
         sut.messages = []
@@ -42,12 +46,14 @@ class TestGetData(unittest.TestCase):
 
         self.assertEqual(["test_message_1", "test_message_2"], sut.messages)
 
-    @patch('heidgaf_inspection.inspector.KafkaConsumeHandler')
+    @patch("heidgaf_inspection.inspector.KafkaConsumeHandler")
     def test_get_data_while_busy(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = ["test_message_1",
-                                                                                         "test_message_2"]
+        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = [
+            "test_message_1",
+            "test_message_2",
+        ]
 
         sut = Inspector()
         sut.messages = ["test_data"]
@@ -74,5 +80,5 @@ class TestClearData(unittest.TestCase):
         self.assertEqual([], sut.messages)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

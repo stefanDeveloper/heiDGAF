@@ -2,12 +2,12 @@ import json
 import logging
 import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
-from threading import Timer, Lock
+from threading import Lock, Timer
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
+from heidgaf_core.config import *
 from heidgaf_core.kafka_handler import KafkaProduceHandler
 from heidgaf_core.log_config import setup_logging
-from heidgaf_core.config import *
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 class KafkaBatchSender:
     def __init__(self, topic: str, transactional_id: str, buffer: bool = False):
-        logger.debug(f"Initializing KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})...")
+        logger.debug(
+            f"Initializing KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})..."
+        )
         self.topic = topic
         self.latest_messages = []
         self.earlier_messages = []
@@ -23,8 +25,12 @@ class KafkaBatchSender:
         self.lock = Lock()
         self.timer = None
         logger.debug(f"Calling KafkaProduceHandler({transactional_id=})...")
-        self.kafka_produce_handler = KafkaProduceHandler(transactional_id=transactional_id)
-        logger.debug(f"Initialized KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=}).")
+        self.kafka_produce_handler = KafkaProduceHandler(
+            transactional_id=transactional_id
+        )
+        logger.debug(
+            f"Initialized KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})."
+        )
 
     def add_message(self, message: str):
         logger.debug(f"Adding message '{message}' to batch.")
@@ -54,7 +60,9 @@ class KafkaBatchSender:
         logger.debug("Starting to send the batch...")
         with self.lock:
             if self.earlier_messages or self.latest_messages:
-                logger.debug("Messages not empty. Trying to send batch to KafkaProduceHandler...")
+                logger.debug(
+                    "Messages not empty. Trying to send batch to KafkaProduceHandler..."
+                )
                 self.kafka_produce_handler.send(
                     topic=self.topic,
                     data=json.dumps(self.earlier_messages + self.latest_messages),
@@ -87,6 +95,6 @@ class KafkaBatchSender:
         logger.debug("Successfully started new timer.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     instance = KafkaBatchSender("topic", "tr_id")
     instance._send_batch()

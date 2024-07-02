@@ -4,8 +4,8 @@ import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_core.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
 from heidgaf_core.batch_handler import KafkaBatchSender
+from heidgaf_core.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
 from heidgaf_core.log_config import setup_logging
 
 setup_logging()
@@ -18,8 +18,10 @@ class Prefilter:
         self.filtered_data = []
         self.error_type = error_type
 
-        self.batch_handler = KafkaBatchSender(topic="Inspect", transactional_id="prefilter")
-        self.kafka_consume_handler = KafkaConsumeHandler(topic='Prefilter')
+        self.batch_handler = KafkaBatchSender(
+            topic="Inspect", transactional_id="prefilter"
+        )
+        self.kafka_consume_handler = KafkaConsumeHandler(topic="Prefilter")
 
     def get_and_fill_data(self):
         if self.unfiltered_data:
@@ -78,5 +80,5 @@ def main():
             logger.debug("Cleared data")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

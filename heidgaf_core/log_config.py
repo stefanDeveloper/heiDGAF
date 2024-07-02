@@ -2,30 +2,30 @@ import logging
 
 import colorlog
 
-DEBUG = True
+DEBUG = False
 
 
 def setup_logging():
     log_colors = {
-        'DEBUG': 'cyan',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'red,bg_white',
+        "DEBUG": "cyan",
+        "INFO": "green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "red,bg_white",
     }
 
     # Formatter for INFO and WARNING levels
     simple_formatter = colorlog.ColoredFormatter(
-        fmt='%(log_color)s[%(asctime)s, %(levelname)s] %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-        log_colors=log_colors
+        fmt="%(log_color)s[%(asctime)s, %(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        log_colors=log_colors,
     )
 
     # Formatter for DEBUG, ERROR, and CRITICAL levels
     detailed_formatter = colorlog.ColoredFormatter(
-        fmt='%(log_color)s%(asctime)s [%(levelname)s] %(message)s\n    ⤷ In %(module)s:%(lineno)d, %(funcName)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-        log_colors=log_colors
+        fmt="%(log_color)s%(asctime)s [%(levelname)s] %(message)s\n    ⤷ In %(module)s:%(lineno)d, %(funcName)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        log_colors=log_colors,
     )
 
     class CustomHandler(logging.StreamHandler):

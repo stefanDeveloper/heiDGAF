@@ -3,10 +3,18 @@ from confluent_kafka.admin import AdminClient
 from confluent_kafka.cimpl import NewTopic
 
 
-def create_kafka_topic(broker_host, broker_port, topic_name, num_partitions=3, replication_factor=3):
-    admin_client = AdminClient({'bootstrap.servers': f"{broker_host}:{broker_port}"})
+def create_kafka_topic(
+    broker_host, broker_port, topic_name, num_partitions=3, replication_factor=3
+):
+    admin_client = AdminClient({"bootstrap.servers": f"{broker_host}:{broker_port}"})
 
-    topic_list = [NewTopic(topic=topic_name, num_partitions=num_partitions, replication_factor=replication_factor)]
+    topic_list = [
+        NewTopic(
+            topic=topic_name,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+        )
+    ]
 
     try:
         fs = admin_client.create_topics(topic_list)

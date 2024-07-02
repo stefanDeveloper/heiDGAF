@@ -7,11 +7,17 @@ import sys  # needed for Terminal execution
 import time
 
 import yaml
-from confluent_kafka import KafkaError, Producer, Consumer, TopicPartition, KafkaException
+from confluent_kafka import (
+    Consumer,
+    KafkaError,
+    KafkaException,
+    Producer,
+    TopicPartition,
+)
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from heidgaf_core.log_config import setup_logging
 from heidgaf_core.config import *
+from heidgaf_core.log_config import setup_logging
 from heidgaf_core.utils import kafka_delivery_report
 
 setup_logging()
@@ -33,7 +39,7 @@ class KafkaHandler:
 
         try:
             logger.debug(f"Opening configuration file at {CONFIG_FILEPATH}...")
-            with open(CONFIG_FILEPATH, 'r') as file:
+            with open(CONFIG_FILEPATH, "r") as file:
                 self.config = yaml.safe_load(file)
         except FileNotFoundError:
             logger.critical(f"File {CONFIG_FILEPATH} not does not exist. Aborting...")
@@ -41,7 +47,10 @@ class KafkaHandler:
         logger.debug("Configuration file successfully opened and information stored.")
 
         self.brokers = ",".join(
-            [f"{broker['hostname']}:{broker['port']}" for broker in self.config['kafka']['brokers']]
+            [
+                f"{broker['hostname']}:{broker['port']}"
+                for broker in self.config["kafka"]["brokers"]
+            ]
         )
         logger.debug(f"Retrieved {self.brokers=}.")
         logger.debug(f"Initialized KafkaHandler.")
@@ -53,8 +62,8 @@ class KafkaProduceHandler(KafkaHandler):
         super().__init__()
 
         conf = {
-            'bootstrap.servers': self.brokers,
-            'transactional.id': transactional_id,
+            "bootstrap.servers": self.brokers,
+            "transactional.id": transactional_id,
         }
         logger.debug(f"Set {conf=}.")
 
@@ -85,10 +94,12 @@ class KafkaProduceHandler(KafkaHandler):
             self.producer.produce(
                 topic=topic,
                 key=None,  # could maybe add a key here
-                value=data.encode('utf-8'),
+                value=data.encode("utf-8"),
                 callback=kafka_delivery_report,
             )
-            logger.debug("Producer.produce() successfully called. Committing transaction...")
+            logger.debug(
+                "Producer.produce() successfully called. Committing transaction..."
+            )
             self.commit_transaction_with_retry()
             logger.debug(f"Transaction committed.")
             logger.debug(f"({data=})")
@@ -103,7 +114,9 @@ class KafkaProduceHandler(KafkaHandler):
         logger.debug(f"({data=})")
 
     def commit_transaction_with_retry(self, max_retries=3, retry_interval_ms=1000):
-        logger.debug(f"Committing transaction with up to {max_retries} retries ({retry_interval_ms=})...")
+        logger.debug(
+            f"Committing transaction with up to {max_retries} retries ({retry_interval_ms=})..."
+        )
         committed = False
         retry_count = 0
 
@@ -112,9 +125,14 @@ class KafkaProduceHandler(KafkaHandler):
                 self.producer.commit_transaction()
                 committed = True
             except KafkaException as e:
-                if "Conflicting commit_transaction API call is already in progress" in str(e):
+                if (
+                    "Conflicting commit_transaction API call is already in progress"
+                    in str(e)
+                ):
                     retry_count += 1
-                    logger.debug("Conflicting commit_transaction API call is already in progress: Retrying")
+                    logger.debug(
+                        "Conflicting commit_transaction API call is already in progress: Retrying"
+                    )
                     time.sleep(retry_interval_ms / 1000.0)
                 else:
                     raise e
@@ -123,7 +141,9 @@ class KafkaProduceHandler(KafkaHandler):
             logger.error("Transaction could not be committed.")
             raise RuntimeError("Failed to commit transaction after retries.")
 
-        logger.debug(f"Successfully committed transaction after {retry_count} retry/retries.")
+        logger.debug(
+            f"Successfully committed transaction after {retry_count} retry/retries."
+        )
 
     def close(self):  # TODO: Change to __del__
         logger.debug("Closing KafkaProduceHandler...")
@@ -138,11 +158,11 @@ class KafkaConsumeHandler(KafkaHandler):
         super().__init__()
 
         conf = {
-            'bootstrap.servers': self.brokers,
-            'group.id': self.config['kafka']['consumer']['group_id'],
-            'enable.auto.commit': False,
-            'auto.offset.reset': 'earliest',
-            'enable.partition.eof': True,
+            "bootstrap.servers": self.brokers,
+            "group.id": self.config["kafka"]["consumer"]["group_id"],
+            "enable.auto.commit": False,
+            "auto.offset.reset": "earliest",
+            "enable.partition.eof": True,
         }
         logger.debug(f"Set {conf=}.")
 
@@ -174,7 +194,9 @@ class KafkaConsumeHandler(KafkaHandler):
 
                 if msg is None:
                     if not empty_data_retrieved:
-                        logger.info("No data to consume. Waiting for messages to be produced...")
+                        logger.info(
+                            "No data to consume. Waiting for messages to be produced..."
+                        )
 
                     empty_data_retrieved = True
                     continue
@@ -186,12 +208,14 @@ class KafkaConsumeHandler(KafkaHandler):
                         logger.error(f"Consumer error: {msg.error()}")
                         raise
 
-                key = msg.key().decode('utf-8') if msg.key() else None
-                value = msg.value().decode('utf-8') if msg.value() else None
+                key = msg.key().decode("utf-8") if msg.key() else None
+                value = msg.value().decode("utf-8") if msg.value() else None
                 logger.info(f"Received message: {key=}, {value=}")
                 logger.debug("Committing transaction for message on Consumer...")
                 self.consumer.commit(msg)
-                logger.debug(f"Transaction committed. Successfully consumed messages. Returning [{key=}, {value=}]...")
+                logger.debug(
+                    f"Transaction committed. Successfully consumed messages. Returning [{key=}, {value=}]..."
+                )
                 return key, value
         except KeyboardInterrupt:
             logger.info("Shutting down KafkaConsumeHandler...")

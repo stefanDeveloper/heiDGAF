@@ -39,6 +39,10 @@ def validate_port(port: int) -> int:
 
 def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
     if err:
-        logger.warning('Message delivery failed: {}'.format(err))
+        logger.warning("Message delivery failed: {}".format(err))
     else:
-        logger.info('Message delivered to topic={} [partition={}]'.format(msg.topic(), msg.partition()))
+        logger.info(
+            "Message delivered to topic={} [partition={}]".format(
+                msg.topic(), msg.partition()
+            )
+        )

@@ -8,8 +8,8 @@ import yaml  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from heidgaf_core import utils
-from heidgaf_core.log_config import setup_logging
 from heidgaf_core.config import *
+from heidgaf_core.log_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)

@@ -1,34 +1,33 @@
 import ipaddress
 import unittest
 
-from heidgaf_core.utils import validate_host
-from heidgaf_core.utils import validate_port
+from heidgaf_core.utils import validate_host, validate_port
 
 
 class TestValidateHosts(unittest.TestCase):
     def test_valid_as_ip_address_type(self):
-        valid_ip = ipaddress.ip_address('192.168.0.1')
-        self.assertEqual(validate_host(valid_ip), ipaddress.IPv4Address('192.168.0.1'))
+        valid_ip = ipaddress.ip_address("192.168.0.1")
+        self.assertEqual(validate_host(valid_ip), ipaddress.IPv4Address("192.168.0.1"))
 
     def test_valid_as_string(self):
         valid_ip = "192.168.0.1"
-        self.assertEqual(validate_host(valid_ip), ipaddress.IPv4Address('192.168.0.1'))
+        self.assertEqual(validate_host(valid_ip), ipaddress.IPv4Address("192.168.0.1"))
 
     def test_valid_as_ipv4_address_type(self):
-        valid_ip = ipaddress.IPv4Address('192.168.0.1')
-        self.assertEqual(validate_host(valid_ip), ipaddress.IPv4Address('192.168.0.1'))
+        valid_ip = ipaddress.IPv4Address("192.168.0.1")
+        self.assertEqual(validate_host(valid_ip), ipaddress.IPv4Address("192.168.0.1"))
 
     def test_valid_as_ipv6_address_type(self):
-        valid_ip = ipaddress.IPv6Address('fe80::1')
-        self.assertEqual(validate_host(valid_ip), ipaddress.IPv6Address('fe80::1'))
+        valid_ip = ipaddress.IPv6Address("fe80::1")
+        self.assertEqual(validate_host(valid_ip), ipaddress.IPv6Address("fe80::1"))
 
     def test_invalid_ip(self):
-        invalid_ip = '256.256.256.256'
+        invalid_ip = "256.256.256.256"
         with self.assertRaises(ValueError):
             validate_host(invalid_ip)
 
     def test_invalid_address(self):
-        invalid_host = 'example.com'
+        invalid_host = "example.com"
         with self.assertRaises(ValueError):
             validate_host(invalid_host)
 
@@ -62,5 +61,5 @@ class TestKafkaDeliveryReport(unittest.TestCase):
     pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
