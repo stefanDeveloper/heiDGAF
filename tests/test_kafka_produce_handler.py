@@ -114,7 +114,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
 
         self.assertEqual(mock_producer_instance.commit_transaction.call_count, 3)
         self.assertEqual(
-            str(context.exception), "Failed to commit transaction after retries"
+            str(context.exception), "Failed to commit transaction after retries."
         )
         self.assertEqual(mock_sleep.call_count, 3)
 
