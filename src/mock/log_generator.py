@@ -14,7 +14,7 @@ def random_ipv6():
 
 
 DNS_DOMAINS = pl.read_csv("./data/majestic_million.csv")["Domain"]
-STATUSES = ["NOERROR"] * 4 + ["NXDOMAIN"]
+STATUSES = ["NOERROR", "NXDOMAIN"]
 MAX_IPV4 = ipaddress.IPv4Address._ALL_ONES  # 2 ** 32 - 1
 MAX_IPV6 = ipaddress.IPv6Address._ALL_ONES  # 2 ** 128 - 1
 IP = [random_ipv4, random_ipv6]
@@ -23,9 +23,9 @@ RECORD_TYPES = ["AAAA", "A", "PR", "CNAME"]
 
 def generate_dns_log_line():
     timestamp = (
-        datetime.datetime.now() + datetime.timedelta(0, 0, random.randint(0, 9999999))
+        datetime.datetime.now() + datetime.timedelta(0, 0, random.randint(0, 900))
     ).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-    status = random.choice(DNS_DOMAINS)
+    status = random.choice(STATUSES)
     client_ip = f"192.168.0.{random.randint(1, 255)}"
     server_ip = f"10.10.0.{random.randint(1, 10)}"
     record_type = random.choice(RECORD_TYPES)

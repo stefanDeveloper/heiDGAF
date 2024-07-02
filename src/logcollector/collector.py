@@ -70,7 +70,7 @@ class LogCollector:
         logger.debug("Initialized LogCollector.")
 
     def fetch_logline(self):
-        logger.info("Fetching new logline from LogServer...")
+        logger.debug("Fetching new logline from LogServer...")
         try:
             with socket.socket(
                 socket.AF_INET, socket.SOCK_STREAM
@@ -81,15 +81,16 @@ class LogCollector:
                 self.client_socket.connect(
                     (str(self.log_server.get("host")), self.log_server.get("port"))
                 )
-                logger.info("Connected to LogServer. Retrieving data...")
+                logger.debug("Connected to LogServer. Retrieving data...")
 
-                while True:
-                    data = self.client_socket.recv(1024)
-                    if not data:
-                        break
-                    self.logline = data.decode("utf-8")
-                    logger.info(f"Received logline.")
-                    logger.debug(f"{self.logline=}")
+                data = self.client_socket.recv(1024)
+
+                if not data:
+                    return
+
+                self.logline = data.decode("utf-8")
+                logger.debug(f"Received logline.")
+                logger.debug(f"{self.logline=}")
         except ConnectionError:
             logger.error(
                 f"Could not connect to LogServer ({self.log_server['host']}:{self.log_server['port']})."

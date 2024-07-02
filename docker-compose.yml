@@ -38,6 +38,8 @@ services:
       - kafka1
       - kafka2
       - kafka3
+    ports:
+      - 9998:9998
     networks:
       heidgaf:
         ipv4_address: 172.27.0.8
