@@ -37,17 +37,10 @@ jobs:
     - name: Install requirements
       run: |
          python -m pip install --upgrade pip
-         python -m pip install -r requirements.txt
-
-    - name: Build
-      env:
-        MSYSTEM: MINGW64
-        MSYS2_PATH: D:/a/_temp/msys64
-      run: |
-        python -m pip install .
+         python -m pip install -r requirements-dev.txt -r requirements.dtc.txt -r requirements.lc.txt -r requirements.pf.txt -r requirements.insp.txt
 
     - name: Test
       # On other versions then 3.9, we test only. (without coverage generation)
       if: startsWith(matrix.os, 'windows') && !startsWith(matrix.python-version, '3.9') && !startsWith(github.ref, 'refs/tags/')
       run: |
-        python -m pytest tests.py
+        python -m unittest discover tests

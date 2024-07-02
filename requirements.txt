@@ -1,9 +1,0 @@
-scikit-learn~=1.4.2
-scipy
-numpy~=1.26.4
-pyarrow
-
-joblib~=1.4.2
-requests~=2.31.0
-
-pytest~=8.2.0

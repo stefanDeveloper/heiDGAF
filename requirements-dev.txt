@@ -3,8 +3,6 @@ scipy
 numpy~=1.26.4
 pyarrow
 polars~=1.0.0
-
 joblib~=1.4.2
 requests~=2.31.0
-
 pytest~=8.2.0
