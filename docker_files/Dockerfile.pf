@@ -1,0 +1,12 @@
+FROM python:3
+
+WORKDIR /usr/src/app
+
+COPY requirements.pf.txt ./
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.pf.txt
+
+COPY heidgaf_core ./heidgaf_core
+COPY heidgaf_log_collection ./heidgaf_log_collection
+COPY kafka_config.yaml .
+
+CMD [ "python", "heidgaf_log_collection/prefilter.py"]

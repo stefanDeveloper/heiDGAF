@@ -74,6 +74,31 @@ services:
           cpus: '1'
           memory: 256m
 
+  pf:
+    build:
+      context: .
+      dockerfile: docker_files/Dockerfile.pf
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      - zookeeper
+      - kafka1
+      - kafka2
+      - kafka3
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.9
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+
   # dtc:
   #   build:
   #     context: ./docker_files
