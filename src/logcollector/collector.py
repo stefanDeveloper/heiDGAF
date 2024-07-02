@@ -73,7 +73,7 @@ class LogCollector:
         logger.debug("Fetching new logline from LogServer...")
         try:
             with socket.socket(
-                socket.AF_INET, socket.SOCK_STREAM
+                    socket.AF_INET, socket.SOCK_STREAM
             ) as self.client_socket:
                 logger.debug(
                     f"Trying to connect to LogServer ({self.log_server['host']}:{self.log_server['port']})..."
@@ -83,13 +83,14 @@ class LogCollector:
                 )
                 logger.debug("Connected to LogServer. Retrieving data...")
 
-                data = self.client_socket.recv(1024)
+                data = self.client_socket.recv(1024)  # log lines are at most ~150 bytes long
 
                 if not data:
+                    logger.debug("No data available on LogServer.")
                     return
 
                 self.logline = data.decode("utf-8")
-                logger.debug(f"Received logline.")
+                logger.info(f"Received logline.")
                 logger.debug(f"{self.logline=}")
         except ConnectionError:
             logger.error(
@@ -98,6 +99,7 @@ class LogCollector:
             raise
 
     def validate_and_extract_logline(self):
+        logger.debug("Validating and extracting current logline...")
         if not self.logline:
             raise ValueError("Failed to extract logline: No logline.")
 
@@ -132,12 +134,19 @@ class LogCollector:
             raise ValueError(f"Incorrect logline: {e}")
 
         self.log_data["timestamp"] = parts[0]
+        logger.debug(f"Timestamp set to {self.log_data['timestamp']}")
         self.log_data["status"] = parts[1]
+        logger.debug(f"Status set to {self.log_data['status']}")
         self.log_data["host_domain_name"] = parts[4]
+        logger.debug(f"Host domain name set to {self.log_data['host_domain_name']}")
         self.log_data["record_type"] = parts[5]
+        logger.debug(f"Record type set to {self.log_data['record_type']}")
         self.log_data["size"] = parts[7]
+        logger.debug(f"Size set to {self.log_data['size']}")
+        logger.debug("All data extracted from logline.")
 
     def add_logline_to_batch(self):
+        logger.debug("Adding logline to batch...")
         if not self.logline or self.log_data == {}:
             raise ValueError(
                 "Failed to add logline to batch: No logline or extracted data."
@@ -148,11 +157,15 @@ class LogCollector:
         log_entry["dns_ip"] = str(self.log_data["dns_ip"])
         log_entry["response_ip"] = str(self.log_data["response_ip"])
 
+        logger.debug("Calling KafkaBatchSender to add message...")
         self.batch_handler.add_message(json.dumps(log_entry))
+        logger.debug("Added message to batch.")
 
     def clear_logline(self):
+        logger.debug("Clearing current logline...")
         self.logline = None
         self.log_data = {}
+        logger.debug("Cleared logline.")
 
     @staticmethod
     def _check_length(parts: list[str]) -> bool:
