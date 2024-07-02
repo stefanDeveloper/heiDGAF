@@ -27,45 +27,66 @@ logger = logging.getLogger(__name__)
 valid_statuses = [
     "NOERROR",
     "NXDOMAIN",
-]  # TODO: Maybe change to enum
+]
 
 valid_record_types = [
     "AAAA",
     "A",
-]  # TODO: Maybe change to enum
+]
 
 
 class LogCollector:
     def __init__(self):
+        logger.debug("Initializing LogCollector...")
         self.log_server = {}
         self.logline = None
         self.log_data = {}
 
-        with open(CONFIG_FILEPATH, "r") as file:
-            self.config = yaml.safe_load(file)
+        try:
+            logger.debug(f"Opening configuration file at {CONFIG_FILEPATH}...")
+            with open(CONFIG_FILEPATH, 'r') as file:
+                self.config = yaml.safe_load(file)
+        except FileNotFoundError:
+            logger.critical(f"File {CONFIG_FILEPATH} not does not exist. Aborting...")
+            raise
+        logger.debug("Configuration file successfully opened and information stored.")
 
         self.log_server["host"] = utils.validate_host(
             self.config["heidgaf"]["lc"]["logserver"]["hostname"]
         )
+        logger.debug(f"LogServer host was set to {self.log_server['host']}.")
+
         self.log_server["port"] = utils.validate_port(
             self.config["heidgaf"]["lc"]["logserver"]["portout"]
         )
+        logger.debug(f"LogServer outgoing port was set to {self.log_server['port']}.")
 
+        logger.debug(f"Calling KafkaBatchSender(topic=Prefilter, transactional_id=collector)...")
         self.batch_handler = KafkaBatchSender(
             topic="Prefilter", transactional_id="collector"
         )
+        logger.debug("Initialized LogCollector.")
 
     def fetch_logline(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.client_socket:
-            self.client_socket.connect(
-                (str(self.log_server.get("host")), self.log_server.get("port"))
-            )
-            while True:
-                data = self.client_socket.recv(1024)
-                if not data:
-                    break
-                self.logline = data.decode("utf-8")
-                logger.info(f"Received logline: {self.logline}")
+        logger.info("Fetching new logline from LogServer...")
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.client_socket:
+                logger.debug(f"Trying to connect to LogServer ({self.log_server['host']}:{self.log_server['port']})...")
+                self.client_socket.connect(
+                    (str(self.log_server.get("host")), self.log_server.get("port"))
+                )
+                logger.info("Connected to LogServer. Retrieving data...")
+
+                while True:
+                    data = self.client_socket.recv(1024)
+                    if not data:
+                        break
+                    self.logline = data.decode("utf-8")
+                    logger.info(f"Received logline.")
+                    logger.debug(f"{self.logline=}")
+        except ConnectionError:
+            logger.error(f"Could not connect to LogServer ({self.log_server['host']}:{self.log_server['port']}).")
+            raise
 
     def validate_and_extract_logline(self):
         if not self.logline:
@@ -126,36 +147,76 @@ class LogCollector:
 
     @staticmethod
     def _check_length(parts: list[str]) -> bool:
-        return len(parts) == 8
+        logger.debug(f"Checking the size of the given list {parts}...")
+        size = len(parts)
+        allowed_size = 8
+        return_value = (size == allowed_size)
+
+        if return_value:
+            logger.debug("Size of given list is valid.")
+        else:
+            logger.warning(f"Size of given list is invalid. Is: {size}, Should be: {allowed_size}.")
+
+        return return_value
 
     @staticmethod
     def _check_timestamp(timestamp: str) -> bool:
+        logger.debug(f"Checking timestamp format of {timestamp}...")
         pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"
+
         if re.match(pattern, timestamp):
+            logger.debug(f"Timestamp {timestamp} is correctly formatted.")
             return True
+
+        logger.warning(f"Timestamp {timestamp} is incorrectly formatted.")
         return False
 
     @staticmethod
     def _check_status(status: str):
-        return status in valid_statuses
+        logger.debug(f"Checking status code {status}...")
+        return_value = status in valid_statuses
+
+        if return_value:
+            logger.debug(f"Status code {status} is valid.")
+        else:
+            logger.warning(f"Status code {status} is invalid: Allowed status codes: {valid_statuses}.")
+
+        return return_value
 
     @staticmethod
     def _check_domain_name(domain_name: str):
+        logger.debug(f"Checking domain name {domain_name}...")
         pattern = r"^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$"
+
         if re.match(pattern, domain_name):
+            logger.debug(f"Domain name {domain_name} is correct.")
             return True
+
+        logger.warning(f"Domain name {domain_name} is incorrect.")
         return False
 
     @staticmethod
-    def _check_record_type(record_type: str):
-        return record_type in valid_record_types
+    def _check_record_type(record_type: str) -> bool:
+        logger.debug(f"Checking record type {record_type}...")
+        return_value = record_type in valid_record_types
+
+        if return_value:
+            logger.debug(f"Record type {record_type} is valid.")
+        else:
+            logger.warning(f"Record type {record_type} is invalid: Allowed record types: {valid_record_types}.")
+
+        return return_value
 
     @staticmethod
     def _check_size(size: str):
+        logger.debug(f"Checking size value {size}...")
         pattern = r"^\d+b$"
 
         if re.match(pattern, size):
+            logger.debug(f"Size value {size} is valid.")
             return True
+
+        logger.debug(f"Size value {size} is invalid.")
         return False
 
 
