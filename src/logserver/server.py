@@ -4,7 +4,7 @@ import os  # needed for Terminal execution
 import queue
 import sys
 
-import yaml  # needed for Terminal execution
+from src.base.utils import setup_config
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from src.base import utils
@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 class LogServer:
     def __init__(self) -> None:
-        with open(CONFIG_FILEPATH, "r") as file:
-            self.config = yaml.safe_load(file)
+        self.config = setup_config()
         self.host = None
         self.port_out = None
         self.port_in = None

@@ -18,7 +18,7 @@ from confluent_kafka import (
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from src.base.config import *
 from src.base.log_config import setup_logging
-from src.base.utils import kafka_delivery_report
+from src.base.utils import kafka_delivery_report, setup_config
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -37,14 +37,7 @@ class KafkaHandler:
         logger.debug(f"Initializing KafkaHandler...")
         self.consumer = None
 
-        try:
-            logger.debug(f"Opening configuration file at {CONFIG_FILEPATH}...")
-            with open(CONFIG_FILEPATH, "r") as file:
-                self.config = yaml.safe_load(file)
-        except FileNotFoundError:
-            logger.critical(f"File {CONFIG_FILEPATH} not does not exist. Aborting...")
-            raise
-        logger.debug("Configuration file successfully opened and information stored.")
+        self.config = setup_config()
 
         self.brokers = ",".join(
             [

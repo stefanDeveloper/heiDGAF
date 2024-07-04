@@ -5,14 +5,11 @@ import re
 import socket
 import sys
 
-import yaml
-
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from src.base import utils
 from src.base.batch_handler import CollectorKafkaBatchSender
-from src.base.config import CONFIG_FILEPATH  # needed for Terminal execution
 from src.base.log_config import setup_logging
-from src.base.utils import validate_host
+from src.base.utils import validate_host, setup_config
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -41,15 +38,7 @@ class LogCollector:
         self.log_server = {}
         self.logline = None
         self.log_data = {}
-
-        try:
-            logger.debug(f"Opening configuration file at {CONFIG_FILEPATH}...")
-            with open(CONFIG_FILEPATH, "r") as file:
-                self.config = yaml.safe_load(file)
-        except FileNotFoundError:
-            logger.critical(f"File {CONFIG_FILEPATH} not does not exist. Aborting...")
-            raise
-        logger.debug("Configuration file successfully opened and information stored.")
+        self.config = setup_config()
 
         self.log_server["host"] = utils.validate_host(
             self.config["heidgaf"]["lc"]["logserver"]["hostname"]

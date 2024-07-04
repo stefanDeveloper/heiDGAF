@@ -1,11 +1,19 @@
 import logging
+import os
 
 import colorlog
+import yaml
 
-DEBUG = True
+CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../../config.yaml")
 
 
 def setup_logging():
+    try:
+        with open(CONFIG_FILEPATH, "r") as file:
+            config = yaml.safe_load(file)
+    except FileNotFoundError:
+        raise
+
     log_colors = {
         "DEBUG": "cyan",
         "INFO": "green",
@@ -38,7 +46,7 @@ def setup_logging():
 
     logger = logging.getLogger()
 
-    if DEBUG:
+    if config["logging"]["debug"]:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
