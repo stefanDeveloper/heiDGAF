@@ -28,7 +28,6 @@ class KafkaBatchSender:
         self.lock = Lock()
         self.timer = None
         self.begin_timestamp = None
-        self.center_timestamp = None
         self.end_timestamp = None
         logger.debug(f"Calling KafkaProduceHandler({transactional_id=})...")
         self.kafka_produce_handler = KafkaProduceHandler(
@@ -123,6 +122,13 @@ class KafkaBatchSender:
         self.timer = Timer(BATCH_TIMEOUT, self._send_batch)
         self.timer.start()
         logger.debug("Successfully started new timer.")
+
+
+# TODO: Use maybe
+# class CollectorKafkaBatchSender(KafkaBatchSender):
+#     def __init__(self, transactional_id: str):
+#         super().__init__(topic="Inspect", transactional_id=transactional_id, buffer=True)
+#         self.center_timestamp = None
 
 
 if __name__ == "__main__":
