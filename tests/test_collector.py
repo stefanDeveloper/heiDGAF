@@ -9,7 +9,7 @@ LOG_SERVER_PORT = 9999
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.logcollector.collector.KafkaBatchSender")
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     def test_valid_init_ipv4(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -32,9 +32,7 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(sut.log_data.get("size"))
         self.assertEqual(mock_batch_handler_instance, sut.batch_handler)
 
-        mock_batch_handler.assert_called_once_with(
-            topic="Prefilter", transactional_id="collector"
-        )
+        mock_batch_handler.assert_called_once_with(transactional_id="collector")
 
     # TODO: Update
     # @patch("src.logcollector.collector.KafkaBatchSender")
@@ -86,7 +84,7 @@ class TestInit(unittest.TestCase):
 
 
 class TestFetchLogline(unittest.TestCase):
-    @patch("src.logcollector.collector.KafkaBatchSender")
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("socket.socket")
     def test_fetch_logline(self, mock_socket, mock_batch_handler):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
@@ -106,7 +104,7 @@ class TestFetchLogline(unittest.TestCase):
 
 
 class TestValidateAndExtractLogline(unittest.TestCase):
-    @patch("src.logcollector.collector.KafkaBatchSender")
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     def test_valid_logline(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -132,7 +130,7 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         )
         self.assertEqual("86b", sut.log_data.get("size"))
 
-    @patch("src.logcollector.collector.KafkaBatchSender")
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     def test_invalid_logline_wrong_response_ip(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -155,7 +153,7 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         self.assertIsNone(sut.log_data.get("response_ip"))
         self.assertIsNone(sut.log_data.get("size"))
 
-    @patch("src.logcollector.collector.KafkaBatchSender")
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     def test_invalid_logline_no_data(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -168,7 +166,7 @@ class TestValidateAndExtractLogline(unittest.TestCase):
 
 
 class TestAddLoglineToBatch(unittest.TestCase):
-    @patch("src.logcollector.collector.KafkaBatchSender")
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     def test_add_to_batch_with_data(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -201,7 +199,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
             expected_message
         )
 
-    @patch("src.logcollector.collector.KafkaBatchSender")
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     def test_add_to_batch_without_data(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -217,7 +215,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
 
 
 class TestClearLogline(unittest.TestCase):
-    @patch("src.logcollector.collector.KafkaBatchSender")
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     def test_clear_logline(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance

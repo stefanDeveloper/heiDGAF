@@ -9,7 +9,7 @@ import yaml
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from src.base import utils
-from src.base.batch_handler import KafkaBatchSender
+from src.base.batch_handler import CollectorKafkaBatchSender
 from src.base.config import CONFIG_FILEPATH  # needed for Terminal execution
 from src.base.log_config import setup_logging
 from src.base.utils import validate_host
@@ -62,11 +62,9 @@ class LogCollector:
         logger.debug(f"LogServer outgoing port was set to {self.log_server['port']}.")
 
         logger.debug(
-            f"Calling KafkaBatchSender(topic=Prefilter, transactional_id=collector)..."
+            f"Calling CollectorKafkaBatchSender(transactional_id=collector)..."
         )
-        self.batch_handler = KafkaBatchSender(
-            topic="Prefilter", transactional_id="collector"
-        )
+        self.batch_handler = CollectorKafkaBatchSender(transactional_id="collector")
         logger.debug("Initialized LogCollector.")
 
     def fetch_logline(self):
