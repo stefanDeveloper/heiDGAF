@@ -30,7 +30,7 @@ class TestGetAndFillData(unittest.TestCase):
         mock_batch_handler.return_value = mock_batch_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = []
+        mock_consume_handler_instance.consume_and_return_json_data.return_value = {}
 
         sut = Prefilter(error_type="NXDOMAIN")
         sut.get_and_fill_data()
@@ -47,14 +47,16 @@ class TestGetAndFillData(unittest.TestCase):
         mock_batch_handler.return_value = mock_batch_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = [
-            "test_data"
-        ]
+        mock_consume_handler_instance.consume_and_return_json_data.return_value = {
+                "begin_timestamp": "2024-05-21T08:31:28.119Z",
+                "end_timestamp": "2024-05-21T08:31:29.432Z",
+                "data": ["test_data_1", "test_data_2"],
+            }
 
         sut = Prefilter(error_type="NXDOMAIN")
         sut.get_and_fill_data()
 
-        self.assertEqual(["test_data"], sut.unfiltered_data)
+        self.assertEqual(["test_data_1", "test_data_2"], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
 
         mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()

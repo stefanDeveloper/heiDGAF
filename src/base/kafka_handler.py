@@ -223,13 +223,13 @@ class KafkaConsumeHandler(KafkaHandler):
         except Exception as e:
             logger.error(f"Error in KafkaConsumeHandler: {e}")
 
-    def consume_and_return_json_data(self) -> list:
+    def consume_and_return_json_data(self) -> dict:
         try:
             key, value = self.consume()
 
             if not key and not value:
                 logger.debug("No data returned.")
-                return []
+                return {}
         except KafkaMessageFetchException as e:
             logger.debug(e)
             raise
@@ -241,10 +241,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
         logger.debug("Loading JSON values from received data...")
         json_from_message = json.loads(value)
-        json_data = []
-
-        for e in json_from_message:
-            json_data.append(ast.literal_eval(e))
+        json_data = ast.literal_eval(json_from_message)
         logger.debug("Loaded available JSON data. Returning it...")
 
         return json_data

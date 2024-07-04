@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 class Prefilter:
     def __init__(self, error_type: str):
+        self.begin_timestamp = None
+        self.end_timestamp = None
         self.unfiltered_data = []
         self.filtered_data = []
         self.error_type = error_type
@@ -28,7 +30,12 @@ class Prefilter:
             logger.warning("Overwriting existing data by new message.")
         self.clear_data()
 
-        self.unfiltered_data = self.kafka_consume_handler.consume_and_return_json_data()
+        data = self.kafka_consume_handler.consume_and_return_json_data()
+        # TODO: Check data
+        if data:
+            self.begin_timestamp = data["begin_timestamp"]
+            self.end_timestamp = data["end_timestamp"]
+            self.unfiltered_data = data["data"]
         logger.debug("Received consumer message as json data.")
 
     def filter_by_error(self):
