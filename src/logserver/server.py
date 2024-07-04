@@ -22,6 +22,7 @@ MAX_NUMBER_OF_CONNECTIONS = config["heidgaf"]["lc"]["logserver"]["max_number_of_
 
 class LogServer:
     def __init__(self) -> None:
+        logger.debug("Initializing LogServer...")
         self.host = None
         self.port_out = None
         self.port_in = None
@@ -29,20 +30,27 @@ class LogServer:
         self.number_of_connections = 0
         self.data_queue = queue.Queue()
 
+        logger.debug("Validating host name...")
         self.host = utils.validate_host(HOSTNAME)
+        logger.debug("Host name is valid. Validating ingoing port...")
         self.port_in = utils.validate_port(PORT_IN)
+        logger.debug("Ingoing port is valid. Validating outgoing port...")
         self.port_out = utils.validate_port(PORT_OUT)
+        logger.debug("Outgoing port is valid.")
+        logger.debug("Initialized LogServer.")
 
     async def open(self):
+        logger.debug(f"Creating the sending socket on port {self.port_out}...")
         send_server = await asyncio.start_server(
             self.handle_send_logline, str(self.host), self.port_out
         )
+        logger.debug(f"Creating the receiving socket on port {self.port_in}...")
         receive_server = await asyncio.start_server(
             self.handle_receive_logline, str(self.host), self.port_in
         )
         logger.info(
             f"LogServer running on {self.host}:{self.port_out} for sending, "
-            + f"and on {self.host}:{self.port_in} for receiving"
+            + f"and on {self.host}:{self.port_in} for receiving..."
         )
 
         try:
@@ -50,11 +58,13 @@ class LogServer:
                 send_server.serve_forever(), receive_server.serve_forever()
             )
         except KeyboardInterrupt:
-            pass
+            logger.debug("Stop serving...")
 
         send_server.close()
         receive_server.close()
         await asyncio.gather(send_server.wait_closed(), receive_server.wait_closed())
+        logger.debug("Both sockets closed.")
+        raise KeyboardInterrupt
 
     async def handle_connection(self, reader, writer, sending: bool):
         if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
@@ -113,6 +123,13 @@ class LogServer:
         return None
 
 
+def main():
+    server_instance = LogServer()
+    try:
+        asyncio.run(server_instance.open())
+    except KeyboardInterrupt:
+        logger.info("Closed down LogServer.")
+
+
 if __name__ == "__main__":
-    server = LogServer()
-    asyncio.run(server.open())
+    main()

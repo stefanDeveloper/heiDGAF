@@ -237,7 +237,7 @@ def main():
         except ValueError as e:
             logger.debug(e)
         except KeyboardInterrupt:
-            logger.info("Closing down LogCollector.")
+            logger.info("Closing down LogCollector...")
             break
         finally:
             collector.clear_logline()
