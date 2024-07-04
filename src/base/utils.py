@@ -51,4 +51,5 @@ def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
 
 # TODO: Test
 def current_time():
+    logger.debug("Returning current timestamp...")
     return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
