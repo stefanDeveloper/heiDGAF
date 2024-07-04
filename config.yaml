@@ -5,9 +5,13 @@ heidgaf:
   lc:
     logserver:
       hostname: 172.27.0.8
-      portin: 9998
-      portout: 9999
+      port_in: 9998
+      port_out: 9999
       max_number_of_connections: 5
+
+  collector:
+    valid_status_codes: ["NOERROR", "NXDOMAIN"]
+    valid_record_types: ["A", "AAAA"]
 
 kafka:
   brokers:

@@ -21,6 +21,10 @@ from src.base.utils import kafka_delivery_report, setup_config
 setup_logging()
 logger = logging.getLogger(__name__)
 
+config = setup_config()
+KAFKA_BROKERS = config["kafka"]["brokers"]
+CONSUMER_GROUP_ID = config["kafka"]["consumer"]["group_id"]
+
 
 class TooManyFailedAttemptsError(Exception):
     pass
@@ -35,12 +39,10 @@ class KafkaHandler:
         logger.debug(f"Initializing KafkaHandler...")
         self.consumer = None
 
-        self.config = setup_config()
-
         self.brokers = ",".join(
             [
                 f"{broker['hostname']}:{broker['port']}"
-                for broker in self.config["kafka"]["brokers"]
+                for broker in KAFKA_BROKERS
             ]
         )
         logger.debug(f"Retrieved {self.brokers=}.")
@@ -150,7 +152,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
         conf = {
             "bootstrap.servers": self.brokers,
-            "group.id": self.config["kafka"]["consumer"]["group_id"],
+            "group.id": CONSUMER_GROUP_ID,
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,

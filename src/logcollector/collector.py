@@ -20,16 +20,11 @@ logger = logging.getLogger(__name__)
 # 2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A
 # b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b
 
-
-valid_statuses = [
-    "NOERROR",
-    "NXDOMAIN",
-]
-
-valid_record_types = [
-    "AAAA",
-    "A",
-]
+config = setup_config()
+VALID_STATUS_CODES = config["heidgaf"]["collector"]["valid_status_codes"]
+VALID_RECORD_TYPES = config["heidgaf"]["collector"]["valid_record_types"]
+LOGSERVER_HOSTNAME = config["heidgaf"]["lc"]["logserver"]["hostname"]
+LOGSERVER_SENDING_PORT = config["heidgaf"]["lc"]["logserver"]["port_out"]
 
 
 class LogCollector:
@@ -38,16 +33,11 @@ class LogCollector:
         self.log_server = {}
         self.logline = None
         self.log_data = {}
-        self.config = setup_config()
 
-        self.log_server["host"] = utils.validate_host(
-            self.config["heidgaf"]["lc"]["logserver"]["hostname"]
-        )
+        self.log_server["host"] = utils.validate_host(LOGSERVER_HOSTNAME)
         logger.debug(f"LogServer host was set to {self.log_server['host']}.")
 
-        self.log_server["port"] = utils.validate_port(
-            self.config["heidgaf"]["lc"]["logserver"]["portout"]
-        )
+        self.log_server["port"] = utils.validate_port(LOGSERVER_SENDING_PORT)
         logger.debug(f"LogServer outgoing port was set to {self.log_server['port']}.")
 
         logger.debug(
@@ -185,13 +175,13 @@ class LogCollector:
     @staticmethod
     def _check_status(status: str):
         logger.debug(f"Checking status code {status}...")
-        return_value = status in valid_statuses
+        return_value = status in VALID_STATUS_CODES
 
         if return_value:
             logger.debug(f"Status code {status} is valid.")
         else:
             logger.warning(
-                f"Status code {status} is invalid: Allowed status codes: {valid_statuses}."
+                f"Status code {status} is invalid: Allowed status codes: {VALID_STATUS_CODES}."
             )
 
         return return_value
@@ -211,13 +201,13 @@ class LogCollector:
     @staticmethod
     def _check_record_type(record_type: str) -> bool:
         logger.debug(f"Checking record type {record_type}...")
-        return_value = record_type in valid_record_types
+        return_value = record_type in VALID_RECORD_TYPES
 
         if return_value:
             logger.debug(f"Record type {record_type} is valid.")
         else:
             logger.warning(
-                f"Record type {record_type} is invalid: Allowed record types: {valid_record_types}."
+                f"Record type {record_type} is invalid: Allowed record types: {VALID_RECORD_TYPES}."
             )
 
         return return_value

@@ -14,13 +14,16 @@ from src.base.log_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
+config = setup_config()
+BATCH_SIZE = config["kafka"]["batch_sender"]["batch_size"]
+BATCH_TIMEOUT = config["kafka"]["batch_sender"]["batch_timeout"]
+
 
 class KafkaBatchSender:
     def __init__(self, topic: str, transactional_id: str, buffer: bool = False):
         logger.debug(
             f"Initializing KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})..."
         )
-        self.config = setup_config()
         self.topic = topic
         self.latest_messages = []
         self.earlier_messages = []
@@ -43,7 +46,7 @@ class KafkaBatchSender:
         with self.lock:
             self.latest_messages.append(message)
 
-            if len(self.latest_messages) >= self.config["kafka"]["batch_sender"]["batch_size"]:
+            if len(self.latest_messages) >= BATCH_SIZE:
                 logger.debug("Batch is full. Calling _send_batch()...")
                 self._send_batch()
             elif not self.timer:  # First time setting the timer
@@ -120,7 +123,7 @@ class KafkaBatchSender:
             logger.debug("No timer active.")
 
         logger.debug("Starting new timer...")
-        self.timer = Timer(self.config["kafka"]["batch_sender"]["batch_timeout"], self._send_batch)
+        self.timer = Timer(BATCH_TIMEOUT, self._send_batch)
         self.timer.start()
         logger.debug("Successfully started new timer.")
 

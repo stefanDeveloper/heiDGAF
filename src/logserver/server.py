@@ -13,26 +13,25 @@ from src.base.log_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
+config = setup_config()
+HOSTNAME = config["heidgaf"]["lc"]["logserver"]["hostname"]
+PORT_IN = config["heidgaf"]["lc"]["logserver"]["port_in"]
+PORT_OUT = config["heidgaf"]["lc"]["logserver"]["port_out"]
+MAX_NUMBER_OF_CONNECTIONS = config["heidgaf"]["lc"]["logserver"]["max_number_of_connections"]
+
 
 class LogServer:
     def __init__(self) -> None:
-        self.config = setup_config()
         self.host = None
         self.port_out = None
         self.port_in = None
         self.socket = None
         self.number_of_connections = 0
-
-        self.host = utils.validate_host(
-            self.config["heidgaf"]["lc"]["logserver"]["hostname"]
-        )
-        self.port_in = utils.validate_port(
-            self.config["heidgaf"]["lc"]["logserver"]["portin"]
-        )
-        self.port_out = utils.validate_port(
-            self.config["heidgaf"]["lc"]["logserver"]["portout"]
-        )
         self.data_queue = queue.Queue()
+
+        self.host = utils.validate_host(HOSTNAME)
+        self.port_in = utils.validate_port(PORT_IN)
+        self.port_out = utils.validate_port(PORT_OUT)
 
     async def open(self):
         send_server = await asyncio.start_server(
@@ -58,7 +57,7 @@ class LogServer:
         await asyncio.gather(send_server.wait_closed(), receive_server.wait_closed())
 
     async def handle_connection(self, reader, writer, sending: bool):
-        if self.number_of_connections <= self.config["heidgaf"]["lc"]["logserver"]["max_number_of_connections"]:
+        if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
             self.number_of_connections += 1
             client_address = writer.get_extra_info("peername")
             logger.debug(f"Connection from {client_address} accepted")
