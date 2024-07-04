@@ -8,7 +8,6 @@ from src.base.utils import setup_config
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
 from src.base import utils
-from src.base.config import *
 from src.base.log_config import setup_logging
 
 setup_logging()
@@ -59,7 +58,7 @@ class LogServer:
         await asyncio.gather(send_server.wait_closed(), receive_server.wait_closed())
 
     async def handle_connection(self, reader, writer, sending: bool):
-        if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
+        if self.number_of_connections <= self.config["heidgaf"]["lc"]["logserver"]["max_number_of_connections"]:
             self.number_of_connections += 1
             client_address = writer.get_extra_info("peername")
             logger.debug(f"Connection from {client_address} accepted")

@@ -2,7 +2,11 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from src.base.batch_handler import KafkaBatchSender
-from src.base.config import *
+from src.base.utils import setup_config
+
+config = setup_config()
+BATCH_SIZE = config["kafka"]["batch_sender"]["batch_size"]
+BATCH_TIMEOUT = config["kafka"]["batch_sender"]["batch_timeout"]
 
 
 class TestInit(unittest.TestCase):

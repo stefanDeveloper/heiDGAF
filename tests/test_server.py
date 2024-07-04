@@ -1,9 +1,7 @@
 import asyncio
 import unittest
-from ipaddress import IPv4Address
 from unittest.mock import AsyncMock, MagicMock
 
-from src.base.config import *
 from src.logserver.server import LogServer
 
 LOG_SERVER_IP_ADDR = "192.168.0.1"
@@ -136,7 +134,7 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
 
     async def test_handle_connection_rejected(self):
         server_instance = LogServer()
-        server_instance.number_of_connections = MAX_NUMBER_OF_CONNECTIONS
+        server_instance.number_of_connections = 5
 
         reader = AsyncMock()
         writer = AsyncMock()
@@ -147,7 +145,7 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         writer.close.assert_called_once()
         writer.wait_closed.assert_awaited_once()
         self.assertEqual(
-            MAX_NUMBER_OF_CONNECTIONS, server_instance.number_of_connections
+            5, server_instance.number_of_connections
         )
 
 

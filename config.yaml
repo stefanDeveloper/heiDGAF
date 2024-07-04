@@ -7,6 +7,7 @@ heidgaf:
       hostname: 172.27.0.8
       portin: 9998
       portout: 9999
+      max_number_of_connections: 5
 
 kafka:
   brokers:
@@ -19,3 +20,7 @@ kafka:
 
   consumer:
     group_id: my_group
+
+  batch_sender:
+    batch_size: 1000
+    batch_timeout: 5.0

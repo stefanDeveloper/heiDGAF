@@ -6,10 +6,9 @@ import time
 from threading import Lock, Timer
 
 from src.base.kafka_handler import KafkaProduceHandler
-from src.base.utils import current_time
+from src.base.utils import current_time, setup_config
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from src.base.config import *
 from src.base.log_config import setup_logging
 
 setup_logging()
@@ -21,6 +20,7 @@ class KafkaBatchSender:
         logger.debug(
             f"Initializing KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})..."
         )
+        self.config = setup_config()
         self.topic = topic
         self.latest_messages = []
         self.earlier_messages = []
@@ -43,7 +43,7 @@ class KafkaBatchSender:
         with self.lock:
             self.latest_messages.append(message)
 
-            if len(self.latest_messages) >= BATCH_SIZE:
+            if len(self.latest_messages) >= self.config["kafka"]["batch_sender"]["batch_size"]:
                 logger.debug("Batch is full. Calling _send_batch()...")
                 self._send_batch()
             elif not self.timer:  # First time setting the timer
@@ -120,7 +120,7 @@ class KafkaBatchSender:
             logger.debug("No timer active.")
 
         logger.debug("Starting new timer...")
-        self.timer = Timer(BATCH_TIMEOUT, self._send_batch)
+        self.timer = Timer(self.config["kafka"]["batch_sender"]["batch_timeout"], self._send_batch)
         self.timer.start()
         logger.debug("Successfully started new timer.")
 

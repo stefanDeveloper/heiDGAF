@@ -6,7 +6,6 @@ import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
 import time
 
-import yaml
 from confluent_kafka import (
     Consumer,
     KafkaError,
@@ -16,7 +15,6 @@ from confluent_kafka import (
 )
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from src.base.config import *
 from src.base.log_config import setup_logging
 from src.base.utils import kafka_delivery_report, setup_config
 
@@ -119,8 +117,8 @@ class KafkaProduceHandler(KafkaHandler):
                 committed = True
             except KafkaException as e:
                 if (
-                    "Conflicting commit_transaction API call is already in progress"
-                    in str(e)
+                        "Conflicting commit_transaction API call is already in progress"
+                        in str(e)
                 ):
                     retry_count += 1
                     logger.debug(
