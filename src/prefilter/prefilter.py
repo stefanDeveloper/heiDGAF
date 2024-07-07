@@ -44,7 +44,7 @@ class Prefilter:
 
     def send_filtered_data(self):
         if not self.filtered_data:
-            raise ValueError("Failed to add data to batch: No filtered data.")
+            raise ValueError("Failed to send data: No filtered data.")
 
         data_to_send = {
             "begin_timestamp": self.begin_timestamp,
