@@ -39,10 +39,13 @@ class KafkaHandler:
         logger.debug(f"Initializing KafkaHandler...")
         self.consumer = None
 
+        self.kafka_brokers = KAFKA_BROKERS
+        self.consumer_group_id = CONSUMER_GROUP_ID
+
         self.brokers = ",".join(
             [
                 f"{broker['hostname']}:{broker['port']}"
-                for broker in KAFKA_BROKERS
+                for broker in self.kafka_brokers
             ]
         )
         logger.debug(f"Retrieved {self.brokers=}.")
@@ -152,7 +155,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
         conf = {
             "bootstrap.servers": self.brokers,
-            "group.id": CONSUMER_GROUP_ID,
+            "group.id": self.consumer_group_id,
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,

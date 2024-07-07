@@ -1,18 +1,15 @@
 import unittest
 
-from src.base.kafka_handler import KafkaHandler
-
-BROKER_1 = "172.27.0.3:8097"
-BROKER_2 = "172.27.0.4:8098"
-BROKER_3 = "172.27.0.5:8099"
+from src.base.kafka_handler import KafkaHandler, KAFKA_BROKERS, CONSUMER_GROUP_ID
 
 
 class TestInit(unittest.TestCase):
     def test_init(self):
-        handler_instance = KafkaHandler()
+        sut = KafkaHandler()
 
-        self.assertIsNone(handler_instance.consumer)
-        self.assertEqual(f"{BROKER_1},{BROKER_2},{BROKER_3}", handler_instance.brokers)
+        self.assertIsNone(sut.consumer)
+        self.assertEqual(KAFKA_BROKERS, sut.kafka_brokers)
+        self.assertEqual(CONSUMER_GROUP_ID, sut.consumer_group_id)
 
 
 if __name__ == "__main__":

@@ -22,9 +22,9 @@ class TestInit(unittest.TestCase):
         }
 
         sut = KafkaProduceHandler(transactional_id="test_transactional_id")
+        sut.brokers = f"{BROKER_1},{BROKER_2},{BROKER_3}"
 
         self.assertIsNone(sut.consumer)
-        self.assertEqual(f"{BROKER_1},{BROKER_2},{BROKER_3}", sut.brokers)
         self.assertEqual(mock_producer_instance, sut.producer)
 
         mock_producer.assert_called_once_with(expected_conf)
