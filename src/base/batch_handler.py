@@ -24,8 +24,6 @@ class KafkaBatchSender:
         logger.debug(
             f"Initializing KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})..."
         )
-        self.batch_size = BATCH_SIZE
-        self.batch_timeout = BATCH_TIMEOUT
         self.topic = topic
         self.latest_messages = []
         self.earlier_messages = []
@@ -48,7 +46,7 @@ class KafkaBatchSender:
         with self.lock:
             self.latest_messages.append(message)
 
-            if len(self.latest_messages) >= self.batch_size:
+            if len(self.latest_messages) >= BATCH_SIZE:
                 logger.debug("Batch is full. Calling _send_batch()...")
                 self._send_batch()
             elif not self.timer:  # First time setting the timer
@@ -125,11 +123,12 @@ class KafkaBatchSender:
             logger.debug("No timer active.")
 
         logger.debug("Starting new timer...")
-        self.timer = Timer(self.batch_timeout, self._send_batch)
+        self.timer = Timer(BATCH_TIMEOUT, self._send_batch)
         self.timer.start()
         logger.debug("Successfully started new timer.")
 
 
+# TODO: Test
 class CollectorKafkaBatchSender(KafkaBatchSender):
     def __init__(self, transactional_id: str):
         super().__init__(topic="Prefilter", transactional_id=transactional_id, buffer=True)
