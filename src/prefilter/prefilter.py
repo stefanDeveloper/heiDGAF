@@ -4,8 +4,7 @@ import os  # needed for Terminal execution
 import sys  # needed for Terminal execution
 
 sys.path.append(os.getcwd())  # needed for Terminal execution
-from src.base.batch_handler import KafkaBatchSender
-from src.base.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
+from src.base.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException, KafkaProduceHandler
 from src.base.log_config import setup_logging
 
 setup_logging()
@@ -20,9 +19,9 @@ class Prefilter:
         self.filtered_data = []
         self.error_type = error_type
 
-        self.batch_handler = KafkaBatchSender(
-            topic="Inspect", transactional_id="prefilter"
-        )
+        logger.debug(f"Calling KafkaProduceHandler(transactional_id='prefilter')...")
+        self.kafka_produce_handler = KafkaProduceHandler(transactional_id='prefilter')
+        logger.debug(f"Calling KafkaConsumeHandler(topic='Prefilter')...")
         self.kafka_consume_handler = KafkaConsumeHandler(topic="Prefilter")
 
     def get_and_fill_data(self):
@@ -43,11 +42,19 @@ class Prefilter:
             if e["status"] == self.error_type:
                 self.filtered_data.append(e)
 
-    def add_filtered_data_to_batch(self):
+    def send_filtered_data(self):
         if not self.filtered_data:
             raise ValueError("Failed to add data to batch: No filtered data.")
 
-        self.batch_handler.add_message(json.dumps(self.filtered_data))
+        data_to_send = {
+            "begin_timestamp": self.begin_timestamp,
+            "end_timestamp": self.end_timestamp,
+            "data": self.filtered_data,
+        }
+        self.kafka_produce_handler.send(
+            topic="Inspect",
+            data=json.dumps(data_to_send),
+        )
 
     def clear_data(self):
         self.unfiltered_data = []
@@ -69,7 +76,7 @@ def main():
             logger.debug("After filtering by error")
 
             logger.debug("Before adding filtered data to batch")
-            prefilter.add_filtered_data_to_batch()
+            prefilter.send_filtered_data()
             logger.debug("After adding filtered data to batch")
         except IOError as e:
             logger.error(e)
