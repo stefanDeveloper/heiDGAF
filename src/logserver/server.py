@@ -4,9 +4,8 @@ import os  # needed for Terminal execution
 import queue
 import sys
 
-from src.base.utils import setup_config
-
 sys.path.append(os.getcwd())  # needed for Terminal execution
+from src.base.utils import setup_config
 from src.base import utils
 from src.base.log_config import setup_logging
 

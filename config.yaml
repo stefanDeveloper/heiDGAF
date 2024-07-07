@@ -1,5 +1,5 @@
 logging:
-  debug: true
+  debug: false
 
 heidgaf:
   lc:

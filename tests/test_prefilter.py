@@ -166,13 +166,16 @@ class TestSendFilteredData(unittest.TestCase):
 
         sut = Prefilter(error_type="NXDOMAIN")
         sut.filtered_data = [first_entry, second_entry]
+        sut.begin_timestamp = "2024-05-21T08:31:27.000Z"
+        sut.end_timestamp = "2024-05-21T08:31:29.000Z"
         expected_message = (
-            '{"begin_timestamp": null, "end_timestamp": null, "data": [{"timestamp": "2024-05-21T08:31:28.119Z", '
-            '"status": "NXDOMAIN", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
-            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
-            '"size": "150b"}, {"timestamp": "2024-06-01T02:31:07.943Z", "status": "NXDOMAIN", "client_ip": '
-            '"192.168.1.206", "dns_ip": "8.8.8.8", "host_domain_name": "www.biotech-hei.com", "record_type": "AAAA", '
-            '"response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b", "size": "117b"}]}'
+            '{"begin_timestamp": "2024-05-21T08:31:27.000Z", "end_timestamp": "2024-05-21T08:31:29.000Z", "data": [{'
+            '"timestamp": "2024-05-21T08:31:28.119Z", "status": "NXDOMAIN", "client_ip": "192.168.0.105", '
+            '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}, {"timestamp": "2024-06-01T02:31:07.943Z", '
+            '"status": "NXDOMAIN", "client_ip": "192.168.1.206", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.biotech-hei.com", "record_type": "AAAA", "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b", '
+            '"size": "117b"}]}'
         )
         sut.send_filtered_data()
 

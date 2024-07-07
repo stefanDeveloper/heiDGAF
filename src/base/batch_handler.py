@@ -52,7 +52,7 @@ class KafkaBatchSender:
             elif not self.timer:  # First time setting the timer
                 logger.debug("Timer not set yet. Calling _reset_timer()...")
                 self.begin_timestamp = current_time()
-                logger.debug(f"begin_timestamp set to {self.begin_timestamp}")
+                logger.debug(f"begin_timestamp set to '{self.begin_timestamp}'")
                 self._reset_timer()
         logger.debug(f"Message '{message}' successfully added to batch.")
 
@@ -112,7 +112,7 @@ class KafkaBatchSender:
 
         logger.debug("Calling _reset_timer()...")
         self._reset_timer()
-        logger.debug("Batch successfully sent.")
+        logger.info("Batch successfully sent.")
 
     def _reset_timer(self):
         logger.debug("Resetting timer...")

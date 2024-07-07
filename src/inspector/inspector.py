@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 class Inspector:
     def __init__(self):
+        self.begin_timestamp = None
+        self.end_timestamp = None
         logger.debug(f"Initializing Inspector...")
         self.messages = []
         logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
@@ -30,16 +32,21 @@ class Inspector:
         logger.debug(
             "Inspector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
         )
-        self.messages = self.kafka_consume_handler.consume_and_return_json_data()
-
-        if not self.messages:
+        data = self.kafka_consume_handler.consume_and_return_json_data()
+        # TODO: Check data
+        if data:
+            self.begin_timestamp = data["begin_timestamp"]
+            self.end_timestamp = data["end_timestamp"]
+            self.messages = data["data"]
+            logger.info("Received consumer message as json data.")
+            logger.info(f"(data={self.messages})") # TODO: Change to debug
+        else:
             logger.debug("Received empty data from KafkaConsumeHandler.")
-
-        logger.debug("Received data from KafkaConsumeHandler.")
-        logger.debug(f"(data={self.messages})")
 
     def clear_data(self):
         self.messages = []
+        self.begin_timestamp = None
+        self.end_timestamp = None
         logger.info("Cleared messages. Inspector is now available.")
 
 

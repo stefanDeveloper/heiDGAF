@@ -13,7 +13,7 @@ def random_ipv6():
     return ipaddress.IPv6Address._string_from_ip_int(random.randint(0, MAX_IPV6))
 
 
-DNS_DOMAINS = pl.read_csv("./data/majestic_million.csv")["Domain"]
+# DNS_DOMAINS = pl.read_csv("./data/majestic_million.csv")["Domain"]
 STATUSES = ["NOERROR", "NXDOMAIN"]
 MAX_IPV4 = ipaddress.IPv4Address._ALL_ONES  # 2 ** 32 - 1
 MAX_IPV6 = ipaddress.IPv6Address._ALL_ONES  # 2 ** 128 - 1
@@ -32,7 +32,7 @@ def generate_dns_log_line():
     response = IP[random.randint(0, 1)]()
     size = f"{random.randint(50, 150)}b"
 
-    return f"{timestamp} {status} {client_ip} {server_ip} {random.choice(DNS_DOMAINS)} {record_type} {response} {size}"
+    return f"{timestamp} {status} {client_ip} {server_ip} random-ip.de {record_type} {response} {size}"
 
 
 if __name__ == "__main__":

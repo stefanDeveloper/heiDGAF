@@ -121,7 +121,7 @@ class LogCollector:
         logger.debug(f"Record type set to {self.log_data['record_type']}")
         self.log_data["size"] = parts[7]
         logger.debug(f"Size set to {self.log_data['size']}")
-        logger.debug("All data extracted from logline.")
+        logger.info("Logline is correct. Extracted all data.")
 
     def add_logline_to_batch(self):
         logger.debug("Adding logline to batch...")
@@ -137,7 +137,7 @@ class LogCollector:
 
         logger.debug("Calling KafkaBatchSender to add message...")
         self.batch_handler.add_message(json.dumps(log_entry))
-        logger.debug("Added message to batch.")
+        logger.info("Added message to batch. Data will be sent when the batch is full.")
 
     def clear_logline(self):
         logger.debug("Clearing current logline...")
@@ -236,6 +236,7 @@ def main():
             collector.validate_and_extract_logline()
             collector.add_logline_to_batch()
         except ValueError as e:
+            logger.info("Incorrect logline: Waiting for next logline...")
             logger.debug(e)
         except KeyboardInterrupt:
             logger.info("Closing down LogCollector...")

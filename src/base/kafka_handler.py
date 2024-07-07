@@ -187,9 +187,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
                 if msg is None:
                     if not empty_data_retrieved:
-                        logger.info(
-                            "No data to consume. Waiting for messages to be produced..."
-                        )
+                        logger.info("Waiting for messages to be produced...")
 
                     empty_data_retrieved = True
                     continue
@@ -234,7 +232,12 @@ class KafkaConsumeHandler(KafkaHandler):
 
         logger.debug("Loading JSON values from received data...")
         json_from_message = json.loads(value)
-        json_data = ast.literal_eval(json_from_message)
-        logger.debug("Loaded available JSON data. Returning it...")
+        logger.debug(f"{json_from_message=}")
+        eval_data = ast.literal_eval(value)
 
-        return json_data
+        if isinstance(eval_data, dict):
+            logger.debug("Loaded available data. Returning it...")
+            return eval_data
+        else:
+            logger.error("Unknown data format.")
+            raise ValueError
