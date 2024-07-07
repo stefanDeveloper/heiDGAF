@@ -14,6 +14,7 @@ from src.base.utils import validate_host, setup_config
 setup_logging()
 logger = logging.getLogger(__name__)
 
+# TODO: Move to docs
 # LOG FORMAT:
 # TIMESTAMP STATUS CLIENT_IP DNS_IP HOST_DOMAIN_NAME RECORD_TYPE RESPONSE_IP SIZE
 # EXAMPLE:

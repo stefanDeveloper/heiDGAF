@@ -9,13 +9,15 @@ LOG_SERVER_PORT = 9999
 
 
 class TestInit(unittest.TestCase):
+    @patch("src.logcollector.collector.LOGSERVER_HOSTNAME", "127.0.0.1")
+    @patch("src.logcollector.collector.LOGSERVER_SENDING_PORT", 9999)
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     def test_valid_init_ipv4(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
-        host = LOG_SERVER_IP_ADDR
-        port = LOG_SERVER_PORT
+        host = "127.0.0.1"
+        port = 9999
 
         sut = LogCollector()
 
@@ -34,53 +36,44 @@ class TestInit(unittest.TestCase):
 
         mock_batch_handler.assert_called_once_with(transactional_id="collector")
 
-    # TODO: Update
-    # @patch("src.logcollector.collector.KafkaBatchSender")
-    # def test_valid_init_ipv6(self, mock_batch_handler):
-    #     mock_batch_handler_instance = MagicMock()
-    #     mock_batch_handler.return_value = mock_batch_handler_instance
-    #
-    #     host = "fe80::1"
-    #     port = LOG_SERVER_PORT
-    #
-    #     sut = LogCollector(host, port)
-    #
-    #     self.assertEqual(IPv6Address(host), sut.log_server.get("host"))
-    #     self.assertEqual(port, sut.log_server.get("port"))
-    #     self.assertIsNone(sut.logline)
-    #     self.assertIsNone(sut.log_data.get("timestamp"))
-    #     self.assertIsNone(sut.log_data.get("status"))
-    #     self.assertIsNone(sut.log_data.get("client_ip"))
-    #     self.assertIsNone(sut.log_data.get("dns_ip"))
-    #     self.assertIsNone(sut.log_data.get("host_domain_name"))
-    #     self.assertIsNone(sut.log_data.get("record_type"))
-    #     self.assertIsNone(sut.log_data.get("response_ip"))
-    #     self.assertIsNone(sut.log_data.get("size"))
-    #     self.assertEqual(mock_batch_handler_instance, sut.batch_handler)
-    #
-    #     mock_batch_handler.assert_called_once_with(
-    #         topic="Prefilter", transactional_id="collector"
-    #     )
+    @patch("src.logcollector.collector.LOGSERVER_HOSTNAME", "fe80::1")
+    @patch("src.logcollector.collector.LOGSERVER_SENDING_PORT", 8989)
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    def test_valid_init_ipv6(self, mock_batch_handler):
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
 
-    def test_invalid_init_with_no_host(self):
-        with self.assertRaises(TypeError):
-            # noinspection PyArgumentList
-            LogCollector(server_port=9999)
+        host = "fe80::1"
+        port = 8989
 
-    def test_invalid_init_with_no_port(self):
-        with self.assertRaises(TypeError):
-            # noinspection PyArgumentList
-            LogCollector(server_host="192.168.2.1")
+        sut = LogCollector()
 
-    # TODO: Update
-    # def test_invalid_init_with_invalid_host(self):
-    #     with self.assertRaises(ValueError):
-    #         LogCollector("256.256.256.256", 9999)
+        self.assertEqual(IPv6Address(host), sut.log_server.get("host"))
+        self.assertEqual(port, sut.log_server.get("port"))
+        self.assertIsNone(sut.logline)
+        self.assertIsNone(sut.log_data.get("timestamp"))
+        self.assertIsNone(sut.log_data.get("status"))
+        self.assertIsNone(sut.log_data.get("client_ip"))
+        self.assertIsNone(sut.log_data.get("dns_ip"))
+        self.assertIsNone(sut.log_data.get("host_domain_name"))
+        self.assertIsNone(sut.log_data.get("record_type"))
+        self.assertIsNone(sut.log_data.get("response_ip"))
+        self.assertIsNone(sut.log_data.get("size"))
+        self.assertEqual(mock_batch_handler_instance, sut.batch_handler)
 
-    # TODO: Update
-    # def test_invalid_init_with_invalid_port(self):
-    #     with self.assertRaises(ValueError):
-    #         LogCollector("192.168.0.1", 70000)
+        mock_batch_handler.assert_called_once_with(transactional_id="collector")
+
+    @patch("src.logcollector.collector.LOGSERVER_HOSTNAME", "256.256.256.256")
+    @patch("src.logcollector.collector.LOGSERVER_SENDING_PORT", 9999)
+    def test_invalid_init_with_invalid_host(self):
+        with self.assertRaises(ValueError):
+            LogCollector()
+
+    @patch("src.logcollector.collector.LOGSERVER_HOSTNAME", "127.0.0.1")
+    @patch("src.logcollector.collector.LOGSERVER_SENDING_PORT", 70000)
+    def test_invalid_init_with_invalid_port(self):
+        with self.assertRaises(ValueError):
+            LogCollector()
 
 
 class TestFetchLogline(unittest.TestCase):

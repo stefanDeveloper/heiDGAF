@@ -5,16 +5,12 @@ from confluent_kafka import KafkaException
 
 from src.base.kafka_handler import KafkaProduceHandler
 
-BROKER_1 = "172.27.0.3:8097"
-BROKER_2 = "172.27.0.4:8098"
-BROKER_3 = "172.27.0.5:8099"
-
 
 class TestInit(unittest.TestCase):
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': '9999', },
-        {'hostname': '127.0.0.2', 'port': '9998', },
-        {'hostname': '127.0.0.3', 'port': '9997', },
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
     def test_init(self, mock_producer):
@@ -37,9 +33,9 @@ class TestInit(unittest.TestCase):
 
 class TestSend(unittest.TestCase):
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': '9999', },
-        {'hostname': '127.0.0.2', 'port': '9998', },
-        {'hostname': '127.0.0.3', 'port': '9997', },
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
     @patch("src.base.kafka_handler.KafkaProduceHandler.commit_transaction_with_retry")
@@ -66,9 +62,9 @@ class TestSend(unittest.TestCase):
         mock_producer_instance.begin_transaction.assert_called_once()
 
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': '9999', },
-        {'hostname': '127.0.0.2', 'port': '9998', },
-        {'hostname': '127.0.0.3', 'port': '9997', },
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
     def test_send_with_empty_data_string(self, mock_producer):
@@ -83,9 +79,9 @@ class TestSend(unittest.TestCase):
 class TestCommitTransactionWithRetry(unittest.TestCase):
     # def test_commit_transaction_with_retry(self):
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': '9999', },
-        {'hostname': '127.0.0.2', 'port': '9998', },
-        {'hostname': '127.0.0.3', 'port': '9997', },
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
@@ -101,9 +97,9 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         mock_sleep.assert_not_called()
 
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': '9999', },
-        {'hostname': '127.0.0.2', 'port': '9998', },
-        {'hostname': '127.0.0.3', 'port': '9997', },
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
@@ -124,9 +120,9 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         mock_sleep.assert_called_once_with(1.0)
 
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': '9999', },
-        {'hostname': '127.0.0.2', 'port': '9998', },
-        {'hostname': '127.0.0.3', 'port': '9997', },
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
@@ -148,9 +144,9 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         self.assertEqual(mock_sleep.call_count, 3)
 
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': '9999', },
-        {'hostname': '127.0.0.2', 'port': '9998', },
-        {'hostname': '127.0.0.3', 'port': '9997', },
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
@@ -172,9 +168,9 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
 
 class TestClose(unittest.TestCase):
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': '9999', },
-        {'hostname': '127.0.0.2', 'port': '9998', },
-        {'hostname': '127.0.0.3', 'port': '9997', },
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
     def test_close(self, mock_producer):
