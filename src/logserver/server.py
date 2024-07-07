@@ -64,7 +64,6 @@ class LogServer:
         receive_server.close()
         await asyncio.gather(send_server.wait_closed(), receive_server.wait_closed())
         logger.debug("Both sockets closed.")
-        raise KeyboardInterrupt
 
     async def handle_connection(self, reader, writer, sending: bool):
         if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
@@ -80,7 +79,7 @@ class LogServer:
             except asyncio.CancelledError:
                 pass
             finally:
-                logger.debug(f"Connection to {client_address} closed")
+                logger.debug(f"Connection to {client_address} closed.")
                 writer.close()
                 await writer.wait_closed()
                 self.number_of_connections -= 1
@@ -125,10 +124,7 @@ class LogServer:
 
 def main():
     server_instance = LogServer()
-    try:
-        asyncio.run(server_instance.open())
-    except KeyboardInterrupt:
-        logger.info("Closed down LogServer.")
+    asyncio.run(server_instance.open())
 
 
 if __name__ == "__main__":
