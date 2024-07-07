@@ -1,18 +1,13 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from src.base.batch_handler import KafkaBatchSender
-from src.base.utils import setup_config
-
-config = setup_config()
-BATCH_SIZE = config["kafka"]["batch_sender"]["batch_size"]
-BATCH_TIMEOUT = config["kafka"]["batch_sender"]["batch_timeout"]
+from src.base.batch_handler import KafkaBatchSender, BATCH_SIZE, BATCH_TIMEOUT
 
 
 class TestInit(unittest.TestCase):
     @patch("src.base.batch_handler.KafkaProduceHandler")
     @patch("src.base.batch_handler.Lock")
-    def test_init_without_puffer(self, mock_lock, mock_kafka_produce_handler):
+    def test_init_without_buffer(self, mock_lock, mock_kafka_produce_handler):
         mock_lock_instance = MagicMock()
         mock_lock.return_value = mock_lock_instance
         mock_handler_instance = MagicMock()
@@ -22,6 +17,8 @@ class TestInit(unittest.TestCase):
             topic="test_topic", transactional_id="test_transactional_id"
         )
 
+        self.assertEqual(BATCH_SIZE, sut.batch_size)
+        self.assertEqual(BATCH_TIMEOUT, sut.batch_timeout)
         self.assertEqual("test_topic", sut.topic)
         self.assertEqual([], sut.latest_messages)
         self.assertEqual([], sut.earlier_messages)
@@ -37,7 +34,7 @@ class TestInit(unittest.TestCase):
 
     @patch("src.base.batch_handler.KafkaProduceHandler")
     @patch("src.base.batch_handler.Lock")
-    def test_init_with_puffer(self, mock_lock, mock_kafka_produce_handler):
+    def test_init_with_buffer(self, mock_lock, mock_kafka_produce_handler):
         mock_lock_instance = MagicMock()
         mock_lock.return_value = mock_lock_instance
         mock_handler_instance = MagicMock()
@@ -47,6 +44,8 @@ class TestInit(unittest.TestCase):
             topic="test_topic", transactional_id="test_transactional_id", buffer=True
         )
 
+        self.assertEqual(BATCH_SIZE, sut.batch_size)
+        self.assertEqual(BATCH_TIMEOUT, sut.batch_timeout)
         self.assertEqual("test_topic", sut.topic)
         self.assertEqual([], sut.latest_messages)
         self.assertEqual([], sut.earlier_messages)
@@ -74,6 +73,8 @@ class TestAddMessage(unittest.TestCase):
         sut = KafkaBatchSender(
             topic="test_topic", transactional_id="test_transactional_id"
         )
+        sut.batch_size = 1000
+        sut.batch_timeout = 5.0
         sut.timer = MagicMock()
         sut.add_message("Message")
 
@@ -89,13 +90,15 @@ class TestAddMessage(unittest.TestCase):
         sut = KafkaBatchSender(
             topic="test_topic", transactional_id="test_transactional_id"
         )
+        sut.batch_size = 100
+        sut.batch_timeout = 5.0
         sut.timer = MagicMock()
 
-        for i in range(BATCH_SIZE - 1):
+        for i in range(100 - 1):
             sut.add_message(f"Message {i}")
 
         mock_send_batch.assert_not_called()
-        sut.add_message(f"Message {BATCH_SIZE}")
+        sut.add_message(f"Message 100")
         mock_send_batch.assert_called_once()
 
     @patch("src.base.batch_handler.KafkaProduceHandler")
@@ -104,12 +107,14 @@ class TestAddMessage(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sender_instance = KafkaBatchSender(
+        sut = KafkaBatchSender(
             topic="test_topic", transactional_id="test_transactional_id"
         )
-        sender_instance.timer = None
+        sut.batch_size = 1000
+        sut.batch_timeout = 5.0
+        sut.timer = None
 
-        sender_instance.add_message("Message")
+        sut.add_message("Message")
         mock_reset_timer.assert_called_once()
 
 
@@ -156,6 +161,8 @@ class TestResetTimer(unittest.TestCase):
         sut = KafkaBatchSender(
             topic="test_topic", transactional_id="test_transactional_id"
         )
+        sut.batch_size = 1000
+        sut.batch_timeout = 5.0
         sut.timer = mock_timer_instance
         sut._send_batch = MagicMock()
         sut._reset_timer()
@@ -163,7 +170,7 @@ class TestResetTimer(unittest.TestCase):
         self.assertIsNotNone(sut.timer)
 
         mock_timer_instance.cancel.assert_called_once()
-        mock_timer.assert_called_once_with(BATCH_TIMEOUT, sut._send_batch)
+        mock_timer.assert_called_once_with(5.0, sut._send_batch)
         sut.timer.start.assert_called_once()
 
     @patch("src.base.batch_handler.KafkaProduceHandler")
@@ -175,12 +182,14 @@ class TestResetTimer(unittest.TestCase):
         sut = KafkaBatchSender(
             topic="test_topic", transactional_id="test_transactional_id"
         )
+        sut.batch_size = 1000
+        sut.batch_timeout = 5.0
         sut._send_batch = MagicMock()
         sut._reset_timer()
 
         self.assertIsNotNone(sut.timer)
 
-        mock_timer.assert_called_once_with(BATCH_TIMEOUT, sut._send_batch)
+        mock_timer.assert_called_once_with(5.0, sut._send_batch)
         sut.timer.start.assert_called_once()
 
 
