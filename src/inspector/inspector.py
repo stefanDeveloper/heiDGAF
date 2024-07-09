@@ -39,7 +39,7 @@ class Inspector:
             self.end_timestamp = data["end_timestamp"]
             self.messages = data["data"]
             logger.info("Received consumer message as json data.")
-            logger.info(f"(data={self.messages})") # TODO: Change to debug
+            logger.info(f"(data={self.messages})")  # TODO: Change to debug
         else:
             logger.debug("Received empty data from KafkaConsumeHandler.")
 

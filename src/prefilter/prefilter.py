@@ -1,3 +1,4 @@
+import ast
 import json
 import logging
 import os  # needed for Terminal execution
@@ -39,7 +40,8 @@ class Prefilter:
 
     def filter_by_error(self):
         for e in self.unfiltered_data:
-            if e["status"] == self.error_type:
+            e_as_json = ast.literal_eval(e)
+            if e_as_json["status"] == self.error_type:
                 self.filtered_data.append(e)
 
     def send_filtered_data(self):
@@ -55,6 +57,8 @@ class Prefilter:
             topic="Inspect",
             data=json.dumps(data_to_send),
         )
+        logger.info(f"Sent filtered data with time frame from {self.begin_timestamp} to {self.end_timestamp} and data "
+                    f"({len(self.filtered_data)} message(s))")
 
     def clear_data(self):
         self.unfiltered_data = []

@@ -213,6 +213,7 @@ class KafkaConsumeHandler(KafkaHandler):
             raise KeyboardInterrupt
         except Exception as e:
             logger.error(f"Error in KafkaConsumeHandler: {e}")
+            raise
 
     def consume_and_return_json_data(self) -> dict:
         try:
