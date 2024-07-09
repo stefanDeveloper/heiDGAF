@@ -34,7 +34,7 @@ class Prefilter:
         if data:
             self.begin_timestamp = data["begin_timestamp"]
             self.end_timestamp = data["end_timestamp"]
-            self.unfiltered_data = json.loads(data["data"])
+            self.unfiltered_data = data["data"]
         logger.debug("Received consumer message as json data.")
 
     def filter_by_error(self):

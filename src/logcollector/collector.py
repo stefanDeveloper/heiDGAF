@@ -138,6 +138,8 @@ class LogCollector:
         logger.debug("Calling KafkaBatchSender to add message...")
         self.batch_handler.add_message(json.dumps(log_entry))
         logger.info("Added message to batch. Data will be sent when the batch is full.")
+        logger.debug(f"{log_entry=}")
+        logger.debug(f"{json.dumps(log_entry)=}")
 
     def clear_logline(self):
         logger.debug("Clearing current logline...")

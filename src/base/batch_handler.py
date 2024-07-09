@@ -88,6 +88,7 @@ class KafkaBatchSender:
                 "data": self.earlier_messages + self.latest_messages,
             }
             logger.debug(f"{data_to_send=}")
+            logger.debug(f"{json.dumps(data_to_send)=}")
             self.kafka_produce_handler.send(
                 topic=self.topic,
                 data=json.dumps(data_to_send),
