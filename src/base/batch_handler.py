@@ -132,7 +132,9 @@ class KafkaBatchSender:
 # TODO: Test
 class CollectorKafkaBatchSender(KafkaBatchSender):
     def __init__(self, transactional_id: str):
+        logger.debug("Calling KafkaBatchSender(topic='Prefilter', transactional_id=transactional_id, buffer=True)...")
         super().__init__(topic="Prefilter", transactional_id=transactional_id, buffer=True)
+        logger.debug(f"Initialized CollectorKafkaBatchSender ({transactional_id=}).")
 
 
 if __name__ == "__main__":

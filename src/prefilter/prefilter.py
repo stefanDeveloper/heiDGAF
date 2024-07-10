@@ -67,7 +67,9 @@ class Prefilter:
 
 # TODO: Test
 def main():
+    logger.info("Starting Prefilter for errors of type 'NXDOMAIN'...")
     prefilter = Prefilter(error_type="NXDOMAIN")
+    logger.info("Prefilter started. Filtering by type 'NXDOMAIN'...")
 
     while True:
         try:
@@ -94,8 +96,9 @@ def main():
             logger.info("Closing down Prefilter...")
             break
         finally:
+            logger.info("Closing down Prefilter...")
             prefilter.clear_data()
-            logger.debug("Cleared data")
+            logger.info("Prefilter closed down.")
 
 
 if __name__ == "__main__":

@@ -230,13 +230,23 @@ class LogCollector:
 
 # TODO: Test
 def main():
+    logger.info("Starting LogCollector...")
     collector = LogCollector()
+    logger.info("LogCollector started. Fetching loglines from LogServer...")
 
     while True:
         try:
+            logger.debug("Before fetching logline")
             collector.fetch_logline()
+            logger.debug("After fetching logline")
+
+            logger.debug("Before validating and extracting logline")
             collector.validate_and_extract_logline()
+            logger.debug("After validating and extracting logline")
+
+            logger.debug("Before adding logline to batch")
             collector.add_logline_to_batch()
+            logger.debug("After adding logline to batch")
         except ValueError as e:
             logger.info("Incorrect logline: Waiting for next logline...")
             logger.debug(e)
@@ -244,7 +254,9 @@ def main():
             logger.info("Closing down LogCollector...")
             break
         finally:
+            logger.info("Closing down LogCollector...")
             collector.clear_logline()
+            logger.info("LogCollector closed down.")
 
 
 if __name__ == "__main__":

@@ -47,16 +47,22 @@ class Inspector:
         self.messages = []
         self.begin_timestamp = None
         self.end_timestamp = None
-        logger.info("Cleared messages. Inspector is now available.")
+        logger.info("Cleared messages and timestamps. Inspector is now available.")
 
 
 # TODO: Test
 def main():
+    logger.info("Starting Inspector...")
     inspector = Inspector()
+    logger.info("Inspector is running. Waiting for data to come in through topic 'Inspect'...")
 
     while True:
         try:
+            logger.debug("Before getting and filling data")
             inspector.get_and_fill_data()
+            logger.debug("After getting and filling data")
+
+            logger.debug("Functionality not yet implemented.")
             # TODO: Implement functionality here
         except IOError as e:
             logger.error(e)
@@ -67,10 +73,11 @@ def main():
             logger.debug(e)
             continue
         except KeyboardInterrupt:
-            logger.info("Closing down Inspector...")
             break
         finally:
+            logger.info("Closing down Inspector...")
             inspector.clear_data()
+            logger.info("Inspector closed down.")
 
 
 if __name__ == "__main__":
