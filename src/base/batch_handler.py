@@ -20,7 +20,20 @@ BATCH_TIMEOUT = config["kafka"]["batch_sender"]["batch_timeout"]
 
 
 class KafkaBatchSender:
-    def __init__(self, topic: str, transactional_id: str, buffer: bool = False):
+    def __init__(self, topic: str, transactional_id: str, buffer: bool = False) -> None:
+        """
+        Accepts messages and stores them temporarily as batch. If the batch is full or the timer runs out,
+        the batch is sent to the given topic.
+
+        If buffer is True, the batch is kept until the next batch reaches the maximum number of elements. Then,
+        both batches are sent as concatenation. The older batch is removed and the same procedure repeats with
+        the next batch.
+
+        Args:
+            topic (str): Topic to send the full batch with
+            transactional_id (str): ID of the transaction to send the full batch with
+            buffer (bool): True if earlier batch is kept as described above, False if earlier batch should be deleted
+        """
         logger.debug(
             f"Initializing KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})..."
         )
@@ -41,7 +54,14 @@ class KafkaBatchSender:
             f"Initialized KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})."
         )
 
-    def add_message(self, message: str):
+    def add_message(self, message: str) -> None:
+        """
+        Adds the given message to the current batch. Checks if the batch is full. If so, it is sent. In the first
+        execution, the timer is started.
+
+        Args:
+            message (str): Message to be added to the batch
+        """
         logger.debug(f"Adding message '{message}' to batch.")
         with self.lock:
             self.latest_messages.append(message)
@@ -56,7 +76,7 @@ class KafkaBatchSender:
                 self._reset_timer()
         logger.debug(f"Message '{message}' successfully added to batch.")
 
-    def close(self):  # TODO: Change to __del__
+    def close(self):  # TODO: Change to __del__ and add docstring
         logger.debug(f"Closing KafkaBatchSender ({self.topic=} and {self.buffer=})...")
         if self.timer:
             logger.debug("Timer is active. Cancelling timer...")
@@ -67,7 +87,14 @@ class KafkaBatchSender:
         self._send_batch()
         logger.debug(f"Closed KafkaBatchSender ({self.topic=} and {self.buffer=}).")
 
-    def _send_batch(self):
+    def _send_batch(self) -> None:
+        """
+        Sends the current batch if there is data. Also handles the storing of timestamps and the earlier batch.
+        Before the first message is added, the begin_timestamp is set to the current time. Before the batch is sent,
+        an end_timestamp is set. Also resets the timer.
+
+        More information on the handling of timestamps can be found in the documentation.
+        """
         logger.debug("Starting to send the batch...")
 
         if self.earlier_messages or self.latest_messages:
@@ -115,7 +142,11 @@ class KafkaBatchSender:
         self._reset_timer()
         logger.info("Batch successfully sent.")
 
-    def _reset_timer(self):
+    def _reset_timer(self) -> None:
+        """
+        Resets an existing or starts a new timer with the globally set batch timeout. In the case of a timeout,
+        the batch is sent.
+        """
         logger.debug("Resetting timer...")
         if self.timer:
             logger.debug("Cancelling active timer...")
@@ -131,7 +162,17 @@ class KafkaBatchSender:
 
 # TODO: Test
 class CollectorKafkaBatchSender(KafkaBatchSender):
-    def __init__(self, transactional_id: str):
+    def __init__(self, transactional_id: str) -> None:
+        """
+        Accepts messages and stores them temporarily as batch. If the batch is full or the timer runs out,
+        the batch is sent to the topic 'Prefilter'.
+
+        The batch is kept until the next batch reaches the maximum number of elements. Then, both batches are sent as
+        concatenation. The older batch is removed and the same procedure repeats with the next batch.
+
+        Args:
+            transactional_id (str): ID of the transaction to send the full batch with
+        """
         logger.debug("Calling KafkaBatchSender(topic='Prefilter', transactional_id=transactional_id, buffer=True)...")
         super().__init__(topic="Prefilter", transactional_id=transactional_id, buffer=True)
         logger.debug(f"Initialized CollectorKafkaBatchSender ({transactional_id=}).")
