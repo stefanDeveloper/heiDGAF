@@ -39,6 +39,7 @@ class LogServer:
         logger.debug("Initialized LogServer.")
 
     async def open(self):
+        logger.info("Opening LogServer sockets...")
         logger.debug(f"Creating the sending socket on port {self.port_out}...")
         send_server = await asyncio.start_server(
             self.handle_send_logline, str(self.host), self.port_out
@@ -65,23 +66,29 @@ class LogServer:
         logger.debug("Both sockets closed.")
 
     async def handle_connection(self, reader, writer, sending: bool):
+        logger.debug(f"Handling connection with {sending=}...")
         if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
+            logger.debug(f"Adding connection to {self.number_of_connections}/{MAX_NUMBER_OF_CONNECTIONS}) open "
+                         f"connections...")
             self.number_of_connections += 1
             client_address = writer.get_extra_info("peername")
             logger.debug(f"Connection from {client_address} accepted")
 
             try:
                 if sending:
+                    logger.debug("Sending active: Calling send_logline for next available logline...")
                     await self.send_logline(writer, self.get_next_logline())
                 else:
+                    logger.debug("Receiving: Calling receive_logline...")
                     await self.receive_logline(reader)
             except asyncio.CancelledError:
+                logger.debug("Handling cancelled.")
                 pass
             finally:
-                logger.debug(f"Connection to {client_address} closed.")
                 writer.close()
                 await writer.wait_closed()
                 self.number_of_connections -= 1
+                logger.debug(f"Connection to {client_address} closed.")
         else:
             client_address = writer.get_extra_info("peername")
             logger.warning(
@@ -91,17 +98,20 @@ class LogServer:
             await writer.wait_closed()
 
     async def handle_send_logline(self, reader, writer):
+        logger.debug("Calling handle_connection with sending=True...")
         await self.handle_connection(reader, writer, True)
 
     async def handle_receive_logline(self, reader, writer):
+        logger.debug("Calling handle_connection with sending=False...")
         await self.handle_connection(reader, writer, False)
 
     @staticmethod
     async def send_logline(writer, logline):
         if logline:
+            logger.debug(f"Sending {logline=}...")
             writer.write(logline.encode("utf-8"))
             await writer.drain()
-            logger.info(f"Logline sent: {logline}")
+            logger.info(f"Logline sent: '{logline}'")
             return
 
         logger.debug("No logline available")
@@ -116,13 +126,18 @@ class LogServer:
             self.data_queue.put(received_message)
 
     def get_next_logline(self) -> str | None:
+        logger.debug("Getting next available logline...")
         if not self.data_queue.empty():
+            logger.debug("Returning logline...")
             return self.data_queue.get()
         return None
 
 
 def main():
+    logger.info("Starting LogServer...")
     server_instance = LogServer()
+    logger.info("LogServer started. Opening sockets...")
+
     asyncio.run(server_instance.open())
 
 

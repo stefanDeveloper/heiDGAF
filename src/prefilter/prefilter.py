@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class Prefilter:
     def __init__(self, error_type: str):
+        logger.debug(f"Initializing Prefilter for {error_type=}...")
         self.begin_timestamp = None
         self.end_timestamp = None
         self.unfiltered_data = []
@@ -24,45 +25,61 @@ class Prefilter:
         self.kafka_produce_handler = KafkaProduceHandler(transactional_id='prefilter')
         logger.debug(f"Calling KafkaConsumeHandler(topic='Prefilter')...")
         self.kafka_consume_handler = KafkaConsumeHandler(topic="Prefilter")
+        logger.debug("Initialized Prefilter.")
 
     def get_and_fill_data(self):
+        logger.debug("Checking for existing data...")
         if self.unfiltered_data:
             logger.warning("Overwriting existing data by new message.")
         self.clear_data()
+        logger.debug("Cleared existing data.")
 
+        logger.debug("Calling KafkaConsumeHandler for consuming JSON data...")
         data = self.kafka_consume_handler.consume_and_return_json_data()
         # TODO: Check data
         if data:
             self.begin_timestamp = data["begin_timestamp"]
             self.end_timestamp = data["end_timestamp"]
             self.unfiltered_data = data["data"]
-        logger.debug("Received consumer message as json data.")
+        logger.debug("Received consumer message as JSON data.")
+        logger.debug(f"{data=}")
 
     def filter_by_error(self):
+        logger.debug("Filtering data...")
         for e in self.unfiltered_data:
             e_as_json = ast.literal_eval(e)
             if e_as_json["status"] == self.error_type:
                 self.filtered_data.append(e)
+        logger.debug("Data filtered and now available in filtered_data.")
 
     def send_filtered_data(self):
         if not self.filtered_data:
-            raise ValueError("Failed to send data: No filtered data.")
+            logger.debug("No filtered data available.")
+            if self.unfiltered_data:
+                logger.debug("Unfiltered data available. Filtering data automatically...")
+                self.filter_by_error()
+            else:
+                logger.debug("No data send. No filtered or unfiltered data exists.")
+                raise ValueError("Failed to send data: No filtered data.")
 
         data_to_send = {
             "begin_timestamp": self.begin_timestamp,
             "end_timestamp": self.end_timestamp,
             "data": self.filtered_data,
         }
+        logger.debug("Calling KafkaProduceHandler with topic='Inspect'...")
+        logger.debug(f"{data_to_send=}")
         self.kafka_produce_handler.send(
             topic="Inspect",
             data=json.dumps(data_to_send),
         )
         logger.info(f"Sent filtered data with time frame from {self.begin_timestamp} to {self.end_timestamp} and data "
-                    f"({len(self.filtered_data)} message(s))")
+                    f"({len(self.filtered_data)} message(s)).")
 
     def clear_data(self):
         self.unfiltered_data = []
         self.filtered_data = []
+        logger.debug("Cleared data.")
 
 
 # TODO: Test
