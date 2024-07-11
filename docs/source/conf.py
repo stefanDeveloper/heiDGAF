@@ -9,7 +9,7 @@ project = "heidgaf"
 copyright = "2024, Stefan Machmeier"
 author = "Stefan Machmeier"
 
-exec(open("../../heidgaf/version.py").read())
+exec(open("../../src/version.py").read())
 
 version = __version__
 # The full version, including alpha/beta/rc tags
