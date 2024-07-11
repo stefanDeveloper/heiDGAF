@@ -57,7 +57,7 @@ class KafkaBatchSender:
     def add_message(self, message: str) -> None:
         """
         Adds the given message to the current batch. Checks if the batch is full. If so, it is sent. In the first
-        execution, the timer is started.
+        execution, the timer starts.
 
         Args:
             message (str): Message to be added to the batch

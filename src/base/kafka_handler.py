@@ -1,4 +1,8 @@
-# Inspired by https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/eos-transactions.py
+"""
+The Write-Exactly-Once-Semantics used by the KafkaHandlers is shown by
+https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/eos-transactions.py,
+parts of which are similar to the code in this file.
+"""
 import ast
 import json
 import logging
@@ -35,7 +39,11 @@ class KafkaMessageFetchException(Exception):
 
 
 class KafkaHandler:
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Wraps and adds up on the Kafka functionality. KafkaHandler serves as base class for further implementation in
+        its inheriting classes. Base class only specifies the initialization.
+        """
         logger.debug(f"Initializing KafkaHandler...")
         self.consumer = None
 
@@ -51,6 +59,17 @@ class KafkaHandler:
 
 class KafkaProduceHandler(KafkaHandler):
     def __init__(self, transactional_id: str):
+        """
+        Wraps the Kafka Producer functionality of producing data into the Broker(s) using a topic and a
+        transactional_id. Also uses the Write-Exactly-Once-Semantics which requires handling and committing
+        transactions. The topic and data are specified in the method call of send().
+
+        Args:
+            transactional_id (str): ID of the transaction
+
+        Raises:
+            KafkaError
+        """
         logger.debug(f"Initializing KafkaProduceHandler ({transactional_id=})...")
         super().__init__()
 
@@ -72,7 +91,18 @@ class KafkaProduceHandler(KafkaHandler):
 
         logger.debug(f"Initialized KafkaProduceHandler ({transactional_id=}).")
 
-    def send(self, topic: str, data: str):
+    def send(self, topic: str, data: str) -> None:
+        """
+        Encodes the given data for transport and sends it with the specified topic.
+
+        Args:
+            topic (str): Topic to send the data with
+            data (str): Data to be sent
+
+        Raises:
+            Exception: thrown by ``commit_transaction_with_retry()`` or Producer's ``produce()``. Aborts
+                       transaction then.
+        """
         logger.debug(f"Starting to send data to Producer...")
         logger.debug(f"({topic=}, {data=})")
         if not data:
@@ -106,7 +136,15 @@ class KafkaProduceHandler(KafkaHandler):
         logger.debug("Data sent to Producer.")
         logger.debug(f"({data=})")
 
-    def commit_transaction_with_retry(self, max_retries=3, retry_interval_ms=1000):
+    def commit_transaction_with_retry(self, max_retries: int = 3, retry_interval_ms: int = 1000) -> None:
+        """
+        Commits a transaction including retries. If committing fails, it is retried after the given retry interval
+        time up to max_retries times.
+
+        Args:
+            max_retries (int): Maximum number of retries
+            retry_interval_ms (int): Interval between retries in ms
+        """
         logger.debug(
             f"Committing transaction with up to {max_retries} retries ({retry_interval_ms=})..."
         )
@@ -138,7 +176,7 @@ class KafkaProduceHandler(KafkaHandler):
             f"Successfully committed transaction after {retry_count} retry/retries."
         )
 
-    def close(self):  # TODO: Change to __del__
+    def close(self):  # TODO: Change to __del__ and add docstring
         logger.debug("Closing KafkaProduceHandler...")
         self.producer.flush()
         logger.debug("Closed KafkaProduceHandler.")
@@ -146,7 +184,17 @@ class KafkaProduceHandler(KafkaHandler):
 
 # TODO: Test
 class KafkaConsumeHandler(KafkaHandler):
-    def __init__(self, topic: str):
+    def __init__(self, topic: str) -> None:
+        """
+        Wraps the Kafka Consumer functionality of consuming data from the Broker(s) in a specified topic. Also uses
+        the Write-Exactly-Once-Semantics which requires handling and committing transactions.
+
+        Args:
+            topic (str): Topic name to consume from
+
+        Raises:
+            KafkaError
+        """
         logger.debug(f"Initializing KafkaConsumeHandler ({topic=})...")
         super().__init__()
 
@@ -170,13 +218,28 @@ class KafkaConsumeHandler(KafkaHandler):
 
         logger.debug(f"Initialized KafkaConsumeHandler ({topic=}).")
 
-    def __del__(self):
+    def __del__(self) -> None:
+        """
+        Deletes the instance. Closes the running Kafka Consumer if it exists.
+        """
         logger.debug("Deleting KafkaConsumeHandler...")
         if self.consumer:
             self.consumer.close()
         logger.debug("KafkaConsumeHandler deleted.")
 
     def consume(self) -> tuple[str | None, str | None]:
+        """
+        Consumes available messages from the Broker(s) in the specified topic. Decodes the data and returns a tuple
+        of key and data of the message. Blocks and waits if no data is available.
+
+        Returns:
+            Either ``[None,None]`` if empty data was retrieved from the Broker(s) or ``[key,value]`` as tuple
+            of strings of the consumed data.
+
+        Raises:
+            KeyboardInterrupt
+            Exception: inside the while loop
+        """
         logger.debug("Starting to consume messages...")
 
         empty_data_retrieved = False
@@ -216,6 +279,19 @@ class KafkaConsumeHandler(KafkaHandler):
             raise
 
     def consume_and_return_json_data(self) -> dict:
+        """
+        Calls the ``consume()`` method and waits for it to return data. Loads the data and converts it to a JSON
+        object. Returns the JSON data.
+
+        Returns:
+            Consumed data in JSON format
+
+        Raises:
+            ValueError: if data format is invalid
+            KafkaMessageFetchException
+            KeyboardInterrupt
+            IOError
+        """
         try:
             key, value = self.consume()
 
