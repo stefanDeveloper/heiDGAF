@@ -8,7 +8,10 @@ build:
 python:
   install:
     - requirements: docs/requirements.txt
-    - requirements: requirements.txt
+    - requirements: requirements-dev.txt
+    - requirements: requirements.logcollector.txt
+    - requirements: requirements.prefilter.txt
+    - requirements: requirements.inspector.txt
 
 sphinx:
   configuration: docs/source/conf.py
