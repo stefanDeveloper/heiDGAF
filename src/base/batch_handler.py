@@ -134,13 +134,12 @@ class KafkaBatchSender:
                 logger.debug("Earlier messages stored in buffer.")
 
             self.latest_messages = []
+            logger.info("Batch successfully sent.")
         else:
             logger.debug("Messages are empty. Nothing to send.")
-            return
 
         logger.debug("Calling _reset_timer()...")
         self._reset_timer()
-        logger.info("Batch successfully sent.")
 
     def _reset_timer(self) -> None:
         """

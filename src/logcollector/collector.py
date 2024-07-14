@@ -248,15 +248,16 @@ def main():
             collector.add_logline_to_batch()
             logger.debug("After adding logline to batch")
         except ValueError as e:
-            logger.info("Incorrect logline: Waiting for next logline...")
+            logger.debug("Incorrect logline: Waiting for next logline...")
             logger.debug(e)
         except KeyboardInterrupt:
             logger.info("Closing down LogCollector...")
-            break
-        finally:
-            logger.info("Closing down LogCollector...")
             collector.clear_logline()
             logger.info("LogCollector closed down.")
+            break
+        finally:
+            logger.debug("Closing down LogCollector...")
+            collector.clear_logline()
 
 
 if __name__ == "__main__":
