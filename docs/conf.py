@@ -3,17 +3,19 @@ import sys
 
 # Configuration file for the Sphinx documentation builder.
 
+sys.path.insert(0, os.path.abspath('../src/'))
+
 # -- Project information
 
 project = "heidgaf"
-copyright = "2024, Stefan Machmeier"
-author = "Stefan Machmeier"
+copyright = "2024, Stefan Machmeier and Manuel Fuchs"
+author = "Stefan Machmeier and Manuel Fuchs"
 
-exec(open("../../src/version.py").read())
+# exec(open("../src/version.py").read())
 
-version = __version__
+# version = __version__
 # The full version, including alpha/beta/rc tags
-release = __version__
+# release = __version__
 
 # -- Path setup --------------------------------------------------------------
 
@@ -22,12 +24,12 @@ release = __version__
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 
-
-sys.path.insert(0, os.path.abspath("../.."))
+sys.path.insert(0, os.path.abspath(".."))
 
 # -- General configuration
 
 extensions = [
+    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
@@ -36,26 +38,8 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",
-    "sphinx_autodoc_typehints",
     "sphinx.ext.autosummary",
-    "sphinxcontrib.apidoc",  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
-    "nbsphinx",
-    "myst_parser",
-    "sphinx_design",
 ]
-
-# -- nbsphinx settings -------------------------------------------------------
-nbsphinx_execute = "auto"
-
-# -- apidoc settings ---------------------------------------------------------
-apidoc_module_dir = "../../heidgaf"
-apidoc_output_dir = "api"
-apidoc_excluded_paths = ["**/*test*"]
-apidoc_module_first = True
-apidoc_separate_modules = True
-apidoc_extra_args = ["-d 6"]
-
 
 # Napoleon settings
 napoleon_google_docstring = True
@@ -70,7 +54,6 @@ napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = False
 
-
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "sphinx": ("https://www.sphinx-doc.org/en/master/", None),
@@ -78,12 +61,16 @@ intersphinx_mapping = {
 intersphinx_disabled_domains = ["std"]
 
 templates_path = ["_templates"]
+exclude_patterns = ['_build, "Thumbs.db', '.DS_Store']
 
 # -- Options for HTML output
-
 html_theme = "sphinx_rtd_theme"
 
 # -- Options for EPUB output
 epub_show_urls = "footnote"
 
 language = "en"
+
+# Run before: pip install sphinx_rtd_theme
+# To generate API docs, use in project directory:
+# sphinx-apidoc -T -M -o docs/api src/ "*/tests"

@@ -18,7 +18,7 @@ from confluent_kafka import (
     TopicPartition,
 )
 
-sys.path.append(os.getcwd())  # needed for Terminal execution
+sys.path.append(os.path.abspath('../..'))  # needed for Terminal execution
 from src.base.log_config import setup_logging
 from src.base.utils import kafka_delivery_report, setup_config
 

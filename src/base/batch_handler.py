@@ -8,7 +8,7 @@ from threading import Lock, Timer
 from src.base.kafka_handler import KafkaProduceHandler
 from src.base.utils import current_time, setup_config
 
-sys.path.append(os.getcwd())  # needed for Terminal execution
+sys.path.append(os.path.abspath('../..'))  # needed for Terminal execution
 from src.base.log_config import setup_logging
 
 setup_logging()
