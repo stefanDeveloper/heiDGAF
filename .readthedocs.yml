@@ -14,4 +14,4 @@ python:
     - requirements: requirements.inspector.txt
 
 sphinx:
-  configuration: docs/source/conf.py
+  configuration: docs/conf.py
