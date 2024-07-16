@@ -4,6 +4,9 @@ build:
   os: "ubuntu-22.04"
   tools:
     python: "3.10"
+  jobs:
+    pre_build:
+      - sphinx-apidoc -T -M -o docs/api src/ "*/tests"
 
 python:
   install:
