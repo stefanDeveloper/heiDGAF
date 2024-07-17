@@ -18,6 +18,15 @@ CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../../config.yaml")
 
 
 def setup_config():
+    """
+    Loads the configuration data from the configuration file and returns it as the corresponding Python object.
+
+    Returns:
+         Configuration data as corresponding Python object
+
+    Raises:
+        FileNotFoundError: Raised if the configuration file could not be opened.
+    """
     try:
         logger.debug(f"Opening configuration file at {CONFIG_FILEPATH}...")
         with open(CONFIG_FILEPATH, "r") as file:
@@ -25,11 +34,26 @@ def setup_config():
     except FileNotFoundError:
         logger.critical(f"File {CONFIG_FILEPATH} does not exist. Aborting...")
         raise
+
     logger.debug("Configuration file successfully opened and information returned.")
     return config
 
 
-def validate_host(host) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
+def validate_host(
+        host: int | str | bytes | ipaddress.IPv4Address | ipaddress.IPv6Address
+) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
+    """
+    Checks if the given host is a valid IP address. If it is, the IP address is returned with IP address type.
+
+    Args:
+        host (int | str | bytes | IPv4Address | IPv6Address): Host IP address to be checked
+
+    Returns:
+        Correct IP address as ipaddress.IPv4Address or ipaddress.IPv6Address type.
+
+    Raises:
+        ValueError: Invalid host IP address format
+    """
     logger.debug(f"Validating host IP address {host}...")
     try:
         host = ipaddress.ip_address(host)
@@ -42,6 +66,18 @@ def validate_host(host) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
 
 
 def validate_port(port: int) -> int:
+    """
+    Checks if the given port number is in the valid port number range. If it is, the port is returned.
+
+    Args:
+        port (int): Port number to be checked
+
+    Returns:
+        Validated port number as integer
+
+    Raises:
+        ValueError: port number not in valid port number range
+    """
     logger.debug(f"Validating port {port}...")
     if not isinstance(port, int):
         raise TypeError
@@ -55,6 +91,9 @@ def validate_port(port: int) -> int:
 
 
 def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
+    """
+    Delivery report used by Kafka Producers. Specifies the format of the returned messages during producing.
+    """
     if err:
         logger.warning("Message delivery failed: {}".format(err))
     else:
@@ -65,6 +104,13 @@ def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
         )
 
 
-def current_time():
+def current_time() -> str:
+    """
+    Returns the current time.
+
+    Returns:
+        Returns the timestamp of now correctly formatted as string.
+    """
     logger.debug("Returning current timestamp...")
+    # TODO: Replace deprecated method
     return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"

@@ -20,6 +20,12 @@ BATCH_TIMEOUT = config["kafka"]["batch_sender"]["batch_timeout"]
 
 
 class KafkaBatchSender:
+    """
+    Stores a batch of incoming data messages and sends the entire batch as single message to the respective
+    KafkaHandler. Batch is sent when it is full or the timer ran out. More information can be found in the method or
+    project documentation.
+    """
+
     def __init__(self, topic: str, transactional_id: str, buffer: bool = False) -> None:
         """
         Accepts messages and stores them temporarily as batch. If the batch is full or the timer runs out,
@@ -161,6 +167,11 @@ class KafkaBatchSender:
 
 # TODO: Test
 class CollectorKafkaBatchSender(KafkaBatchSender):
+    """
+    Specific type of KafkaBatchSender used in the LogCollector. Calls the standard KafkaBatchSender with arguments
+    fitting the LogCollector usage.
+    """
+
     def __init__(self, transactional_id: str) -> None:
         """
         Accepts messages and stores them temporarily as batch. If the batch is full or the timer runs out,

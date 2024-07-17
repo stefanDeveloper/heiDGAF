@@ -7,7 +7,13 @@ import yaml
 CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../../config.yaml")
 
 
-def setup_logging():
+def setup_logging() -> None:
+    """
+    Sets up the logger with colored logging messages.
+
+    Raises:
+        FileNotFoundError: Raised if the configuration file could not be opened.
+    """
     try:
         with open(CONFIG_FILEPATH, "r") as file:
             config = yaml.safe_load(file)
@@ -37,7 +43,21 @@ def setup_logging():
     )
 
     class CustomHandler(logging.StreamHandler):
-        def format(self, record):
+        """
+        Handles the different styles of logging messages with respect to their level.
+        """
+
+        def format(self, record) -> str:
+            """
+            Formats the data with respect to the level. Uses the simple format for INFO and WARNING messages,
+            for all other levels, the detailed format is used.
+
+            Args:
+                record: record to be formatted
+
+            Returns:
+                formatted logging info
+            """
             if record.levelno in (logging.INFO, logging.WARNING):
                 return simple_formatter.format(record)
             return detailed_formatter.format(record)

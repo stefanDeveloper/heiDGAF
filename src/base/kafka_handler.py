@@ -31,18 +31,28 @@ CONSUMER_GROUP_ID = config["kafka"]["consumer"]["group_id"]
 
 
 class TooManyFailedAttemptsError(Exception):
+    """
+    Exception for too many failed attempts.
+    """
     pass
 
 
 class KafkaMessageFetchException(Exception):
+    """
+    Exception for failed fetch of Kafka messages during consuming.
+    """
     pass
 
 
 class KafkaHandler:
+    """
+    Wraps and adds up on the Kafka functionality. ``KafkaHandler`` serves as base class for further implementation in
+    its inheriting classes. Base class only specifies the initialization.
+    """
+
     def __init__(self) -> None:
         """
-        Wraps and adds up on the Kafka functionality. KafkaHandler serves as base class for further implementation in
-        its inheriting classes. Base class only specifies the initialization.
+        Initializes the brokers used in further tasks.
         """
         logger.debug(f"Initializing KafkaHandler...")
         self.consumer = None
@@ -61,8 +71,8 @@ class KafkaProduceHandler(KafkaHandler):
     def __init__(self, transactional_id: str):
         """
         Wraps the Kafka Producer functionality of producing data into the Broker(s) using a topic and a
-        transactional_id. Also uses the Write-Exactly-Once-Semantics which requires handling and committing
-        transactions. The topic and data are specified in the method call of send().
+        ``transactional_id``. Also uses the Write-Exactly-Once-Semantics which requires handling and committing
+        transactions. The topic and data are specified in the method call of ``send()``.
 
         Args:
             transactional_id (str): ID of the transaction
@@ -139,7 +149,7 @@ class KafkaProduceHandler(KafkaHandler):
     def commit_transaction_with_retry(self, max_retries: int = 3, retry_interval_ms: int = 1000) -> None:
         """
         Commits a transaction including retries. If committing fails, it is retried after the given retry interval
-        time up to max_retries times.
+        time up to ``max_retries`` times.
 
         Args:
             max_retries (int): Maximum number of retries
@@ -184,16 +194,20 @@ class KafkaProduceHandler(KafkaHandler):
 
 # TODO: Test
 class KafkaConsumeHandler(KafkaHandler):
+    """
+    Wraps and adds up on the Kafka Consumer functionality of consuming data from the Broker(s) in a specified topic.
+    Also uses the Write-Exactly-Once-Semantics which requires handling and committing transactions.
+    """
+
     def __init__(self, topic: str) -> None:
         """
-        Wraps the Kafka Consumer functionality of consuming data from the Broker(s) in a specified topic. Also uses
-        the Write-Exactly-Once-Semantics which requires handling and committing transactions.
+        Initializes the KafkaConsumeHandler, consuming on the given topic.
 
         Args:
             topic (str): Topic name to consume from
 
         Raises:
-            KafkaError
+            KafkaError: raised in constructing the Consumer or assigning the topic.
         """
         logger.debug(f"Initializing KafkaConsumeHandler ({topic=})...")
         super().__init__()
