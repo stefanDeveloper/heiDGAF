@@ -206,7 +206,7 @@ Configuration
 -------------
 
 Configuration settings for the :class:`LogCollector` and :class:`CollectorKafkaBatchSender` are managed in the
-`config.yaml` file (key: ``heidgaf.collector``):
+`config.yaml` file (keys: ``heidgaf.collector`` and ``kafka.batch_sender``):
 
 - **LogCollector Analyzation Criteria**:
 
