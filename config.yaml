@@ -7,7 +7,7 @@ heidgaf:
       hostname: 172.27.0.8
       port_in: 9998
       port_out: 9999
-      max_number_of_connections: 5
+      max_number_of_connections: 1000
 
   collector:
     valid_status_codes: ["NOERROR", "NXDOMAIN"]

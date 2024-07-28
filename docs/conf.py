@@ -39,6 +39,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
+    "sphinx.ext.autosectionlabel",
 ]
 
 # Napoleon settings
