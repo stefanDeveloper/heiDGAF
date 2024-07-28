@@ -3,7 +3,7 @@ import sys
 
 # Configuration file for the Sphinx documentation builder.
 
-sys.path.insert(0, os.path.abspath('../src/'))
+sys.path.insert(0, os.path.abspath("../src/"))
 
 # -- Project information
 
@@ -62,11 +62,14 @@ intersphinx_mapping = {
 intersphinx_disabled_domains = ["std"]
 
 templates_path = ["_templates"]
-exclude_patterns = ['_build, "Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build, "Thumbs.db', ".DS_Store"]
 
 # -- Options for HTML output
-html_theme = "sphinx_rtd_theme"
-
+html_theme = "sphinx_book_theme"
+html_theme_options = {
+    "use_repository_button": True,
+    "repository_url": "https://github.com/stefanDeveloper/heiDGAF",
+}
 # -- Options for EPUB output
 epub_show_urls = "footnote"
 
