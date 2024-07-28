@@ -13,10 +13,10 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 config = setup_config()
-HOSTNAME = config["heidgaf"]["lc"]["logserver"]["hostname"]
-PORT_IN = config["heidgaf"]["lc"]["logserver"]["port_in"]
-PORT_OUT = config["heidgaf"]["lc"]["logserver"]["port_out"]
-MAX_NUMBER_OF_CONNECTIONS = config["heidgaf"]["lc"]["logserver"]["max_number_of_connections"]
+HOSTNAME = config["heidgaf"]["logserver"]["hostname"]
+PORT_IN = config["heidgaf"]["logserver"]["port_in"]
+PORT_OUT = config["heidgaf"]["logserver"]["port_out"]
+MAX_NUMBER_OF_CONNECTIONS = config["heidgaf"]["logserver"]["max_number_of_connections"]
 
 
 class LogServer:

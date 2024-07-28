@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 config = setup_config()
 VALID_STATUS_CODES = config["heidgaf"]["collector"]["valid_status_codes"]
 VALID_RECORD_TYPES = config["heidgaf"]["collector"]["valid_record_types"]
-LOGSERVER_HOSTNAME = config["heidgaf"]["lc"]["logserver"]["hostname"]
-LOGSERVER_SENDING_PORT = config["heidgaf"]["lc"]["logserver"]["port_out"]
+LOGSERVER_HOSTNAME = config["heidgaf"]["logserver"]["hostname"]
+LOGSERVER_SENDING_PORT = config["heidgaf"]["logserver"]["port_out"]
 
 
 class LogCollector:
