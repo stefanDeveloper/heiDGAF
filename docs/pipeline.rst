@@ -8,6 +8,8 @@ Pipeline
 Overview
 ========
 
+.. image:: media/pipeline_overview.pdf
+
 
 Stage 1: Log Storage
 ====================
