@@ -75,6 +75,6 @@ epub_show_urls = "footnote"
 
 language = "en"
 
-# Run before: pip install sphinx_rtd_theme
+# Run before: pip install sphinx_book_theme
 # To generate API docs, use in project directory:
 # sphinx-apidoc -T -M -o docs/api src/ "*/tests"
