@@ -131,7 +131,49 @@ validates. The log line is parsed into its respective fields, each checked for c
 
 - **Log Line Format**:
 
-  - *(Future section to describe the log line format in detail.)*
+  - Log lines have the format:
+
+    .. code-block::
+
+        TIMESTAMP STATUS CLIENT_IP DNS_IP HOST_DOMAIN_NAME RECORD_TYPE RESPONSE_IP SIZE
+
+    +----------------------+------------------------------------------------+
+    | **Field**            | **Description**                                |
+    +======================+================================================+
+    | ``TIMESTAMP``        | The date and time when the log entry was       |
+    |                      | recorded. Formatted as                         |
+    |                      | ``YYYY-MM-DDTHH:MM:SS.sssZ``.                  |
+    |                      |                                                |
+    |                      | - **Format**: ``%Y-%m-%dT%H:%M:%S.%f`` (with   |
+    |                      |   microseconds truncated to milliseconds).     |
+    |                      | - **Time Zone**: ``Z``                         |
+    |                      |   indicates Zulu time (UTC).                   |
+    |                      | - **Example**: ``2024-07-28T14:45:30.123Z``    |
+    |                      |                                                |
+    |                      | This format closely resembles ISO 8601, with   |
+    |                      | milliseconds precision.                        |
+    +----------------------+------------------------------------------------+
+    | ``STATUS``           | The status of the DNS query, e.g., ``NOERROR``,|
+    |                      | ``NXDOMAIN``.                                  |
+    +----------------------+------------------------------------------------+
+    | ``CLIENT_IP``        | The IP address of the client that made the     |
+    |                      | request.                                       |
+    +----------------------+------------------------------------------------+
+    | ``DNS_IP``           | The IP address of the DNS server processing    |
+    |                      | the request.                                   |
+    +----------------------+------------------------------------------------+
+    | ``HOST_DOMAIN_NAME`` | The domain name being queried.                 |
+    +----------------------+------------------------------------------------+
+    | ``RECORD_TYPE``      | The type of DNS record requested, such as ``A``|
+    |                      | or ``AAAA``.                                   |
+    +----------------------+------------------------------------------------+
+    | ``RESPONSE_IP``      | The IP address returned in the DNS response.   |
+    +----------------------+------------------------------------------------+
+    | ``SIZE``             | The size of the DNS query response in bytes.   |
+    |                      | Represented in the format like ``150b``, where |
+    |                      | the number indicates the size and ``b`` denotes|
+    |                      | bytes.                                         |
+    +----------------------+------------------------------------------------+
 
 CollectorKafkaBatchSender
 .........................

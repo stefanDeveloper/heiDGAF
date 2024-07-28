@@ -14,13 +14,6 @@ from src.base.utils import validate_host, setup_config
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# TODO: Move to docs
-# LOG FORMAT:
-# TIMESTAMP STATUS CLIENT_IP DNS_IP HOST_DOMAIN_NAME RECORD_TYPE RESPONSE_IP SIZE
-# EXAMPLE:
-# 2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A
-# b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b
-
 config = setup_config()
 VALID_STATUS_CODES = config["heidgaf"]["collector"]["valid_status_codes"]
 VALID_RECORD_TYPES = config["heidgaf"]["collector"]["valid_record_types"]

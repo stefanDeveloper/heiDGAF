@@ -20,7 +20,7 @@ class Inspector:
         self.kafka_consume_handler = KafkaConsumeHandler(topic="Inspect")
         logger.debug(f"Initialized Inspector.")
 
-    def get_and_fill_data(self):
+    def get_and_fill_data(self) -> None:
         logger.debug("Getting and filling data...")
         if self.messages:
             logger.warning(
