@@ -187,7 +187,7 @@ The :class:`CollectorKafkaBatchSender` manages the buffering and batch sending o
   - Starts a timer upon receiving the first log entry.
   - Collects log entries into a `latest_messages` list.
   - Upon timer expiration or when a batch reaches the configured size (e.g., 1000 entries), the current and previous
-    batches are concatenated and sent.
+    batches are concatenated and sent to the Kafka Broker(s) with topic ``Prefilter``.
 
 - **Timestamp Management**:
 
@@ -220,6 +220,11 @@ Configuration settings for the :class:`LogCollector` and :class:`CollectorKafkaB
     - ``batch_size``: The maximum number of log lines per batch. Default is ``1000``.
     - ``timeout_seconds``: The time interval (in seconds) after which the batch is sent, regardless of size. Default
       is ``60``.
+
+- **Kafka Topics**:
+
+  - **Output Topic**: ``Prefilter`` - After collection, the processed log data is published to this topic for subsequent
+    stages.
 
 Buffer Functionality
 --------------------
@@ -270,18 +275,46 @@ Stage 3: Log Filtering
 Overview
 --------
 
+The `Log Filtering` stage is responsible for processing and refining log data by filtering out entries based on
+specified error types. This step ensures that only relevant logs are passed on for further analysis, optimizing the
+performance and accuracy of subsequent pipeline stages.
+
 Main Class
 ----------
 
 .. py:currentmodule:: src.prefilter.prefilter
-
 .. autoclass:: Prefilter
+
+The :class:`Prefilter` class serves as the primary component in this stage, handling the extraction and filtering of
+log data.
 
 Usage
 -----
 
+The :class:`Prefilter` loads data from the Kafka topic ``Prefilter``. It extracts the log entries and applies a filter
+to retain only those entries that match the specified error types. These error types are provided as a list of strings
+during the initialization of a :class:`Prefilter` instance.
+
+Once the filtering process is complete, the refined data is sent back to the Kafka Brokers under the topic ``Inspect``
+for further processing in subsequent stages.
+
 Configuration
 -------------
+
+To configure the :class:`Prefilter` and customize the filtering behavior, the following options are available:
+
+- **Error Types**:
+
+  - When creating an instance of :class:`Prefilter`, a list of error types is passed as an argument. This list defines
+    the types of errors that should be retained in the filtering process.
+  - **Example**: If the filter is configured with the list ``["NXDOMAIN", ]``, only logs with error status
+    ``NXDOMAIN`` will be processed and sent to the ``Inspect`` topic.
+
+- **Kafka Topics**:
+
+  - **Input Topic**: ``Prefilter`` - This is the Kafka topic from which the `Prefilter` loads the incoming log data.
+  - **Output Topic**: ``Inspect`` - After filtering, the processed log data is published to this topic for subsequent
+    stages.
 
 
 Stage 4: Data Inspection
