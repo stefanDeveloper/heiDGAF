@@ -327,7 +327,6 @@ Main Class
 ----------
 
 .. py:currentmodule:: src.inspector.inspector
-
 .. autoclass:: Inspector
 
 Usage
@@ -347,7 +346,6 @@ Main Class
 ----------
 
 .. py:currentmodule:: src.detector.detector
-
 .. autoclass:: Detector
 
 Usage

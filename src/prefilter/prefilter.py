@@ -13,7 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 class Prefilter:
-    def __init__(self, error_type: str):
+    """
+    Loads the data from the topic ``Prefilter`` and filters it so that only entries with the given status type(s) are
+    kept. Filtered data is then sent using topic ``Inspect``.
+    """
+    def __init__(self, error_type: list[str]):
         logger.debug(f"Initializing Prefilter for {error_type=}...")
         self.begin_timestamp = None
         self.end_timestamp = None
@@ -44,11 +48,15 @@ class Prefilter:
         logger.debug("Received consumer message as JSON data.")
         logger.debug(f"{data=}")
 
-    def filter_by_error(self):
+    def filter_by_error(self) -> None:
+        """
+        Applies the filter to the data in ``unfiltered_data``, i.e. all log lines whose error status is in
+        the given error types are kept and added to ``filtered_data``, all other ones are discarded.
+        """
         logger.debug("Filtering data...")
         for e in self.unfiltered_data:
             e_as_json = ast.literal_eval(e)
-            if e_as_json["status"] == self.error_type:
+            if e_as_json["status"] in self.error_type:
                 self.filtered_data.append(e)
         logger.debug("Data filtered and now available in filtered_data.")
 
@@ -77,6 +85,9 @@ class Prefilter:
                     f"({len(self.filtered_data)} message(s)).")
 
     def clear_data(self):
+        """
+        Clears the data in the internal data structures.
+        """
         self.unfiltered_data = []
         self.filtered_data = []
         logger.debug("Cleared data.")
@@ -85,7 +96,7 @@ class Prefilter:
 # TODO: Test
 def main():
     logger.info("Starting Prefilter for errors of type 'NXDOMAIN'...")
-    prefilter = Prefilter(error_type="NXDOMAIN")
+    prefilter = Prefilter(error_type=["NXDOMAIN"])
     logger.info("Prefilter started. Filtering by type 'NXDOMAIN'...")
 
     while True:

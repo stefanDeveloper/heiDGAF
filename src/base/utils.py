@@ -13,7 +13,6 @@ from src.base.log_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# TODO: Update
 CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../../config.yaml")
 
 

@@ -22,6 +22,11 @@ LOGSERVER_SENDING_PORT = config["heidgaf"]["logserver"]["port_out"]
 
 
 class LogCollector:
+    """
+    Connects to the :class:`LogServer`'s outgoing port to receive a log line. Validates all data fields by type and
+    value, invalid log lines are discarded. All valid log lines are sent to the :class:`CollectorKafkaBatchSender`.
+    """
+
     def __init__(self):
         logger.debug("Initializing LogCollector...")
         self.log_server = {}
@@ -40,8 +45,14 @@ class LogCollector:
         self.batch_handler = CollectorKafkaBatchSender(transactional_id="collector")
         logger.debug("Initialized LogCollector.")
 
-    def fetch_logline(self):
-        logger.debug("Fetching new logline from LogServer...")
+    def fetch_logline(self) -> None:
+        """
+        Connects to the :class:`LogServer` and fetches a log line. If log line is available, it is decoded and stored.
+
+        Raises:
+            ConnectionError: Connection to :class:`LogServer` cannot be established.
+        """
+        logger.debug("Fetching new log line from LogServer...")
         try:
             with socket.socket(
                     socket.AF_INET, socket.SOCK_STREAM
@@ -61,7 +72,7 @@ class LogCollector:
                     return
 
                 self.logline = data.decode("utf-8")
-                logger.info(f"Received logline.")
+                logger.info(f"Received log line.")
                 logger.debug(f"{self.logline=}")
         except ConnectionError:
             logger.error(
@@ -69,17 +80,24 @@ class LogCollector:
             )
             raise
 
-    def validate_and_extract_logline(self):
-        logger.debug("Validating and extracting current logline...")
+    def validate_and_extract_logline(self) -> None:
+        """
+        Splits the log line into its respective fields and validates all fields. Validation of a field is specific
+        to the type of field (e.g. IP Address is checked for correct format). Stores the validated fields internally.
+
+        Raises:
+            ValueError: Log line has one or multiple invalid fields, or a wrong number of fields.
+        """
+        logger.debug("Validating and extracting current log line...")
         if not self.logline:
-            raise ValueError("Failed to extract logline: No logline.")
+            raise ValueError("Failed to extract logline: No log line.")
 
         parts = self.logline.split()
 
         try:
             if not self._check_length(parts):
                 raise ValueError(
-                    f"Logline does not contain exactly 8 values, but {len(parts)} values were found."
+                    f"Log line does not contain exactly 8 values, but {len(parts)} values were found."
                 )
             if not self._check_timestamp(parts[0]):
                 raise ValueError(f"Invalid timestamp")
@@ -92,7 +110,7 @@ class LogCollector:
             if not self._check_size(parts[7]):
                 raise ValueError(f"Invalid size value")
         except ValueError as e:
-            raise ValueError(f"Incorrect logline: {e}")
+            raise ValueError(f"Incorrect log line: {e}")
 
         try:
             self.log_data["client_ip"] = validate_host(parts[2])
@@ -102,7 +120,7 @@ class LogCollector:
             self.log_data["client_ip"] = None
             self.log_data["dns_ip"] = None
             self.log_data["response_ip"] = None
-            raise ValueError(f"Incorrect logline: {e}")
+            raise ValueError(f"Incorrect log line: {e}")
 
         self.log_data["timestamp"] = parts[0]
         logger.debug(f"Timestamp set to {self.log_data['timestamp']}")
@@ -114,13 +132,17 @@ class LogCollector:
         logger.debug(f"Record type set to {self.log_data['record_type']}")
         self.log_data["size"] = parts[7]
         logger.debug(f"Size set to {self.log_data['size']}")
-        logger.info("Logline is correct. Extracted all data.")
+        logger.info("Log line is correct. Extracted all data.")
 
-    def add_logline_to_batch(self):
-        logger.debug("Adding logline to batch...")
+    def add_logline_to_batch(self) -> None:
+        """
+        Sends the validated log line in JSON format to :class:`CollectorKafkaBatchSender`, where it is stored in
+        a temporary batch before being sent to topic ``Prefilter``.
+        """
+        logger.debug("Adding log line to batch...")
         if not self.logline or self.log_data == {}:
             raise ValueError(
-                "Failed to add logline to batch: No logline or extracted data."
+                "Failed to add log line to batch: No logline or extracted data."
             )
 
         log_entry = self.log_data.copy()
@@ -134,11 +156,14 @@ class LogCollector:
         logger.debug(f"{log_entry=}")
         logger.debug(f"{json.dumps(log_entry)=}")
 
-    def clear_logline(self):
-        logger.debug("Clearing current logline...")
+    def clear_logline(self) -> None:
+        """
+        Clears all information regarding the stored log line. Afterward, instance can load the next log line.
+        """
+        logger.debug("Clearing current log line...")
         self.logline = None
         self.log_data = {}
-        logger.debug("Cleared logline.")
+        logger.debug("Cleared log line.")
 
     @staticmethod
     def _check_length(parts: list[str]) -> bool:
@@ -225,23 +250,23 @@ class LogCollector:
 def main():
     logger.info("Starting LogCollector...")
     collector = LogCollector()
-    logger.info("LogCollector started. Fetching loglines from LogServer...")
+    logger.info("LogCollector started. Fetching log lines from LogServer...")
 
     while True:
         try:
-            logger.debug("Before fetching logline")
+            logger.debug("Before fetching log line")
             collector.fetch_logline()
-            logger.debug("After fetching logline")
+            logger.debug("After fetching log line")
 
-            logger.debug("Before validating and extracting logline")
+            logger.debug("Before validating and extracting log line")
             collector.validate_and_extract_logline()
-            logger.debug("After validating and extracting logline")
+            logger.debug("After validating and extracting log line")
 
-            logger.debug("Before adding logline to batch")
+            logger.debug("Before adding log line to batch")
             collector.add_logline_to_batch()
-            logger.debug("After adding logline to batch")
+            logger.debug("After adding log line to batch")
         except ValueError as e:
-            logger.debug("Incorrect logline: Waiting for next logline...")
+            logger.debug("Incorrect log line: Waiting for next log line...")
             logger.debug(e)
         except KeyboardInterrupt:
             logger.info("Closing down LogCollector...")

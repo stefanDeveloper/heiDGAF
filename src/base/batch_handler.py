@@ -22,15 +22,12 @@ BATCH_TIMEOUT = config["kafka"]["batch_sender"]["batch_timeout"]
 class KafkaBatchSender:
     """
     Stores a batch of incoming data messages and sends the entire batch as single message to the respective
-    KafkaHandler. Batch is sent when it is full or the timer runs out.
+    :class:`KafkaHandler`. Batch is sent to the given topic when it is full or the timer runs out.
     """
 
     def __init__(self, topic: str, transactional_id: str, buffer: bool = False) -> None:
         """
-        Accepts messages and stores them temporarily as batch. If the batch is full or the timer runs out,
-        the batch is sent to the given topic.
-
-        If buffer is True, the batch is kept until the next batch reaches the maximum number of elements. Then,
+        If buffer is ``True``, the batch is kept until the next batch reaches the maximum number of elements. Then,
         both batches are sent as concatenation. The older batch is removed and the same procedure repeats with
         the next batch.
 
@@ -167,16 +164,14 @@ class KafkaBatchSender:
 # TODO: Test
 class CollectorKafkaBatchSender(KafkaBatchSender):
     """
-    Specific type of KafkaBatchSender used in the LogCollector. Calls the standard KafkaBatchSender with arguments
-    fitting the LogCollector usage. Stores a batch of incoming data messages and sends the entire batch as single
-    message to the respective KafkaHandler. Batch is sent when it is full or the timer runs out.
+    Specific type of :class:`KafkaBatchSender` used in the :class:`LogCollector`. Calls the standard :class:`KafkaBatchSender`
+    with arguments ``topic="Prefilter", transactional_id=transactional_id, buffer=True``, fitting the
+    :class:`LogCollector` usage. Stores a batch of incoming data messages and sends the entire batch as single
+    message to the respective :class:`KafkaHandler`. Batch is sent when it is full or the timer runs out.
     """
 
     def __init__(self, transactional_id: str) -> None:
         """
-        Accepts messages and stores them temporarily as batch. If the batch is full or the timer runs out,
-        the batch is sent to the topic 'Prefilter'.
-
         The batch is kept until the next batch reaches the maximum number of elements. Then, both batches are sent as
         concatenation. The older batch is removed and the same procedure repeats with the next batch.
 

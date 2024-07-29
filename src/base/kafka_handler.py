@@ -46,8 +46,8 @@ class KafkaMessageFetchException(Exception):
 
 class KafkaHandler:
     """
-    Wraps and adds up on the Kafka functionality. ``KafkaHandler`` serves as base class for further implementation in
-    its inheriting classes. Base class only specifies the initialization.
+    Wraps and adds up on the Kafka functionality. :class:`KafkaHandler` serves as base class for further implementation
+    in its inheriting classes. Base class only specifies the initialization.
     """
 
     def __init__(self) -> None:
@@ -68,12 +68,14 @@ class KafkaHandler:
 
 
 class KafkaProduceHandler(KafkaHandler):
+    """
+    Wraps the Kafka Producer functionality of producing data into the Broker(s) using a topic and a
+    ``transactional_id`` specified in initialization. Also uses the Write-Exactly-Once-Semantics which requires
+    handling and committing transactions. The topic and data are specified in the method call of ``send()``.
+    """
+
     def __init__(self, transactional_id: str):
         """
-        Wraps the Kafka Producer functionality of producing data into the Broker(s) using a topic and a
-        ``transactional_id``. Also uses the Write-Exactly-Once-Semantics which requires handling and committing
-        transactions. The topic and data are specified in the method call of ``send()``.
-
         Args:
             transactional_id (str): ID of the transaction
 
@@ -201,8 +203,6 @@ class KafkaConsumeHandler(KafkaHandler):
 
     def __init__(self, topic: str) -> None:
         """
-        Initializes the KafkaConsumeHandler, consuming on the given topic.
-
         Args:
             topic (str): Topic name to consume from
 
