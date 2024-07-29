@@ -12,7 +12,7 @@ def setup_logging() -> None:
     Sets up the logger with colored logging messages.
 
     Raises:
-        FileNotFoundError: Raised if the configuration file could not be opened.
+        FileNotFoundError: Configuration file could not be opened
     """
     try:
         with open(CONFIG_FILEPATH, "r") as file:

@@ -86,7 +86,7 @@ class LogCollector:
         to the type of field (e.g. IP Address is checked for correct format). Stores the validated fields internally.
 
         Raises:
-            ValueError: Log line has one or multiple invalid fields, or a wrong number of fields.
+            ValueError: Log line has one or multiple invalid fields, or a wrong number of fields
         """
         logger.debug("Validating and extracting current log line...")
         if not self.logline:
@@ -167,6 +167,15 @@ class LogCollector:
 
     @staticmethod
     def _check_length(parts: list[str]) -> bool:
+        """
+        Validates the number of fields of the log line.
+
+        Args:
+            parts (list[str]): Fields of the log line, already split up.
+
+        Returns:
+            ``True`` if number of fields is valid, ``False`` otherwise
+        """
         logger.debug(f"Checking the size of the given list {parts}...")
         size = len(parts)
         allowed_size = 8
@@ -183,6 +192,16 @@ class LogCollector:
 
     @staticmethod
     def _check_timestamp(timestamp: str) -> bool:
+        """
+        Validates the timestamp format. Correct format described in
+        https://heidgaf.readthedocs.io/en/latest/pipeline.html#logcollector.
+
+        Args:
+            timestamp (str): Timestamp to be checked.
+
+        Returns:
+            ``True`` if timestamp (format) is correct, ``False`` otherwise
+        """
         logger.debug(f"Checking timestamp format of {timestamp}...")
         pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"
 
@@ -194,7 +213,16 @@ class LogCollector:
         return False
 
     @staticmethod
-    def _check_status(status: str):
+    def _check_status(status: str) -> bool:
+        """
+        Validates the status type of the log line.
+
+        Args:
+            status (str): Status type to be checked.
+
+        Returns:
+            ``True`` if the given status type is in ``VALID_STATUS_CODES``, ``False`` otherwise
+        """
         logger.debug(f"Checking status code {status}...")
         return_value = status in VALID_STATUS_CODES
 
@@ -208,7 +236,16 @@ class LogCollector:
         return return_value
 
     @staticmethod
-    def _check_domain_name(domain_name: str):
+    def _check_domain_name(domain_name: str) -> bool:
+        """
+        Validates the format of the given domain name.
+
+        Args:
+            domain_name (str): Domain name to be checked.
+
+        Returns:
+            ``True`` if the given domain name's format is valid, ``False`` otherwise
+        """
         logger.debug(f"Checking domain name {domain_name}...")
         pattern = r"^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$"
 
@@ -221,6 +258,15 @@ class LogCollector:
 
     @staticmethod
     def _check_record_type(record_type: str) -> bool:
+        """
+        Validates the record type.
+
+        Args:
+            record_type (str): Record type to be checked.
+
+        Returns:
+            ``True`` if given string is a valid record type, ``False`` otherwise
+        """
         logger.debug(f"Checking record type {record_type}...")
         return_value = record_type in VALID_RECORD_TYPES
 
@@ -234,7 +280,16 @@ class LogCollector:
         return return_value
 
     @staticmethod
-    def _check_size(size: str):
+    def _check_size(size: str) -> bool:
+        """
+        Validates the size value. Size value is given is bytes, with an additional 'b' after the number.
+
+        Args:
+            size (str): Size value to be checked.
+
+        Returns:
+            ``True`` if the size value has the correct format, ``False`` otherwise
+        """
         logger.debug(f"Checking size value {size}...")
         pattern = r"^\d+b$"
 
@@ -247,7 +302,14 @@ class LogCollector:
 
 
 # TODO: Test
-def main():
+def main() -> None:
+    """
+    Creates the :class:`LogCollector` instance. Starts a loop that continuously fetches a log line, validates and
+    extracts its information and adds it to the batch if valid.
+
+    Raises:
+        KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
+    """
     logger.info("Starting LogCollector...")
     collector = LogCollector()
     logger.info("LogCollector started. Fetching log lines from LogServer...")

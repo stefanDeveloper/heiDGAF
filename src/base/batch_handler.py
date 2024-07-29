@@ -34,7 +34,8 @@ class KafkaBatchSender:
         Args:
             topic (str): Topic to send the full batch with
             transactional_id (str): ID of the transaction to send the full batch with
-            buffer (bool): True if earlier batch is kept as described above, False if earlier batch should be deleted
+            buffer (bool): ``True`` if earlier batch is kept as described above, ``False`` if earlier batch should be
+                           deleted
         """
         logger.debug(
             f"Initializing KafkaBatchSender ({topic=}, {transactional_id=} and {buffer=})..."
@@ -92,10 +93,11 @@ class KafkaBatchSender:
     def _send_batch(self) -> None:
         """
         Sends the current batch if there is data. Also handles the storing of timestamps and the earlier batch.
-        Before the first message is added, the begin_timestamp is set to the current time. Before the batch is sent,
-        an end_timestamp is set. Also resets the timer.
+        Before the first message is added, the `begin_timestamp` is set to the current time. Before the batch is sent,
+        an `end_timestamp` is set. Also resets the timer.
 
-        More information on the handling of timestamps can be found in the documentation.
+        More information on the handling of timestamps can be found here:
+        https://heidgaf.readthedocs.io/en/latest/pipeline.html#timestamps-for-kafkabatchsender.
         """
         logger.debug("Starting to send the batch...")
 
@@ -164,10 +166,10 @@ class KafkaBatchSender:
 # TODO: Test
 class CollectorKafkaBatchSender(KafkaBatchSender):
     """
-    Specific type of :class:`KafkaBatchSender` used in the :class:`LogCollector`. Calls the standard :class:`KafkaBatchSender`
-    with arguments ``topic="Prefilter", transactional_id=transactional_id, buffer=True``, fitting the
-    :class:`LogCollector` usage. Stores a batch of incoming data messages and sends the entire batch as single
-    message to the respective :class:`KafkaHandler`. Batch is sent when it is full or the timer runs out.
+    Specific type of :class:`KafkaBatchSender` used in the :class:`LogCollector`. Calls the standard
+    :class:`KafkaBatchSender` with arguments ``topic="Prefilter", transactional_id=transactional_id, buffer=True``,
+    fitting the :class:`LogCollector` usage. Stores a batch of incoming data messages and sends the entire batch as
+    single message to the respective :class:`KafkaHandler`. Batch is sent when it is full or the timer runs out.
     """
 
     def __init__(self, transactional_id: str) -> None:
@@ -181,19 +183,3 @@ class CollectorKafkaBatchSender(KafkaBatchSender):
         logger.debug("Calling KafkaBatchSender(topic='Prefilter', transactional_id=transactional_id, buffer=True)...")
         super().__init__(topic="Prefilter", transactional_id=transactional_id, buffer=True)
         logger.debug(f"Initialized CollectorKafkaBatchSender ({transactional_id=}).")
-
-
-if __name__ == "__main__":
-    instance = KafkaBatchSender("test_topic", "test_id", True)
-    instance.add_message("message_1")
-    time.sleep(2)
-    instance.add_message("message_2")
-    time.sleep(2)
-    instance.add_message("message_3")
-    time.sleep(2)
-    instance.add_message("message_4")
-    time.sleep(2)
-    instance.add_message("message_5")
-    time.sleep(2)
-    instance.add_message("message_6")
-    instance.close()

@@ -24,7 +24,7 @@ def setup_config():
          Configuration data as corresponding Python object
 
     Raises:
-        FileNotFoundError: Raised if the configuration file could not be opened.
+        FileNotFoundError: Configuration file could not be opened
     """
     try:
         logger.debug(f"Opening configuration file at {CONFIG_FILEPATH}...")
@@ -75,7 +75,7 @@ def validate_port(port: int) -> int:
         Validated port number as integer
 
     Raises:
-        ValueError: port number not in valid port number range
+        ValueError: Port number not in valid port number range
     """
     logger.debug(f"Validating port {port}...")
     if not isinstance(port, int):

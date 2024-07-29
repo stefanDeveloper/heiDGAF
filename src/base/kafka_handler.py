@@ -1,5 +1,5 @@
 """
-The Write-Exactly-Once-Semantics used by the KafkaHandlers is shown by
+The Write-Exactly-Once-Semantics used by the :class:`KafkaHandler`s is shown by
 https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/eos-transactions.py,
 parts of which are similar to the code in this file.
 """
@@ -71,7 +71,7 @@ class KafkaProduceHandler(KafkaHandler):
     """
     Wraps the Kafka Producer functionality of producing data into the Broker(s) using a topic and a
     ``transactional_id`` specified in initialization. Also uses the Write-Exactly-Once-Semantics which requires
-    handling and committing transactions. The topic and data are specified in the method call of ``send()``.
+    handling and committing transactions. The topic and data are specified in the method call of :meth:`send()`.
     """
 
     def __init__(self, transactional_id: str):
@@ -80,7 +80,7 @@ class KafkaProduceHandler(KafkaHandler):
             transactional_id (str): ID of the transaction
 
         Raises:
-            KafkaError
+            KafkaError: During initialization of Producer or its transactions
         """
         logger.debug(f"Initializing KafkaProduceHandler ({transactional_id=})...")
         super().__init__()
@@ -108,11 +108,11 @@ class KafkaProduceHandler(KafkaHandler):
         Encodes the given data for transport and sends it with the specified topic.
 
         Args:
-            topic (str): Topic to send the data with
-            data (str): Data to be sent
+            topic (str): Topic to send the data with.
+            data (str): Data to be sent.
 
         Raises:
-            Exception: thrown by ``commit_transaction_with_retry()`` or Producer's ``produce()``. Aborts
+            Exception: During :meth:`commit_transaction_with_retry()` or Producer's ``produce()``. Aborts
                        transaction then.
         """
         logger.debug(f"Starting to send data to Producer...")
@@ -207,7 +207,7 @@ class KafkaConsumeHandler(KafkaHandler):
             topic (str): Topic name to consume from
 
         Raises:
-            KafkaError: raised in constructing the Consumer or assigning the topic.
+            KafkaError: During construction of Consumer or assignment of topic.
         """
         logger.debug(f"Initializing KafkaConsumeHandler ({topic=})...")
         super().__init__()
@@ -251,8 +251,8 @@ class KafkaConsumeHandler(KafkaHandler):
             of strings of the consumed data.
 
         Raises:
-            KeyboardInterrupt
-            Exception: inside the while loop
+            KeyboardInterrupt: Execution interrupted by user
+            Exception: Error during consuming
         """
         logger.debug("Starting to consume messages...")
 
@@ -294,17 +294,16 @@ class KafkaConsumeHandler(KafkaHandler):
 
     def consume_and_return_json_data(self) -> dict:
         """
-        Calls the ``consume()`` method and waits for it to return data. Loads the data and converts it to a JSON
+        Calls the :meth:`consume()` method and waits for it to return data. Loads the data and converts it to a JSON
         object. Returns the JSON data.
 
         Returns:
             Consumed data in JSON format
 
         Raises:
-            ValueError: if data format is invalid
-            KafkaMessageFetchException
-            KeyboardInterrupt
-            IOError
+            ValueError: Invalid data format
+            KafkaMessageFetchException: Error during message fetching/consuming
+            KeyboardInterrupt: Execution interrupted by user
         """
         try:
             key, value = self.consume()
@@ -316,9 +315,6 @@ class KafkaConsumeHandler(KafkaHandler):
             logger.debug(e)
             raise
         except KeyboardInterrupt:
-            raise
-        except IOError as e:
-            logger.error(e)
             raise
 
         logger.debug("Loading JSON values from received data...")
