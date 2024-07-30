@@ -3,37 +3,15 @@
 > ML based DNS analyzer to detect Domain Generation Algorithms (DGAs) tunneling, and data exfiltration of malicious actors.
 
 
+> [!CAUTION]
+> The project is under active development right now. Everything might change, break, or move around quickly.
+
 <table>
 <tr>
   <td><b>Live Notebook</b></td>
   <td>
     <a href="https://mybinder.org/v2/gh/stefanDeveloper/heiDGAF-tutorials/HEAD?labpath=demo_notebook.ipynb">
     <img src="https://img.shields.io/badge/notebook-launch-blue?logo=jupyter&style=for-the-badge" alt="live notebook" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td><b>Latest Release</b></td>
-  <td>
-    <a href="https://pypi.python.org/pypi/heiDGAF">
-    <img src="https://img.shields.io/pypi/v/heiDGAF.svg?logo=pypi&style=for-the-badge" alt="latest release" />
-    </a>
-  </td>
-</tr>
-
-<tr>
-  <td><b>Supported Versions</b></td>
-  <td>
-    <a href="https://pypi.org/project/heiDGAF/">
-    <img src="https://img.shields.io/pypi/pyversions/heiDGAF?logo=python&style=for-the-badge" alt="python3" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td><b>Project License</b></td>
-  <td>
-    <a href="https://github.com/stefanDeveloper/heiDGAF/blob/main/LICENSE">
-    <img src="https://img.shields.io/pypi/l/heiDGAF?logo=gnu&style=for-the-badge&color=blue" alt="License" />
     </a>
   </td>
 </tr>
@@ -75,6 +53,9 @@ heidgaf train -m xg -d all
 ```
 
 ### Data
+
+> [!IMPORTANT]
+> Currently, we set a fixed data format scheme. However, we plan to support custom schemes.
 
 Currently, we support the data format scheme provided by the [DNS-Collector](https://github.com/dmachard/go-dnscollector/):
 
