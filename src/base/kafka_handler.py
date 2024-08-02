@@ -103,13 +103,14 @@ class KafkaProduceHandler(KafkaHandler):
 
         logger.debug(f"Initialized KafkaProduceHandler ({transactional_id=}).")
 
-    def send(self, topic: str, data: str) -> None:
+    def send(self, topic: str, data: str, key: str) -> None:
         """
         Encodes the given data for transport and sends it with the specified topic.
 
         Args:
             topic (str): Topic to send the data with.
             data (str): Data to be sent.
+            key (str): Key to send the data with.
 
         Raises:
             Exception: During :meth:`commit_transaction_with_retry()` or Producer's ``produce()``. Aborts
@@ -128,7 +129,7 @@ class KafkaProduceHandler(KafkaHandler):
             logger.debug(f"Calling Producer for producing {topic=}, key=None...")
             self.producer.produce(
                 topic=topic,
-                key=None,  # could maybe add a key here
+                key=key,
                 value=data.encode("utf-8"),
                 callback=kafka_delivery_report,
             )

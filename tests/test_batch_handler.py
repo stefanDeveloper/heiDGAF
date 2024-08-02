@@ -1,145 +1,258 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 
-from src.base.batch_handler import KafkaBatchSender
+from src.base.batch_handler import CollectorKafkaBatchSender
 
 
 class TestInit(unittest.TestCase):
+    @patch("src.base.batch_handler.BufferedBatch")
     @patch("src.base.batch_handler.KafkaProduceHandler")
     @patch("src.base.batch_handler.Lock")
-    def test_init_without_buffer(self, mock_lock, mock_kafka_produce_handler):
+    def test_init_with_buffer(self, mock_lock, mock_kafka_produce_handler, mock_buffered_batch):
+        # Arrange
         mock_lock_instance = MagicMock()
         mock_lock.return_value = mock_lock_instance
         mock_handler_instance = MagicMock()
         mock_kafka_produce_handler.return_value = mock_handler_instance
+        mock_batch_instance = MagicMock()
+        mock_buffered_batch.return_value = mock_batch_instance
 
-        sut = KafkaBatchSender(
-            topic="test_topic", transactional_id="test_transactional_id"
-        )
+        # Act
+        sut = CollectorKafkaBatchSender()
 
-        self.assertEqual("test_topic", sut.topic)
-        self.assertEqual([], sut.latest_messages)
-        self.assertEqual([], sut.earlier_messages)
-        self.assertEqual(False, sut.buffer)
+        # Assert
+        self.assertEqual("Prefilter", sut.topic)
+        self.assertEqual(mock_batch_instance, sut.batch)
+        self.assertEqual(mock_lock_instance, sut.lock)
         self.assertIsNone(sut.timer)
         self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
-        self.assertEqual(mock_lock_instance, sut.lock)
 
         mock_lock.assert_called_once()
-        mock_kafka_produce_handler.assert_called_once_with(
-            transactional_id="test_transactional_id"
-        )
+        mock_buffered_batch.assert_called_once()
+        mock_kafka_produce_handler.assert_called_once_with(transactional_id="collector")
 
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.Lock")
-    def test_init_with_buffer(self, mock_lock, mock_kafka_produce_handler):
-        mock_lock_instance = MagicMock()
-        mock_lock.return_value = mock_lock_instance
-        mock_handler_instance = MagicMock()
-        mock_kafka_produce_handler.return_value = mock_handler_instance
 
-        sut = KafkaBatchSender(
-            topic="test_topic", transactional_id="test_transactional_id", buffer=True
-        )
-
-        self.assertEqual("test_topic", sut.topic)
-        self.assertEqual([], sut.latest_messages)
-        self.assertEqual([], sut.earlier_messages)
-        self.assertEqual(True, sut.buffer)
-        self.assertIsNone(sut.timer)
-        self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
-        self.assertEqual(mock_lock_instance, sut.lock)
-
-        mock_lock.assert_called_once()
-        mock_kafka_produce_handler.assert_called_once_with(
-            transactional_id="test_transactional_id"
-        )
+class TestDel(unittest.TestCase):
+    # TODO
+    pass
 
 
 class TestAddMessage(unittest.TestCase):
     @patch("src.base.batch_handler.BATCH_SIZE", 1000)
     @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.KafkaBatchSender._send_batch")
-    @patch("src.base.batch_handler.KafkaBatchSender._reset_timer")
-    def test_add_message_normal(
-            self, mock_send_batch, mock_reset_timer, mock_produce_handler
-    ):
+    @patch("src.base.batch_handler.CollectorKafkaBatchSender._reset_timer")
+    @patch("src.base.batch_handler.BufferedBatch.get_number_of_messages")
+    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.base.batch_handler.Lock")
+    def test_add_message_normal(self, mock_lock, mock_send_batch, mock_get_nr_messages, mock_reset_timer,
+                                mock_produce_handler):
+        # Arrange
+        mock_lock_instance = MagicMock()
+        mock_lock.return_value = mock_lock_instance
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
+        mock_get_nr_messages.return_value = 1
 
-        sut = KafkaBatchSender(
-            topic="test_topic", transactional_id="test_transactional_id"
-        )
+        key = "test_key"
+        message = "test_message"
+
+        sut = CollectorKafkaBatchSender()
         sut.timer = MagicMock()
-        sut.add_message("Message")
 
+        # Act
+        sut.add_message(key, message)
+
+        # Assert
         mock_send_batch.assert_not_called()
+        mock_get_nr_messages.assert_called_once_with(key)
         mock_reset_timer.assert_not_called()
 
     @patch("src.base.batch_handler.BATCH_SIZE", 100)
     @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.KafkaBatchSender._send_batch")
-    def test_add_message_full_messages(self, mock_send_batch, mock_produce_handler):
+    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.base.batch_handler.Lock")
+    def test_add_message_full_messages(self, mock_lock, mock_send_batch, mock_produce_handler):
+        # Arrange
+        mock_lock_instance = MagicMock()
+        mock_lock.return_value = mock_lock_instance
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = KafkaBatchSender(
-            topic="test_topic", transactional_id="test_transactional_id"
-        )
+        key = "test_key"
+
+        sut = CollectorKafkaBatchSender()
         sut.timer = MagicMock()
 
+        # Act
         for i in range(99):
-            sut.add_message(f"Message {i}")
+            sut.add_message(key, f"message_{i}")
 
+        # Assert
         mock_send_batch.assert_not_called()
-        sut.add_message(f"Message 100")
+        sut.add_message(key, f"message_100")
         mock_send_batch.assert_called_once()
 
     @patch("src.base.batch_handler.BATCH_SIZE", 100)
     @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.KafkaBatchSender._reset_timer")
-    def test_add_message_no_timer(self, mock_reset_timer, mock_produce_handler):
+    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.base.batch_handler.Lock")
+    def test_add_message_full_messages_with_different_keys(self, mock_lock, mock_send_batch, mock_produce_handler):
+        # Arrange
+        mock_lock_instance = MagicMock()
+        mock_lock.return_value = mock_lock_instance
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = KafkaBatchSender(
-            topic="test_topic", transactional_id="test_transactional_id"
-        )
+        key = "test_key"
+        other_key = "other_key"
+
+        sut = CollectorKafkaBatchSender()
+        sut.timer = MagicMock()
+
+        # Act
+        for i in range(79):
+            sut.add_message(key, f"message_{i}")
+        for i in range(15):
+            sut.add_message(other_key, f"message_{i}")
+        for i in range(20):
+            sut.add_message(key, f"message_{i}")
+
+        # Assert
+        mock_send_batch.assert_not_called()
+        sut.add_message(key, f"message_100")
+        mock_send_batch.assert_called_once()
+
+    @patch("src.base.batch_handler.BATCH_SIZE", 100)
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.CollectorKafkaBatchSender._reset_timer")
+    @patch("src.base.batch_handler.Lock")
+    def test_add_message_no_timer(self, mock_lock, mock_reset_timer, mock_produce_handler):
+        # Arrange
+        mock_lock_instance = MagicMock()
+        mock_lock.return_value = mock_lock_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = CollectorKafkaBatchSender()
         sut.timer = None
 
-        sut.add_message("Message")
+        # Act
+        sut.add_message("test_key", "test_message")
+
+        # Assert
         mock_reset_timer.assert_called_once()
 
 
-class TestClose(unittest.TestCase):
+class TestSendAllBatches(unittest.TestCase):
     @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.Timer")
-    def test_close_with_active_timer(self, mock_timer, mock_produce_handler):
+    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.base.batch_handler.BufferedBatch")
+    def test_send_all_batches_with_existing_keys(self, mock_buffered_batch, mock_send_batch,
+                                                 mock_kafka_produce_handler):
+        # Arrange
+        mock_batch_instance = MagicMock()
+        mock_buffered_batch.return_value = mock_batch_instance
+        mock_batch_instance.get_stored_keys.return_value = ["key_1", "key_2"]
+        mock_send_batch_instance = MagicMock()
+        mock_send_batch.return_value = mock_send_batch_instance
+
+        sut = CollectorKafkaBatchSender()
+
+        # Act
+        sut._send_all_batches()
+
+        # Assert
+        mock_send_batch.assert_any_call("key_1")
+        mock_send_batch.assert_any_call("key_2")
+        self.assertEqual(mock_send_batch.call_count, 2)
+
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.base.batch_handler.BufferedBatch")
+    def test_send_all_batches_with_no_keys(self, mock_buffered_batch, mock_send_batch,
+                                           mock_kafka_produce_handler):
+        # Arrange
+        mock_batch_instance = MagicMock()
+        mock_buffered_batch.return_value = mock_batch_instance
+        mock_batch_instance.get_stored_keys.return_value = []
+        mock_send_batch_instance = MagicMock()
+        mock_send_batch.return_value = mock_send_batch_instance
+
+        sut = CollectorKafkaBatchSender()
+
+        # Act
+        sut._send_all_batches()
+
+        # Assert
+        mock_send_batch.assert_not_called()
+
+
+class TestSendBatchForKey(unittest.TestCase):
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch.object(CollectorKafkaBatchSender, '_send_data_packet')
+    @patch("src.base.batch_handler.BufferedBatch")
+    def test_send_batch_for_key_success(self, mock_batch, mock_send_data_packet, mock_produce_handler):
+        # Arrange
+        mock_batch_instance = MagicMock()
+        mock_batch.return_value = mock_batch_instance
+        mock_batch_instance.complete_batch.return_value = "mock_data_packet"
+
+        sut = CollectorKafkaBatchSender()
+        key = "test_key"
+
+        # Act
+        sut._send_batch_for_key(key)
+
+        # Assert
+        mock_batch_instance.complete_batch.assert_called_once_with(key)
+        mock_send_data_packet.assert_called_once_with(key, "mock_data_packet")
+
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch.object(CollectorKafkaBatchSender, '_send_data_packet')
+    @patch("src.base.batch_handler.BufferedBatch")
+    def test_send_batch_for_key_value_error(self, mock_batch, mock_send_data_packet, mock_produce_handler):
+        # Arrange
+        mock_batch_instance = MagicMock()
+        mock_batch.return_value = mock_batch_instance
+        mock_batch_instance.complete_batch.side_effect = ValueError("Mock exception")
+
+        sut = CollectorKafkaBatchSender()
+        key = "test_key"
+
+        # Act
+        sut._send_batch_for_key(key)
+
+        # Assert
+        mock_batch_instance.complete_batch.assert_called_once_with(key)
+        mock_send_data_packet.assert_not_called()
+
+
+class TestSendDataPacket(unittest.TestCase):
+    @patch("src.base.batch_handler.KafkaProduceHandler")
+    def test_send_data_packet(self, mock_produce_handler):
+        # Arrange
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
+        mock_produce_handler_instance.send.return_value = None
 
-        sut = KafkaBatchSender(
-            topic="test_topic", transactional_id="test_transactional_id"
+        key = "test_key"
+        data = {
+            "begin_timestamp": "test_begin",
+            "end_timestamp": "test_end",
+            "data": "test_data",
+        }
+
+        sut = CollectorKafkaBatchSender()
+
+        # Act
+        sut._send_data_packet(key, data)
+
+        # Assert
+        mock_produce_handler_instance.send.assert_called_once_with(
+            topic="Prefilter",
+            data='{"begin_timestamp": "test_begin", "end_timestamp": "test_end", "data": "test_data"}',
+            key=key,
         )
-        sut.timer = mock_timer
-        sut._send_batch = MagicMock()
-        sut.close()
-
-        sut.timer.cancel.assert_called_once()
-        sut._send_batch.assert_called_once()
-
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    def test_close_without_timer(self, mock_produce_handler):
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sender_instance = KafkaBatchSender(
-            topic="test_topic", transactional_id="test_transactional_id"
-        )
-        sender_instance._send_batch = MagicMock()
-        sender_instance.close()
-
-        sender_instance._send_batch.assert_called_once()
 
 
 class TestResetTimer(unittest.TestCase):
@@ -147,42 +260,46 @@ class TestResetTimer(unittest.TestCase):
     @patch("src.base.batch_handler.KafkaProduceHandler")
     @patch("src.base.batch_handler.Timer")
     def test_reset_timer_with_existing_timer(self, mock_timer, mock_produce_handler):
+        # Arrange
         mock_timer_instance = MagicMock()
         mock_timer.return_value = mock_timer_instance
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = KafkaBatchSender(
-            topic="test_topic", transactional_id="test_transactional_id"
-        )
+        sut = CollectorKafkaBatchSender()
         sut.timer = mock_timer_instance
-        sut._send_batch = MagicMock()
+        sut._send_all_batches = MagicMock()
+
+        # Act
         sut._reset_timer()
 
+        # Assert
         self.assertIsNotNone(sut.timer)
 
         mock_timer_instance.cancel.assert_called_once()
-        mock_timer.assert_called_once_with(5.9, sut._send_batch)
+        mock_timer.assert_called_once_with(5.9, sut._send_all_batches)
         sut.timer.start.assert_called_once()
 
     @patch("src.base.batch_handler.BATCH_TIMEOUT", 4.6)
     @patch("src.base.batch_handler.KafkaProduceHandler")
     @patch("src.base.batch_handler.Timer")
     def test_reset_timer_without_existing_timer(self, mock_timer, mock_produce_handler):
+        # Arrange
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = KafkaBatchSender(
-            topic="test_topic", transactional_id="test_transactional_id"
-        )
-        sut._send_batch = MagicMock()
+        sut = CollectorKafkaBatchSender()
+        sut._send_all_batches = MagicMock()
+
+        # Act
         sut._reset_timer()
 
+        # Assert
         self.assertIsNotNone(sut.timer)
 
-        mock_timer.assert_called_once_with(4.6, sut._send_batch)
+        mock_timer.assert_called_once_with(4.6, sut._send_all_batches)
         sut.timer.start.assert_called_once()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

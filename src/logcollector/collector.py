@@ -7,7 +7,7 @@ import sys
 
 sys.path.append(os.path.abspath('../..'))  # needed for Terminal execution
 from src.base import utils
-from src.base.batch_handler import CollectorKafkaBatchSender
+from src.base.old_batch_handler import CollectorKafkaBatchSender
 from src.base.log_config import setup_logging
 from src.base.utils import validate_host, setup_config
 
