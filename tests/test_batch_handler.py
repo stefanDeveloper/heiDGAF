@@ -154,7 +154,7 @@ class TestSendAllBatches(unittest.TestCase):
         sut = CollectorKafkaBatchSender()
 
         # Act
-        sut._send_all_batches()
+        sut._send_all_batches(reset_timer=False)
 
         # Assert
         mock_send_batch.assert_any_call("key_1")
@@ -176,7 +176,7 @@ class TestSendAllBatches(unittest.TestCase):
         sut = CollectorKafkaBatchSender()
 
         # Act
-        sut._send_all_batches()
+        sut._send_all_batches(reset_timer=False)
 
         # Assert
         mock_send_batch.assert_not_called()

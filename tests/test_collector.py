@@ -192,7 +192,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
         sut.add_logline_to_batch()
 
         mock_batch_handler_instance.add_message.assert_called_once_with(
-            "192.168.0.0/22", expected_message
+            "192.168.0.0_22", expected_message
         )
 
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")

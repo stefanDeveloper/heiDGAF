@@ -160,7 +160,7 @@ class CollectorKafkaBatchSender:
             self.timer.cancel()
             logger.debug("Timer cancelled.")
 
-        self._send_all_batches()
+        self._send_all_batches(reset_timer=False)
 
         logger.debug(f"Closed KafkaBatchSender ({self.topic=}).")
 
@@ -188,11 +188,12 @@ class CollectorKafkaBatchSender:
 
         logger.debug(f"Message '{message}' successfully added to batch for {key=}.")
 
-    def _send_all_batches(self) -> None:
+    def _send_all_batches(self, reset_timer: bool = True) -> None:
         for key in self.batch.get_stored_keys():
             self._send_batch_for_key(key)
 
-        self._reset_timer()
+        if reset_timer:
+            self._reset_timer()
 
     def _send_batch_for_key(self, key: str) -> None:
         logger.debug(f"Starting to send the batch for {key=}...")
