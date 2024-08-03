@@ -50,7 +50,7 @@ def setup_logging() -> None:
 
     # Formatter für DEBUG, ERROR und CRITICAL Levels
     detailed_formatter = CustomFormatter(
-        fmt="%(log_color)s%(asctime)s [%(levelname)s] %(message)s\n    ⤷ In %(module)s:%(lineno)d, %(funcName)s",
+        fmt="%(log_color)s%(asctime)s [%(levelname)s] %(message)s\n    ⤷  In %(module)s:%(lineno)d, %(funcName)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         log_colors=log_colors,
     )
