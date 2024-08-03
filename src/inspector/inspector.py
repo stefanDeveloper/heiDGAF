@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-sys.path.append(os.getcwd())  # needed for Terminal execution
+sys.path.append(os.getcwd())
 from src.base.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
 from src.base.log_config import setup_logging
 
@@ -17,8 +17,9 @@ class Inspector:
         self.messages = []
 
         logger.debug(f"Initializing Inspector...")
-        logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topic="Inspect_" + subnet_id)
+        consume_topic_name = "Inspect_" + subnet_id
+        logger.debug(f"Calling KafkaConsumeHandler(topic='{consume_topic_name}')...")
+        self.kafka_consume_handler = KafkaConsumeHandler(topic=consume_topic_name)
         logger.debug(f"Initialized Inspector.")
 
     def get_and_fill_data(self) -> None:

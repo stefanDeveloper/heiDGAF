@@ -1,10 +1,10 @@
 import asyncio
 import logging
-import os  # needed for Terminal execution
+import os
 import queue
 import sys
 
-sys.path.append(os.getcwd())  # needed for Terminal execution
+sys.path.append(os.getcwd())
 from src.base.utils import setup_config
 from src.base import utils
 from src.base.log_config import setup_logging
@@ -39,7 +39,7 @@ class LogServer:
         logger.debug("Initialized LogServer.")
 
     async def open(self):
-        logger.info("Opening LogServer sockets...")
+        logger.debug("Opening LogServer sockets...")
         logger.debug(f"Creating the sending socket on port {self.port_out}...")
         send_server = await asyncio.start_server(
             self.handle_send_logline, str(self.host), self.port_out
@@ -49,8 +49,8 @@ class LogServer:
             self.handle_receive_logline, str(self.host), self.port_in
         )
         logger.info(
-            f"LogServer running on {self.host}:{self.port_out} for sending, "
-            + f"and on {self.host}:{self.port_in} for receiving..."
+            f"LogServer is running: receiving on {self.host}:{self.port_in}, "
+            + f"sending on {self.host}:{self.port_out}..."
         )
 
         try:
@@ -136,7 +136,7 @@ class LogServer:
 def main():
     logger.info("Starting LogServer...")
     server_instance = LogServer()
-    logger.info("LogServer started. Opening sockets...")
+    logger.debug("LogServer started. Opening sockets...")
 
     asyncio.run(server_instance.open())
 
