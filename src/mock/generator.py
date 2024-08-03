@@ -4,7 +4,7 @@ import socket
 import sys
 from time import sleep  # needed for Terminal execution
 
-sys.path.append(os.path.abspath('../..'))  # needed for Terminal execution
+sys.path.append(os.getcwd())  # needed for Terminal execution
 from src.base import utils
 from src.base.log_config import setup_logging
 from src.mock.log_generator import generate_dns_log_line
@@ -29,8 +29,8 @@ class LogGenerator:
 
 
 if __name__ == "__main__":
-    generator = LogGenerator("127.0.0.1", 9998)
-    while True:
+        generator = LogGenerator("127.0.0.1", 9998)
+    # while True:
         logline = generate_dns_log_line()
         generator.send_logline(logline)
         logger.info(f"Sent logline: {logline}")

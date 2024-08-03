@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-sys.path.append(os.path.abspath('../..'))  # needed for Terminal execution
+sys.path.append(os.getcwd())  # needed for Terminal execution
 from src.base.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
 from src.base.log_config import setup_logging
 

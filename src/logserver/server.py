@@ -4,7 +4,7 @@ import os  # needed for Terminal execution
 import queue
 import sys
 
-sys.path.append(os.path.abspath('../..'))  # needed for Terminal execution
+sys.path.append(os.getcwd())  # needed for Terminal execution
 from src.base.utils import setup_config
 from src.base import utils
 from src.base.log_config import setup_logging
