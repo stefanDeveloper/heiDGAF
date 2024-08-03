@@ -12,6 +12,9 @@ heidgaf:
     valid_status_codes: [ "NOERROR", "NXDOMAIN" ]
     valid_record_types: [ "A", "AAAA" ]
 
+  subnet:
+    subnet_bits: 24
+
 kafka:
   brokers:
     - hostname: 172.27.0.3
@@ -26,4 +29,4 @@ kafka:
 
   batch_sender:
     batch_size: 1000
-    batch_timeout: 5.0
+    batch_timeout: 120.0

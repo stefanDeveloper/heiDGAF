@@ -103,7 +103,7 @@ class KafkaProduceHandler(KafkaHandler):
 
         logger.debug(f"Initialized KafkaProduceHandler ({transactional_id=}).")
 
-    def send(self, topic: str, data: str, key: str) -> None:
+    def send(self, topic: str, data: str, key: None | str) -> None:
         """
         Encodes the given data for transport and sends it with the specified topic.
 
@@ -293,7 +293,7 @@ class KafkaConsumeHandler(KafkaHandler):
             logger.error(f"Error in KafkaConsumeHandler: {e}")
             raise
 
-    def consume_and_return_json_data(self) -> dict:
+    def consume_and_return_json_data(self) -> tuple[None | str, dict]:
         """
         Calls the :meth:`consume()` method and waits for it to return data. Loads the data and converts it to a JSON
         object. Returns the JSON data.
@@ -311,7 +311,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
             if not key and not value:
                 logger.debug("No data returned.")
-                return {}
+                return None, {}
         except KafkaMessageFetchException as e:
             logger.debug(e)
             raise
@@ -325,7 +325,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
         if isinstance(eval_data, dict):
             logger.debug("Loaded available data. Returning it...")
-            return eval_data
+            return key, eval_data
         else:
             logger.error("Unknown data format.")
             raise ValueError

@@ -16,6 +16,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual([], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
         self.assertEqual([], sut.error_type)
+        self.assertEqual(None, sut.subnet_id)
 
         self.assertIsNotNone(sut.kafka_produce_handler)
         self.assertIsNotNone(sut.kafka_consume_handler)
@@ -33,6 +34,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual([], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
         self.assertEqual(["NXDOMAIN"], sut.error_type)
+        self.assertEqual(None, sut.subnet_id)
 
         self.assertIsNotNone(sut.kafka_produce_handler)
         self.assertIsNotNone(sut.kafka_consume_handler)
@@ -50,6 +52,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual([], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
         self.assertEqual(["NXDOMAIN", "OTHER_TYPE"], sut.error_type)
+        self.assertEqual(None, sut.subnet_id)
 
         self.assertIsNotNone(sut.kafka_produce_handler)
         self.assertIsNotNone(sut.kafka_consume_handler)
@@ -66,13 +69,14 @@ class TestGetAndFillData(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = {}
+        mock_consume_handler_instance.consume_and_return_json_data.return_value = None, {}
 
         sut = Prefilter(error_type=["NXDOMAIN"])
         sut.get_and_fill_data()
 
         self.assertEqual([], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
+        self.assertEqual(None, sut.subnet_id)
 
         mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
 
@@ -83,7 +87,7 @@ class TestGetAndFillData(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = {
+        mock_consume_handler_instance.consume_and_return_json_data.return_value = "127.0.0.0/24", {
             "begin_timestamp": "2024-05-21T08:31:28.119Z",
             "end_timestamp": "2024-05-21T08:31:29.432Z",
             "data": ["test_data_1", "test_data_2"],
@@ -94,6 +98,7 @@ class TestGetAndFillData(unittest.TestCase):
 
         self.assertEqual(["test_data_1", "test_data_2"], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
+        self.assertEqual("127.0.0.0/24", sut.subnet_id)
 
         mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
 
@@ -104,7 +109,7 @@ class TestGetAndFillData(unittest.TestCase):
         mock_batch_handler.return_value = mock_batch_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = {
+        mock_consume_handler_instance.consume_and_return_json_data.return_value = "127.0.0.0/24", {
             "begin_timestamp": "2024-05-21T08:31:28.119Z",
             "end_timestamp": "2024-05-21T08:31:29.432Z",
             "data": ["test_data_1", "test_data_2"],
@@ -116,6 +121,7 @@ class TestGetAndFillData(unittest.TestCase):
 
         self.assertEqual(["test_data_1", "test_data_2"], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
+        self.assertEqual("127.0.0.0/24", sut.subnet_id)
 
         mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
 
@@ -261,7 +267,7 @@ class TestSendFilteredData(unittest.TestCase):
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status": "NXDOMAIN",
-            "client_ip": "192.168.0.105",
+            "client_ip": "192.168.1.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
             "record_type": "A",
@@ -279,13 +285,14 @@ class TestSendFilteredData(unittest.TestCase):
             "size": "117b",
         }
 
-        sut = Prefilter(error_type="NXDOMAIN")
+        sut = Prefilter(error_type=["NXDOMAIN"])
         sut.filtered_data = [first_entry, second_entry]
+        sut.subnet_id = "192.168.1.0/24"
         sut.begin_timestamp = "2024-05-21T08:31:27.000Z"
         sut.end_timestamp = "2024-05-21T08:31:29.000Z"
         expected_message = (
             '{"begin_timestamp": "2024-05-21T08:31:27.000Z", "end_timestamp": "2024-05-21T08:31:29.000Z", "data": [{'
-            '"timestamp": "2024-05-21T08:31:28.119Z", "status": "NXDOMAIN", "client_ip": "192.168.0.105", '
+            '"timestamp": "2024-05-21T08:31:28.119Z", "status": "NXDOMAIN", "client_ip": "192.168.1.105", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}, {"timestamp": "2024-06-01T02:31:07.943Z", '
             '"status": "NXDOMAIN", "client_ip": "192.168.1.206", "dns_ip": "8.8.8.8", "host_domain_name": '
@@ -295,7 +302,7 @@ class TestSendFilteredData(unittest.TestCase):
         sut.send_filtered_data()
 
         mock_produce_handler_instance.send.assert_called_once_with(
-            topic="Inspect", data=expected_message
+            topic="Inspect_192.168.1.0/24", data=expected_message, key=None,
         )
 
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")

@@ -1,7 +1,7 @@
 import ipaddress
 import unittest
 
-from src.base.utils import validate_host, validate_port
+from src.base.utils import validate_host, validate_port, get_first_part_of_ipv4_address
 
 
 class TestValidateHosts(unittest.TestCase):
@@ -59,6 +59,68 @@ class TestValidatePort(unittest.TestCase):
 class TestKafkaDeliveryReport(unittest.TestCase):
     # No need to be tested: only logging messages
     pass
+
+
+class TestGetFirstPartOfIPv4Address(unittest.TestCase):
+    def test_get_first_part_of_ipv4_address_valid_24_bits(self):
+        ipv4_address = ipaddress.IPv4Address('192.168.1.1')
+        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 24)
+        expected_first_part = ipaddress.IPv4Address('192.168.1.0')
+        self.assertEqual(expected_first_part, first_part_ipv4)
+
+    def test_get_first_part_of_ipv4_address_valid_12_bits(self):
+        ipv4_address = ipaddress.IPv4Address('192.168.1.1')
+        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 12)
+        expected_first_part = ipaddress.IPv4Address('192.160.0.0')
+        self.assertEqual(expected_first_part, first_part_ipv4)
+
+    def test_get_first_part_of_ipv4_address_zero_24_bits(self):
+        ipv4_address = ipaddress.IPv4Address('0.0.0.1')
+        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 24)
+        expected_first_part = ipaddress.IPv4Address('0.0.0.0')
+        self.assertEqual(expected_first_part, first_part_ipv4)
+
+    def test_get_first_part_of_ipv4_address_max_24_bits(self):
+        ipv4_address = ipaddress.IPv4Address('255.255.255.1')
+        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 24)
+        expected_first_part = ipaddress.IPv4Address('255.255.255.0')
+        self.assertEqual(expected_first_part, first_part_ipv4)
+
+    def test_get_first_part_of_ipv4_address_invalid_24_bits(self):
+        ipv6_address = ipaddress.IPv6Address('2001:0db8:85a3:0000:0000:8a2e:0370:7334')
+        with self.assertRaises(ValueError):
+            # noinspection PyTypeChecker
+            get_first_part_of_ipv4_address(ipv6_address, 24)
+
+    def test_get_first_part_of_ipv4_address_valid(self):
+        ipv4_address = ipaddress.IPv4Address('192.168.1.1')
+        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 12)
+        expected_first_part = ipaddress.IPv4Address('192.160.0.0')
+        self.assertEqual(first_part_ipv4, expected_first_part)
+
+    def test_get_first_part_of_ipv4_address_zero_length(self):
+        ipv4_address = ipaddress.IPv4Address('192.168.1.1')
+        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 0)
+        expected_first_part = ipaddress.IPv4Address('0.0.0.0')
+        self.assertEqual(first_part_ipv4, expected_first_part)
+
+    def test_get_first_part_of_ipv4_address_full_length(self):
+        ipv4_address = ipaddress.IPv4Address('192.168.1.1')
+        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 32)
+        self.assertEqual(first_part_ipv4, ipv4_address)
+
+    def test_get_first_part_of_ipv4_address_invalid_length(self):
+        ipv4_address = ipaddress.IPv4Address('192.168.1.1')
+        with self.assertRaises(ValueError):
+            get_first_part_of_ipv4_address(ipv4_address, -1)
+        with self.assertRaises(ValueError):
+            get_first_part_of_ipv4_address(ipv4_address, 33)
+
+    def test_get_first_part_of_ipv4_address_invalid_format(self):
+        ipv6_address = ipaddress.IPv6Address('2001:0db8:85a3:0000:0000:8a2e:0370:7334')
+        with self.assertRaises(ValueError):
+            # noinspection PyTypeChecker
+            get_first_part_of_ipv4_address(ipv6_address, 12)
 
 
 if __name__ == "__main__":

@@ -34,7 +34,7 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(sut.log_data.get("size"))
         self.assertEqual(mock_batch_handler_instance, sut.batch_handler)
 
-        mock_batch_handler.assert_called_once_with(transactional_id="collector")
+        mock_batch_handler.assert_called_once()
 
     @patch("src.logcollector.collector.LOGSERVER_HOSTNAME", "fe80::1")
     @patch("src.logcollector.collector.LOGSERVER_SENDING_PORT", 8989)
@@ -61,7 +61,7 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(sut.log_data.get("size"))
         self.assertEqual(mock_batch_handler_instance, sut.batch_handler)
 
-        mock_batch_handler.assert_called_once_with(transactional_id="collector")
+        mock_batch_handler.assert_called_once()
 
     @patch("src.logcollector.collector.LOGSERVER_HOSTNAME", "256.256.256.256")
     @patch("src.logcollector.collector.LOGSERVER_SENDING_PORT", 9999)
@@ -159,10 +159,13 @@ class TestValidateAndExtractLogline(unittest.TestCase):
 
 
 class TestAddLoglineToBatch(unittest.TestCase):
+    @patch("src.logcollector.collector.SUBNET_BITS", 22)
+    @patch("src.base.utils.get_first_part_of_ipv4_address")
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
-    def test_add_to_batch_with_data(self, mock_batch_handler):
+    def test_add_to_batch_with_data(self, mock_batch_handler, mock_get):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
+        mock_get.return_value = "192.168.0.0"
 
         expected_message = (
             '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
@@ -189,7 +192,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
         sut.add_logline_to_batch()
 
         mock_batch_handler_instance.add_message.assert_called_once_with(
-            expected_message
+            "192.168.0.0/22", expected_message
         )
 
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")

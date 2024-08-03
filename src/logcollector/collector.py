@@ -7,18 +7,18 @@ import sys
 
 sys.path.append(os.path.abspath('../..'))  # needed for Terminal execution
 from src.base import utils
-from src.base.old_batch_handler import CollectorKafkaBatchSender
+from src.base.batch_handler import CollectorKafkaBatchSender
 from src.base.log_config import setup_logging
-from src.base.utils import validate_host, setup_config
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
-config = setup_config()
+config = utils.setup_config()
 VALID_STATUS_CODES = config["heidgaf"]["collector"]["valid_status_codes"]
 VALID_RECORD_TYPES = config["heidgaf"]["collector"]["valid_record_types"]
 LOGSERVER_HOSTNAME = config["heidgaf"]["logserver"]["hostname"]
 LOGSERVER_SENDING_PORT = config["heidgaf"]["logserver"]["port_out"]
+SUBNET_BITS = config["heidgaf"]["subnet"]["subnet_bits"]
 
 
 class LogCollector:
@@ -42,7 +42,7 @@ class LogCollector:
         logger.debug(
             f"Calling CollectorKafkaBatchSender(transactional_id=collector)..."
         )
-        self.batch_handler = CollectorKafkaBatchSender(transactional_id="collector")
+        self.batch_handler = CollectorKafkaBatchSender()
         logger.debug("Initialized LogCollector.")
 
     def fetch_logline(self) -> None:
@@ -113,9 +113,9 @@ class LogCollector:
             raise ValueError(f"Incorrect log line: {e}")
 
         try:
-            self.log_data["client_ip"] = validate_host(parts[2])
-            self.log_data["dns_ip"] = validate_host(parts[3])
-            self.log_data["response_ip"] = validate_host(parts[6])
+            self.log_data["client_ip"] = utils.validate_host(parts[2])
+            self.log_data["dns_ip"] = utils.validate_host(parts[3])
+            self.log_data["response_ip"] = utils.validate_host(parts[6])
         except ValueError as e:
             self.log_data["client_ip"] = None
             self.log_data["dns_ip"] = None
@@ -151,7 +151,9 @@ class LogCollector:
         log_entry["response_ip"] = str(self.log_data["response_ip"])
 
         logger.debug("Calling KafkaBatchSender to add message...")
-        self.batch_handler.add_message(json.dumps(log_entry))
+        subnet_id = f"{utils.get_first_part_of_ipv4_address(self.log_data['client_ip'], SUBNET_BITS)}/{SUBNET_BITS}"
+
+        self.batch_handler.add_message(subnet_id, json.dumps(log_entry))
         logger.info("Added message to batch. Data will be sent when the batch is full.")
         logger.debug(f"{log_entry=}")
         logger.debug(f"{json.dumps(log_entry)=}")

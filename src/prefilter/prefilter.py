@@ -17,6 +17,7 @@ class Prefilter:
     Loads the data from the topic ``Prefilter`` and filters it so that only entries with the given status type(s) are
     kept. Filtered data is then sent using topic ``Inspect``.
     """
+
     def __init__(self, error_type: list[str]):
         logger.debug(f"Initializing Prefilter for {error_type=}...")
         self.begin_timestamp = None
@@ -24,6 +25,7 @@ class Prefilter:
         self.unfiltered_data = []
         self.filtered_data = []
         self.error_type = error_type
+        self.subnet_id = None
 
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='prefilter')...")
         self.kafka_produce_handler = KafkaProduceHandler(transactional_id='prefilter')
@@ -39,12 +41,14 @@ class Prefilter:
         logger.debug("Cleared existing data.")
 
         logger.debug("Calling KafkaConsumeHandler for consuming JSON data...")
-        data = self.kafka_consume_handler.consume_and_return_json_data()
-        # TODO: Check data
+        key, data = self.kafka_consume_handler.consume_and_return_json_data()
+
+        self.subnet_id = key
         if data:
-            self.begin_timestamp = data["begin_timestamp"]
-            self.end_timestamp = data["end_timestamp"]
-            self.unfiltered_data = data["data"]
+            self.begin_timestamp = data.get("begin_timestamp")
+            self.end_timestamp = data.get("end_timestamp")
+            self.unfiltered_data = data.get("data")
+
         logger.debug("Received consumer message as JSON data.")
         logger.debug(f"{data=}")
 
@@ -78,8 +82,9 @@ class Prefilter:
         logger.debug("Calling KafkaProduceHandler with topic='Inspect'...")
         logger.debug(f"{data_to_send=}")
         self.kafka_produce_handler.send(
-            topic="Inspect",
+            topic="Inspect_" + self.subnet_id,
             data=json.dumps(data_to_send),
+            key=None,
         )
         logger.info(f"Sent filtered data with time frame from {self.begin_timestamp} to {self.end_timestamp} and data "
                     f"({len(self.filtered_data)} message(s)).")

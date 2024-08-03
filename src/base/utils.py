@@ -103,6 +103,35 @@ def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
         )
 
 
+def get_first_part_of_ipv4_address(address: ipaddress.IPv4Address, length: int) -> ipaddress.IPv4Address:
+    """
+    Returns the first part of an IPv4 address, the rest is filled with 0. For example:
+    >>> get_first_part_of_ipv4_address(ipaddress.IPv4Address("255.255.255.255"), 23)
+    IPv4Address('255.255.254.0')
+    >>> get_first_part_of_ipv4_address(ipaddress.IPv4Address("172.126.15.3"), 8)
+    IPv4Address('172.0.0.0')
+
+    Args:
+        address (ipaddress.IPv4Address): The IPv4 Address to get the first part of
+        length (int): Length of the first part, the other ``32 - length`` bits are set to 0
+
+    Returns:
+        IPv4Address with first ``length`` bits kept, others set to 0
+    """
+    if length < 0 or length > 32:
+        raise ValueError("Invalid length. Must be between 0 and 32.")
+
+    if isinstance(address, ipaddress.IPv4Address):
+        binary_string = ''.join(format(byte, '08b') for byte in address.packed)
+        first_part_binary = binary_string[:length]
+        first_part_binary_padded = first_part_binary.ljust(32, '0')
+        first_part_address = ipaddress.IPv4Address(int(first_part_binary_padded, 2))
+    else:
+        raise ValueError("Invalid IP address format")
+
+    return first_part_address
+
+
 def current_time() -> str:
     """
     Returns the current time.

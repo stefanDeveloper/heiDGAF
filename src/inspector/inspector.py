@@ -11,13 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 class Inspector:
-    def __init__(self):
+    def __init__(self, subnet_id: str) -> None:
         self.begin_timestamp = None
         self.end_timestamp = None
-        logger.debug(f"Initializing Inspector...")
         self.messages = []
+
+        logger.debug(f"Initializing Inspector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topic="Inspect")
+        self.kafka_consume_handler = KafkaConsumeHandler(topic="Inspect_" + subnet_id)
         logger.debug(f"Initialized Inspector.")
 
     def get_and_fill_data(self) -> None:
@@ -32,12 +33,12 @@ class Inspector:
         logger.debug(
             "Inspector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
         )
-        data = self.kafka_consume_handler.consume_and_return_json_data()
-        # TODO: Check data
+        key, data = self.kafka_consume_handler.consume_and_return_json_data()
+
         if data:
-            self.begin_timestamp = data["begin_timestamp"]
-            self.end_timestamp = data["end_timestamp"]
-            self.messages = data["data"]
+            self.begin_timestamp = data.get("begin_timestamp")
+            self.end_timestamp = data.get("end_timestamp")
+            self.messages = data.get("data")
             logger.info("Received consumer message as json data.")
             logger.info(f"(data={self.messages})")  # TODO: Change to debug
         else:
@@ -53,7 +54,7 @@ class Inspector:
 # TODO: Test
 def main():
     logger.info("Starting Inspector...")
-    inspector = Inspector()
+    inspector = Inspector("127.0.0.0/24")  # TODO: Change! Only for testing!
     logger.info("Inspector is running. Waiting for data to come in through topic 'Inspect'...")
 
     while True:

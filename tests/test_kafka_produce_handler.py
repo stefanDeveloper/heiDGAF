@@ -50,7 +50,7 @@ class TestSend(unittest.TestCase):
         mock_producer.return_value = mock_producer_instance
 
         sut = KafkaProduceHandler(transactional_id="test_transactional_id")
-        sut.send("test_topic", "test_data")
+        sut.send("test_topic", "test_data", key=None)
 
         mock_producer_instance.produce.assert_called_once_with(
             topic="test_topic",
@@ -69,7 +69,7 @@ class TestSend(unittest.TestCase):
     @patch("src.base.kafka_handler.Producer")
     def test_send_with_empty_data_string(self, mock_producer):
         sut = KafkaProduceHandler(transactional_id="test_transactional_id")
-        sut.send("test_topic", "")
+        sut.send("test_topic", "", None)
 
         mock_producer.begin_transaction.assert_not_called()
         mock_producer.produce.assert_not_called()
