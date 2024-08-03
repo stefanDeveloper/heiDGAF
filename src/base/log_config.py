@@ -1,7 +1,9 @@
 import logging
 import os
+from datetime import datetime
 
 import colorlog
+import pytz
 import yaml
 
 CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../../config.yaml")
@@ -28,15 +30,26 @@ def setup_logging() -> None:
         "CRITICAL": "red,bg_white",
     }
 
-    # Formatter for INFO and WARNING levels
-    simple_formatter = colorlog.ColoredFormatter(
+    def current_time_with_timezone():
+        timezone = pytz.timezone('Europe/Berlin')
+        return datetime.now(timezone)
+
+    class CustomFormatter(colorlog.ColoredFormatter):
+        def formatTime(self, record, datefmt=None):
+            dt = current_time_with_timezone()
+            if datefmt:
+                return dt.strftime(datefmt)
+            return dt.isoformat()
+
+    # Formatter für INFO und WARNING Levels
+    simple_formatter = CustomFormatter(
         fmt="%(log_color)s[%(asctime)s, %(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         log_colors=log_colors,
     )
 
-    # Formatter for DEBUG, ERROR, and CRITICAL levels
-    detailed_formatter = colorlog.ColoredFormatter(
+    # Formatter für DEBUG, ERROR und CRITICAL Levels
+    detailed_formatter = CustomFormatter(
         fmt="%(log_color)s%(asctime)s [%(levelname)s] %(message)s\n    ⤷ In %(module)s:%(lineno)d, %(funcName)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         log_colors=log_colors,
