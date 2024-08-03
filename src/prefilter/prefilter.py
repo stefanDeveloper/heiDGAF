@@ -54,7 +54,7 @@ class Prefilter:
 
     def filter_by_error(self) -> None:
         """
-        Applies the filter to the data in ``unfiltered_data``, i.e. all log lines whose error status is in
+        Applies the filter to the data in ``unfiltered_data``, i.e. all loglines whose error status is in
         the given error types are kept and added to ``filtered_data``, all other ones are discarded.
         """
         logger.debug("Filtering data...")

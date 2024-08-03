@@ -115,7 +115,7 @@ class LogServer:
             logger.info(f"Sent message:\n    ⤷  {logline}")
             return
 
-        logger.debug("No log line available")
+        logger.debug("No logline available")
 
     async def receive_logline(self, reader):
         while True:
@@ -127,9 +127,9 @@ class LogServer:
             self.data_queue.put(received_message)
 
     def get_next_logline(self) -> str | None:
-        logger.debug("Getting next available log line...")
+        logger.debug("Getting next available logline...")
         if not self.data_queue.empty():
-            logger.debug("Returning log line...")
+            logger.debug("Returning logline...")
             return self.data_queue.get()
         return None
 

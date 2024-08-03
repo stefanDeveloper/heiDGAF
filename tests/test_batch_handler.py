@@ -38,12 +38,9 @@ class TestAddMessage(unittest.TestCase):
     @patch("src.base.batch_handler.CollectorKafkaBatchSender._reset_timer")
     @patch("src.base.batch_handler.BufferedBatch.get_number_of_messages")
     @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
-    @patch("src.base.batch_handler.Lock")
-    def test_add_message_normal(self, mock_lock, mock_send_batch, mock_get_nr_messages, mock_reset_timer,
+    def test_add_message_normal(self, mock_send_batch, mock_get_nr_messages, mock_reset_timer,
                                 mock_produce_handler):
         # Arrange
-        mock_lock_instance = MagicMock()
-        mock_lock.return_value = mock_lock_instance
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
         mock_get_nr_messages.return_value = 1
@@ -65,11 +62,8 @@ class TestAddMessage(unittest.TestCase):
     @patch("src.base.batch_handler.BATCH_SIZE", 100)
     @patch("src.base.batch_handler.KafkaProduceHandler")
     @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
-    @patch("src.base.batch_handler.Lock")
-    def test_add_message_full_messages(self, mock_lock, mock_send_batch, mock_produce_handler):
+    def test_add_message_full_messages(self, mock_send_batch, mock_produce_handler):
         # Arrange
-        mock_lock_instance = MagicMock()
-        mock_lock.return_value = mock_lock_instance
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
@@ -90,11 +84,8 @@ class TestAddMessage(unittest.TestCase):
     @patch("src.base.batch_handler.BATCH_SIZE", 100)
     @patch("src.base.batch_handler.KafkaProduceHandler")
     @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
-    @patch("src.base.batch_handler.Lock")
-    def test_add_message_full_messages_with_different_keys(self, mock_lock, mock_send_batch, mock_produce_handler):
+    def test_add_message_full_messages_with_different_keys(self, mock_send_batch, mock_produce_handler):
         # Arrange
-        mock_lock_instance = MagicMock()
-        mock_lock.return_value = mock_lock_instance
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
@@ -120,11 +111,8 @@ class TestAddMessage(unittest.TestCase):
     @patch("src.base.batch_handler.BATCH_SIZE", 100)
     @patch("src.base.batch_handler.KafkaProduceHandler")
     @patch("src.base.batch_handler.CollectorKafkaBatchSender._reset_timer")
-    @patch("src.base.batch_handler.Lock")
-    def test_add_message_no_timer(self, mock_lock, mock_reset_timer, mock_produce_handler):
+    def test_add_message_no_timer(self, mock_reset_timer, mock_produce_handler):
         # Arrange
-        mock_lock_instance = MagicMock()
-        mock_lock.return_value = mock_lock_instance
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 

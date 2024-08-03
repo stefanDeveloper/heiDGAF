@@ -96,7 +96,7 @@ def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
     if err:
         logger.warning("Message delivery failed: {}".format(err))
     else:
-        logger.info(
+        logger.debug(
             "Message delivered to topic={} [partition={}]".format(
                 msg.topic(), msg.partition()
             )

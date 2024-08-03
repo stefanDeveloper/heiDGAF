@@ -173,6 +173,76 @@ class TestGetNumberOfMessages(unittest.TestCase):
         self.assertEqual(0, sut.get_number_of_messages(key_4))
 
 
+class TestGetNumberOfBufferedMessages(unittest.TestCase):
+    def test_get_number_of_buffered_messages_with_empty_buffer(self):
+        # Arrange
+        key = "test_key"
+
+        sut = BufferedBatch()
+
+        # Act and Assert
+        self.assertEqual(0, sut.get_number_of_buffered_messages(key))
+
+    def test_get_number_of_buffered_messages_with_used_buffer_for_key(self):
+        # Arrange
+        key = "test_key"
+        message = "test_message"
+
+        sut = BufferedBatch()
+        sut.buffer = {key: [message]}
+
+        # Act and Assert
+        self.assertEqual(1, sut.get_number_of_buffered_messages(key))
+
+    def test_get_number_of_buffered_messages_with_used_buffer_for_other_key(self):
+        # Arrange
+        key = "test_key"
+        other_key = "other_key"
+        message = "test_message"
+
+        sut = BufferedBatch()
+        sut.buffer = {other_key: [message]}
+
+        # Act and Assert
+        self.assertEqual(0, sut.get_number_of_buffered_messages(key))
+        self.assertEqual(1, sut.get_number_of_buffered_messages(other_key))
+
+    def test_get_number_of_buffered_messages_with_empty_buffer_and_used_batch(self):
+        # Arrange
+        key = "test_key"
+        other_key = "other_key"
+        message = "test_message"
+
+        sut = BufferedBatch()
+        sut.batch = {other_key: [message]}
+
+        # Act and Assert
+        self.assertEqual(0, sut.get_number_of_buffered_messages(key))
+        self.assertEqual(0, sut.get_number_of_buffered_messages(other_key))
+
+    def test_get_number_of_buffered_messages_with_multiple_keys_and_messages(self):
+        # Arrange
+        key_1 = "key_1"
+        key_2 = "key_2"
+        key_3 = "key_3"
+        key_4 = "key_4"
+        message_1 = "message_1"
+        message_2 = "message_2"
+        message_3 = "message_3"
+        message_4 = "message_4"
+        message_5 = "message_5"
+
+        sut = BufferedBatch()
+        sut.buffer = {key_3: [message_1, message_5], key_1: [message_2], key_2: [message_3]}
+        sut.batch = {key_2: [message_4]}
+
+        # Act and Assert
+        self.assertEqual(1, sut.get_number_of_buffered_messages(key_1))
+        self.assertEqual(1, sut.get_number_of_buffered_messages(key_2))
+        self.assertEqual(2, sut.get_number_of_buffered_messages(key_3))
+        self.assertEqual(0, sut.get_number_of_buffered_messages(key_4))
+
+
 class TestCompleteBatch(unittest.TestCase):
     def test_complete_batch_variant_1(self):
         def _convert_timestamp(timestamp: str):

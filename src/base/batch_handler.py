@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import sys
-from asyncio import Lock
 from threading import Timer
 
 from src.base.kafka_handler import KafkaProduceHandler
@@ -55,7 +54,7 @@ class BufferedBatch:
             self.__center_timestamps[key] = current_time()
             logger.debug(f"center_timestamp of {key=} set to now: {self.__center_timestamps[key]}")
 
-    def get_number_of_messages(self, key: str):
+    def get_number_of_messages(self, key: str) -> int:
         """
         Returns the number of entries in the batch of the latest messages.
 
@@ -67,6 +66,21 @@ class BufferedBatch:
         """
         if key in self.batch:
             return len(self.batch[key])
+
+        return 0
+
+    def get_number_of_buffered_messages(self, key: str) -> int:
+        """
+        Returns the number of entries in the buffer of the latest messages.
+
+        Args:
+            key (str): Key for which to return the number of messages in the buffer
+
+        Returns:
+            Number of messages in buffer associated with the given key as integer
+        """
+        if key in self.buffer:
+            return len(self.buffer[key])
 
         return 0
 
@@ -177,11 +191,14 @@ class CollectorKafkaBatchSender:
 
         self.batch.add_message(key, message)
 
-        logger.info(f"Batch: {self.batch.batch}")
+        logger.debug(f"Batch: {self.batch.batch}")
+        number_of_messages_for_key = self.batch.get_number_of_messages(key)
 
-        if self.batch.get_number_of_messages(key) >= BATCH_SIZE:
+        if number_of_messages_for_key >= BATCH_SIZE:
             logger.debug(f"Batch for {key=} is full. Calling _send_batch_for_key({key})...")
             self._send_batch_for_key(key)
+            logger.info(f"Full batch: Successfully sent batch messages for subnet_id {key}.\n"
+                        f"    ⤷  {number_of_messages_for_key} messages sent.")
         elif not self.timer:  # First time setting the timer
             logger.debug("Timer not set yet. Calling _reset_timer()...")
             self._reset_timer()
@@ -189,11 +206,31 @@ class CollectorKafkaBatchSender:
         logger.debug(f"Message '{message}' successfully added to batch for {key=}.")
 
     def _send_all_batches(self, reset_timer: bool = True) -> None:
+        number_of_keys = 0
+        total_number_of_batch_messages = 0
+        total_number_of_buffer_messages = 0
+
         for key in self.batch.get_stored_keys():
+            number_of_keys += 1
+            total_number_of_batch_messages += self.batch.get_number_of_messages(key)
+            total_number_of_buffer_messages += self.batch.get_number_of_buffered_messages(key)
             self._send_batch_for_key(key)
 
         if reset_timer:
             self._reset_timer()
+
+        if number_of_keys == 1:
+            logger.info("Successfully sent all batches.\n"
+                        f"    ⤷  Batch for one subnet_id with "
+                        f"{total_number_of_batch_messages + total_number_of_buffer_messages} message(s) sent ("
+                        f"{total_number_of_batch_messages} batch message(s), {total_number_of_buffer_messages} "
+                        f"buffer message(s)).")
+        elif number_of_keys > 1:
+            logger.info("Successfully sent all batches.\n"
+                        f"    ⤷  Batches for {number_of_keys} subnet_ids sent. "
+                        f"In total: {total_number_of_batch_messages + total_number_of_buffer_messages} messages ("
+                        f"{total_number_of_batch_messages} batch message(s), {total_number_of_buffer_messages} "
+                        f"buffer message(s))")
 
     def _send_batch_for_key(self, key: str) -> None:
         logger.debug(f"Starting to send the batch for {key=}...")
@@ -232,4 +269,4 @@ class CollectorKafkaBatchSender:
         logger.debug("Starting new timer...")
         self.timer = Timer(BATCH_TIMEOUT, self._send_all_batches)
         self.timer.start()
-        logger.info("Successfully started new timer.")
+        logger.debug("Successfully started new timer.")
