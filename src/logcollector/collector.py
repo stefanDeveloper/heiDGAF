@@ -151,7 +151,7 @@ class LogCollector:
         log_entry["response_ip"] = str(self.log_data["response_ip"])
 
         logger.debug("Calling KafkaBatchSender to add message...")
-        subnet_id = f"{utils.get_first_part_of_ipv4_address(self.log_data['client_ip'], SUBNET_BITS)}/{SUBNET_BITS}"
+        subnet_id = f"{utils.get_first_part_of_ipv4_address(self.log_data['client_ip'], SUBNET_BITS)}_{SUBNET_BITS}"
 
         self.batch_handler.add_message(subnet_id, json.dumps(log_entry))
         logger.info("Added message to batch. Data will be sent when the batch is full.")

@@ -143,10 +143,10 @@ class CollectorKafkaBatchSender:
     """
     Adds messages to the :class:`BufferedBatch` and sends them after a timer ran out or the respective batch is full.
     """
+
     def __init__(self):
         self.topic = "Prefilter"
         self.batch = BufferedBatch()
-        self.lock = Lock()
         self.timer = None
 
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='collector')...")
@@ -175,21 +175,24 @@ class CollectorKafkaBatchSender:
         """
         logger.debug(f"Adding message '{message}' to batch.")
 
-        with self.lock:
-            self.batch.add_message(key, message)
+        self.batch.add_message(key, message)
 
-            if self.batch.get_number_of_messages(key) >= BATCH_SIZE:
-                logger.debug(f"Batch for {key=} is full. Calling _send_batch_for_key({key})...")
-                self._send_batch_for_key(key)
-            elif not self.timer:  # First time setting the timer
-                logger.debug("Timer not set yet. Calling _reset_timer()...")
-                self._reset_timer()
+        logger.info(f"Batch: {self.batch.batch}")
+
+        if self.batch.get_number_of_messages(key) >= BATCH_SIZE:
+            logger.debug(f"Batch for {key=} is full. Calling _send_batch_for_key({key})...")
+            self._send_batch_for_key(key)
+        elif not self.timer:  # First time setting the timer
+            logger.debug("Timer not set yet. Calling _reset_timer()...")
+            self._reset_timer()
 
         logger.debug(f"Message '{message}' successfully added to batch for {key=}.")
 
     def _send_all_batches(self) -> None:
         for key in self.batch.get_stored_keys():
             self._send_batch_for_key(key)
+
+        self._reset_timer()
 
     def _send_batch_for_key(self, key: str) -> None:
         logger.debug(f"Starting to send the batch for {key=}...")
@@ -228,4 +231,4 @@ class CollectorKafkaBatchSender:
         logger.debug("Starting new timer...")
         self.timer = Timer(BATCH_TIMEOUT, self._send_all_batches)
         self.timer.start()
-        logger.debug("Successfully started new timer.")
+        logger.info("Successfully started new timer.")

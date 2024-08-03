@@ -7,11 +7,8 @@ from src.base.batch_handler import CollectorKafkaBatchSender
 class TestInit(unittest.TestCase):
     @patch("src.base.batch_handler.BufferedBatch")
     @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.Lock")
-    def test_init_with_buffer(self, mock_lock, mock_kafka_produce_handler, mock_buffered_batch):
+    def test_init_with_buffer(self, mock_kafka_produce_handler, mock_buffered_batch):
         # Arrange
-        mock_lock_instance = MagicMock()
-        mock_lock.return_value = mock_lock_instance
         mock_handler_instance = MagicMock()
         mock_kafka_produce_handler.return_value = mock_handler_instance
         mock_batch_instance = MagicMock()
@@ -23,11 +20,9 @@ class TestInit(unittest.TestCase):
         # Assert
         self.assertEqual("Prefilter", sut.topic)
         self.assertEqual(mock_batch_instance, sut.batch)
-        self.assertEqual(mock_lock_instance, sut.lock)
         self.assertIsNone(sut.timer)
         self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
 
-        mock_lock.assert_called_once()
         mock_buffered_batch.assert_called_once()
         mock_kafka_produce_handler.assert_called_once_with(transactional_id="collector")
 

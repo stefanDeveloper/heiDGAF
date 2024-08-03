@@ -29,9 +29,9 @@ class LogGenerator:
 
 
 if __name__ == "__main__":
-        generator = LogGenerator("127.0.0.1", 9998)
-    # while True:
+    generator = LogGenerator("127.0.0.1", 9998)
+    while True:
         logline = generate_dns_log_line()
         generator.send_logline(logline)
         logger.info(f"Sent logline: {logline}")
-        # sleep(0.1)
+        sleep(0.1)

@@ -54,7 +54,7 @@ class Inspector:
 # TODO: Test
 def main():
     logger.info("Starting Inspector...")
-    inspector = Inspector("127.0.0.0/24")  # TODO: Change! Only for testing!
+    inspector = Inspector("192.168.0.0_24")  # TODO: Change! Only for testing!
     logger.info("Inspector is running. Waiting for data to come in through topic 'Inspect'...")
 
     while True:
