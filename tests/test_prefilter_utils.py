@@ -3,7 +3,7 @@ import sys
 import unittest
 
 sys.path.append(os.getcwd())
-from prefilter.prefilter import create_logger_str
+from src.prefilter.prefilter import create_logger_str
 
 
 class TestCreateLoggerStr(unittest.TestCase):
