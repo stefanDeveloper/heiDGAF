@@ -32,4 +32,4 @@ kafka:
 
   batch_sender:
     batch_size: 1000
-    batch_timeout: 5.0
+    batch_timeout: 20.0

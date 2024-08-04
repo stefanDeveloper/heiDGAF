@@ -10,11 +10,11 @@ class TestInit(unittest.TestCase):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
-        sut = Inspector(subnet_id="127.0.0.0/24")
+        sut = Inspector()
 
         self.assertEqual([], sut.messages)
         self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
-        mock_kafka_consume_handler.assert_called_once_with(topic="Inspect_127.0.0.0/24")
+        mock_kafka_consume_handler.assert_called_once_with(topic="Inspect")
 
 
 class TestGetData(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestGetData(unittest.TestCase):
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = None, {}
 
-        sut = Inspector("172.126.0.0/24")
+        sut = Inspector()
         sut.get_and_fill_data()
 
         self.assertEqual([], sut.messages)
@@ -39,7 +39,7 @@ class TestGetData(unittest.TestCase):
             "data": ["test_message_1", "test_message_2", ]
         }
 
-        sut = Inspector("192.168.1.0/24")
+        sut = Inspector()
         sut.messages = []
         sut.get_and_fill_data()
 
@@ -57,7 +57,7 @@ class TestGetData(unittest.TestCase):
             "data": ["test_message_1", "test_message_2", ]
         }
 
-        sut = Inspector("172.126.0.0/24")
+        sut = Inspector()
         sut.messages = ["test_data"]
         sut.get_and_fill_data()
 
@@ -66,14 +66,14 @@ class TestGetData(unittest.TestCase):
 
 class TestClearData(unittest.TestCase):
     def test_clear_data_without_existing_data(self):
-        sut = Inspector("172.126.0.0/24")
+        sut = Inspector()
         sut.messages = []
         sut.clear_data()
 
         self.assertEqual([], sut.messages)
 
     def test_clear_data_with_existing_data(self):
-        sut = Inspector("172.126.0.0/24")
+        sut = Inspector()
         sut.messages = ["test_data"]
         sut.begin_timestamp = "2024-05-21T08:31:27.000Z"
         sut.end_timestamp = "2024-05-21T08:31:29.000Z"

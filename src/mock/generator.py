@@ -30,7 +30,7 @@ class LogGenerator:
 
 if __name__ == "__main__":
     generator = LogGenerator("127.0.0.1", 9998)
-    for _ in range(100):
+    while True:
         logline = generate_dns_log_line()
         generator.send_logline(logline)
         logger.info(f"Sent logline: {logline}")

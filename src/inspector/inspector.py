@@ -11,15 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 class Inspector:
-    def __init__(self, subnet_id: str) -> None:
+    def __init__(self) -> None:
         self.begin_timestamp = None
         self.end_timestamp = None
         self.messages = []
 
         logger.debug(f"Initializing Inspector...")
-        consume_topic_name = "Inspect_" + subnet_id
-        logger.debug(f"Calling KafkaConsumeHandler(topic='{consume_topic_name}')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topic=consume_topic_name)
+        logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
+        self.kafka_consume_handler = KafkaConsumeHandler(topic="Inspect")
         logger.debug(f"Initialized Inspector.")
 
     def get_and_fill_data(self) -> None:
@@ -43,10 +42,10 @@ class Inspector:
 
         if not self.messages:
             logger.info("Received message:\n"
-                        "    ⤷  Empty data field: No unfiltered data available.")
+                        f"    ⤷  Empty data field: No unfiltered data available. Belongs to subnet_id {key}.")
         else:
             logger.info("Received message:\n"
-                        f"    ⤷  Contains data field of {len(self.messages)} message(s).")
+                        f"    ⤷  Contains data field of {len(self.messages)} message(s). Belongs to subnet_id {key}.")
 
         logger.debug("Received consumer message as json data.")
         logger.debug(f"(data={self.messages})")
@@ -61,9 +60,8 @@ class Inspector:
 # TODO: Test
 def main():
     logger.info("Starting Inspector...")
-    subnet_id = "192.168.0.0_24"  # TODO: Change! Only for testing!
-    inspector = Inspector(subnet_id=subnet_id)
-    logger.info(f"Inspector is running.\n    ⤷  Inspecting the subnet with subnet_id {subnet_id}.")
+    inspector = Inspector()
+    logger.info(f"Inspector is running.")
 
     while True:
         try:

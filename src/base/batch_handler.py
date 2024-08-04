@@ -99,8 +99,8 @@ class BufferedBatch:
         Raises:
             ValueError: No data is available for sending.
         """
-        if self.batch:
-            if not self.buffer:  # Variant 1: Only batch has entries
+        if self.batch.get(key):
+            if not self.buffer.get(key):  # Variant 1: Only batch has entries
                 logger.debug("Variant 1: Only batch has entries. Sending...")
                 begin_timestamp = self.__center_timestamps[key]
                 buffer_data = []
@@ -129,7 +129,7 @@ class BufferedBatch:
         if self.buffer:  # Variant 3: Only buffer has entries
             logger.debug("Variant 3: Only buffer has entries.")
             logger.debug("Deleting buffer data (has no influence on analysis since it was too long ago)...")
-            self.buffer = {}
+            del self.buffer[key]
         else:  # Variant 4: No data exists
             logger.debug("Variant 4: No data exists. Nothing to send.")
 
@@ -150,7 +150,7 @@ class BufferedBatch:
         for key in self.buffer:
             keys_set.add(key)
 
-        return keys_set
+        return keys_set.copy()
 
 
 class CollectorKafkaBatchSender:
@@ -218,6 +218,9 @@ class CollectorKafkaBatchSender:
 
         if reset_timer:
             self._reset_timer()
+
+        if not total_number_of_batch_messages:
+            return
 
         if number_of_keys == 1:
             logger.info("Successfully sent all batches.\n"

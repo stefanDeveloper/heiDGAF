@@ -303,7 +303,7 @@ class TestSendFilteredData(unittest.TestCase):
         sut.send_filtered_data()
 
         mock_produce_handler_instance.send.assert_called_once_with(
-            topic="Inspect_192.168.1.0_24", data=expected_message, key=None,
+            topic="Inspect", data=expected_message, key="192.168.1.0_24",
         )
 
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")

@@ -41,7 +41,7 @@ class LogCollector:
         logger.debug(f"LogServer outgoing port was set to {self.log_server['port']}.")
 
         logger.debug(
-            f"Calling CollectorKafkaBatchSender(transactional_id=collector)..."
+            f"Calling CollectorKafkaBatchSender(transactional_id='collector')..."
         )
         self.batch_handler = CollectorKafkaBatchSender()
         logger.debug("Initialized LogCollector.")
@@ -97,7 +97,7 @@ class LogCollector:
         try:
             if not self._check_length(parts):
                 raise ValueError(
-                    f"Log line does not contain exactly 8 values, but {len(parts)} values were found."
+                    f"Logline does not contain exactly 8 values, but {len(parts)} values were found."
                 )
             if not self._check_timestamp(parts[0]):
                 raise ValueError(f"Invalid timestamp")
@@ -156,7 +156,7 @@ class LogCollector:
         self.batch_handler.add_message(subnet_id, json.dumps(log_entry))
 
         logger.info(
-            "Added message to the batch. Data will be sent when the batch is full or the global timer runs out.\n"
+            "Added message to the batch.\n"
             f"    ⤷  The subnet_id {subnet_id} batch currently stores "
             f"{self.batch_handler.batch.get_number_of_messages(subnet_id)} of {BATCH_SIZE} messages."
         )
@@ -319,7 +319,9 @@ def main() -> None:
     """
     logger.info("Starting LogCollector...")
     collector = LogCollector()
-    logger.info("LogCollector started. Fetching loglines from LogServer...")
+    logger.info("LogCollector started.\n"
+                "    ⤷  Fetching loglines from LogServer...\n"
+                "    ⤷  Data will be sent when the respective batch is full or the global timer runs out.")
 
     while True:
         try:
