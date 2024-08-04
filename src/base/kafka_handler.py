@@ -6,8 +6,8 @@ parts of which are similar to the code in this module.
 import ast
 import json
 import logging
-import os  # needed for Terminal execution
-import sys  # needed for Terminal execution
+import os
+import sys
 import time
 
 from confluent_kafka import (
@@ -18,7 +18,7 @@ from confluent_kafka import (
     TopicPartition,
 )
 
-sys.path.append(os.getcwd())  # needed for Terminal execution
+sys.path.append(os.getcwd())
 from src.base.log_config import setup_logging
 from src.base.utils import kafka_delivery_report, setup_config
 

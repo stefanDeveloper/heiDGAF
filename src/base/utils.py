@@ -7,7 +7,7 @@ from datetime import datetime
 import yaml
 from confluent_kafka import KafkaError, Message
 
-sys.path.append(os.getcwd())  # needed for Terminal execution
+sys.path.append(os.getcwd())
 from src.base.log_config import setup_logging
 
 setup_logging()

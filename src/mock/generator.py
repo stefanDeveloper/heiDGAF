@@ -1,10 +1,10 @@
 import logging
-import os  # needed for Terminal execution
+import os
 import socket
 import sys
-from time import sleep  # needed for Terminal execution
+from time import sleep
 
-sys.path.append(os.getcwd())  # needed for Terminal execution
+sys.path.append(os.getcwd())
 from src.base import utils
 from src.base.log_config import setup_logging
 from src.mock.log_generator import generate_dns_log_line

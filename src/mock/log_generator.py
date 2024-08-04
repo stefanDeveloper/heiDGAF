@@ -2,8 +2,6 @@ import datetime
 import ipaddress
 import random
 
-import polars as pl
-
 
 def random_ipv4():
     return ipaddress.IPv4Address._string_from_ip_int(random.randint(0, MAX_IPV4))
@@ -23,8 +21,8 @@ RECORD_TYPES = ["AAAA", "A", "PR", "CNAME"]
 
 def generate_dns_log_line():
     timestamp = (
-        datetime.datetime.now() + datetime.timedelta(0, 0, random.randint(0, 900))
-    ).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+                        datetime.datetime.now() + datetime.timedelta(0, 0, random.randint(0, 900))
+                ).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
     status = random.choice(STATUSES)
     client_ip = f"192.168.0.{random.randint(1, 255)}"
     server_ip = f"10.10.0.{random.randint(1, 10)}"

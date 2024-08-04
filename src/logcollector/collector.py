@@ -1,11 +1,11 @@
 import json
 import logging
-import os  # needed for Terminal execution
+import os
 import re
 import socket
 import sys
 
-sys.path.append(os.getcwd())  # needed for Terminal execution
+sys.path.append(os.getcwd())
 from src.base import utils
 from src.base.batch_handler import CollectorKafkaBatchSender
 from src.base.log_config import setup_logging
