@@ -40,23 +40,30 @@ class Inspector:
             self.begin_timestamp = data.get("begin_timestamp")
             self.end_timestamp = data.get("end_timestamp")
             self.messages = data.get("data")
-            logger.info("Received consumer message as json data.")
-            logger.info(f"(data={self.messages})")  # TODO: Change to debug
+
+        if not self.messages:
+            logger.info("Received message:\n"
+                        "    ⤷  Empty data field: No unfiltered data available.")
         else:
-            logger.debug("Received empty data from KafkaConsumeHandler.")
+            logger.info("Received message:\n"
+                        f"    ⤷  Contains data field of {len(self.messages)} message(s).")
+
+        logger.debug("Received consumer message as json data.")
+        logger.debug(f"(data={self.messages})")
 
     def clear_data(self):
         self.messages = []
         self.begin_timestamp = None
         self.end_timestamp = None
-        logger.info("Cleared messages and timestamps. Inspector is now available.")
+        logger.debug("Cleared messages and timestamps. Inspector is now available.")
 
 
 # TODO: Test
 def main():
     logger.info("Starting Inspector...")
-    inspector = Inspector("192.168.0.0_24")  # TODO: Change! Only for testing!
-    logger.info("Inspector is running. Waiting for data to come in through topic 'Inspect'...")
+    subnet_id = "192.168.0.0_24"  # TODO: Change! Only for testing!
+    inspector = Inspector(subnet_id=subnet_id)
+    logger.info(f"Inspector is running.\n    ⤷  Inspecting the subnet with subnet_id {subnet_id}.")
 
     while True:
         try:
@@ -75,11 +82,10 @@ def main():
             logger.debug(e)
             continue
         except KeyboardInterrupt:
+            logger.info("Closing down Inspector...")
             break
         finally:
-            logger.info("Closing down Inspector...")
             inspector.clear_data()
-            logger.info("Inspector closed down.")
 
 
 if __name__ == "__main__":

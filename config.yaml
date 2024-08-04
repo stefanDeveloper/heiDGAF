@@ -12,6 +12,9 @@ heidgaf:
     valid_status_codes: [ "NOERROR", "NXDOMAIN" ]
     valid_record_types: [ "A", "AAAA" ]
 
+  prefilter:
+    relevant_types: [ "NXDOMAIN" ]
+
   subnet:
     subnet_bits: 24
 

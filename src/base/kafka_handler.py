@@ -279,7 +279,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
                 key = msg.key().decode("utf-8") if msg.key() else None
                 value = msg.value().decode("utf-8") if msg.value() else None
-                logger.info(f"Received message: {key=}, {value=}")
+                logger.debug(f"Received message: {key=}, {value=}")
                 logger.debug("Committing transaction for message on Consumer...")
                 self.consumer.commit(msg)
                 logger.debug(

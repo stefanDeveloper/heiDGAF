@@ -286,8 +286,9 @@ class TestSendFilteredData(unittest.TestCase):
         }
 
         sut = Prefilter(error_type=["NXDOMAIN"])
+        sut.unfiltered_data = [first_entry, second_entry]
         sut.filtered_data = [first_entry, second_entry]
-        sut.subnet_id = "192.168.1.0/24"
+        sut.subnet_id = "192.168.1.0_24"
         sut.begin_timestamp = "2024-05-21T08:31:27.000Z"
         sut.end_timestamp = "2024-05-21T08:31:29.000Z"
         expected_message = (
@@ -302,8 +303,23 @@ class TestSendFilteredData(unittest.TestCase):
         sut.send_filtered_data()
 
         mock_produce_handler_instance.send.assert_called_once_with(
-            topic="Inspect_192.168.1.0/24", data=expected_message, key=None,
+            topic="Inspect_192.168.1.0_24", data=expected_message, key=None,
         )
+
+    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    def test_send_without_filtered_data_with_unfiltered_data(self, mock_produce_handler, mock_consume_handler):
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Prefilter(error_type=["NXDOMAIN"])
+        sut.unfiltered_data = ["message"]
+        sut.filtered_data = []
+
+        with self.assertRaises(ValueError):
+            sut.send_filtered_data()
+
+        mock_produce_handler.add_message.assert_not_called()
 
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
@@ -311,11 +327,11 @@ class TestSendFilteredData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = Prefilter(error_type="NXDOMAIN")
+        sut = Prefilter(error_type=["NXDOMAIN"])
+        sut.unfiltered_data = []
         sut.filtered_data = []
 
-        with self.assertRaises(ValueError):
-            sut.send_filtered_data()
+        self.assertIsNone(sut.send_filtered_data())
 
         mock_produce_handler.add_message.assert_not_called()
 
@@ -345,7 +361,7 @@ class TestClearData(unittest.TestCase):
             "size": "117b",
         }
 
-        sut = Prefilter(error_type="NXDOMAIN")
+        sut = Prefilter(error_type=["NXDOMAIN"])
         sut.unfiltered_data = [first_entry, second_entry]
         sut.filtered_data = [second_entry]
         sut.clear_data()
@@ -356,7 +372,7 @@ class TestClearData(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_clear_data_without_data(self, mock_produce_handler, mock_consume_handler):
-        sut = Prefilter(error_type="NXDOMAIN")
+        sut = Prefilter(error_type=["NXDOMAIN"])
         sut.unfiltered_data = []
         sut.filtered_data = []
         sut.clear_data()

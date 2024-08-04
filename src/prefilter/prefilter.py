@@ -1,15 +1,19 @@
 import ast
 import json
 import logging
-import os  # needed for Terminal execution
-import sys  # needed for Terminal execution
+import os
+import sys
 
-sys.path.append(os.getcwd())  # needed for Terminal execution
+sys.path.append(os.getcwd())
+from src.base.utils import setup_config
 from src.base.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException, KafkaProduceHandler
 from src.base.log_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
+
+config = setup_config()
+RELEVANT_TYPES = config["heidgaf"]["prefilter"]["relevant_types"]
 
 
 class Prefilter:
@@ -36,7 +40,7 @@ class Prefilter:
     def get_and_fill_data(self):
         logger.debug("Checking for existing data...")
         if self.unfiltered_data:
-            logger.warning("Overwriting existing data by new message.")
+            logger.warning("Overwriting existing data by new message...")
         self.clear_data()
         logger.debug("Cleared existing data.")
 
@@ -48,6 +52,14 @@ class Prefilter:
             self.begin_timestamp = data.get("begin_timestamp")
             self.end_timestamp = data.get("end_timestamp")
             self.unfiltered_data = data.get("data")
+
+        if not self.unfiltered_data:
+            logger.info(f"Received message:\n"
+                        f"    ⤷  Empty data field: No unfiltered data available. subnet_id: '{self.subnet_id}'")
+        else:
+            logger.info(f"Received message:\n"
+                        f"    ⤷  Contains data field of {len(self.unfiltered_data)} message(s) with "
+                        f"subnet_id: '{self.subnet_id}'.")
 
         logger.debug("Received consumer message as JSON data.")
         logger.debug(f"{data=}")
@@ -63,31 +75,35 @@ class Prefilter:
             if e_as_json["status"] in self.error_type:
                 self.filtered_data.append(e)
         logger.debug("Data filtered and now available in filtered_data.")
+        logger.info("Data successfully filtered.")
 
     def send_filtered_data(self):
+        if not self.unfiltered_data:
+            logger.debug("No unfiltered or filtered data is available.")
+            return
+
         if not self.filtered_data:
-            logger.debug("No filtered data available.")
-            if self.unfiltered_data:
-                logger.debug("Unfiltered data available. Filtering data automatically...")
-                self.filter_by_error()
-            else:
-                logger.debug("No data send. No filtered or unfiltered data exists.")
-                raise ValueError("Failed to send data: No filtered data.")
+            logger.info("No errors in filtered data.")
+            logger.debug("No data sent. No filtered or unfiltered data exists.")
+            raise ValueError("Failed to send data: No filtered data.")
 
         data_to_send = {
             "begin_timestamp": self.begin_timestamp,
             "end_timestamp": self.end_timestamp,
             "data": self.filtered_data,
         }
-        logger.debug("Calling KafkaProduceHandler with topic='Inspect'...")
+        logger.debug("Calling KafkaProduceHandler...")
         logger.debug(f"{data_to_send=}")
         self.kafka_produce_handler.send(
             topic="Inspect_" + self.subnet_id,
             data=json.dumps(data_to_send),
             key=None,
         )
-        logger.info(f"Sent filtered data with time frame from {self.begin_timestamp} to {self.end_timestamp} and data "
-                    f"({len(self.filtered_data)} message(s)).")
+        logger.debug(f"Sent filtered data with time frame from {self.begin_timestamp} to {self.end_timestamp} and data"
+                     f" ({len(self.filtered_data)} message(s)).")
+        logger.info(f"Filtered data was successfully sent:\n"
+                    f"    ⤷  Contains data field of {len(self.filtered_data)} message(s). Originally: "
+                    f"{len(self.unfiltered_data)} message(s). Belongs to subnet_id '{self.subnet_id}'.")
 
     def clear_data(self):
         """
@@ -98,11 +114,24 @@ class Prefilter:
         logger.debug("Cleared data.")
 
 
+def create_logger_str(types_list: list) -> str:
+    if not types_list:
+        return "Not filtering by any types."
+
+    if len(types_list) == 1:
+        return f"Filtering by type '{types_list[0]}'..."
+
+    # Für mehr als einen Eintrag
+    types_str = "', '".join(types_list[:-1])
+    last_type = types_list[-1]
+    return f"Filtering by types '{types_str}' and '{last_type}'..."
+
+
 # TODO: Test
 def main():
-    logger.info("Starting Prefilter for errors of type 'NXDOMAIN'...")
-    prefilter = Prefilter(error_type=["NXDOMAIN"])
-    logger.info("Prefilter started. Filtering by type 'NXDOMAIN'...")
+    logger.info("Starting Prefilter...")
+    prefilter = Prefilter(error_type=RELEVANT_TYPES)
+    logger.info(f"Prefilter started.\n    ⤷  {create_logger_str(RELEVANT_TYPES)}")
 
     while True:
         try:
@@ -129,9 +158,7 @@ def main():
             logger.info("Closing down Prefilter...")
             break
         finally:
-            logger.info("Closing down Prefilter...")
             prefilter.clear_data()
-            logger.info("Prefilter closed down.")
 
 
 if __name__ == "__main__":
