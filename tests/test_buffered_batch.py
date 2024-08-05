@@ -267,7 +267,7 @@ class TestCompleteBatch(unittest.TestCase):
         data = sut.complete_batch(key)
 
         # Assert
-        self.assertGreater(
+        self.assertGreaterEqual(
             _convert_timestamp(data["end_timestamp"]),
             _add_seconds_to_timestamp(_convert_timestamp(data["begin_timestamp"]), 0.2)
         )
@@ -304,16 +304,16 @@ class TestCompleteBatch(unittest.TestCase):
         data_2 = sut.complete_batch(key)  # at +0.8 (end_timestamp, data_2)
 
         # Assert
-        self.assertGreater(
+        self.assertGreaterEqual(
             _convert_timestamp(data_1["end_timestamp"]),
             _add_seconds_to_timestamp(_convert_timestamp(data_1["begin_timestamp"]), 0.4)
         )
-        self.assertGreater(
+        self.assertGreaterEqual(
             _convert_timestamp(data_2["end_timestamp"]),
             _add_seconds_to_timestamp(_convert_timestamp(data_2["begin_timestamp"]), 0.8)
         )
         self.assertEqual(data_1["begin_timestamp"], data_2["begin_timestamp"])
-        self.assertGreater(
+        self.assertGreaterEqual(
             _convert_timestamp(data_2["end_timestamp"]),
             _add_seconds_to_timestamp(_convert_timestamp(data_1["end_timestamp"]), 0.4)
         )

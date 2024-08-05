@@ -30,8 +30,13 @@ class LogGenerator:
 
 if __name__ == "__main__":
     generator = LogGenerator("127.0.0.1", 9998)
-    while True:
-        logline = generate_dns_log_line()
-        generator.send_logline(logline)
-        logger.info(f"Sent logline: {logline}")
-        sleep(0.1)
+    # while True:
+    logline = generate_dns_log_line()
+    generator.send_logline(logline)
+    logger.info(f"Sent logline: {logline}")
+    # sleep(0.1)
+    with open("../../pipeline_prototype/loglines.txt", 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+
+    for index, line in enumerate(lines, start=1):
+        generator.send_logline(line)
