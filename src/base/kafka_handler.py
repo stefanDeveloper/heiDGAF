@@ -229,7 +229,7 @@ class KafkaConsumeHandler(KafkaHandler):
             self.consumer.assign([TopicPartition(topic, 0)])
         except KafkaError as e:
             logger.error(f"Consumer initialization failed: {e}")
-            raise
+            raise e
 
         logger.debug(f"Initialized KafkaConsumeHandler ({topic=}).")
 

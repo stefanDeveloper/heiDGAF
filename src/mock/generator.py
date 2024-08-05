@@ -2,7 +2,6 @@ import logging
 import os
 import socket
 import sys
-from time import sleep
 
 sys.path.append(os.getcwd())
 from src.base import utils
