@@ -89,18 +89,21 @@ parsing their information fields, and validating the data. Each field is checked
 and format. This stage ensures that all data is accurate, reducing the need for further verification in subsequent
 stages. Any loglines that do not meet the required format are immediately discarded to maintain data integrity. Valid
 loglines are then buffered and transmitted in batches after a pre-defined timeout or when the buffer reaches its
-capacity. This minimizes the number of messages sent to the next stage and optimizes performance. The functionality of
-the buffer is detailed in the subsection, :ref:`Buffer Functionality`.
+capacity. This minimizes the number of messages sent to the next stage and optimizes performance. The client's IP
+address is retrieved from the logline and used to create the ``subnet_id`` with the number of subnet bits specified in
+the configuration. The functionality of the buffer is detailed in the subsection, :ref:`Buffer Functionality`.
 
 Overview
 --------
 
-The `Log Collection` stage comprises two main classes:
+The `Log Collection` stage comprises three main classes:
 
 1. :class:`LogCollector`: Connects to the :class:`LogServer` to retrieve and parse loglines, validating their format
-   and content.
-2. :class:`KafkaBatchSender`: Buffers validated loglines and sends them in batches, maintaining timestamps for
-   accurate processing and analysis.
+   and content. Adds ``subnet_id`` that it retrieves from the client's IP address in the logline.
+2. :class:`BufferedBatch`: Buffers validated loglines with respect to their ``subnet_id``. Maintains the timestamps for
+   accurate processing and analysis per key (``subnet_id``).
+3. :class:`CollectorKafkaBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
+   and checks the fill level of the key-specific batches. Sends the key's batches if full, sends all batches at timeout.
 
 Main Classes
 ------------
@@ -109,8 +112,10 @@ Main Classes
 .. autoclass:: LogCollector
 
 .. py:currentmodule:: src.base.batch_handler
+.. autoclass:: BufferedBatch
+
+.. py:currentmodule:: src.base.batch_handler
 .. autoclass:: CollectorKafkaBatchSender
-   :show-inheritance:
 
 Usage
 -----
@@ -125,6 +130,18 @@ validates. The logline is parsed into its respective fields, each checked for co
 
   - Checks include data type verification and value range checks (e.g., verifying that an IP address is valid).
   - Only loglines meeting the criteria are forwarded to the :class:`CollectorKafkaBatchSender`.
+
+- **Subnet Identification**:
+
+  - The configuration file specifies the number n of bits in a subnet (e.g. 24). The client's IP address serves as a
+    base for the ``subnet_id``. For this, the initial IP address is cut off after n bits, the rest is filled with
+    zeros, and ``_n`` is added to the end of the ``subnet_id``. For example:
+
+    +------------------------+------------------------------------------------+
+    | **Client IP address**  | **Subnet ID**                                  |
+    +========================+================================================+
+    | ``171.154.4.17``       | ``171.154.4.0_24``                             |
+    +------------------------+------------------------------------------------+
 
 - **Connection to LogServer**:
 
@@ -177,49 +194,59 @@ validates. The logline is parsed into its respective fields, each checked for co
     |                      | bytes.                                         |
     +----------------------+------------------------------------------------+
 
-CollectorKafkaBatchSender
-.........................
+BufferedBatch
+.............
 
-The :class:`CollectorKafkaBatchSender` manages the buffering and batch sending of validated loglines:
+The :class:`BufferedBatch` manages the buffering of validated loglines as well as their timestamps:
 
-- **Batching Logic**:
+- **Batching Logic and Buffering Strategy**:
 
-  - Starts a timer upon receiving the first log entry.
-  - Collects log entries into a `latest_messages` list.
-  - Upon timer expiration or when a batch reaches the configured size (e.g., 1000 entries), the current and previous
-    batches are concatenated and sent to the Kafka Broker(s) with topic ``Prefilter``.
+  - Collects log entries into a ``batch`` dictionary, with the ``subnet_id`` as key.
+  - Uses a ``buffer`` per key to concatenate and send both the current and previous batches together.
+  - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
+    :ref:`Stage 4: Data Inspection` and :ref:`Stage 5: Data Analysis`.
 
 - **Timestamp Management**:
 
-  - Maintains `begin_timestamp`, `center_timestamp`, and `end_timestamp` to track the timing of messages.
-  - The `begin_timestamp` marks the start of the current batch, while the `end_timestamp` is updated with each batch's
-    final message.
-  - If no messages are present when the timer expires, nothing is sent.
+  - Maintains `begin_timestamp`, `center_timestamp`, and `end_timestamp` per key to track the timing of messages.
+  - The `begin_timestamp` marks the time the first message that is currently stored as part of the ``batch`` or
+    ``buffer`` arrived, while the `end_timestamp` is updated with each batch's final message.
 
-- **Buffering Strategy**:
+CollectorKafkaBatchSender
+.........................
 
-  - By default, uses a buffer to concatenate and send both the current and previous batches together.
-  - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
-    :ref:`Stage 4: Data Inspection` and :ref:`Stage 5: Data Analysis`.
+The :class:`CollectorKafkaBatchSender` manages the sending of validated loglines stored in the :class:`BufferedBatch`:
+
+- Starts a timer upon receiving the first log entry.
+- When a batch reaches the configured size (e.g., 1000 entries), the current and previous
+  batches of this key are concatenated and sent to the Kafka Broker(s) with topic ``Prefilter``.
+- Upon timer expiration, the currently stored batches of all keys are sent. Serves as backup if batches don't reach
+  the configured size.
+- If no messages are present when the timer expires, nothing is sent.
 
 Configuration
 -------------
 
 Configuration settings for the :class:`LogCollector` and :class:`CollectorKafkaBatchSender` are managed in the
-`config.yaml` file (keys: ``heidgaf.collector`` and ``kafka.batch_sender``):
+`config.yaml` file (keys: ``heidgaf.collector``, ``kafka.batch_sender`` and ``heidgaf.subnet``):
 
 - **LogCollector Analyzation Criteria**:
 
-    - ``valid_status_codes``: The accepted status codes for logline validation. Default list contains ``NOERROR``
-      and ``NXDOMAIN``.
-    - ``valid_record_types``: The accepted DNS record types for logline validation. Default list contains ``A`` and
-      ``AAAA``.
+  - ``valid_status_codes``: The accepted status codes for logline validation. Default list contains ``NOERROR``
+    and ``NXDOMAIN``.
+  - ``valid_record_types``: The accepted DNS record types for logline validation. Default list contains ``A`` and
+    ``AAAA``.
 
 - **Batch Configuration**:
 
-    - ``batch_size``: The maximum number of loglines per batch. Default is ``1000``.
-    - ``timeout_seconds``: The time interval (in seconds) after which the batch is sent, regardless of size. Default
-      is ``60``.
+  - ``batch_size``: The maximum number of loglines per batch. Default is ``1000``.
+  - ``timeout_seconds``: The time interval (in seconds) after which the batch is sent, regardless of size. Default
+    is ``60``.
+
+- **Number of bits used in Subnet ID**:
+
+  - ``subnet_bits``: The number of bits, after which to cut off the client's IP address to use as ``subnet_id``. Default
+    is ``24``.
 
 - **Kafka Topics**:
 
@@ -229,45 +256,83 @@ Configuration settings for the :class:`LogCollector` and :class:`CollectorKafkaB
 Buffer Functionality
 --------------------
 
-The :class:`KafkaBatchSender` uses a dual-buffer strategy to ensure that messages are sent efficiently and with the
-necessary context for later analysis. Here is a detailed example of how the batch processing works with timestamps:
+The :class:`BufferedBatch` class manages the batching and buffering of messages associated with specific keys, along
+with the corresponding timestamps. The class ensures efficient data processing by maintaining two sets of messages -
+those currently being batched and those that were part of the previous batch. It also tracks the necessary timestamps
+to manage the timing of message processing.
 
-Timestamps for `KafkaBatchSender`
-.................................
+Class Overview
+..............
 
-The :class:`KafkaBatchSender` stores two lists of messages: `earlier_messages` and
-`latest_messages`. The process for four example messages with a batch size of 2 is as follows:
+- **Batch**: Stores the latest incoming messages associated with a particular key. Each key in the batch is marked
+  with a timestamp indicating when the first message was added.
 
-1. **Initial Setup**:
+- **Buffer**: Stores the previous batch of messages associated with a particular key, including the timestamps.
 
-   - On the first call of ``add_message()``, ``_reset_timer()`` is called for the first time.
-   - In ``add_message()``, the `begin_timestamp` is set to the current time.
+Key Procedures
+..............
 
-2. **Message Arrival**:
+1. **Message Arrival and Addition**:
 
-   - When ``message_1`` and ``message_2`` arrive, they are added to `latest_messages`.
-   - Once the batch is full, it is sent to the :class:`KafkaProduceHandler` to be processed.
-   - The `end_timestamp` is updated to the current time before sending.
+  - When a new message arrives, the ``add_message()`` method is called.
+  - If the key already exists in the batch, the message is appended to the list of messages for that key.
+  - If the key does not exist, a new entry is created in the batch, and the current time is recorded as the
+    ``__center_timestamp`` for that key.
+  - **Example**:
+    - ``message_1`` arrives for ``key_1`` and is added to ``batch["key_1"]``.
+    - Since it's the first message for this key, ``__center_timestamps["key_1"]`` is set to the current time.
 
-3. **Buffering with Messages**:
+2. **Retrieving Message Counts**:
 
-   - Old messages ``message_1`` and ``message_2`` are moved to `earlier_messages`.
-   - `begin_timestamp` remains the same, while `end_timestamp` becomes the `center_timestamp`.
-   - New messages like ``message_3`` and ``message_4`` are added to `latest_messages`.
+  - Use ``get_number_of_messages(key)`` to get the count of messages in the current batch for a specific key.
+  - Use ``get_number_of_buffered_messages(key)`` to get the count of messages in the buffer for a specific key.
 
-4. **Batch Completion**:
+3. **Completing a Batch**:
+  - The ``complete_batch()`` method is called to finalize and retrieve the batch data for a specific key.
+  - **Scenarios**:
 
-   - When the next batch is full, the `latest_messages` are sent with the `begin_timestamp` and the `end_timestamp`.
-   - After sending, `begin_timestamp` is updated to `center_timestamp`, and `center_timestamp` becomes `end_timestamp`.
+    - **Variant 1**: If only the current batch contains messages (buffer is empty), the batch is returned with
+      its timestamps. ``__begin_timestamp`` is set to ``__center_timestamp``, and ``__end_timestamp`` is updated to
+      the current time.
+    - **Variant 2**: If both the batch and buffer contain messages, the buffered messages are included in the returned
+      data. Timestamps are updated accordingly, and the batch messages are moved to the buffer.
+    - **Variant 3**: If only the buffer contains messages (no new messages arrived), the buffer data is discarded.
+    - **Variant 4**: If neither the batch nor the buffer contains messages, a ``ValueError`` is raised.
 
-5. **Buffering Without Messages**:
+  - After sending, the relevant timestamps are updated:
 
-   - If no messages arrive during the timer interval, the behavior is similar, ensuring that timestamps are updated
-     appropriately without sending any data.
+    - ``__begin_timestamps[key]`` is set to the previous ``__center_timestamps[key]``.
+    - ``__center_timestamps[key]`` is set to the previous ``__end_timestamps[key]``.
 
-This approach allows for efficient data processing while ensuring that potential boundary issues between batches can be
-detected and analyzed.
+4. **Managing Stored Keys**:
 
+  - The ``get_stored_keys()`` method returns a set of all keys currently stored in either the batch or the buffer,
+    allowing the retrieval of all keys with associated messages or buffered data.
+
+Example Workflow
+................
+
+1. **Initial Message**:
+
+  - ``message_1`` arrives for ``key_1``, added to ``batch["key_1"]``.
+  - ``__center_timestamp`` for ``key_1`` is set.
+
+2. **Subsequent Message**:
+
+  - ``message_2`` arrives for ``key_1``, added to ``batch["key_1"]``.
+
+3. **Completing the Batch**:
+
+  - ``complete_batch("key_1")`` is called, and if ``buffer["key_1"]`` exists, it includes both buffered and batch
+    messages, otherwise just the batch.
+  - Timestamps are updated, and the current batch is moved to the buffer.
+
+4. **Buffer Management**:
+
+  - If no new messages arrive, ``buffer["key_1"]`` data is discarded upon the next call to ``complete_batch("key_1")``.
+
+This class design effectively manages the batching and buffering of messages, allowing for precise timestamp tracking
+and efficient data processing across different message streams.
 
 Stage 3: Log Filtering
 ======================

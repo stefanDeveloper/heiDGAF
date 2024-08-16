@@ -137,7 +137,8 @@ class LogCollector:
     def add_logline_to_batch(self) -> None:
         """
         Sends the validated logline in JSON format to :class:`CollectorKafkaBatchSender`, where it is stored in
-        a temporary batch before being sent to topic ``Prefilter``.
+        a temporary batch before being sent to topic ``Prefilter``. Adds a subnet_id to the message, that it retrieves
+        from the client's IP address.
         """
         logger.debug("Adding logline to batch...")
         if not self.logline or self.log_data == {}:
