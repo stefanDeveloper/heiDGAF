@@ -1,7 +1,26 @@
 import ipaddress
 import unittest
+from unittest.mock import patch, mock_open
 
-from src.base.utils import validate_host, validate_port, get_first_part_of_ipv4_address
+from src.base.utils import validate_host, validate_port, get_first_part_of_ipv4_address, setup_config
+
+
+class TestSetupConfig(unittest.TestCase):
+    @patch("src.base.utils.CONFIG_FILEPATH", "fake/path/config.yaml")
+    @patch("builtins.open", new_callable=mock_open, read_data="some_yaml_data: value")
+    @patch("yaml.safe_load", return_value={"some_yaml_data": "value"})
+    def test_load_config_success(self, mock_yaml_safe_load, mock_open_file):
+        result = setup_config()
+
+        mock_open_file.assert_called_once_with("fake/path/config.yaml", "r")
+        mock_yaml_safe_load.assert_called_once()
+        self.assertEqual(result, {"some_yaml_data": "value"})
+
+    @patch("src.base.utils.CONFIG_FILEPATH", "fake/path/config.yaml")
+    @patch("builtins.open", side_effect=FileNotFoundError)
+    def test_load_config_file_not_found(self, mock_open_file):
+        with self.assertRaises(FileNotFoundError):
+            setup_config()
 
 
 class TestValidateHosts(unittest.TestCase):
@@ -44,6 +63,12 @@ class TestValidatePort(unittest.TestCase):
     def test_valid_lower_edge(self):
         valid_port = 1
         self.assertEqual(validate_port(valid_port), valid_port)
+
+    def test_invalid_wrong_type(self):
+        port = "wrong"
+        with self.assertRaises(TypeError):
+            # noinspection PyTypeChecker
+            validate_port(port)
 
     def test_invalid_small_port(self):
         small_port = 0

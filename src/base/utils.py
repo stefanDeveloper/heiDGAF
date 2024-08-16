@@ -76,6 +76,7 @@ def validate_port(port: int) -> int:
 
     Raises:
         ValueError: Port number not in valid port number range
+        TypeError: Invalid type for port number, must be int
     """
     logger.debug(f"Validating port {port}...")
     if not isinstance(port, int):
