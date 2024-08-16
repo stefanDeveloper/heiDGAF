@@ -1,12 +1,12 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from src.base.batch_handler import CollectorKafkaBatchSender
+from src.logcollector.batch_handler import CollectorKafkaBatchSender
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.base.batch_handler.BufferedBatch")
-    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.BufferedBatch")
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
     def test_init_with_buffer(self, mock_kafka_produce_handler, mock_buffered_batch):
         # Arrange
         mock_handler_instance = MagicMock()
@@ -33,11 +33,11 @@ class TestDel(unittest.TestCase):
 
 
 class TestAddMessage(unittest.TestCase):
-    @patch("src.base.batch_handler.BATCH_SIZE", 1000)
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.CollectorKafkaBatchSender._reset_timer")
-    @patch("src.base.batch_handler.BufferedBatch.get_number_of_messages")
-    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.BATCH_SIZE", 1000)
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._reset_timer")
+    @patch("src.logcollector.batch_handler.BufferedBatch.get_number_of_messages")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
     def test_add_message_normal(self, mock_send_batch, mock_get_nr_messages, mock_reset_timer,
                                 mock_produce_handler):
         # Arrange
@@ -59,9 +59,9 @@ class TestAddMessage(unittest.TestCase):
         mock_get_nr_messages.assert_called_once_with(key)
         mock_reset_timer.assert_not_called()
 
-    @patch("src.base.batch_handler.BATCH_SIZE", 100)
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.BATCH_SIZE", 100)
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
     def test_add_message_full_messages(self, mock_send_batch, mock_produce_handler):
         # Arrange
         mock_produce_handler_instance = MagicMock()
@@ -81,9 +81,9 @@ class TestAddMessage(unittest.TestCase):
         sut.add_message(key, f"message_100")
         mock_send_batch.assert_called_once()
 
-    @patch("src.base.batch_handler.BATCH_SIZE", 100)
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.BATCH_SIZE", 100)
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
     def test_add_message_full_messages_with_different_keys(self, mock_send_batch, mock_produce_handler):
         # Arrange
         mock_produce_handler_instance = MagicMock()
@@ -108,9 +108,9 @@ class TestAddMessage(unittest.TestCase):
         sut.add_message(key, f"message_100")
         mock_send_batch.assert_called_once()
 
-    @patch("src.base.batch_handler.BATCH_SIZE", 100)
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.CollectorKafkaBatchSender._reset_timer")
+    @patch("src.logcollector.batch_handler.BATCH_SIZE", 100)
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._reset_timer")
     def test_add_message_no_timer(self, mock_reset_timer, mock_produce_handler):
         # Arrange
         mock_produce_handler_instance = MagicMock()
@@ -127,9 +127,9 @@ class TestAddMessage(unittest.TestCase):
 
 
 class TestSendAllBatches(unittest.TestCase):
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
-    @patch("src.base.batch_handler.BufferedBatch")
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.BufferedBatch")
     def test_send_all_batches_with_existing_keys(self, mock_buffered_batch, mock_send_batch,
                                                  mock_kafka_produce_handler):
         # Arrange
@@ -149,10 +149,30 @@ class TestSendAllBatches(unittest.TestCase):
         mock_send_batch.assert_any_call("key_2")
         self.assertEqual(mock_send_batch.call_count, 2)
 
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
-    @patch("src.base.batch_handler.CollectorKafkaBatchSender._reset_timer")
-    @patch("src.base.batch_handler.BufferedBatch")
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.BufferedBatch")
+    def test_send_all_batches_with_one_key(self, mock_buffered_batch, mock_send_batch,
+                                           mock_kafka_produce_handler):
+        # Arrange
+        mock_batch_instance = MagicMock()
+        mock_buffered_batch.return_value = mock_batch_instance
+        mock_batch_instance.get_stored_keys.return_value = []
+        mock_send_batch_instance = MagicMock()
+        mock_send_batch.return_value = mock_send_batch_instance
+
+        sut = CollectorKafkaBatchSender()
+
+        # Act
+        sut._send_all_batches(reset_timer=False)
+
+        # Assert
+        self.assertEqual(mock_send_batch.call_count, 0)
+
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._reset_timer")
+    @patch("src.logcollector.batch_handler.BufferedBatch")
     def test_send_all_batches_with_existing_keys_and_reset_timer(self, mock_buffered_batch, mock_reset_timer,
                                                                  mock_send_batch, mock_kafka_produce_handler):
         # Arrange
@@ -173,9 +193,9 @@ class TestSendAllBatches(unittest.TestCase):
         mock_reset_timer.assert_called_once()
         self.assertEqual(mock_send_batch.call_count, 2)
 
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
-    @patch("src.base.batch_handler.BufferedBatch")
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.CollectorKafkaBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.BufferedBatch")
     def test_send_all_batches_with_no_keys(self, mock_buffered_batch, mock_send_batch,
                                            mock_kafka_produce_handler):
         # Arrange
@@ -195,9 +215,9 @@ class TestSendAllBatches(unittest.TestCase):
 
 
 class TestSendBatchForKey(unittest.TestCase):
-    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
     @patch.object(CollectorKafkaBatchSender, '_send_data_packet')
-    @patch("src.base.batch_handler.BufferedBatch")
+    @patch("src.logcollector.batch_handler.BufferedBatch")
     def test_send_batch_for_key_success(self, mock_batch, mock_send_data_packet, mock_produce_handler):
         # Arrange
         mock_batch_instance = MagicMock()
@@ -214,9 +234,9 @@ class TestSendBatchForKey(unittest.TestCase):
         mock_batch_instance.complete_batch.assert_called_once_with(key)
         mock_send_data_packet.assert_called_once_with(key, "mock_data_packet")
 
-    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
     @patch.object(CollectorKafkaBatchSender, '_send_data_packet')
-    @patch("src.base.batch_handler.BufferedBatch")
+    @patch("src.logcollector.batch_handler.BufferedBatch")
     def test_send_batch_for_key_value_error(self, mock_batch, mock_send_data_packet, mock_produce_handler):
         # Arrange
         mock_batch_instance = MagicMock()
@@ -235,7 +255,7 @@ class TestSendBatchForKey(unittest.TestCase):
 
 
 class TestSendDataPacket(unittest.TestCase):
-    @patch("src.base.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
     def test_send_data_packet(self, mock_produce_handler):
         # Arrange
         mock_produce_handler_instance = MagicMock()
@@ -263,9 +283,9 @@ class TestSendDataPacket(unittest.TestCase):
 
 
 class TestResetTimer(unittest.TestCase):
-    @patch("src.base.batch_handler.BATCH_TIMEOUT", 5.9)
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.Timer")
+    @patch("src.logcollector.batch_handler.BATCH_TIMEOUT", 5.9)
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.Timer")
     def test_reset_timer_with_existing_timer(self, mock_timer, mock_produce_handler):
         # Arrange
         mock_timer_instance = MagicMock()
@@ -287,9 +307,9 @@ class TestResetTimer(unittest.TestCase):
         mock_timer.assert_called_once_with(5.9, sut._send_all_batches)
         sut.timer.start.assert_called_once()
 
-    @patch("src.base.batch_handler.BATCH_TIMEOUT", 4.6)
-    @patch("src.base.batch_handler.KafkaProduceHandler")
-    @patch("src.base.batch_handler.Timer")
+    @patch("src.logcollector.batch_handler.BATCH_TIMEOUT", 4.6)
+    @patch("src.logcollector.batch_handler.KafkaProduceHandler")
+    @patch("src.logcollector.batch_handler.Timer")
     def test_reset_timer_without_existing_timer(self, mock_timer, mock_produce_handler):
         # Arrange
         mock_produce_handler_instance = MagicMock()

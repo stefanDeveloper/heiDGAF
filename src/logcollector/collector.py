@@ -7,7 +7,7 @@ import sys
 
 sys.path.append(os.getcwd())
 from src.base import utils
-from src.base.batch_handler import CollectorKafkaBatchSender
+from src.logcollector.batch_handler import CollectorKafkaBatchSender
 from src.base.log_config import setup_logging
 
 setup_logging()

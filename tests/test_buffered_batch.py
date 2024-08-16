@@ -2,7 +2,7 @@ import time
 import unittest
 from datetime import datetime, timedelta
 
-from src.base.batch_handler import BufferedBatch
+from src.logcollector.batch_handler import BufferedBatch
 
 
 class TestInit(unittest.TestCase):

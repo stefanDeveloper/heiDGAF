@@ -228,7 +228,7 @@ class CollectorKafkaBatchSender:
                         f"{total_number_of_batch_messages + total_number_of_buffer_messages} message(s) sent ("
                         f"{total_number_of_batch_messages} batch message(s), {total_number_of_buffer_messages} "
                         f"buffer message(s)).")
-        elif number_of_keys > 1:
+        else:  # if number_of_keys > 1
             logger.info("Successfully sent all batches.\n"
                         f"    ⤷  Batches for {number_of_keys} subnet_ids sent. "
                         f"In total: {total_number_of_batch_messages + total_number_of_buffer_messages} messages ("
