@@ -40,6 +40,7 @@ class TestInit(unittest.TestCase):
         with self.assertRaises(ValueError):
             LogServer()
 
+
 # TODO: Update
 # class TestOpen(unittest.IsolatedAsyncioTestCase):
 #     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")

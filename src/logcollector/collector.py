@@ -309,11 +309,13 @@ class LogCollector:
         return False
 
 
-# TODO: Test
-def main() -> None:
+def main(one_iteration: bool = False) -> None:
     """
     Creates the :class:`LogCollector` instance. Starts a loop that continuously fetches a logline, validates and
     extracts its information and adds it to the batch if valid.
+
+    Args:
+        one_iteration (bool): For testing purposes: stops loop after one iteration
 
     Raises:
         KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
@@ -324,7 +326,13 @@ def main() -> None:
                 "    ⤷  Fetching loglines from LogServer...\n"
                 "    ⤷  Data will be sent when the respective batch is full or the global timer runs out.")
 
+    iterations = 0
+
     while True:
+        if one_iteration and iterations > 0:
+            break
+        iterations += 1
+
         try:
             logger.debug("Before fetching logline")
             collector.fetch_logline()
@@ -350,5 +358,5 @@ def main() -> None:
             collector.clear_logline()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

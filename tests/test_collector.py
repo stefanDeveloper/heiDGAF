@@ -2,7 +2,7 @@ import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import MagicMock, patch
 
-from src.logcollector.collector import LogCollector
+from src.logcollector.collector import LogCollector, main
 
 LOG_SERVER_IP_ADDR = "172.27.0.8"
 LOG_SERVER_PORT = 9999
@@ -79,7 +79,7 @@ class TestInit(unittest.TestCase):
 class TestFetchLogline(unittest.TestCase):
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("socket.socket")
-    def test_fetch_logline(self, mock_socket, mock_batch_handler):
+    def test_fetch_logline_successful(self, mock_socket, mock_batch_handler):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
         mock_socket_instance.connect.return_value = None
         mock_socket_instance.recv.side_effect = ["fake messages".encode("utf-8"), b""]
@@ -94,6 +94,42 @@ class TestFetchLogline(unittest.TestCase):
         )
         mock_socket_instance.recv.assert_called_with(1024)
         self.assertEqual("fake messages", sut.logline)
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("socket.socket")
+    def test_fetch_logline_no_data_on_server(self, mock_socket, mock_batch_handler):
+        mock_socket_instance = mock_socket.return_value.__enter__.return_value
+        mock_socket_instance.connect.return_value = None
+        mock_socket_instance.recv.side_effect = ["".encode("utf-8"), b""]
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.fetch_logline()
+
+        mock_socket_instance.connect.assert_called_with(
+            (LOG_SERVER_IP_ADDR, LOG_SERVER_PORT)
+        )
+        mock_socket_instance.recv.assert_called_with(1024)
+        self.assertIsNone(sut.logline)
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("socket.socket")
+    def test_fetch_logline_connection_error(self, mock_socket, mock_batch_handler):
+        mock_socket_instance = mock_socket.return_value.__enter__.return_value
+        mock_socket_instance.connect.side_effect = ConnectionError("Unable to connect")
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+
+        with self.assertRaises(ConnectionError):
+            sut.fetch_logline()
+
+        mock_socket_instance.connect.assert_called_with(
+            (LOG_SERVER_IP_ADDR, LOG_SERVER_PORT)
+        )
+        self.assertIsNone(sut.logline)
 
 
 class TestValidateAndExtractLogline(unittest.TestCase):
@@ -124,14 +160,25 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         self.assertEqual("86b", sut.log_data.get("size"))
 
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
-    def test_invalid_logline_wrong_response_ip(self, mock_batch_handler):
+    def test_invalid_logline_no_data(self, mock_batch_handler):
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.logline = None
+
+        with self.assertRaises(ValueError):
+            sut.validate_and_extract_logline()
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    def test_invalid_logline_wrong_length(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
         sut = LogCollector()
         sut.logline = (
             "2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
-            "A b49c:50f9:a37:f8e2:ff81:3e88:d27d 86b"
+            "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b THIS_IS_WRONG"
         )
 
         with self.assertRaises(ValueError):
@@ -147,15 +194,188 @@ class TestValidateAndExtractLogline(unittest.TestCase):
         self.assertIsNone(sut.log_data.get("size"))
 
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
-    def test_invalid_logline_no_data(self, mock_batch_handler):
+    def test_invalid_logline_wrong_timestamp(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
 
         sut = LogCollector()
-        sut.logline = None
+        sut.logline = (
+            "wrong_timestamp NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
+            "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b"
+        )
 
         with self.assertRaises(ValueError):
             sut.validate_and_extract_logline()
+
+        self.assertIsNone(sut.log_data.get("timestamp"))
+        self.assertIsNone(sut.log_data.get("status"))
+        self.assertIsNone(sut.log_data.get("client_ip"))
+        self.assertIsNone(sut.log_data.get("dns_ip"))
+        self.assertIsNone(sut.log_data.get("host_domain_name"))
+        self.assertIsNone(sut.log_data.get("record_type"))
+        self.assertIsNone(sut.log_data.get("response_ip"))
+        self.assertIsNone(sut.log_data.get("size"))
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    def test_invalid_logline_wrong_status(self, mock_batch_handler):
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.logline = (
+            "2024-05-21T19:27:15.583Z WRONG_STATUS 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
+            "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b"
+        )
+
+        with self.assertRaises(ValueError):
+            sut.validate_and_extract_logline()
+
+        self.assertIsNone(sut.log_data.get("timestamp"))
+        self.assertIsNone(sut.log_data.get("status"))
+        self.assertIsNone(sut.log_data.get("client_ip"))
+        self.assertIsNone(sut.log_data.get("dns_ip"))
+        self.assertIsNone(sut.log_data.get("host_domain_name"))
+        self.assertIsNone(sut.log_data.get("record_type"))
+        self.assertIsNone(sut.log_data.get("response_ip"))
+        self.assertIsNone(sut.log_data.get("size"))
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    def test_invalid_logline_wrong_client_ip(self, mock_batch_handler):
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.logline = (
+            "2024-05-21T19:27:15.583Z NOERROR wrong_client_ip 8.8.8.8 www.uni-hd-theologie.de "
+            "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b"
+        )
+
+        with self.assertRaises(ValueError):
+            sut.validate_and_extract_logline()
+
+        self.assertIsNone(sut.log_data.get("timestamp"))
+        self.assertIsNone(sut.log_data.get("status"))
+        self.assertIsNone(sut.log_data.get("client_ip"))
+        self.assertIsNone(sut.log_data.get("dns_ip"))
+        self.assertIsNone(sut.log_data.get("host_domain_name"))
+        self.assertIsNone(sut.log_data.get("record_type"))
+        self.assertIsNone(sut.log_data.get("response_ip"))
+        self.assertIsNone(sut.log_data.get("size"))
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    def test_invalid_logline_wrong_dns_ip(self, mock_batch_handler):
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.logline = (
+            "2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 wrong_dns_ip www.uni-hd-theologie.de "
+            "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b"
+        )
+
+        with self.assertRaises(ValueError):
+            sut.validate_and_extract_logline()
+
+        self.assertIsNone(sut.log_data.get("timestamp"))
+        self.assertIsNone(sut.log_data.get("status"))
+        self.assertIsNone(sut.log_data.get("client_ip"))
+        self.assertIsNone(sut.log_data.get("dns_ip"))
+        self.assertIsNone(sut.log_data.get("host_domain_name"))
+        self.assertIsNone(sut.log_data.get("record_type"))
+        self.assertIsNone(sut.log_data.get("response_ip"))
+        self.assertIsNone(sut.log_data.get("size"))
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    def test_invalid_logline_wrong_host_domain_name(self, mock_batch_handler):
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.logline = (
+            "2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 wrong_host_domain_name "
+            "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b"
+        )
+
+        with self.assertRaises(ValueError):
+            sut.validate_and_extract_logline()
+
+        self.assertIsNone(sut.log_data.get("timestamp"))
+        self.assertIsNone(sut.log_data.get("status"))
+        self.assertIsNone(sut.log_data.get("client_ip"))
+        self.assertIsNone(sut.log_data.get("dns_ip"))
+        self.assertIsNone(sut.log_data.get("host_domain_name"))
+        self.assertIsNone(sut.log_data.get("record_type"))
+        self.assertIsNone(sut.log_data.get("response_ip"))
+        self.assertIsNone(sut.log_data.get("size"))
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    def test_invalid_logline_wrong_record_type(self, mock_batch_handler):
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.logline = (
+            "2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
+            "WRONG_RECORD_TYPE b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d 86b"
+        )
+
+        with self.assertRaises(ValueError):
+            sut.validate_and_extract_logline()
+
+        self.assertIsNone(sut.log_data.get("timestamp"))
+        self.assertIsNone(sut.log_data.get("status"))
+        self.assertIsNone(sut.log_data.get("client_ip"))
+        self.assertIsNone(sut.log_data.get("dns_ip"))
+        self.assertIsNone(sut.log_data.get("host_domain_name"))
+        self.assertIsNone(sut.log_data.get("record_type"))
+        self.assertIsNone(sut.log_data.get("response_ip"))
+        self.assertIsNone(sut.log_data.get("size"))
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    def test_invalid_logline_wrong_response_ip(self, mock_batch_handler):
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.logline = (
+            "2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
+            "A wrong_response_ip 86b"
+        )
+
+        with self.assertRaises(ValueError):
+            sut.validate_and_extract_logline()
+
+        self.assertIsNone(sut.log_data.get("timestamp"))
+        self.assertIsNone(sut.log_data.get("status"))
+        self.assertIsNone(sut.log_data.get("client_ip"))
+        self.assertIsNone(sut.log_data.get("dns_ip"))
+        self.assertIsNone(sut.log_data.get("host_domain_name"))
+        self.assertIsNone(sut.log_data.get("record_type"))
+        self.assertIsNone(sut.log_data.get("response_ip"))
+        self.assertIsNone(sut.log_data.get("size"))
+
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    def test_invalid_logline_wrong_size(self, mock_batch_handler):
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.logline = (
+            "2024-05-21T19:27:15.583Z NOERROR 192.168.0.253 8.8.8.8 www.uni-hd-theologie.de "
+            "A b49c:50f9:a37:f8e2:ff81:8be7:3e88:d27d wrong_size"
+        )
+
+        with self.assertRaises(ValueError):
+            sut.validate_and_extract_logline()
+
+        self.assertIsNone(sut.log_data.get("timestamp"))
+        self.assertIsNone(sut.log_data.get("status"))
+        self.assertIsNone(sut.log_data.get("client_ip"))
+        self.assertIsNone(sut.log_data.get("dns_ip"))
+        self.assertIsNone(sut.log_data.get("host_domain_name"))
+        self.assertIsNone(sut.log_data.get("record_type"))
+        self.assertIsNone(sut.log_data.get("response_ip"))
+        self.assertIsNone(sut.log_data.get("size"))
 
 
 class TestAddLoglineToBatch(unittest.TestCase):
@@ -377,6 +597,57 @@ class TestCheckSize(unittest.TestCase):
     def test_invalid_size_non_numeric(self):
         # Invalid size - Non-numeric value
         self.assertFalse(LogCollector._check_size("abc"))
+
+
+class TestMainFunction(unittest.TestCase):
+    @patch('src.logcollector.collector.LogCollector')
+    def test_main_loop_execution(self, mock_log_collector):
+        # Arrange
+        mock_collector_instance = mock_log_collector.return_value
+
+        mock_collector_instance.fetch_logline = MagicMock()
+        mock_collector_instance.validate_and_extract_logline = MagicMock()
+        mock_collector_instance.add_logline_to_batch = MagicMock()
+        mock_collector_instance.clear_logline = MagicMock()
+
+        # Act
+        main(one_iteration=True)
+
+        # Assert
+        self.assertTrue(mock_collector_instance.fetch_logline.called)
+        self.assertTrue(mock_collector_instance.validate_and_extract_logline.called)
+        self.assertTrue(mock_collector_instance.add_logline_to_batch.called)
+        self.assertTrue(mock_collector_instance.clear_logline.called)
+
+    @patch('src.logcollector.collector.LogCollector')
+    def test_main_value_error_handling(self, mock_log_collector):
+        # Arrange
+        mock_collector_instance = mock_log_collector.return_value
+        mock_log_collector.patch("fetch_logline", ValueError)
+
+        # Act
+        with patch.object(mock_collector_instance, 'fetch_logline',
+                          side_effect=ValueError('Simulated ValueError')):
+            main(one_iteration=True)
+
+        # Assert
+        self.assertTrue(mock_collector_instance.clear_logline.called)
+        self.assertTrue(mock_collector_instance.loop_exited)
+
+    @patch('src.logcollector.collector.LogCollector')
+    def test_main_keyboard_interrupt(self, mock_log_collector):
+        # Arrange
+        mock_collector_instance = mock_log_collector.return_value
+        mock_collector_instance.fetch_logline.side_effect = KeyboardInterrupt
+
+        # Act
+        with patch.object(mock_collector_instance, 'fetch_logline',
+                          side_effect=KeyboardInterrupt):
+            main()
+
+        # Assert
+        self.assertTrue(mock_collector_instance.clear_logline.called)
+        self.assertTrue(mock_collector_instance.loop_exited)
 
 
 if __name__ == "__main__":

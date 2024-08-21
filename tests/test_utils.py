@@ -1,8 +1,7 @@
-import ipaddress
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, MagicMock
 
-from src.base.utils import validate_host, validate_port, get_first_part_of_ipv4_address, setup_config
+from src.base.utils import *
 
 
 class TestSetupConfig(unittest.TestCase):
@@ -82,8 +81,17 @@ class TestValidatePort(unittest.TestCase):
 
 
 class TestKafkaDeliveryReport(unittest.TestCase):
-    # No need to be tested: only logging messages
-    pass
+    @patch('src.base.utils.logger')
+    def test_delivery_failed(self, mock_logger):
+        mock_error = MagicMock(spec=KafkaError)
+        kafka_delivery_report(mock_error, None)
+        mock_logger.warning.assert_called_once()
+
+    @patch('src.base.utils.logger')
+    def test_delivery_success(self, mock_logger):
+        mock_msg = MagicMock(spec=Message)
+        kafka_delivery_report(None, mock_msg)
+        mock_logger.debug.assert_called_once()
 
 
 class TestGetFirstPartOfIPv4Address(unittest.TestCase):
