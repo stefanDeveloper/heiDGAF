@@ -65,5 +65,49 @@ class TestInit(unittest.TestCase):
                 mock_consumer_instance.assign.assert_called_once()
 
 
+class TestDel(unittest.TestCase):
+    @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
+    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
+    ])
+    @patch("src.base.kafka_handler.Consumer")
+    def test_del_with_existing_consumer(self, mock_consumer):
+        # Arrange
+        mock_consumer_instance = MagicMock()
+        mock_consumer.return_value = mock_consumer_instance
+
+        sut = KafkaConsumeHandler(topic="test_topic")
+        sut.consumer = mock_consumer_instance
+
+        # Act
+        del sut
+
+        # Assert
+        mock_consumer_instance.close.assert_called_once()
+
+    @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
+    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
+    ])
+    @patch("src.base.kafka_handler.Consumer")
+    def test_del_with_existing_consumer(self, mock_consumer):
+        # Arrange
+        mock_consumer_instance = MagicMock()
+        mock_consumer.return_value = mock_consumer_instance
+
+        sut = KafkaConsumeHandler(topic="test_topic")
+        sut.consumer = None
+
+        # Act
+        del sut
+
+        # Assert
+        mock_consumer_instance.close.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
