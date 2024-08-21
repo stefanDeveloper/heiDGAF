@@ -97,7 +97,7 @@ class KafkaProduceHandler(KafkaHandler):
             logger.debug("Producer set. Initializing transactions...")
             self.producer.init_transactions()
             logger.debug("Transactions initialized.")
-        except KafkaError as e:
+        except KafkaException as e:
             logger.error(f"Producer initialization failed: {e}")
             raise
 
@@ -195,7 +195,6 @@ class KafkaProduceHandler(KafkaHandler):
         logger.debug("Closed KafkaProduceHandler.")
 
 
-# TODO: Test
 class KafkaConsumeHandler(KafkaHandler):
     """
     Wraps and adds up on the Kafka Consumer functionality of consuming data from the Broker(s) in a specified topic.

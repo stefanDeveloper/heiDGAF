@@ -623,7 +623,6 @@ class TestMainFunction(unittest.TestCase):
     def test_main_value_error_handling(self, mock_log_collector):
         # Arrange
         mock_collector_instance = mock_log_collector.return_value
-        mock_log_collector.patch("fetch_logline", ValueError)
 
         # Act
         with patch.object(mock_collector_instance, 'fetch_logline',
@@ -641,8 +640,7 @@ class TestMainFunction(unittest.TestCase):
         mock_collector_instance.fetch_logline.side_effect = KeyboardInterrupt
 
         # Act
-        with patch.object(mock_collector_instance, 'fetch_logline',
-                          side_effect=KeyboardInterrupt):
+        with patch.object(mock_collector_instance, 'fetch_logline', side_effect=KeyboardInterrupt):
             main()
 
         # Assert

@@ -30,6 +30,27 @@ class TestInit(unittest.TestCase):
         mock_producer.assert_called_once_with(expected_conf)
         mock_producer_instance.init_transactions.assert_called_once()
 
+    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
+    ])
+    @patch("src.base.kafka_handler.Producer")
+    def test_init_fail(self, mock_producer):
+        mock_producer_instance = MagicMock()
+        mock_producer.return_value = mock_producer_instance
+
+        expected_conf = {
+            "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
+            "transactional.id": "test_transactional_id",
+        }
+
+        with patch.object(mock_producer_instance, 'init_transactions',
+                          side_effect=KafkaException):
+            with self.assertRaises(KafkaException):
+                sut = KafkaProduceHandler(transactional_id="test_transactional_id")
+
+            mock_producer.assert_called_once_with(expected_conf)
 
 class TestSend(unittest.TestCase):
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
