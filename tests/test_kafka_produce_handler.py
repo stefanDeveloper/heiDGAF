@@ -51,6 +51,8 @@ class TestInit(unittest.TestCase):
                 sut = KafkaProduceHandler(transactional_id="test_transactional_id")
 
             mock_producer.assert_called_once_with(expected_conf)
+            mock_producer_instance.init_transactions.assert_called_once()
+
 
 class TestSend(unittest.TestCase):
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
@@ -95,6 +97,39 @@ class TestSend(unittest.TestCase):
         mock_producer.begin_transaction.assert_not_called()
         mock_producer.produce.assert_not_called()
         mock_producer.commit_transaction_with_retry.assert_not_called()
+
+    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
+        {'hostname': '127.0.0.1', 'port': 9999, },
+        {'hostname': '127.0.0.2', 'port': 9998, },
+        {'hostname': '127.0.0.3', 'port': 9997, },
+    ])
+    @patch("src.base.kafka_handler.Producer")
+    @patch("src.base.kafka_handler.kafka_delivery_report")
+    @patch("src.base.kafka_handler.KafkaProduceHandler.commit_transaction_with_retry")
+    def test_send_fail(
+            self,
+            mock_commit_transaction_with_retry,
+            mock_kafka_delivery_report,
+            mock_producer,
+    ):
+        mock_producer_instance = MagicMock()
+        mock_producer.return_value = mock_producer_instance
+        mock_commit_transaction_with_retry.side_effect = Exception
+
+        sut = KafkaProduceHandler(transactional_id="test_transactional_id")
+
+        with self.assertRaises(Exception):
+            sut.send("test_topic", "test_data", key=None)
+
+        mock_producer_instance.produce.assert_called_once_with(
+            topic="test_topic",
+            key=None,
+            value="test_data".encode("utf-8"),
+            callback=mock_kafka_delivery_report,
+        )
+
+        mock_producer_instance.abort_transaction.assert_called_once()
+        mock_producer_instance.begin_transaction.assert_called_once()
 
 
 class TestCommitTransactionWithRetry(unittest.TestCase):
@@ -187,19 +222,19 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         mock_sleep.assert_not_called()
 
 
-class TestClose(unittest.TestCase):
+class TestDel(unittest.TestCase):
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
         {'hostname': '127.0.0.1', 'port': 9999, },
         {'hostname': '127.0.0.2', 'port': 9998, },
         {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
-    def test_close(self, mock_producer):
+    def test_del(self, mock_producer):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
 
         sut = KafkaProduceHandler(transactional_id="test_transactional_id")
-        sut.close()
+        del sut
 
         mock_producer_instance.flush.assert_called_once()
 

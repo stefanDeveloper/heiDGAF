@@ -80,7 +80,7 @@ class KafkaProduceHandler(KafkaHandler):
             transactional_id (str): ID of the transaction
 
         Raises:
-            KafkaError: During initialization of Producer or its transactions
+            KafkaException: During initialization of Producer or its transactions
         """
         logger.debug(f"Initializing KafkaProduceHandler ({transactional_id=})...")
         super().__init__()
@@ -102,6 +102,14 @@ class KafkaProduceHandler(KafkaHandler):
             raise
 
         logger.debug(f"Initialized KafkaProduceHandler ({transactional_id=}).")
+
+    def __del__(self) -> None:
+        """
+        Flushes the producer to securely delete the instance.
+        """
+        logger.debug("Closing KafkaProduceHandler...")
+        self.producer.flush()
+        logger.debug("Closed KafkaProduceHandler.")
 
     def send(self, topic: str, data: str, key: None | str) -> None:
         """
@@ -189,11 +197,6 @@ class KafkaProduceHandler(KafkaHandler):
             f"Successfully committed transaction after {retry_count} retry/retries."
         )
 
-    def close(self):  # TODO: Change to __del__ and add docstring
-        logger.debug("Closing KafkaProduceHandler...")
-        self.producer.flush()
-        logger.debug("Closed KafkaProduceHandler.")
-
 
 class KafkaConsumeHandler(KafkaHandler):
     """
@@ -207,7 +210,7 @@ class KafkaConsumeHandler(KafkaHandler):
             topic (str): Topic name to consume from
 
         Raises:
-            KafkaError: During construction of Consumer or assignment of topic.
+            KafkaException: During construction of Consumer or assignment of topic.
         """
         logger.debug(f"Initializing KafkaConsumeHandler ({topic=})...")
         super().__init__()
@@ -226,7 +229,7 @@ class KafkaConsumeHandler(KafkaHandler):
             self.consumer = Consumer(conf)
             logger.debug(f"Consumer set. Assigning topic {topic}...")
             self.consumer.assign([TopicPartition(topic, 0)])
-        except KafkaError as e:
+        except KafkaException as e:
             logger.error(f"Consumer initialization failed: {e}")
             raise e
 
