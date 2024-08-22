@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from src.inspector.inspector import Inspector
+from src.inspector.inspector import Inspector, main
 
 
 class TestInit(unittest.TestCase):
@@ -82,6 +82,65 @@ class TestClearData(unittest.TestCase):
         self.assertEqual([], sut.messages)
         self.assertIsNone(sut.begin_timestamp)
         self.assertIsNone(sut.end_timestamp)
+
+
+class TestMainFunction(unittest.TestCase):
+    @patch('src.inspector.inspector.Inspector')
+    def test_main_loop_execution(self, mock_inspector):
+        # Arrange
+        mock_inspector_instance = mock_inspector.return_value
+
+        mock_inspector_instance.get_and_fill_data = MagicMock()
+        mock_inspector_instance.clear_data = MagicMock()
+
+        # Act
+        main(one_iteration=True)
+
+        # Assert
+        self.assertTrue(mock_inspector_instance.get_and_fill_data.called)
+        self.assertTrue(mock_inspector_instance.clear_data.called)
+
+    @patch('src.inspector.inspector.Inspector')
+    def test_main_io_error_handling(self, mock_inspector):
+        # Arrange
+        mock_inspector_instance = mock_inspector.return_value
+
+        # Act
+        with patch.object(mock_inspector_instance, 'get_and_fill_data',
+                          side_effect=IOError('Simulated IOError')):
+            with self.assertRaises(IOError):
+                main(one_iteration=True)
+
+        # Assert
+        self.assertTrue(mock_inspector_instance.clear_data.called)
+        self.assertTrue(mock_inspector_instance.loop_exited)
+
+    @patch('src.inspector.inspector.Inspector')
+    def test_main_value_error_handling(self, mock_inspector):
+        # Arrange
+        mock_inspector_instance = mock_inspector.return_value
+
+        # Act
+        with patch.object(mock_inspector_instance, 'get_and_fill_data',
+                          side_effect=ValueError('Simulated ValueError')):
+            main(one_iteration=True)
+
+        # Assert
+        self.assertTrue(mock_inspector_instance.clear_data.called)
+        self.assertTrue(mock_inspector_instance.loop_exited)
+
+    @patch('src.inspector.inspector.Inspector')
+    def test_main_keyboard_interrupt(self, mock_inspector):
+        # Arrange
+        mock_inspector_instance = mock_inspector.return_value
+        mock_inspector_instance.get_and_fill_data.side_effect = KeyboardInterrupt
+
+        # Act
+        main()
+
+        # Assert
+        self.assertTrue(mock_inspector_instance.clear_data.called)
+        self.assertTrue(mock_inspector_instance.loop_exited)
 
 
 if __name__ == "__main__":

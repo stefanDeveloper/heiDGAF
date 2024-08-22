@@ -58,12 +58,28 @@ class Inspector:
 
 
 # TODO: Test
-def main():
+def main(one_iteration: bool = False):
+    """
+    Creates the :class:`Inspector` instance. Starts a loop that continuously fetches data. Actual functionality
+    follows.
+
+    Args:
+        one_iteration (bool): For testing purposes: stops loop after one iteration
+
+    Raises:
+        KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
+    """
     logger.info("Starting Inspector...")
     inspector = Inspector()
     logger.info(f"Inspector is running.")
 
+    iterations = 0
+
     while True:
+        if one_iteration and iterations > 0:
+            break
+        iterations += 1
+
         try:
             logger.debug("Before getting and filling data")
             inspector.get_and_fill_data()
@@ -71,14 +87,13 @@ def main():
 
             logger.debug("Functionality not yet implemented.")
             # TODO: Implement functionality here
+        except KafkaMessageFetchException as e:  # pragma: no cover
+            logger.debug(e)
         except IOError as e:
             logger.error(e)
-            raise
+            raise e
         except ValueError as e:
             logger.debug(e)
-        except KafkaMessageFetchException as e:
-            logger.debug(e)
-            continue
         except KeyboardInterrupt:
             logger.info("Closing down Inspector...")
             break
@@ -86,5 +101,5 @@ def main():
             inspector.clear_data()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

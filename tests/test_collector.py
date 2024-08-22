@@ -640,8 +640,7 @@ class TestMainFunction(unittest.TestCase):
         mock_collector_instance.fetch_logline.side_effect = KeyboardInterrupt
 
         # Act
-        with patch.object(mock_collector_instance, 'fetch_logline', side_effect=KeyboardInterrupt):
-            main()
+        main()
 
         # Assert
         self.assertTrue(mock_collector_instance.clear_logline.called)
