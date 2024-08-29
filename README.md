@@ -1,20 +1,38 @@
-# heiDGAF - Domain Generation Algorithms Finder
+<a id="readme-top"></a>
 
-> ML based DNS analyzer to detect Domain Generation Algorithms (DGAs) tunneling, and data exfiltration of malicious actors.
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![EUPL License][license-shield]][license-url]
 
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/stefanDeveloper/heiDGAF">
+    <img src="images/logo.png" alt="Logo" width="80" height="80">
+  </a>
+
+  <h3 align="center">heiDGAF - Domain Generation Algorithms Finder</h3>
+
+  <p align="center">
+    Machine-learning based DNS classifier to detect Domain Generation Algorithms (DGAs), tunnelling, and data exfiltration of malicious actors.
+    <br />
+    <a href="https://heidgaf.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://mybinder.org/v2/gh/stefanDeveloper/heiDGAF-tutorials/HEAD?labpath=demo_notebook.ipynb">View Demo</a>
+    ·
+    <a href="https://github.com/stefanDeveloper/heiDGAF/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    ·
+    <a href="https://github.com/stefanDeveloper/heiDGAF/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+  </p>
+</div>
 
 > [!CAUTION]
 > The project is under active development right now. Everything might change, break, or move around quickly.
 
 <table>
-<tr>
-  <td><b>Live Notebook</b></td>
-  <td>
-    <a href="https://mybinder.org/v2/gh/stefanDeveloper/heiDGAF-tutorials/HEAD?labpath=demo_notebook.ipynb">
-    <img src="https://img.shields.io/badge/notebook-launch-blue?logo=jupyter&style=for-the-badge" alt="live notebook" />
-    </a>
-  </td>
-</tr>
 <tr>
   <td><b>Continuous Integration</b></td>
   <td>
@@ -30,6 +48,8 @@
   </td>
 </tr>
 </table>
+
+## About the Project
 
 ## Getting Started
 
@@ -51,6 +71,8 @@ Train your own model:
 ```sh
 heidgaf train -m xg -d all
 ```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Data
 
@@ -79,38 +101,24 @@ For training our models, we rely on the following data sets:
 However, we compute all feature separately and only rely on the `domain` and `class`.
 Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
 
-### Exploratory Data Analysis (EDA)
 
-In the folder `./example` we conducted a Exploratory Data Analysis (EDA) to verify the features of interest for our application.
+<!-- LICENSE -->
+## License
 
-## Literature
+Distributed under the EUPL License. See `LICENSE.txt` for more information.
 
-Based on the following work, we implement heiDGAF to find malicious behaviour such as tunneling or data exfiltration in DNS requests.
-
-- EXPOSURE: Finding Malicious Domains Using Passive DNS Analysis
-
-  A passiv DNS pipeline for finding malicious domains using J48 decision tree algorithm.
-
-- Real-Time Detection System for Data Exﬁltration over DNS Tunneling Using Machine Learning
-
-  Propose a hybrid DNS tunneling detection system using Tabu-PIO for feature selection.
-
-- Classifying Malicious Domains using DNS Traffic Analysis
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-- [DeepDGA](https://github.com/roreagan/DeepDGA): Adversarially-Tuned Domain Generation and Detection
-
-  DeepDGA detecting (and generating) domains on a per-domain basis which provides a simple and ﬂexible means to detect known DGA families. It uses GANs to bypass detectors and shows the effectiveness of such solutions.
-
-- Kitsune: An Ensemble of Autoencoders for Online Network Intrusion Detection
-
-- SHAP Interpretations of Tree and Neural Network DNS Classifiers for Analyzing DGA Family Characteristics
-
-- [FANCI](https://github.com/fanci-dga-detection/fanci/) : Feature-based Automated NXDomain Classification and Intelligence
-
-### Similar Projects
-
-- [Deep Lookup](https://github.com/ybubnov/deep-lookup/) is a deep learning approach for DNS detection.
-- [DGA Detective](https://github.com/COSSAS/dgad) is a temporal convolutional network approach for DNS detection.
-- [DGA Detector](https://github.com/Erxathos/DGA-Detector) is a NLP approach for DNS detection.
-- [DNS Tunneling Detection](https://github.com/aasthac67/DNS-Tunneling-Detection/)
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[contributors-url]: https://github.com/stefanDeveloper/heiDGAF/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[forks-url]: https://github.com/stefanDeveloper/heiDGAF/network/members
+[stars-shield]: https://img.shields.io/github/stars/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[stars-url]: https://github.com/stefanDeveloper/heiDGAF/stargazers
+[issues-shield]: https://img.shields.io/github/issues/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[issues-url]: https://github.com/stefanDeveloper/heiDGAF/issues
+[license-shield]: https://img.shields.io/github/license/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[license-url]: https://github.com/stefanDeveloper/heiDGAF/blob/master/LICENSE.txt
