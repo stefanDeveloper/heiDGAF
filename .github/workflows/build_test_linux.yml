@@ -34,7 +34,7 @@ jobs:
       id: get-pip-path
       run: |
         id=$(echo ${{ env.pythonLocation }} | sed 's/\/bin//g')
-        echo "::set-output name=id::$id"
+        echo "name=id::$id" >> $GITHUB_OUTPUT
 
     - name: Pip cache
       uses: actions/cache@v3
