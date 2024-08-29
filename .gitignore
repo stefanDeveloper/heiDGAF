@@ -321,3 +321,4 @@ cython_debug/
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks
 /docs/api/
 !/docs/api/index.rst
+/pipeline_prototype/
