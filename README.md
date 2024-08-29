@@ -1,10 +1,15 @@
 <a id="readme-top"></a>
 
+<!-- PROJECT SHIELDS -->
+<div align="center">
+
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![EUPL License][license-shield]][license-url]
+
+</div>
 
 <!-- PROJECT LOGO -->
 <br />
@@ -101,6 +106,21 @@ For training our models, we rely on the following data sets:
 However, we compute all feature separately and only rely on the `domain` and `class`.
 Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
 
+<!-- CONTRIBUTING -->
+## Contributing
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
+
+### Top contributors:
+
+<a href="https://github.com/stefanDeveloper/heiDGAF/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=stefanDeveloper/heiDGAF" alt="contrib.rocks image" />
+</a>
+
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- LICENSE -->
 ## License
