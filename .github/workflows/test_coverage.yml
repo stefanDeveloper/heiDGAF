@@ -50,6 +50,7 @@ jobs:
     - name: Test
       if: startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.python-version, '3.10')
       run: |
+        python -m coverage run -m unittest
         python -m coverage xml
 
     - name: Get Coverage
