@@ -15,7 +15,8 @@ jobs:
       matrix:
         os: ["ubuntu-latest"]
         python-version: ["3.11",
-                         "3.10"
+                         "3.10",
+                         "3.9"
                          ]
 
     steps:
@@ -50,6 +51,5 @@ jobs:
         python -m pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt
 
     - name: Test
-      if: startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.python-version, '3.10')
       run: |
         python -m unittest discover tests

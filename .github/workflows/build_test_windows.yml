@@ -15,7 +15,8 @@ jobs:
       matrix:
         os: ["windows-latest"]
         python-version: ["3.11",
-                         "3.10"
+                         "3.10",
+                         "3.9"
                          ]
 
     steps:
@@ -40,7 +41,6 @@ jobs:
         python -m pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt
 
     - name: Test
-      # On other versions then 3.9, we test only. (without coverage generation)
-      if: startsWith(matrix.os, 'windows') && !startsWith(matrix.python-version, '3.9') && !startsWith(github.ref, 'refs/tags/')
+      if: startsWith(matrix.os, 'windows') && !startsWith(github.ref, 'refs/tags/')
       run: |
         python -m unittest discover tests
