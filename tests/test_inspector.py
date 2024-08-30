@@ -139,9 +139,10 @@ class TestClearData(unittest.TestCase):
         self.assertIsNone(sut.end_timestamp)
 
 
-@patch("src.inspector.inspector.KafkaProduceHandler")
-@patch("src.inspector.inspector.KafkaConsumeHandler")
 class TestInspectFunction(unittest.TestCase):
+
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_count_errors(self, mock_kafka_consume_handler, mock_produce_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -162,29 +163,46 @@ class TestInspectFunction(unittest.TestCase):
                 "record_type": "A",
                 "size": "111b",
             },
-            {
-                "client_ip": "192.168.0.72",
-                "dns_ip": "10.10.0.2",
-                "response_ip": "f79f:2d:d4cb:85c6:1fb7:83f8:8ca:edfe",
-                "timestamp": "2024-07-02T12:52:52.092Z",
-                "status": "NXDOMAIN",
-                "host_domain_name": "intratuin.nl",
-                "record_type": "A",
-                "size": "105b",
-            },
-            {
-                "client_ip": "192.168.0.64",
-                "dns_ip": "10.10.0.5",
-                "response_ip": "127.134.77.10",
-                "timestamp": "2024-07-02T12:52:53.095Z",
-                "status": "NXDOMAIN",
-                "host_domain_name": "politize.com.br",
-                "record_type": "A",
-                "size": "133b",
-            },
         ]
+        self.assertIsNotNone(
+            sut._count_errors(messages, begin_timestamp, end_timestamp)
+        )
 
-        sut._count_errors(messages, begin_timestamp, end_timestamp)
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    def test_count_errors_empty_messages(
+        self, mock_kafka_consume_handler, mock_produce_handler
+    ):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        begin_timestamp = "2024-07-02T12:52:45.000Z"
+        end_timestamp = "2024-07-02T12:52:55.000Z"
+        messages = []
+        self.assertIsNotNone(
+            sut._count_errors(messages, begin_timestamp, end_timestamp)
+        )
+
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    def test_inspect_univariate(self, mock_kafka_consume_handler, mock_produce_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = "172.126.0.0/24", {
+            "begin_timestamp": "2024-05-21T08:31:27.000Z",
+            "end_timestamp": "2024-05-21T08:31:29.000Z",
+            "data": [],
+        }
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        sut.inspect()
+        self.assertIsNotNone(sut.anomalies)
 
 
 class TestMainFunction(unittest.TestCase):

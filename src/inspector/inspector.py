@@ -4,8 +4,8 @@ import os
 import sys
 import importlib
 import numpy as np
-from datetime import datetime
 
+from streamad.base import BaseDetector
 from streamad.util import StreamGenerator, CustomDS
 
 sys.path.append(os.getcwd())
@@ -25,9 +25,30 @@ MODE = config["heidgaf"]["inspector"]["mode"]
 MODEL = config["heidgaf"]["inspector"]["model"]
 MODEL_ARGS = config["heidgaf"]["inspector"]["model_args"]
 MODULE = config["heidgaf"]["inspector"]["module"]
-THRESHOLD = config["heidgaf"]["inspector"]["threshold"]
+ANOMALY_THRESHOLD = config["heidgaf"]["inspector"]["anomaly_threshold"]
+SCORE_THRESHOLD = config["heidgaf"]["inspector"]["score_threshold"]
 TIME_TYPE = config["heidgaf"]["inspector"]["time_type"]
 TIME_RANGE = config["heidgaf"]["inspector"]["time_range"]
+
+
+VALID_UNIVARIATE_MODLS = [
+    "KNNDetector",
+    "SpotDetector",
+    "SRDetector",
+    "ZScoreDetector",
+    "OCSVMDetector",
+    "MadDetector",
+    "SArimaDetector",
+]
+VALID_MULTIVARIATE_MODLS = [
+    "xStreamDetector",
+    "RShashDetector",
+    "HSTreeDetector",
+    "LodaDetector",
+    "OCSVMDetector",
+    "RrcfDetector",
+]
+VALID_ENSEMBLE_MODLS = ["WeightEnsemble", "VoteEnsemble"]
 
 
 class Inspector:
@@ -36,20 +57,14 @@ class Inspector:
         self.begin_timestamp = None
         self.end_timestamp = None
         self.messages = []
-        self.scores = []
+        self.anomalies = []
 
         logger.debug(f"Initializing Inspector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
         self.kafka_consume_handler = KafkaConsumeHandler(topic="Inspect")
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='Inspect')...")
         self.kafka_produce_handler = KafkaProduceHandler(transactional_id="Inspect")
-
         logger.debug(f"Initialized Inspector.")
-
-        logger.debug(f"Load Model: {MODEL} from {MODULE}.")
-        module = importlib.import_module(MODULE)
-        module_model = getattr(module, MODEL)
-        self.model = module_model(**MODEL_ARGS)
 
     def get_and_fill_data(self) -> None:
         logger.debug("Getting and filling data...")
@@ -88,7 +103,8 @@ class Inspector:
     def clear_data(self):
         """Clears the data in the internal data structures."""
         self.messages = []
-        self.scores = []
+        self.anomalies = []
+        self.X = []
         self.begin_timestamp = None
         self.end_timestamp = None
         logger.debug("Cleared messages and timestamps. Inspector is now available.")
@@ -152,37 +168,57 @@ class Inspector:
         """Runs anomaly detection on given StreamAD Model on either univariate, multivariate data, or as an ensemble."""
         match MODE:
             case "univariate":
-                self._inspect_univariate()
+                self._inspect_univariate(MODEL, MODEL_ARGS)
             case "multivariate":
-                self._inspect_multivariate()
+                self._inspect_multivariate(MODEL, MODEL_ARGS)
             case "ensemble":
-                self._inspect_ensemble()
+                self._inspect_ensemble(MODEL, MODEL_ARGS)
             case _:
                 logger.warning(f"Mode {MODE} is not supported!")
+                raise NotImplementedError(f"Mode {MODE} is not supported!")
 
-    def _inspect_multivariate(self):
+    def _inspect_multivariate(self, model: str, model_args: dict):
         pass
 
-    def _inspect_ensemble(self):
+    def _inspect_ensemble(self, model: str, model_args: dict):
         pass
 
-    def _inspect_univariate(self):
+    def _inspect_univariate(self, model: str, model_args: dict):
         """Runs anomaly detection on given StreamAD Model on univariate data.
         Errors are count in the time window and fit model to retrieve scores.
+
+        Args:
+            model (BaseDetector): StreamAD model.
+            model_args (dict): Arguments passed to the StreamAD model.
         """
+
+        logger.debug(f"Load Model: {MODEL} from {MODULE}.")
+        if not model in VALID_UNIVARIATE_MODLS:
+            logger.error(f"Model {model} is not a valid univariate model.")
+            raise NotImplementedError(f"Model {model} is not a valid univariate model.")
+
+        module = importlib.import_module(MODULE)
+        module_model = getattr(module, model)
+        self.model = module_model(**model_args)
+
         logger.debug("Inspecting data...")
 
-        X = self._count_errors(self.messages, self.begin_timestamp, self.end_timestamp)
+        self.X = self._count_errors(
+            self.messages, self.begin_timestamp, self.end_timestamp
+        )
 
-        ds = CustomDS(X, X)
+        ds = CustomDS(self.X, self.X)
         stream = StreamGenerator(ds.data)
 
         for x in stream.iter_item():
             score = self.model.fit_score(x)
-            self.scores.append(score)
+            self.anomalies.append(score)
 
     def send_data(self):
-        if len(self.scores) > THRESHOLD:
+        total_anomalies = np.count_nonzero(
+            np.greater_equal(self.anomalies, SCORE_THRESHOLD)
+        )
+        if len(total_anomalies) // len(self.X) > ANOMALY_THRESHOLD:
             logger.debug("Sending data to KafkaProduceHandler...")
             data_to_send = {
                 "begin_timestamp": self.begin_timestamp,

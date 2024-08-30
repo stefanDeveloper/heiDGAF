@@ -25,7 +25,8 @@ heidgaf:
     model_args:
       is_global: false
     module: streamad.model
-    threshold: 4
+    anomaly_threshold: 0.01
+    score_threshold: 0.5
     time_type: ms
     time_range: 1
 
