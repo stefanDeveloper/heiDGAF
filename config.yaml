@@ -15,6 +15,20 @@ heidgaf:
   prefilter:
     relevant_types: [ "NXDOMAIN" ]
 
+  inspector:
+    mode: univariate # multivariate, ensemble
+    model: ZScoreDetector
+    model_args:
+      is_global: false
+    module: streamad.model
+    threshold: 4
+    time_type: ms
+    time_range: 1
+
+  detector:
+    model: xg # XGBoost
+    path: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+
   subnet:
     subnet_bits: 24
 
