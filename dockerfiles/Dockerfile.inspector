@@ -1,9 +1,9 @@
-FROM python:3
+FROM python:3.9
 
 WORKDIR /usr/src/app
 
 COPY requirements.inspector.txt ./
-RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.inspector.txt
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile -r requirements.inspector.txt
 
 COPY src/base ./src/base
 COPY src/inspector ./src/inspector

@@ -2,10 +2,11 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime
 from threading import Timer
 
 from src.base.kafka_handler import KafkaProduceHandler
-from src.base.utils import setup_config, current_time
+from src.base.utils import setup_config
 
 sys.path.append(os.getcwd())
 from src.base.log_config import setup_logging
@@ -21,24 +22,18 @@ BATCH_TIMEOUT = config["kafka"]["batch_sender"]["batch_timeout"]
 # TODO: Test
 class BufferedBatch:
     """
-    Data structure for managing the batch, buffer, and timestamps. The batch contains the latest messages and has a
-    timestamp marking the first time a message was added to it (or the previous batch was sent), and one
-    for the time after the last message was added before sending. The buffer stores the previous batch messages
-    including their timestamps.
+    Data structure for managing the batch, buffer, and timestamps. The batch contains the latest messages and a
+    buffer that stores the previous batch messages. Also sorts the batches and can return timestamps.
     """
 
     def __init__(self):
         self.batch = {}  # Batch for the latest messages coming in
         self.buffer = {}  # Former batch with previous messages
 
-        self.__begin_timestamps = {}
-        self.__center_timestamps = {}
-        self.__end_timestamps = {}
-
     def add_message(self, key: str, message: str) -> None:
         """
         Adds a given message to the messages list of the given key. If the key already exists, the message is simply
-        added, otherwise, the key is created. In this case, a timestamp to mark the beginning of the batch is set.
+        added, otherwise, the key is created.
 
         Args:
             key (str): Key to which the message is added
@@ -50,9 +45,6 @@ class BufferedBatch:
         else:  # key has no messages associated yet
             self.batch[key] = [message]
             logger.debug(f"Message '{message}' added to newly created {key}'s batch.")
-
-            self.__center_timestamps[key] = current_time()
-            logger.debug(f"center_timestamp of {key=} set to now: {self.__center_timestamps[key]}")
 
     def get_number_of_messages(self, key: str) -> int:
         """
@@ -84,6 +76,105 @@ class BufferedBatch:
 
         return 0
 
+    @staticmethod
+    def sort_messages(data: list[tuple[str, str]], timestamp_format: str = "%Y-%m-%dT%H:%M:%S.%fZ") -> list[str]:
+        """
+        Sorts the given list of loglines by their respective timestamps, in ascending order.
+
+        Args:
+            timestamp_format (str): Format of the timestamps
+            data (list[tuple[str, str]]): List of loglines to be sorted, with the tuple of strings consisting of 1. the
+                                          timestamps of the message and 2. the full message (unchanged, i.e. including
+                                          the respective timestamp)
+
+        Returns:
+            List of log lines as strings sorted by timestamps (ascending)
+        """
+        sorted_data = sorted(data, key=lambda x: datetime.strptime(x[0], timestamp_format))
+        loglines = [message for _, message in sorted_data]
+
+        return loglines
+
+    def extract_tuples_from_json(self, data: list[str]) -> list[tuple[str, str]]:
+        """
+        Args:
+            data (list[str]): Input list of strings to be prepared
+
+        Returns:
+            Tuple with timestamps and log lines, which is needed for :func:'sort_messages'.
+        """
+        tuples = []
+
+        for item in data:
+            record = json.loads(item)
+
+            timestamp = record.get("timestamp", "")
+            tuples.append((str(timestamp), item))
+
+        return tuples
+
+    def get_first_timestamp_of_buffer(self, key: str) -> str | None:
+        """
+        Get the first timestamp of the buffer messages list.
+
+        Returns:
+            First timestamp of the list of buffer messages for the given key, None if the key's list is empty
+        """
+        entries = self.buffer.get(key)
+
+        return json.loads(entries[0])["timestamp"] if entries and entries[0] else None
+
+    def get_last_timestamp_of_buffer(self, key: str) -> str | None:
+        """
+        Get the last timestamp of the buffer messages list.
+
+        Returns:
+            Last timestamp of the list of buffer messages for the given key, None if the key's list is empty
+        """
+        entries = self.buffer.get(key)
+
+        return json.loads(entries[-1])["timestamp"] if entries and entries[-1] else None
+
+    def get_first_timestamp_of_batch(self, key: str) -> str | None:
+        """
+        Get the first timestamp of the batch messages list.
+
+        Returns:
+            First timestamp of the list of batch messages for the given key, None if the key's list is empty
+        """
+        entries = self.batch.get(key)
+
+        return json.loads(entries[0])["timestamp"] if entries and entries[0] else None
+
+    def get_last_timestamp_of_batch(self, key: str) -> str | None:
+        """
+        Get the last timestamp of the batch messages list.
+
+        Returns:
+            Last timestamp of the list of batch messages for the given key, None if the key's list is empty
+        """
+        entries = self.batch.get(key)
+
+        return json.loads(entries[-1])["timestamp"] if entries and entries[-1] else None
+
+    def sort_buffer(self, key: str):
+        """
+        Sorts the buffer's messages by their timestamp, in ascending order.
+
+        Args:
+            key (str): Key for which to sort entries
+        """
+        self.buffer[key] = self.sort_messages(self.extract_tuples_from_json(self.buffer[key]))
+
+    def sort_batch(self, key: str):
+        """
+        Sorts the batches messages by their timestamp, in ascending order.
+
+        Args:
+            key (str): Key for which to sort entries
+        """
+        self.batch[key] = self.sort_messages(self.extract_tuples_from_json(self.batch[key]))
+
     def complete_batch(self, key: str) -> dict:
         """
         Completes the batch and returns a full data packet including timestamps and messages. Depending on the
@@ -102,28 +193,26 @@ class BufferedBatch:
         if self.batch.get(key):
             if not self.buffer.get(key):  # Variant 1: Only batch has entries
                 logger.debug("Variant 1: Only batch has entries. Sending...")
-                begin_timestamp = self.__center_timestamps[key]
+                self.sort_batch(key)
                 buffer_data = []
+                begin_timestamp = self.get_first_timestamp_of_batch(key)
             else:  # Variant 2: Buffer and batch have entries
                 logger.debug("Variant 2: Buffer and batch have entries. Sending...")
-                begin_timestamp = self.__begin_timestamps[key]
+                self.sort_batch(key)
+                self.sort_buffer(key)
                 buffer_data = self.buffer[key]
-
-            self.__end_timestamps[key] = current_time()
-            logger.debug(f"end_timestamp set to now: {self.__end_timestamps[key]}")
+                begin_timestamp = self.get_first_timestamp_of_buffer(key)
 
             data = {
                 "begin_timestamp": begin_timestamp,
-                "end_timestamp": self.__end_timestamps[key],
+                "end_timestamp": self.get_last_timestamp_of_batch(key),
                 "data": buffer_data + self.batch[key],
             }
 
             # Move data from batch to buffer
             self.buffer[key] = self.batch[key]
             del self.batch[key]
-            # Move timestamps
-            self.__begin_timestamps[key] = self.__center_timestamps[key]
-            self.__center_timestamps[key] = self.__end_timestamps[key]
+
             return data
 
         if self.buffer:  # Variant 3: Only buffer has entries

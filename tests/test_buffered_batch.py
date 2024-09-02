@@ -1,6 +1,4 @@
-import time
 import unittest
-from datetime import datetime, timedelta
 
 from src.logcollector.batch_handler import BufferedBatch
 
@@ -243,80 +241,312 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         self.assertEqual(0, sut.get_number_of_buffered_messages(key_4))
 
 
-class TestCompleteBatch(unittest.TestCase):
-    def test_complete_batch_variant_1(self):
-        def _convert_timestamp(timestamp: str):
-            return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+class TestSortMessages(unittest.TestCase):
+    def test_sort_with_empty_list(self):
+        # Arrange
+        list_of_timestamps_and_loglines = []
+        sut = BufferedBatch()
 
-        def _add_seconds_to_timestamp(timestamp: datetime, seconds: float) -> datetime:
-            delta = timedelta(seconds=seconds)
-            return timestamp + delta
+        # Act
+        result = sut.sort_messages(list_of_timestamps_and_loglines)
 
+        # Assert
+        self.assertEqual([], result)
+
+    def test_sort_with_sorted_list(self):
+        # Arrange
+        list_of_timestamps_and_loglines = [
+            ('2024-05-21T08:31:28.119Z', '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+                                         '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+                                         '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+                                         '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'),
+            ('2024-05-21T08:31:28.249Z', '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+                                         '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+                                         '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+                                         '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}')
+        ]
+        expected_list = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+        ]
+        sut = BufferedBatch()
+
+        # Act
+        result = sut.sort_messages(list_of_timestamps_and_loglines)
+
+        # Assert
+        self.assertEqual(expected_list, result)
+
+    def test_sort_with_unsorted_list(self):
+        # Arrange
+        list_of_timestamps_and_loglines = [
+            ('2024-05-21T08:31:28.249Z', '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+                                         '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+                                         '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+                                         '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'),
+            ('2024-05-21T08:31:28.119Z', '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+                                         '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+                                         '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+                                         '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}')
+        ]
+        expected_list = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+        ]
+        sut = BufferedBatch()
+
+        # Act
+        result = sut.sort_messages(list_of_timestamps_and_loglines)
+
+        # Assert
+        self.assertEqual(expected_list, result)
+
+
+class TestGetFirstTimestampOfBuffer(unittest.TestCase):
+    def test_with_data(self):
         # Arrange
         key = "test_key"
-        message_1 = "message_1"
-        message_2 = "message_2"
+        sut = BufferedBatch()
+        sut.buffer[key] = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.test.de", "record_type": "A", "response_ip": "fe80::1", "size": "150b"}',
+            '{"timestamp": "2024-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": "www.example.com", "record_type": "A", "response_ip": "fe80::2", "size": "200b"}',
+            '{"timestamp": "2024-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.107", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample.com", "record_type": "A", "response_ip": "fe80::3", "size": "250b"}'
+        ]
+        sut.batch[key] = [
+            '{"timestamp": "2025-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.108", "dns_ip": "8.8.8.8", "host_domain_name": "www.example2.com", "record_type": "A", "response_ip": "fe80::4", "size": "300b"}',
+            '{"timestamp": "2025-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.109", "dns_ip": "8.8.8.8", "host_domain_name": "www.test2.de", "record_type": "A", "response_ip": "fe80::5", "size": "350b"}',
+            '{"timestamp": "2025-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.110", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample2.com", "record_type": "A", "response_ip": "fe80::6", "size": "400b"}'
+        ]
+
+        # Act
+        result = sut.get_first_timestamp_of_buffer(key)
+
+        # Assert
+        self.assertEqual("2024-05-21T08:31:28.119Z", result)
+
+    def test_no_data(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = []
+        sut.batch[key] = []
+
+        # Act
+        result = sut.get_first_timestamp_of_buffer(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+    def test_key_does_not_exist(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+
+        # Act
+        result = sut.get_first_timestamp_of_buffer(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+
+class TestGetLastTimestampOfBuffer(unittest.TestCase):
+    def test_with_data(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.test.de", "record_type": "A", "response_ip": "fe80::1", "size": "150b"}',
+            '{"timestamp": "2024-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": "www.example.com", "record_type": "A", "response_ip": "fe80::2", "size": "200b"}',
+            '{"timestamp": "2024-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.107", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample.com", "record_type": "A", "response_ip": "fe80::3", "size": "250b"}'
+        ]
+        sut.batch[key] = [
+            '{"timestamp": "2025-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.108", "dns_ip": "8.8.8.8", "host_domain_name": "www.example2.com", "record_type": "A", "response_ip": "fe80::4", "size": "300b"}',
+            '{"timestamp": "2025-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.109", "dns_ip": "8.8.8.8", "host_domain_name": "www.test2.de", "record_type": "A", "response_ip": "fe80::5", "size": "350b"}',
+            '{"timestamp": "2025-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.110", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample2.com", "record_type": "A", "response_ip": "fe80::6", "size": "400b"}'
+        ]
+
+        # Act
+        result = sut.get_last_timestamp_of_buffer(key)
+
+        # Assert
+        self.assertEqual("2024-12-21T08:31:28.119Z", result)
+
+    def test_no_data(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = []
+        sut.batch[key] = []
+
+        # Act
+        result = sut.get_last_timestamp_of_buffer(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+    def test_key_does_not_exist(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+
+        # Act
+        result = sut.get_last_timestamp_of_buffer(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+
+class TestGetFirstTimestampOfBatch(unittest.TestCase):
+    def test_with_data(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.test.de", "record_type": "A", "response_ip": "fe80::1", "size": "150b"}',
+            '{"timestamp": "2024-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": "www.example.com", "record_type": "A", "response_ip": "fe80::2", "size": "200b"}',
+            '{"timestamp": "2024-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.107", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample.com", "record_type": "A", "response_ip": "fe80::3", "size": "250b"}'
+        ]
+        sut.batch[key] = [
+            '{"timestamp": "2025-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.108", "dns_ip": "8.8.8.8", "host_domain_name": "www.example2.com", "record_type": "A", "response_ip": "fe80::4", "size": "300b"}',
+            '{"timestamp": "2025-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.109", "dns_ip": "8.8.8.8", "host_domain_name": "www.test2.de", "record_type": "A", "response_ip": "fe80::5", "size": "350b"}',
+            '{"timestamp": "2025-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.110", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample2.com", "record_type": "A", "response_ip": "fe80::6", "size": "400b"}'
+        ]
+
+        # Act
+        result = sut.get_first_timestamp_of_batch(key)
+
+        # Assert
+        self.assertEqual("2025-05-21T08:31:28.119Z", result)
+
+    def test_no_data(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = []
+        sut.batch[key] = []
+
+        # Act
+        result = sut.get_first_timestamp_of_batch(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+    def test_key_does_not_exist(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+
+        # Act
+        result = sut.get_first_timestamp_of_batch(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+
+class TestGetLastTimestampOfBatch(unittest.TestCase):
+    def test_with_data(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.test.de", "record_type": "A", "response_ip": "fe80::1", "size": "150b"}',
+            '{"timestamp": "2024-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": "www.example.com", "record_type": "A", "response_ip": "fe80::2", "size": "200b"}',
+            '{"timestamp": "2024-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.107", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample.com", "record_type": "A", "response_ip": "fe80::3", "size": "250b"}'
+        ]
+        sut.batch[key] = [
+            '{"timestamp": "2025-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.108", "dns_ip": "8.8.8.8", "host_domain_name": "www.example2.com", "record_type": "A", "response_ip": "fe80::4", "size": "300b"}',
+            '{"timestamp": "2025-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.109", "dns_ip": "8.8.8.8", "host_domain_name": "www.test2.de", "record_type": "A", "response_ip": "fe80::5", "size": "350b"}',
+            '{"timestamp": "2025-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.110", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample2.com", "record_type": "A", "response_ip": "fe80::6", "size": "400b"}'
+        ]
+
+        # Act
+        result = sut.get_last_timestamp_of_batch(key)
+
+        # Assert
+        self.assertEqual("2025-12-21T08:31:28.119Z", result)
+
+    def test_no_data(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = []
+        sut.batch[key] = []
+
+        # Act
+        result = sut.get_last_timestamp_of_batch(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+    def test_key_does_not_exist(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+
+        # Act
+        result = sut.get_last_timestamp_of_batch(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+
+class TestCompleteBatch(unittest.TestCase):
+    def test_complete_batch_variant_1(self):
+        # Arrange
+        key = "test_key"
+        message_1 = '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
+        message_2 = '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+
         expected_messages = [message_1, message_2]
 
         sut = BufferedBatch()
 
         # Act
-        sut.add_message(key, message_1)
-        time.sleep(0.2)  # simulate real behaviour of different message times
         sut.add_message(key, message_2)
+        sut.add_message(key, message_1)
         data = sut.complete_batch(key)
 
         # Assert
-        self.assertGreaterEqual(
-            _convert_timestamp(data["end_timestamp"]),
-            _add_seconds_to_timestamp(_convert_timestamp(data["begin_timestamp"]), 0.2)
-        )
+        self.assertEqual("2024-05-21T08:31:28.119Z", data["begin_timestamp"])
+        self.assertEqual("2024-05-21T08:31:28.249Z", data["end_timestamp"])
         self.assertEqual(expected_messages, data["data"])
 
     def test_complete_batch_variant_2(self):
-        def _convert_timestamp(timestamp: str):
-            return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
-
-        def _add_seconds_to_timestamp(timestamp: datetime, seconds: float) -> datetime:
-            delta = timedelta(seconds=seconds)
-            return timestamp + delta
-
         # Arrange
         key = "test_key"
-        message_1 = "message_1"
-        message_2 = "message_2"
-        message_3 = "message_3"
-        message_4 = "message_4"
+        message_1 = '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
+        message_2 = '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+        message_3 = '{"timestamp": "2024-05-21T08:31:28.319Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
+        message_4 = '{"timestamp": "2024-05-21T08:31:28.749Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
 
         sut = BufferedBatch()
 
         # Act
-        sut.add_message(key, message_1)  # at +0.0 (begin_timestamp, data_1 and data_2)
-        time.sleep(0.2)  # simulate real behaviour of different message times
-        sut.add_message(key, message_2)  # at +0.2
-        time.sleep(0.2)
-        data_1 = sut.complete_batch(key)  # at +0.4 (end_timestamp, data_1)
+        sut.add_message(key, message_1)
+        sut.add_message(key, message_2)
+        data_1 = sut.complete_batch(key)
 
-        sut.add_message(key, message_3)  # at +0.4
-        time.sleep(0.2)
-        sut.add_message(key, message_4)  # at +0.6
-        time.sleep(0.2)
-        data_2 = sut.complete_batch(key)  # at +0.8 (end_timestamp, data_2)
+        sut.add_message(key, message_3)
+        sut.add_message(key, message_4)
+        data_2 = sut.complete_batch(key)
 
         # Assert
-        self.assertGreaterEqual(
-            _convert_timestamp(data_1["end_timestamp"]),
-            _add_seconds_to_timestamp(_convert_timestamp(data_1["begin_timestamp"]), 0.4)
-        )
-        self.assertGreaterEqual(
-            _convert_timestamp(data_2["end_timestamp"]),
-            _add_seconds_to_timestamp(_convert_timestamp(data_2["begin_timestamp"]), 0.8)
-        )
-        self.assertEqual(data_1["begin_timestamp"], data_2["begin_timestamp"])
-        self.assertGreaterEqual(
-            _convert_timestamp(data_2["end_timestamp"]),
-            _add_seconds_to_timestamp(_convert_timestamp(data_1["end_timestamp"]), 0.4)
-        )
+        self.assertEqual("2024-05-21T08:31:28.119Z", data_1["begin_timestamp"])
+        self.assertEqual("2024-05-21T08:31:28.249Z", data_1["end_timestamp"])
+        self.assertEqual("2024-05-21T08:31:28.119Z", data_2["begin_timestamp"])
+        self.assertEqual("2024-05-21T08:31:28.749Z", data_2["end_timestamp"])
         self.assertEqual({key: [message_3, message_4]}, sut.buffer)
         self.assertEqual({}, sut.batch)
 
