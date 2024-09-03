@@ -101,7 +101,7 @@ The `Log Collection` stage comprises three main classes:
 1. :class:`LogCollector`: Connects to the :class:`LogServer` to retrieve and parse loglines, validating their format
    and content. Adds ``subnet_id`` that it retrieves from the client's IP address in the logline.
 2. :class:`BufferedBatch`: Buffers validated loglines with respect to their ``subnet_id``. Maintains the timestamps for
-   accurate processing and analysis per key (``subnet_id``).
+   accurate processing and analysis per key (``subnet_id``). Returns sorted batches.
 3. :class:`CollectorKafkaBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
    and checks the fill level of the key-specific batches. Sends the key's batches if full, sends all batches at timeout.
 
@@ -205,12 +205,9 @@ The :class:`BufferedBatch` manages the buffering of validated loglines as well a
   - Uses a ``buffer`` per key to concatenate and send both the current and previous batches together.
   - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
     :ref:`Stage 4: Data Inspection` and :ref:`Stage 5: Data Analysis`.
-
-- **Timestamp Management**:
-
-  - Maintains `begin_timestamp`, `center_timestamp`, and `end_timestamp` per key to track the timing of messages.
-  - The `begin_timestamp` marks the time the first message that is currently stored as part of the ``batch`` or
-    ``buffer`` arrived, while the `end_timestamp` is updated with each batch's final message.
+  - All batches get sorted by their timestamps at completion to ensure correct chronological order.
+  - A `begin_timestamp` and `end_timestamp` per key are extracted and send as metadata (needed for analysis). These
+    are taken from the chronologically first and last message in a batch.
 
 CollectorKafkaBatchSender
 .........................
@@ -264,8 +261,7 @@ to manage the timing of message processing.
 Class Overview
 ..............
 
-- **Batch**: Stores the latest incoming messages associated with a particular key. Each key in the batch is marked
-  with a timestamp indicating when the first message was added.
+- **Batch**: Stores the latest incoming messages associated with a particular key.
 
 - **Buffer**: Stores the previous batch of messages associated with a particular key, including the timestamps.
 
@@ -276,11 +272,9 @@ Key Procedures
 
   - When a new message arrives, the ``add_message()`` method is called.
   - If the key already exists in the batch, the message is appended to the list of messages for that key.
-  - If the key does not exist, a new entry is created in the batch, and the current time is recorded as the
-    ``__center_timestamp`` for that key.
+  - If the key does not exist, a new entry is created in the batch.
   - **Example**:
     - ``message_1`` arrives for ``key_1`` and is added to ``batch["key_1"]``.
-    - Since it's the first message for this key, ``__center_timestamps["key_1"]`` is set to the current time.
 
 2. **Retrieving Message Counts**:
 
@@ -291,18 +285,13 @@ Key Procedures
   - The ``complete_batch()`` method is called to finalize and retrieve the batch data for a specific key.
   - **Scenarios**:
 
-    - **Variant 1**: If only the current batch contains messages (buffer is empty), the batch is returned with
-      its timestamps. ``__begin_timestamp`` is set to ``__center_timestamp``, and ``__end_timestamp`` is updated to
-      the current time.
+    - **Variant 1**: If only the current batch contains messages (buffer is empty), the batch is returned sorted by and
+      with its timestamps. ``begin_timestamp`` reflects the timestamp of the first message in the batch, and
+      ``end_timestamp`` the timestamp of the chronologically last message in the batch.
     - **Variant 2**: If both the batch and buffer contain messages, the buffered messages are included in the returned
-      data. Timestamps are updated accordingly, and the batch messages are moved to the buffer.
+      data. The ``begin_timestamp`` now reflects the first message's timestamp in the buffer instead of the batch.
     - **Variant 3**: If only the buffer contains messages (no new messages arrived), the buffer data is discarded.
     - **Variant 4**: If neither the batch nor the buffer contains messages, a ``ValueError`` is raised.
-
-  - After sending, the relevant timestamps are updated:
-
-    - ``__begin_timestamps[key]`` is set to the previous ``__center_timestamps[key]``.
-    - ``__center_timestamps[key]`` is set to the previous ``__end_timestamps[key]``.
 
 4. **Managing Stored Keys**:
 
@@ -315,7 +304,6 @@ Example Workflow
 1. **Initial Message**:
 
   - ``message_1`` arrives for ``key_1``, added to ``batch["key_1"]``.
-  - ``__center_timestamp`` for ``key_1`` is set.
 
 2. **Subsequent Message**:
 
@@ -325,7 +313,7 @@ Example Workflow
 
   - ``complete_batch("key_1")`` is called, and if ``buffer["key_1"]`` exists, it includes both buffered and batch
     messages, otherwise just the batch.
-  - Timestamps are updated, and the current batch is moved to the buffer.
+  - The current batch is moved to the buffer.
 
 4. **Buffer Management**:
 
