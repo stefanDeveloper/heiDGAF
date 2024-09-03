@@ -2,7 +2,6 @@ import ipaddress
 import logging
 import os
 import sys
-from datetime import datetime
 
 import yaml
 from confluent_kafka import KafkaError, Message
@@ -131,15 +130,3 @@ def get_first_part_of_ipv4_address(address: ipaddress.IPv4Address, length: int) 
         raise ValueError("Invalid IP address format")
 
     return first_part_address
-
-
-def current_time() -> str:
-    """
-    Returns the current time.
-
-    Returns:
-        Returns the timestamp of now correctly formatted as string.
-    """
-    logger.debug("Returning current timestamp...")
-    # TODO: Replace deprecated method
-    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
