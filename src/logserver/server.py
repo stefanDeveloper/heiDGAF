@@ -68,7 +68,7 @@ class LogServer:
 
     async def handle_connection(self, reader, writer, sending: bool):
         logger.debug(f"Handling connection with {sending=}...")
-        if self.number_of_connections <= MAX_NUMBER_OF_CONNECTIONS:
+        if self.number_of_connections < MAX_NUMBER_OF_CONNECTIONS:
             logger.debug(f"Adding connection to {self.number_of_connections}/{MAX_NUMBER_OF_CONNECTIONS}) open "
                          f"connections...")
             self.number_of_connections += 1
@@ -142,5 +142,5 @@ def main():
     asyncio.run(server_instance.open())
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

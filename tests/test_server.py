@@ -3,7 +3,7 @@ import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.logserver.server import LogServer
+from src.logserver.server import LogServer, main
 
 LOG_SERVER_IP_ADDR = "192.168.0.1"
 LOG_SERVER_PORT_IN = 9998
@@ -41,53 +41,68 @@ class TestInit(unittest.TestCase):
             LogServer()
 
 
-# TODO: Update
-# class TestOpen(unittest.IsolatedAsyncioTestCase):
-#     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
-#     @patch("src.logserver.server.PORT_IN", 12345)
-#     @patch("src.logserver.server.PORT_OUT", 12346)
-#     @patch("src.logserver.server.asyncio.start_server")
-#     async def test_open(self, mock_start_server):
-#         sut = LogServer()
-#
-#         send_server = AsyncMock()
-#         receive_server = AsyncMock()
-#         mock_start_server.side_effect = [send_server, receive_server]
-#
-#         async def mock_serve_forever():
-#             await asyncio.sleep(0)  # Simulate an async operation
-#
-#         send_server.serve_forever = mock_serve_forever
-#         receive_server.serve_forever = mock_serve_forever
-#
-#         send_server.close = AsyncMock()
-#         receive_server.close = AsyncMock()
-#         send_server.wait_closed = AsyncMock()
-#         receive_server.wait_closed = AsyncMock()
-#
-#         async def run_open():
-#             await sut.open()
-#
-#         open_task = asyncio.create_task(run_open())
-#         await asyncio.sleep(0.1)  # Let the server run for a brief moment
-#         open_task.cancel()  # Simulate a KeyboardInterrupt
-#
-#         try:
-#             await open_task
-#         except asyncio.CancelledError:
-#             pass
-#
-#         mock_start_server.assert_any_call(
-#             sut.handle_send_logline, "127.0.0.1", 12345
-#         )
-#         mock_start_server.assert_any_call(
-#             sut.handle_receive_logline, "127.0.0.1", 12346
-#         )
-#
-#         send_server.close.assert_called_once()
-#         receive_server.close.assert_called_once()
-#         send_server.wait_closed.assert_awaited_once()
-#         receive_server.wait_closed.assert_awaited_once()
+class TestOpen(unittest.IsolatedAsyncioTestCase):
+    @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
+    @patch("src.logserver.server.PORT_IN", 1234)
+    @patch("src.logserver.server.PORT_OUT", 5678)
+    async def test_open(self):
+        # Arrange
+        sut = LogServer()
+
+        with patch('asyncio.start_server', new_callable=AsyncMock) as mock_start_server:
+            mock_send_server = MagicMock()
+            mock_receive_server = MagicMock()
+
+            mock_start_server.side_effect = [mock_send_server, mock_receive_server]
+
+            mock_send_server.serve_forever = AsyncMock()
+            mock_receive_server.serve_forever = AsyncMock()
+            mock_send_server.wait_closed = AsyncMock()
+            mock_receive_server.wait_closed = AsyncMock()
+
+            # Act
+            await sut.open()
+
+            # Assert
+            mock_start_server.assert_any_call(
+                sut.handle_send_logline, '127.0.0.1', 5678
+            )
+            mock_start_server.assert_any_call(
+                sut.handle_receive_logline, '127.0.0.1', 1234
+            )
+            mock_send_server.serve_forever.assert_awaited_once()
+            mock_receive_server.serve_forever.assert_awaited_once()
+            mock_send_server.close.assert_called_once()
+            mock_receive_server.close.assert_called_once()
+            mock_send_server.wait_closed.assert_awaited_once()
+            mock_receive_server.wait_closed.assert_awaited_once()
+
+    @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
+    @patch("src.logserver.server.PORT_IN", 1234)
+    @patch("src.logserver.server.PORT_OUT", 5678)
+    async def test_open_keyboard_interrupt(self):
+        # Arrange
+        sut = LogServer()
+
+        with patch('asyncio.start_server', new_callable=AsyncMock) as mock_start_server:
+            mock_send_server = MagicMock()
+            mock_receive_server = MagicMock()
+
+            mock_start_server.side_effect = [mock_send_server, mock_receive_server]
+
+            mock_send_server.serve_forever.side_effect = KeyboardInterrupt
+            mock_receive_server.serve_forever = AsyncMock()
+            mock_send_server.wait_closed = AsyncMock()
+            mock_receive_server.wait_closed = AsyncMock()
+
+            # Act & Assert
+            await sut.open()
+
+            # Additional Assertions
+            mock_send_server.close.assert_called_once()
+            mock_receive_server.close.assert_called_once()
+            mock_send_server.wait_closed.assert_awaited_once()
+            mock_receive_server.wait_closed.assert_awaited_once()
 
 
 class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
@@ -136,6 +151,53 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         writer.wait_closed.assert_awaited_once()
         self.assertEqual(
             5, server_instance.number_of_connections
+        )
+
+    async def test_handle_connection_increases_and_decreases_connections(self):
+        server_instance = LogServer()
+        server_instance.send_logline = AsyncMock()
+        server_instance.get_next_logline = MagicMock(return_value="test logline")
+        server_instance.number_of_connections = 3
+
+        reader = AsyncMock()
+        writer = AsyncMock()
+        writer.get_extra_info = MagicMock(return_value="test_address")
+
+        await server_instance.handle_connection(reader, writer, sending=True)
+
+        self.assertEqual(3, server_instance.number_of_connections)
+
+    async def test_handle_connection_cancelled_error(self):
+        server_instance = LogServer()
+        server_instance.send_logline = AsyncMock(side_effect=asyncio.CancelledError)
+        server_instance.get_next_logline = MagicMock(return_value="test logline")
+
+        reader = AsyncMock()
+        writer = AsyncMock()
+        writer.get_extra_info = MagicMock(return_value="test_address")
+
+        await server_instance.handle_connection(reader, writer, sending=True)
+
+        server_instance.send_logline.assert_awaited_once_with(writer, "test logline")
+        writer.close.assert_called_once()
+        writer.wait_closed.assert_awaited_once()
+        self.assertEqual(0, server_instance.number_of_connections)
+
+    @patch("src.logserver.server.MAX_NUMBER_OF_CONNECTIONS", 7)
+    async def test_handle_connection_rejects_additional_connections(self):
+        server_instance = LogServer()
+        server_instance.number_of_connections = 7
+
+        reader = AsyncMock()
+        writer = AsyncMock()
+        writer.get_extra_info = MagicMock(return_value="test_address")
+
+        await server_instance.handle_connection(reader, writer, sending=True)
+
+        writer.close.assert_called_once()
+        writer.wait_closed.assert_awaited_once()
+        self.assertEqual(
+            7, server_instance.number_of_connections
         )
 
 
@@ -219,6 +281,23 @@ class TestGetNextLogline(unittest.TestCase):
     def test_valid_from_empty_queue(self):
         server_instance = LogServer()
         self.assertIsNone(server_instance.get_next_logline())
+
+
+class TestMainFunction(unittest.TestCase):
+    @patch('src.logserver.server.asyncio.run')
+    @patch('src.logserver.server.LogServer')
+    def test_main(self, mock_log_server_class, mock_asyncio_run):
+        # Arrange
+        mock_server_instance = MagicMock()
+        mock_log_server_class.return_value = mock_server_instance
+
+        # Act
+        main()
+
+        # Assert
+        mock_log_server_class.assert_called_once()
+        mock_server_instance.open.assert_called_once()
+        mock_asyncio_run.assert_called_once_with(mock_server_instance.open())
 
 
 if __name__ == "__main__":

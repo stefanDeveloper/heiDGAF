@@ -2,7 +2,8 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from src.prefilter.prefilter import Prefilter
+from src.base.kafka_handler import KafkaMessageFetchException
+from src.prefilter.prefilter import Prefilter, main
 
 
 class TestInit(unittest.TestCase):
@@ -379,6 +380,78 @@ class TestClearData(unittest.TestCase):
 
         self.assertEqual([], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
+
+
+class TestMainFunction(unittest.IsolatedAsyncioTestCase):
+    @patch('src.prefilter.prefilter.Prefilter')
+    async def test_main_normal_flow(self, mock_prefilter):
+        # Arrange
+        mock_prefilter_instance = mock_prefilter.return_value
+        mock_prefilter_instance.get_and_fill_data.return_value = MagicMock()
+        mock_prefilter_instance.filter_by_error.return_value = MagicMock()
+        mock_prefilter_instance.send_filtered_data.return_value = MagicMock()
+        mock_prefilter_instance.clear_data.return_value = MagicMock()
+
+        # Act
+        main(one_iteration=True)
+
+        # Assert
+        mock_prefilter_instance.get_and_fill_data.assert_called()
+        mock_prefilter_instance.filter_by_error.assert_called()
+        mock_prefilter_instance.send_filtered_data.assert_called()
+        mock_prefilter_instance.clear_data.assert_called()
+
+    @patch('src.prefilter.prefilter.Prefilter')
+    async def test_main_ioerror(self, mock_prefilter):
+        # Arrange
+        mock_prefilter_instance = mock_prefilter.return_value
+        mock_prefilter_instance.clear_data.return_value = MagicMock()
+        mock_prefilter_instance.get_and_fill_data.side_effect = IOError
+
+        # Act and Assert
+        with self.assertRaises(IOError):
+            main(one_iteration=True)
+
+        mock_prefilter_instance.clear_data.assert_called()
+
+    @patch('src.prefilter.prefilter.Prefilter')
+    async def test_main_valueerror(self, mock_prefilter):
+        # Arrange
+        mock_prefilter_instance = mock_prefilter.return_value
+        mock_prefilter_instance.clear_data.return_value = MagicMock()
+        mock_prefilter_instance.get_and_fill_data.side_effect = ValueError
+
+        # Act
+        main(one_iteration=True)
+
+        # Assert
+        mock_prefilter_instance.clear_data.assert_called()
+
+    @patch('src.prefilter.prefilter.Prefilter')
+    async def test_main_kafka_message_fetch_exception(self, mock_prefilter):
+        # Arrange
+        mock_prefilter_instance = mock_prefilter.return_value
+        mock_prefilter_instance.clear_data.return_value = MagicMock()
+        mock_prefilter_instance.get_and_fill_data.side_effect = KafkaMessageFetchException
+
+        # Act
+        main(one_iteration=True)
+
+        # Assert
+        mock_prefilter_instance.clear_data.assert_called()
+
+    @patch('src.prefilter.prefilter.Prefilter')
+    async def test_main_keyboard_interrupt(self, mock_prefilter):
+        # Arrange
+        mock_prefilter_instance = mock_prefilter.return_value
+        mock_prefilter_instance.clear_data.return_value = MagicMock()
+        mock_prefilter_instance.get_and_fill_data.side_effect = KeyboardInterrupt
+
+        # Act
+        main()
+
+        # Assert
+        mock_prefilter_instance.clear_data.assert_called()
 
 
 if __name__ == "__main__":

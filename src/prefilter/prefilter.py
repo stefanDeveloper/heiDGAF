@@ -121,19 +121,23 @@ def create_logger_str(types_list: list) -> str:
     if len(types_list) == 1:
         return f"Filtering by type '{types_list[0]}'..."
 
-    # Für mehr als einen Eintrag
     types_str = "', '".join(types_list[:-1])
     last_type = types_list[-1]
     return f"Filtering by types '{types_str}' and '{last_type}'..."
 
 
-# TODO: Test
-def main():
+def main(one_iteration: bool = False):
     logger.info("Starting Prefilter...")
     prefilter = Prefilter(error_type=RELEVANT_TYPES)
     logger.info(f"Prefilter started.\n    ⤷  {create_logger_str(RELEVANT_TYPES)}")
 
+    iterations = 0
+
     while True:
+        if one_iteration and iterations > 0:
+            break
+        iterations += 1
+
         try:
             logger.debug("Before getting and filling data")
             prefilter.get_and_fill_data()
@@ -161,5 +165,5 @@ def main():
             prefilter.clear_data()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
