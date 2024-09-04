@@ -95,7 +95,8 @@ class BufferedBatch:
 
         return loglines
 
-    def extract_tuples_from_json(self, data: list[str]) -> list[tuple[str, str]]:
+    @staticmethod
+    def extract_tuples_from_json_formatted_strings(data: list[str]) -> list[tuple[str, str]]:
         """
         Args:
             data (list[str]): Input list of strings to be prepared
@@ -164,7 +165,8 @@ class BufferedBatch:
         Args:
             key (str): Key for which to sort entries
         """
-        self.buffer[key] = self.sort_messages(self.extract_tuples_from_json(self.buffer[key]))
+        if key in self.buffer:
+            self.buffer[key] = self.sort_messages(self.extract_tuples_from_json_formatted_strings(self.buffer[key]))
 
     def sort_batch(self, key: str):
         """
@@ -173,7 +175,8 @@ class BufferedBatch:
         Args:
             key (str): Key for which to sort entries
         """
-        self.batch[key] = self.sort_messages(self.extract_tuples_from_json(self.batch[key]))
+        if key in self.batch:
+            self.batch[key] = self.sort_messages(self.extract_tuples_from_json_formatted_strings(self.batch[key]))
 
     def complete_batch(self, key: str) -> dict:
         """

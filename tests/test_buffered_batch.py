@@ -314,6 +314,49 @@ class TestSortMessages(unittest.TestCase):
         self.assertEqual(expected_list, result)
 
 
+class TestExtractTuplesFromJson(unittest.TestCase):
+    def test_empty_data(self):
+        # Arrange
+        sut = BufferedBatch()
+        data = []
+
+        # Act
+        result = sut.extract_tuples_from_json_formatted_strings(data)
+
+        # Assert
+        self.assertEqual([], result)
+
+    def test_with_data(self):
+        # Arrange
+        sut = BufferedBatch()
+        data = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
+            '{"timestamp": "2024-05-21T08:31:28.299Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
+        ]
+        expected_result = [
+            ("2024-05-21T08:31:28.119Z", '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+                                         '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+                                         '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+                                         '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'),
+            ("2024-05-21T08:31:28.299Z", '{"timestamp": "2024-05-21T08:31:28.299Z", "status": "NXDOMAIN", "client_ip": '
+                                         '"192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": '
+                                         '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+                                         '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}')
+        ]
+
+        # Act
+        result = sut.extract_tuples_from_json_formatted_strings(data)
+
+        # Assert
+        self.assertEqual(expected_result, result)
+
+
 class TestGetFirstTimestampOfBuffer(unittest.TestCase):
     def test_with_data(self):
         # Arrange
@@ -356,53 +399,6 @@ class TestGetFirstTimestampOfBuffer(unittest.TestCase):
 
         # Act
         result = sut.get_first_timestamp_of_buffer(key)
-
-        # Assert
-        self.assertIsNone(result)
-
-
-class TestGetLastTimestampOfBuffer(unittest.TestCase):
-    def test_with_data(self):
-        # Arrange
-        key = "test_key"
-        sut = BufferedBatch()
-        sut.buffer[key] = [
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.test.de", "record_type": "A", "response_ip": "fe80::1", "size": "150b"}',
-            '{"timestamp": "2024-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": "www.example.com", "record_type": "A", "response_ip": "fe80::2", "size": "200b"}',
-            '{"timestamp": "2024-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.107", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample.com", "record_type": "A", "response_ip": "fe80::3", "size": "250b"}'
-        ]
-        sut.batch[key] = [
-            '{"timestamp": "2025-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.108", "dns_ip": "8.8.8.8", "host_domain_name": "www.example2.com", "record_type": "A", "response_ip": "fe80::4", "size": "300b"}',
-            '{"timestamp": "2025-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.109", "dns_ip": "8.8.8.8", "host_domain_name": "www.test2.de", "record_type": "A", "response_ip": "fe80::5", "size": "350b"}',
-            '{"timestamp": "2025-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.110", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample2.com", "record_type": "A", "response_ip": "fe80::6", "size": "400b"}'
-        ]
-
-        # Act
-        result = sut.get_last_timestamp_of_buffer(key)
-
-        # Assert
-        self.assertEqual("2024-12-21T08:31:28.119Z", result)
-
-    def test_no_data(self):
-        # Arrange
-        key = "test_key"
-        sut = BufferedBatch()
-        sut.buffer[key] = []
-        sut.batch[key] = []
-
-        # Act
-        result = sut.get_last_timestamp_of_buffer(key)
-
-        # Assert
-        self.assertIsNone(result)
-
-    def test_key_does_not_exist(self):
-        # Arrange
-        key = "test_key"
-        sut = BufferedBatch()
-
-        # Act
-        result = sut.get_last_timestamp_of_buffer(key)
 
         # Assert
         self.assertIsNone(result)
@@ -500,6 +496,213 @@ class TestGetLastTimestampOfBatch(unittest.TestCase):
 
         # Assert
         self.assertIsNone(result)
+
+
+class TestGetLastTimestampOfBuffer(unittest.TestCase):
+    def test_with_data(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.test.de", "record_type": "A", "response_ip": "fe80::1", "size": "150b"}',
+            '{"timestamp": "2024-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": "www.example.com", "record_type": "A", "response_ip": "fe80::2", "size": "200b"}',
+            '{"timestamp": "2024-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.107", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample.com", "record_type": "A", "response_ip": "fe80::3", "size": "250b"}'
+        ]
+        sut.batch[key] = [
+            '{"timestamp": "2025-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.108", "dns_ip": "8.8.8.8", "host_domain_name": "www.example2.com", "record_type": "A", "response_ip": "fe80::4", "size": "300b"}',
+            '{"timestamp": "2025-01-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.109", "dns_ip": "8.8.8.8", "host_domain_name": "www.test2.de", "record_type": "A", "response_ip": "fe80::5", "size": "350b"}',
+            '{"timestamp": "2025-12-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.110", "dns_ip": "8.8.8.8", "host_domain_name": "www.sample2.com", "record_type": "A", "response_ip": "fe80::6", "size": "400b"}'
+        ]
+
+        # Act
+        result = sut.get_last_timestamp_of_buffer(key)
+
+        # Assert
+        self.assertEqual("2024-12-21T08:31:28.119Z", result)
+
+    def test_no_data(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = []
+        sut.batch[key] = []
+
+        # Act
+        result = sut.get_last_timestamp_of_buffer(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+    def test_key_does_not_exist(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+
+        # Act
+        result = sut.get_last_timestamp_of_buffer(key)
+
+        # Assert
+        self.assertIsNone(result)
+
+
+class TestSortBuffer(unittest.TestCase):
+    def test_sort_empty_buffer(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer = []
+
+        # Act
+        sut.sort_buffer(key)
+
+        # Assert
+        self.assertEqual([], sut.buffer)
+
+    def test_sort_sorted_buffer(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}'
+        ]
+        expected_buffer = sut.buffer[key].copy()
+
+        # Act
+        sut.sort_buffer(key)
+
+        # Assert
+        self.assertEqual(expected_buffer, sut.buffer[key])
+
+    def test_sort_unsorted_buffer(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.buffer[key] = [
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}',
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+
+        ]
+        expected_buffer = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}'
+        ]
+
+        # Act
+        sut.sort_buffer(key)
+
+        # Assert
+        self.assertEqual(expected_buffer, sut.buffer[key])
+
+
+class TestSortBatch(unittest.TestCase):
+    def test_sort_empty_batch(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.batch = []
+
+        # Act
+        sut.sort_batch(key)
+
+        # Assert
+        self.assertEqual([], sut.batch)
+
+    def test_sort_sorted_batch(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.batch[key] = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}'
+        ]
+        expected_batch = sut.batch[key].copy()
+
+        # Act
+        sut.sort_batch(key)
+
+        # Assert
+        self.assertEqual(expected_batch, sut.batch[key])
+
+    def test_sort_unsorted_buffer(self):
+        # Arrange
+        key = "test_key"
+        sut = BufferedBatch()
+        sut.batch[key] = [
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}',
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+
+        ]
+        expected_batch = [
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
+            '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}'
+        ]
+
+        # Act
+        sut.sort_batch(key)
+
+        # Assert
+        self.assertEqual(expected_batch, sut.batch[key])
 
 
 class TestCompleteBatch(unittest.TestCase):
