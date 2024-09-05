@@ -1,0 +1,90 @@
+name: Docker Build and Publish CI
+
+on:
+  push:
+    branches: [ "main" ]
+    # Publish semver tags as releases.
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: stefan96/heidgaf
+
+
+jobs:
+  build:
+    name: Docker ${{ matrix.container }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+        fail-fast: false
+        matrix:
+            os: ["ubuntu-latest"]
+            container: ["detector",
+                        "inspector",
+                        "logcollector",
+                        "logserver",
+                        "prefilter"
+                        ]
+    permissions:
+      contents: read
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5.5.1
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image (${{ steps.meta.outputs.tags }})
+        id: build-and-push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ./dockerfiles/Dockerfile.${{ matrix.container }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Docker image (latest)
+        id: build-and-push-latest
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ env.IMAGE_NAME }}-${{ matrix.container }}:latest
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ./dockerfiles/Dockerfile.${{ matrix.container }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ env.IMAGE_NAME }}
+          short-description: ${{ github.event.repository.description }}
+          readme-filepath: ./README.md
