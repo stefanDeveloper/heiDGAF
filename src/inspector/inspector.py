@@ -67,6 +67,7 @@ class Inspector:
         logger.debug(f"Initialized Inspector.")
 
     def get_and_fill_data(self) -> None:
+        """Consumes data from KafkaConsumeHandler and stores it for processing."""
         logger.debug("Getting and filling data...")
         if self.messages:
             logger.warning(
@@ -111,7 +112,8 @@ class Inspector:
 
     def _count_errors(self, messages: list, begin_timestamp, end_timestamp):
         """Counts occurances of messages between two timestamps given a time step.
-        By default, 1 ms time step is applied. to
+        By default, 1 ms time step is applied. Time steps are adjustable by "time_type" and "time_range"
+        in config.yaml.
 
         Args:
             messages (list): Messages from KafkaConsumeHandler.
@@ -232,7 +234,6 @@ class Inspector:
             )
 
 
-# TODO: Test
 def main(one_iteration: bool = False):
     """
     Creates the :class:`Inspector` instance. Starts a loop that continuously fetches data. Actual functionality

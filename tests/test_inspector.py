@@ -204,6 +204,19 @@ class TestInspectFunction(unittest.TestCase):
         sut.inspect()
         self.assertIsNotNone(sut.anomalies)
 
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.MODE", "INVALID")
+    def test_invalid_mode(self, mock_kafka_consume_handler, mock_produce_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        with self.assertRaises(NotImplementedError):
+            sut.inspect()
+
 
 class TestMainFunction(unittest.TestCase):
     @patch("src.inspector.inspector.Inspector")
