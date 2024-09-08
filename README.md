@@ -21,7 +21,7 @@
   <h3 align="center">heiDGAF - Domain Generation Algorithms Finder</h3>
 
   <p align="center">
-    Machine-learning based DNS classifier to detect Domain Generation Algorithms (DGAs), tunnelling, and data exfiltration of malicious actors.
+    Machine learning-based DNS classifier to detect Domain Generation Algorithms (DGAs), tunneling, and data exfiltration of malicious actors.
     <br />
     <a href="https://heidgaf.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
     <br />
