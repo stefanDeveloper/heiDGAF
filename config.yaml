@@ -21,9 +21,10 @@ heidgaf:
 
   inspector:
     mode: univariate # multivariate, ensemble
-    model: ZScoreDetector
-    model_args:
-      is_global: false
+    models:
+      - model: ZScoreDetector
+        model_args:
+          is_global: false
     module: streamad.model
     anomaly_threshold: 0.01
     score_threshold: 0.5

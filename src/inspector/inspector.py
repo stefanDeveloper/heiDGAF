@@ -1,3 +1,4 @@
+from enum import Enum, unique
 import json
 import logging
 import os
@@ -22,8 +23,7 @@ logger = logging.getLogger(__name__)
 
 config = setup_config()
 MODE = config["heidgaf"]["inspector"]["mode"]
-MODEL = config["heidgaf"]["inspector"]["model"]
-MODEL_ARGS = config["heidgaf"]["inspector"]["model_args"]
+MODELS = config["heidgaf"]["inspector"]["models"]
 MODULE = config["heidgaf"]["inspector"]["module"]
 ANOMALY_THRESHOLD = config["heidgaf"]["inspector"]["anomaly_threshold"]
 SCORE_THRESHOLD = config["heidgaf"]["inspector"]["score_threshold"]
@@ -31,7 +31,7 @@ TIME_TYPE = config["heidgaf"]["inspector"]["time_type"]
 TIME_RANGE = config["heidgaf"]["inspector"]["time_range"]
 
 
-VALID_UNIVARIATE_MODLS = [
+VALID_UNIVARIATE_MODELS = [
     "KNNDetector",
     "SpotDetector",
     "SRDetector",
@@ -48,7 +48,14 @@ VALID_MULTIVARIATE_MODLS = [
     "OCSVMDetector",
     "RrcfDetector",
 ]
+
 VALID_ENSEMBLE_MODLS = ["WeightEnsemble", "VoteEnsemble"]
+
+
+@unique
+class EnsembleModels(str, Enum):
+    WEIGHT = "WeightEnsemble"
+    VOTE = "VoteEnsemble"
 
 
 class Inspector:
@@ -110,6 +117,74 @@ class Inspector:
         self.end_timestamp = None
         logger.debug("Cleared messages and timestamps. Inspector is now available.")
 
+    def _mean_packet_size(self, messages: list, begin_timestamp, end_timestamp):
+        """Returns mean of packet size of messages between two timestamps given a time step.
+        By default, 1 ms time step is applied. Time steps are adjustable by "time_type" and "time_range"
+        in config.yaml.
+
+        Args:
+            messages (list): Messages from KafkaConsumeHandler.
+            begin_timestamp (datetime): Begin timestamp of batch.
+            end_timestamp (datetime): End timestamp of batch.
+
+        Returns:
+            numpy.ndarray: 2-D numpy.ndarray including all steps.
+        """
+        logger.debug("Convert timestamps to numpy datetime64")
+        timestamps = np.array([np.datetime64(item["timestamp"]) for item in messages])
+
+        logger.debug("Sort timestamps and count occurrences")
+        sorted_indices = np.argsort(timestamps)
+        timestamps = timestamps[sorted_indices]
+        sizes = sizes[sorted_indices]
+
+        logger.debug("Set min_date and max_date")
+        min_date = np.datetime64(begin_timestamp)
+        max_date = np.datetime64(end_timestamp)
+
+        logger.debug(
+            "Generate the time range from min_date to max_date with 1ms interval"
+        )
+        time_range = np.arange(
+            min_date, max_date, np.timedelta64(TIME_RANGE, TIME_TYPE)
+        )
+
+        logger.debug(
+            "Initialize an array to hold counts for each timestamp in the range"
+        )
+        counts = np.zeros(time_range.shape, dtype=np.float64)
+        size_sums = np.zeros(time_range.shape, dtype=np.float64)
+
+        # Handle empty messages.
+        if len(messages) > 0:
+            logger.debug(
+                "Count occurrences of timestamps and fill the corresponding index in the counts array"
+            )
+            _, unique_indices, unique_counts = np.unique(
+                timestamps, return_index=True, return_counts=True
+            )
+
+            # Sum the sizes at each unique timestamp
+            for idx, count in zip(unique_indices, unique_counts):
+                time_index = (
+                    ((timestamps[idx] - min_date) // TIME_RANGE)
+                    .astype("timedelta64[{TIME_TYPE}]")
+                    .astype(int)
+                )
+                size_sums[time_index] = np.sum(sizes[idx : idx + count])
+                counts[time_index] = count
+
+            # Calculate the mean packet size for each millisecond (ignore division by zero warnings)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                mean_sizes = np.divide(
+                    size_sums, counts, out=np.zeros_like(size_sums), where=counts != 0
+                )
+        else:
+            logger.warning("Empty messages to inspect.")
+
+        logger.debug("Reshape into the required shape (n, 1)")
+        return mean_sizes.reshape(-1, 1)
+
     def _count_errors(self, messages: list, begin_timestamp, end_timestamp):
         """Counts occurances of messages between two timestamps given a time step.
         By default, 1 ms time step is applied. Time steps are adjustable by "time_type" and "time_range"
@@ -168,24 +243,60 @@ class Inspector:
 
     def inspect(self):
         """Runs anomaly detection on given StreamAD Model on either univariate, multivariate data, or as an ensemble."""
+        if len(MODELS) == 0:
+            logger.warning("No model ist set!")
+            raise NotImplementedError(f"No model is set!")
         match MODE:
             case "univariate":
-                self._inspect_univariate(MODEL, MODEL_ARGS)
+                if len(MODELS) > 1:
+                    logger.warning(
+                        f"Model List longer than 1. Only the first one is taken: {MODELS[0]['model']}!"
+                    )
+                self._inspect_univariate(MODELS[0])
             case "multivariate":
-                self._inspect_multivariate(MODEL, MODEL_ARGS)
+                if len(MODELS) > 1:
+                    logger.warning(
+                        f"Model List longer than 1. Only the first one is taken: {MODELS[0]['model']}!"
+                    )
+                self._inspect_multivariate(MODELS[0])
             case "ensemble":
-                self._inspect_ensemble(MODEL, MODEL_ARGS)
+                self._inspect_ensemble(MODELS)
             case _:
                 logger.warning(f"Mode {MODE} is not supported!")
                 raise NotImplementedError(f"Mode {MODE} is not supported!")
 
-    def _inspect_multivariate(self, model: str, model_args: dict):
-        pass
+    def _inspect_multivariate(self, model: str):
+        logger.debug(f"Load Model: {MODELS} from {MODULE}.")
+        if not model["model"] in VALID_MULTIVARIATE_MODLS:
+            logger.error(f"Model {model} is not a valid univariate model.")
+            raise NotImplementedError(f"Model {model} is not a valid univariate model.")
 
-    def _inspect_ensemble(self, model: str, model_args: dict):
-        pass
+        module = importlib.import_module(MODULE)
+        module_model = getattr(module, model["model"])
+        self.model = module_model(**model["model_args"])
 
-    def _inspect_univariate(self, model: str, model_args: dict):
+    def _inspect_ensemble(self, model: str, type: EnsembleModels):
+        logger.debug(f"Load Model: {MODELS} from {MODULE}.")
+
+        match type:
+            case "EnsembleWeight":
+                pass
+            case "EnsembleVote":
+                pass
+
+        self.model = []
+        for m in model:
+            if not m["model"] in VALID_ENSEMBLE_MODLS:
+                logger.error(f"Model {model} is not a valid univariate model.")
+                raise NotImplementedError(
+                    f"Model {model} is not a valid univariate model."
+                )
+
+            module = importlib.import_module(MODULE)
+            module_model = getattr(module, m["model"])
+            self.model.append(module_model(**m["model_args"]))
+
+    def _inspect_univariate(self, model: str):
         """Runs anomaly detection on given StreamAD Model on univariate data.
         Errors are count in the time window and fit model to retrieve scores.
 
@@ -194,14 +305,14 @@ class Inspector:
             model_args (dict): Arguments passed to the StreamAD model.
         """
 
-        logger.debug(f"Load Model: {MODEL} from {MODULE}.")
-        if not model in VALID_UNIVARIATE_MODLS:
+        logger.debug(f"Load Model: {MODELS} from {MODULE}.")
+        if not model["model"] in VALID_UNIVARIATE_MODELS:
             logger.error(f"Model {model} is not a valid univariate model.")
             raise NotImplementedError(f"Model {model} is not a valid univariate model.")
 
         module = importlib.import_module(MODULE)
-        module_model = getattr(module, model)
-        self.model = module_model(**model_args)
+        module_model = getattr(module, model["model"])
+        self.model = module_model(**model["model_args"])
 
         logger.debug("Inspecting data...")
 

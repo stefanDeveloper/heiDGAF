@@ -170,6 +170,33 @@ class TestInspectFunction(unittest.TestCase):
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
+    def test_mean_packet_size(self, mock_kafka_consume_handler, mock_produce_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        begin_timestamp = "2024-07-02T12:52:45.000Z"
+        end_timestamp = "2024-07-02T12:52:55.000Z"
+        messages = [
+            {
+                "client_ip": "192.168.0.167",
+                "dns_ip": "10.10.0.10",
+                "response_ip": "252.79.173.222",
+                "timestamp": "2024-07-02T12:52:50.988Z",
+                "status": "NXDOMAIN",
+                "host_domain_name": "24sata.info",
+                "record_type": "A",
+                "size": "111b",
+            },
+        ]
+        self.assertIsNotNone(
+            sut._mean_packet_size(messages, begin_timestamp, end_timestamp)
+        )
+
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_count_errors_empty_messages(
         self, mock_kafka_consume_handler, mock_produce_handler
     ):
@@ -203,6 +230,53 @@ class TestInspectFunction(unittest.TestCase):
         sut.get_and_fill_data()
         sut.inspect()
         self.assertIsNotNone(sut.anomalies)
+
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.MODELS", [{"model": "INVALID"}])
+    def test_invalid_model_univariate(
+        self, mock_kafka_consume_handler, mock_produce_handler
+    ):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        with self.assertRaises(NotImplementedError):
+            sut.inspect()
+
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.MODELS", [{"model": "INVALID"}])
+    @patch("src.inspector.inspector.MODE", "multivariate")
+    def test_invalid_model_multivariate(
+        self, mock_kafka_consume_handler, mock_produce_handler
+    ):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        with self.assertRaises(NotImplementedError):
+            sut.inspect()
+
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.MODELS", [{"model": "INVALID"}])
+    @patch("src.inspector.inspector.MODE", "ensemble")
+    def test_invalid_model_ensemble(
+        self, mock_kafka_consume_handler, mock_produce_handler
+    ):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        with self.assertRaises(NotImplementedError):
+            sut.inspect()
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
