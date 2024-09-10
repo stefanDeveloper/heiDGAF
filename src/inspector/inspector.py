@@ -26,7 +26,6 @@ config = setup_config()
 MODE = config["heidgaf"]["inspector"]["mode"]
 ENSEMBLE = config["heidgaf"]["inspector"]["ensemble"]
 MODELS = config["heidgaf"]["inspector"]["models"]
-MODULE = config["heidgaf"]["inspector"]["module"]
 ANOMALY_THRESHOLD = config["heidgaf"]["inspector"]["anomaly_threshold"]
 SCORE_THRESHOLD = config["heidgaf"]["inspector"]["score_threshold"]
 TIME_TYPE = config["heidgaf"]["inspector"]["time_type"]
@@ -186,7 +185,7 @@ class Inspector:
             for idx, count in zip(unique_indices, unique_counts):
                 time_index = (
                     ((timestamps[idx] - min_date) // TIME_RANGE)
-                    .astype("timedelta64[{TIME_TYPE}]")
+                    .astype(f"timedelta64[{TIME_TYPE}]")
                     .astype(int)
                 )
                 size_sums[time_index] = np.sum(sizes[idx : idx + count])
@@ -292,12 +291,12 @@ class Inspector:
                 raise NotImplementedError(f"Mode {MODE} is not supported!")
 
     def _inspect_multivariate(self, model: str):
-        logger.debug(f"Load Model: {MODELS} from {MODULE}.")
+        logger.debug(f"Load Model: {model['model']} from {model['module']}.")
         if not model["model"] in VALID_MULTIVARIATE_MODLS:
             logger.error(f"Model {model} is not a valid univariate model.")
             raise NotImplementedError(f"Model {model} is not a valid univariate model.")
 
-        module = importlib.import_module(MODULE)
+        module = importlib.import_module(model["module"])
         module_model = getattr(module, model["model"])
         self.model = module_model(**model["model_args"])
 
@@ -323,16 +322,14 @@ class Inspector:
                 self.anomalies.append(0)
 
     def _inspect_ensemble(self, models: str):
-        logger.debug(f"Load Model: {MODELS} from {MODULE}.")
-
-        logger.debug(f"Load Model: {ENSEMBLE} from {MODULE}.")
+        logger.debug(f"Load Model: {ENSEMBLE['model']} from {ENSEMBLE['module']}.")
         if not ENSEMBLE["model"] in VALID_ENSEMBLE_MODELS:
             logger.error(f"Model {ENSEMBLE} is not a valid univariate model.")
             raise NotImplementedError(
                 f"Model {ENSEMBLE} is not a valid univariate model."
             )
 
-        module = importlib.import_module(MODULE)
+        module = importlib.import_module(ENSEMBLE["module"])
         module_model = getattr(module, ENSEMBLE["model"])
         ensemble = module_model(**ENSEMBLE["model_args"])
 
@@ -345,13 +342,14 @@ class Inspector:
 
         self.model = []
         for model in models:
+            logger.debug(f"Load Model: {model['model']} from {model['module']}.")
             if not model["model"] in VALID_UNIVARIATE_MODELS:
                 logger.error(f"Model {models} is not a valid univariate model.")
                 raise NotImplementedError(
                     f"Model {models} is not a valid univariate model."
                 )
 
-            module = importlib.import_module(MODULE)
+            module = importlib.import_module(model["module"])
             module_model = getattr(module, model["model"])
             self.model.append(module_model(**model["model_args"]))
         for x in stream.iter_item():
@@ -373,12 +371,12 @@ class Inspector:
             model_args (dict): Arguments passed to the StreamAD model.
         """
 
-        logger.debug(f"Load Model: {MODELS} from {MODULE}.")
+        logger.debug(f"Load Model: {model['model']} from {model['module']}.")
         if not model["model"] in VALID_UNIVARIATE_MODELS:
             logger.error(f"Model {model} is not a valid univariate model.")
             raise NotImplementedError(f"Model {model} is not a valid univariate model.")
 
-        module = importlib.import_module(MODULE)
+        module = importlib.import_module(model["module"])
         module_model = getattr(module, model["model"])
         self.model = module_model(**model["model_args"])
 

@@ -143,6 +143,8 @@ class TestInspectFunction(unittest.TestCase):
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.TIME_TYPE", "ms")
+    @patch("src.inspector.inspector.TIME_RANGE", 1)
     def test_count_errors(self, mock_kafka_consume_handler, mock_produce_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -170,6 +172,8 @@ class TestInspectFunction(unittest.TestCase):
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.TIME_TYPE", "ms")
+    @patch("src.inspector.inspector.TIME_RANGE", 1)
     def test_mean_packet_size(self, mock_kafka_consume_handler, mock_produce_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -233,7 +237,10 @@ class TestInspectFunction(unittest.TestCase):
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
-    @patch("src.inspector.inspector.MODELS", [{"model": "INVALID"}])
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [{"model": "INVALID", "module": "streamad.model"}],
+    )
     def test_invalid_model_univariate(
         self, mock_kafka_consume_handler, mock_produce_handler
     ):
@@ -248,7 +255,10 @@ class TestInspectFunction(unittest.TestCase):
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
-    @patch("src.inspector.inspector.MODELS", [{"model": "INVALID"}])
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [{"model": "INVALID", "module": "streamad.model"}],
+    )
     @patch("src.inspector.inspector.MODE", "multivariate")
     def test_invalid_model_multivariate(
         self, mock_kafka_consume_handler, mock_produce_handler
@@ -264,7 +274,10 @@ class TestInspectFunction(unittest.TestCase):
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
-    @patch("src.inspector.inspector.MODELS", [{"model": "INVALID"}])
+    @patch(
+        "src.inspector.inspector.ENSEMBLE",
+        {"model": "INVALID", "module": "streamad.process"},
+    )
     @patch("src.inspector.inspector.MODE", "ensemble")
     def test_invalid_model_ensemble(
         self, mock_kafka_consume_handler, mock_produce_handler
