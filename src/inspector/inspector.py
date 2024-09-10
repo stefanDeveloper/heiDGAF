@@ -1,3 +1,5 @@
+import ast
+from datetime import datetime
 from enum import Enum, unique
 import json
 import logging
@@ -6,7 +8,6 @@ import sys
 import importlib
 import numpy as np
 
-from streamad.base import BaseDetector
 from streamad.util import StreamGenerator, CustomDS
 
 sys.path.append(os.getcwd())
@@ -23,12 +24,14 @@ logger = logging.getLogger(__name__)
 
 config = setup_config()
 MODE = config["heidgaf"]["inspector"]["mode"]
+ENSEMBLE = config["heidgaf"]["inspector"]["ensemble"]
 MODELS = config["heidgaf"]["inspector"]["models"]
 MODULE = config["heidgaf"]["inspector"]["module"]
 ANOMALY_THRESHOLD = config["heidgaf"]["inspector"]["anomaly_threshold"]
 SCORE_THRESHOLD = config["heidgaf"]["inspector"]["score_threshold"]
 TIME_TYPE = config["heidgaf"]["inspector"]["time_type"]
 TIME_RANGE = config["heidgaf"]["inspector"]["time_range"]
+TIMESTAMP_FORMAT = config["heidgaf"]["timestamp_format"]
 
 
 VALID_UNIVARIATE_MODELS = [
@@ -49,7 +52,7 @@ VALID_MULTIVARIATE_MODLS = [
     "RrcfDetector",
 ]
 
-VALID_ENSEMBLE_MODLS = ["WeightEnsemble", "VoteEnsemble"]
+VALID_ENSEMBLE_MODELS = ["WeightEnsemble", "VoteEnsemble"]
 
 
 @unique
@@ -89,9 +92,14 @@ class Inspector:
         key, data = self.kafka_consume_handler.consume_and_return_json_data()
 
         if data:
-            self.begin_timestamp = data.get("begin_timestamp")
-            self.end_timestamp = data.get("end_timestamp")
-            self.messages = data.get("data")
+            # TODO Fix convertion of data
+            self.begin_timestamp = datetime.strptime(
+                data.get("begin_timestamp"), TIMESTAMP_FORMAT
+            )
+            self.end_timestamp = datetime.strptime(
+                data.get("end_timestamp"), TIMESTAMP_FORMAT
+            )
+            self.messages = [ast.literal_eval(item) for item in data.get("data")]
             self.key = key
 
         if not self.messages:
@@ -131,7 +139,15 @@ class Inspector:
             numpy.ndarray: 2-D numpy.ndarray including all steps.
         """
         logger.debug("Convert timestamps to numpy datetime64")
-        timestamps = np.array([np.datetime64(item["timestamp"]) for item in messages])
+        timestamps = np.array(
+            [
+                np.datetime64(datetime.strptime(item["timestamp"], TIMESTAMP_FORMAT))
+                for item in messages
+            ]
+        )
+
+        # Extract and convert the size values from "111b" to integers
+        sizes = np.array([int(str(item["size"]).replace("b", "")) for item in messages])
 
         logger.debug("Sort timestamps and count occurrences")
         sorted_indices = np.argsort(timestamps)
@@ -146,7 +162,9 @@ class Inspector:
             "Generate the time range from min_date to max_date with 1ms interval"
         )
         time_range = np.arange(
-            min_date, max_date, np.timedelta64(TIME_RANGE, TIME_TYPE)
+            min_date,
+            max_date + np.timedelta64(TIME_RANGE, TIME_TYPE),
+            np.timedelta64(TIME_RANGE, TIME_TYPE),
         )
 
         logger.debug(
@@ -199,7 +217,12 @@ class Inspector:
             numpy.ndarray: 2-D numpy.ndarray including all steps.
         """
         logger.debug("Convert timestamps to numpy datetime64")
-        timestamps = np.array([np.datetime64(item["timestamp"]) for item in messages])
+        timestamps = np.array(
+            [
+                np.datetime64(datetime.strptime(item["timestamp"], TIMESTAMP_FORMAT))
+                for item in messages
+            ]
+        )
 
         logger.debug("Sort timestamps and count occurrences")
         sorted_indices = np.argsort(timestamps)
@@ -212,8 +235,11 @@ class Inspector:
         logger.debug(
             "Generate the time range from min_date to max_date with 1ms interval"
         )
+        # Adding np.timedelta adds end time to time_range
         time_range = np.arange(
-            min_date, max_date, np.timedelta64(TIME_RANGE, TIME_TYPE)
+            min_date,
+            max_date + np.timedelta64(TIME_RANGE, TIME_TYPE),
+            np.timedelta64(TIME_RANGE, TIME_TYPE),
         )
 
         logger.debug(
@@ -275,26 +301,68 @@ class Inspector:
         module_model = getattr(module, model["model"])
         self.model = module_model(**model["model_args"])
 
-    def _inspect_ensemble(self, model: str, type: EnsembleModels):
+        logger.debug("Inspecting data...")
+
+        X_1 = self._mean_packet_size(
+            self.messages, self.begin_timestamp, self.end_timestamp
+        )
+        X_2 = self._count_errors(
+            self.messages, self.begin_timestamp, self.end_timestamp
+        )
+
+        self.X = np.concatenate((X_1, X_2), axis=1)
+
+        ds = CustomDS(self.X, self.X)
+        stream = StreamGenerator(ds.data)
+
+        for x in stream.iter_item():
+            score = self.model.fit_score(x)
+            if score != None:
+                self.anomalies.append(score)
+            else:
+                self.anomalies.append(0)
+
+    def _inspect_ensemble(self, models: str):
         logger.debug(f"Load Model: {MODELS} from {MODULE}.")
 
-        match type:
-            case "EnsembleWeight":
-                pass
-            case "EnsembleVote":
-                pass
+        logger.debug(f"Load Model: {ENSEMBLE} from {MODULE}.")
+        if not ENSEMBLE["model"] in VALID_ENSEMBLE_MODELS:
+            logger.error(f"Model {ENSEMBLE} is not a valid univariate model.")
+            raise NotImplementedError(
+                f"Model {ENSEMBLE} is not a valid univariate model."
+            )
+
+        module = importlib.import_module(MODULE)
+        module_model = getattr(module, ENSEMBLE["model"])
+        ensemble = module_model(**ENSEMBLE["model_args"])
+
+        self.X = self._count_errors(
+            self.messages, self.begin_timestamp, self.end_timestamp
+        )
+
+        ds = CustomDS(self.X, self.X)
+        stream = StreamGenerator(ds.data)
 
         self.model = []
-        for m in model:
-            if not m["model"] in VALID_ENSEMBLE_MODLS:
-                logger.error(f"Model {model} is not a valid univariate model.")
+        for model in models:
+            if not model["model"] in VALID_UNIVARIATE_MODELS:
+                logger.error(f"Model {models} is not a valid univariate model.")
                 raise NotImplementedError(
-                    f"Model {model} is not a valid univariate model."
+                    f"Model {models} is not a valid univariate model."
                 )
 
             module = importlib.import_module(MODULE)
-            module_model = getattr(module, m["model"])
-            self.model.append(module_model(**m["model_args"]))
+            module_model = getattr(module, model["model"])
+            self.model.append(module_model(**model["model_args"]))
+        for x in stream.iter_item():
+            # Fit all models in ensemble
+            for models in self.model:
+                models.fit_score(x)
+            score = ensemble.ensemble([model for model in self.model])
+            if score != None:
+                self.anomalies.append(score)
+            else:
+                self.anomalies.append(0)
 
     def _inspect_univariate(self, model: str):
         """Runs anomaly detection on given StreamAD Model on univariate data.
@@ -325,17 +393,20 @@ class Inspector:
 
         for x in stream.iter_item():
             score = self.model.fit_score(x)
-            self.anomalies.append(score)
+            if score != None:
+                self.anomalies.append(score)
+            else:
+                self.anomalies.append(0)
 
     def send_data(self):
         total_anomalies = np.count_nonzero(
-            np.greater_equal(self.anomalies, SCORE_THRESHOLD)
+            np.greater_equal(np.array(self.anomalies), SCORE_THRESHOLD)
         )
-        if len(total_anomalies) // len(self.X) > ANOMALY_THRESHOLD:
+        if total_anomalies / len(self.X) > ANOMALY_THRESHOLD:
             logger.debug("Sending data to KafkaProduceHandler...")
             data_to_send = {
-                "begin_timestamp": self.begin_timestamp,
-                "end_timestamp": self.end_timestamp,
+                "begin_timestamp": self.begin_timestamp.strftime(TIMESTAMP_FORMAT),
+                "end_timestamp": self.end_timestamp.strftime(TIMESTAMP_FORMAT),
                 "data": self.messages,
             }
             self.kafka_produce_handler.send(
