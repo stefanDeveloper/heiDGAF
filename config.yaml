@@ -24,12 +24,13 @@ heidgaf:
     # Only used when mode is set to ensemble
     ensemble:
       model: WeightEnsemble
+      module: streamad.process
       model_args:
     models:
       - model: ZScoreDetector
+        module: streamad.model
         model_args:
           is_global: false
-    module: streamad.model
     anomaly_threshold: 0.01
     score_threshold: 0.5
     time_type: ms
