@@ -139,7 +139,7 @@ class TestClearData(unittest.TestCase):
         self.assertIsNone(sut.end_timestamp)
 
 
-class TestInspectFunction(unittest.TestCase):
+class TestDataFunction(unittest.TestCase):
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
@@ -219,7 +219,56 @@ class TestInspectFunction(unittest.TestCase):
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
+    def test_mean_packet_size_empty_messages(
+        self, mock_kafka_consume_handler, mock_produce_handler
+    ):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        begin_timestamp = "2024-07-02T12:52:45.000Z"
+        end_timestamp = "2024-07-02T12:52:55.000Z"
+        messages = []
+        self.assertIsNotNone(
+            sut._mean_packet_size(messages, begin_timestamp, end_timestamp)
+        )
+
+
+class TestInspectFunction(unittest.TestCase):
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}],
+    )
     def test_inspect_univariate(self, mock_kafka_consume_handler, mock_produce_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = "172.126.0.0/24", {
+            "begin_timestamp": "2024-05-21T08:31:27.000Z",
+            "end_timestamp": "2024-05-21T08:31:29.000Z",
+            "data": [],
+        }
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        sut.inspect()
+        self.assertIsNotNone(sut.anomalies)
+
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [{"model": "RShashDetector", "module": "streamad.model", "model_args": {}}],
+    )
+    @patch("src.inspector.inspector.MODE", "multivariate")
+    def test_inspect_multivariate(
+        self, mock_kafka_consume_handler, mock_produce_handler
+    ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = "172.126.0.0/24", {

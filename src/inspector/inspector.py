@@ -171,6 +171,7 @@ class Inspector:
         )
         counts = np.zeros(time_range.shape, dtype=np.float64)
         size_sums = np.zeros(time_range.shape, dtype=np.float64)
+        mean_sizes = np.zeros(time_range.shape, dtype=np.float64)
 
         # Handle empty messages.
         if len(messages) > 0:
