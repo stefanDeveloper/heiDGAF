@@ -4,6 +4,8 @@ import os
 import queue
 import sys
 
+from base.kafka_handler import KafkaConsumeHandler
+
 sys.path.append(os.getcwd())
 from src.base.utils import setup_config
 from src.base import utils
@@ -17,6 +19,7 @@ HOSTNAME = config["heidgaf"]["logserver"]["hostname"]
 PORT_IN = config["heidgaf"]["logserver"]["port_in"]
 PORT_OUT = config["heidgaf"]["logserver"]["port_out"]
 MAX_NUMBER_OF_CONNECTIONS = config["heidgaf"]["logserver"]["max_number_of_connections"]
+LISTEN_ON_TOPIC = config["heidgaf"]["logserver"]["listen_on_topic"]
 
 
 class LogServer:
@@ -25,9 +28,6 @@ class LogServer:
         self.host = None
         self.port_out = None
         self.port_in = None
-        self.socket = None
-        self.number_of_connections = 0
-        self.data_queue = queue.Queue()
 
         logger.debug("Validating host name...")
         self.host = utils.validate_host(HOSTNAME)
@@ -37,6 +37,11 @@ class LogServer:
         self.port_out = utils.validate_port(PORT_OUT)
         logger.debug("Outgoing port is valid.")
         logger.debug("Initialized LogServer.")
+
+        self.socket = None
+        self.number_of_connections = 0
+        self.data_queue = queue.Queue()
+        self.kafka_consume_handler = KafkaConsumeHandler(topic=LISTEN_ON_TOPIC)
 
     async def open(self):
         logger.debug("Opening LogServer sockets...")
@@ -98,6 +103,13 @@ class LogServer:
             writer.close()
             await writer.wait_closed()
 
+    async def handle_kafka_inputs(self):
+        # TODO: Change infinite loop to be interruptable
+        while True:
+            key, value = self.kafka_consume_handler.consume()
+            logger.info(f"Received message via Kafka:\n    ⤷  {key=}, {value=}")
+            self.data_queue.put(value)
+
     async def handle_send_logline(self, reader, writer):
         logger.debug("Calling handle_connection with sending=True...")
         await self.handle_connection(reader, writer, True)
@@ -133,6 +145,7 @@ class LogServer:
             return self.data_queue.get()
         return None
 
+    # TODO: Add a close method
 
 def main():
     logger.info("Starting LogServer...")

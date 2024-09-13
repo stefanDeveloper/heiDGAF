@@ -14,31 +14,52 @@ class TestInit(unittest.TestCase):
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
     @patch("src.logserver.server.PORT_IN", 7777)
     @patch("src.logserver.server.PORT_OUT", 8888)
-    def test_valid_init_ipv4(self):
-        server_instance = LogServer()
-        self.assertEqual(IPv4Address("127.0.0.1"), server_instance.host)
-        self.assertEqual(7777, server_instance.port_in)
-        self.assertEqual(8888, server_instance.port_out)
-        self.assertTrue(server_instance.data_queue.empty())
-        self.assertEqual(0, server_instance.number_of_connections)
+    @patch("src.logserver.server.LISTEN_ON_TOPIC", "test_topic")
+    @patch("src.logserver.server.KafkaConsumeHandler")
+    def test_valid_init_ipv4(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = LogServer()
+        self.assertEqual(IPv4Address("127.0.0.1"), sut.host)
+        self.assertEqual(7777, sut.port_in)
+        self.assertEqual(8888, sut.port_out)
+        self.assertTrue(sut.data_queue.empty())
+        self.assertEqual(0, sut.number_of_connections)
+        self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
+        mock_kafka_consume_handler.assert_called_once_with(topic="test_topic")
 
     @patch("src.logserver.server.HOSTNAME", "fe80::1")
     @patch("src.logserver.server.PORT_IN", 7777)
     @patch("src.logserver.server.PORT_OUT", 8888)
-    def test_valid_init_ipv6(self):
-        server_instance = LogServer()
-        self.assertEqual(IPv6Address("fe80::1"), server_instance.host)
-        self.assertEqual(7777, server_instance.port_in)
-        self.assertEqual(8888, server_instance.port_out)
-        self.assertTrue(server_instance.data_queue.empty())
-        self.assertEqual(0, server_instance.number_of_connections)
+    @patch("src.logserver.server.LISTEN_ON_TOPIC", "test_topic")
+    @patch("src.logserver.server.KafkaConsumeHandler")
+    def test_valid_init_ipv6(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = LogServer()
+        self.assertEqual(IPv6Address("fe80::1"), sut.host)
+        self.assertEqual(7777, sut.port_in)
+        self.assertEqual(8888, sut.port_out)
+        self.assertTrue(sut.data_queue.empty())
+        self.assertEqual(0, sut.number_of_connections)
+        self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
+        mock_kafka_consume_handler.assert_called_once_with(topic="test_topic")
 
     @patch("src.logserver.server.HOSTNAME", "256.256.256.256")
     @patch("src.logserver.server.PORT_IN", 7777)
     @patch("src.logserver.server.PORT_OUT", 8888)
-    def test_invalid_init_with_invalid_host(self):
+    @patch("src.logserver.server.LISTEN_ON_TOPIC", "test_topic")
+    @patch("src.logserver.server.KafkaConsumeHandler")
+    def test_invalid_init_with_invalid_host(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
         with self.assertRaises(ValueError):
             LogServer()
+
+        mock_kafka_consume_handler.assert_not_called()
 
 
 class TestOpen(unittest.IsolatedAsyncioTestCase):
@@ -199,6 +220,12 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             7, server_instance.number_of_connections
         )
+
+
+class TestHandleKafkaInputs(unittest.IsolatedAsyncioTestCase):
+    async def test_handle_kafka_with_no_return_values(self):
+        # TODO
+        pass
 
 
 class TestHandleSendLogline(unittest.IsolatedAsyncioTestCase):

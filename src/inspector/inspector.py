@@ -1,11 +1,11 @@
+import importlib
 import json
 import logging
 import os
 import sys
-import importlib
-import numpy as np
 from datetime import datetime
 
+import numpy as np
 from streamad.util import StreamGenerator, CustomDS
 
 sys.path.append(os.getcwd())
@@ -32,6 +32,7 @@ TIME_RANGE = config["heidgaf"]["inspector"]["time_range"]
 
 class Inspector:
     def __init__(self) -> None:
+        self.key = None
         self.topic = "Collector"
         self.begin_timestamp = None
         self.end_timestamp = None
