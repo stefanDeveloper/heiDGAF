@@ -360,7 +360,7 @@ To configure the :class:`Prefilter` and customize the filtering behavior, the fo
 
   - When creating an instance of :class:`Prefilter`, a list of error types is passed as an argument. This list defines
     the types of errors that should be retained in the filtering process.
-  - **Example**: If the filter is configured with the list ``["NXDOMAIN", ]``, only logs with error status
+  - **Example**: If the filter is configured with the list ``["NXDOMAIN"]``, only logs with error status
     ``NXDOMAIN`` will be processed and sent to the ``Inspect`` topic.
 
 - **Kafka Topics**:
