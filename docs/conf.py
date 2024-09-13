@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath("../src/"))
 
 # -- Project information
 
-project = "heidgaf"
+project = "heiDGAF"
 copyright = "2024, Stefan Machmeier and Manuel Fuchs"
 author = "Stefan Machmeier and Manuel Fuchs"
 

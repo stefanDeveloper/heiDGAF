@@ -111,10 +111,10 @@ Main Classes
 .. py:currentmodule:: src.logcollector.collector
 .. autoclass:: LogCollector
 
-.. py:currentmodule:: src.base.batch_handler
+.. py:currentmodule:: src.logcollector.batch_handler
 .. autoclass:: BufferedBatch
 
-.. py:currentmodule:: src.base.batch_handler
+.. py:currentmodule:: src.logcollector.batch_handler
 .. autoclass:: CollectorKafkaBatchSender
 
 Usage
