@@ -403,6 +403,7 @@ class Inspector:
         )
         if total_anomalies / len(self.X) > ANOMALY_THRESHOLD:
             logger.debug("Sending data to KafkaProduceHandler...")
+            logger.info("Sending anomalies to detector for further analysation.")
             data_to_send = {
                 "begin_timestamp": self.begin_timestamp.strftime(TIMESTAMP_FORMAT),
                 "end_timestamp": self.end_timestamp.strftime(TIMESTAMP_FORMAT),
