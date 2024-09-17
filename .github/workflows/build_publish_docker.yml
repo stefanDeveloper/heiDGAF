@@ -51,18 +51,18 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        if: github.event_name != 'pull_request'
         uses: docker/metadata-action@v5.5.1
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.container }}
 
       - name: Build and push Docker image (${{ steps.meta.outputs.tags }})
+        if: github.event_name != 'pull_request' && contains(github.ref, '/tags/v')
         id: build-and-push
         uses: docker/build-push-action@v3
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: "${{ env.IMAGE_NAME }}-${{ matrix.container }}:${{ steps.meta.outputs.tags }}"
           labels: ${{ steps.meta.outputs.labels }}
           file: ./dockerfiles/Dockerfile.${{ matrix.container }}
           cache-from: type=gha
@@ -70,7 +70,6 @@ jobs:
 
       - name: Build and push Docker image (latest)
         id: build-and-push-latest
-        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -87,6 +86,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: ${{ env.IMAGE_NAME }}
+          repository: ${{ env.IMAGE_NAME }}-${{ matrix.container }}
           short-description: ${{ github.event.repository.description }}
           readme-filepath: ./README.md
