@@ -62,7 +62,7 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ env.IMAGE_NAME }}-${{ matrix.container }}\:${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ./dockerfiles/Dockerfile.${{ matrix.container }}
           cache-from: type=gha
@@ -87,6 +87,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: ${{ env.IMAGE_NAME }}
+          repository: ${{ env.IMAGE_NAME }}-${{ matrix.container }}
           short-description: ${{ github.event.repository.description }}
           readme-filepath: ./README.md
