@@ -3,6 +3,7 @@ The Write-Exactly-Once-Semantics used by the :class:`KafkaHandler` is shown by
 https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/eos-transactions.py,
 parts of which are similar to the code in this module.
 """
+
 import ast
 import json
 import logging
@@ -17,8 +18,10 @@ from confluent_kafka import (
     Producer,
     TopicPartition,
 )
+import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
+from src.base import Batch
 from src.base.log_config import setup_logging
 from src.base.utils import kafka_delivery_report, setup_config
 
@@ -34,6 +37,7 @@ class TooManyFailedAttemptsError(Exception):
     """
     Exception for too many failed attempts.
     """
+
     pass
 
 
@@ -41,6 +45,7 @@ class KafkaMessageFetchException(Exception):
     """
     Exception for failed fetch of Kafka messages during consuming.
     """
+
     pass
 
 
@@ -58,10 +63,7 @@ class KafkaHandler:
         self.consumer = None
 
         self.brokers = ",".join(
-            [
-                f"{broker['hostname']}:{broker['port']}"
-                for broker in KAFKA_BROKERS
-            ]
+            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
         )
         logger.debug(f"Retrieved {self.brokers=}.")
         logger.debug(f"Initialized KafkaHandler.")
@@ -157,7 +159,9 @@ class KafkaProduceHandler(KafkaHandler):
         logger.debug("Data sent to Producer.")
         logger.debug(f"({data=})")
 
-    def commit_transaction_with_retry(self, max_retries: int = 3, retry_interval_ms: int = 1000) -> None:
+    def commit_transaction_with_retry(
+        self, max_retries: int = 3, retry_interval_ms: int = 1000
+    ) -> None:
         """
         Commits a transaction including retries. If committing fails, it is retried after the given retry interval
         time up to ``max_retries`` times.
@@ -178,8 +182,8 @@ class KafkaProduceHandler(KafkaHandler):
                 committed = True
             except KafkaException as e:
                 if (
-                        "Conflicting commit_transaction API call is already in progress"
-                        in str(e)
+                    "Conflicting commit_transaction API call is already in progress"
+                    in str(e)
                 ):
                     retry_count += 1
                     logger.debug(
@@ -331,3 +335,9 @@ class KafkaConsumeHandler(KafkaHandler):
         else:
             logger.error("Unknown data format.")
             raise ValueError
+
+    def consume_and_return_object(self):
+        key, data = self.consume_and_return_json_data()
+        city_schema = marshmallow_dataclass.class_schema(Batch)()
+        data_batch = city_schema.loads(data)
+        return key, data_batch

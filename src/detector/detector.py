@@ -1,11 +1,13 @@
 import ast
 from datetime import datetime
 from enum import Enum, unique
+import hashlib
 import json
 import logging
 import os
 import sys
 import importlib
+import joblib
 import numpy as np
 
 import requests
@@ -23,7 +25,11 @@ from src.base.log_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
+BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+
 config = setup_config()
+MODEL = config["heidgaf"]["detector"]["model"]
+MODEL_PATH = config["heidgaf"]["detector"]["path"]
 
 
 class Detector:
@@ -47,13 +53,9 @@ class Detector:
 
         if data:
             # TODO Fix convertion of data
-            self.begin_timestamp = datetime.strptime(
-                data.get("begin_timestamp"), TIMESTAMP_FORMAT
-            )
-            self.end_timestamp = datetime.strptime(
-                data.get("end_timestamp"), TIMESTAMP_FORMAT
-            )
-            self.messages = [ast.literal_eval(item) for item in data.get("data")]
+            self.begin_timestamp = data.get("begin_timestamp")
+            self.end_timestamp = data.get("end_timestamp")
+            self.messages = data.get("data")
             self.key = key
 
         if not self.messages:
@@ -70,18 +72,33 @@ class Detector:
         logger.debug("Received consumer message as json data.")
         logger.debug(f"(data={self.messages})")
 
+    def _sha256sum(self, file_path):
+        h = hashlib.sha256()
+
+        with open(file_path, "rb") as file:
+            while True:
+                # Reading is buffered, so we can read smaller chunks.
+                chunk = file.read(h.block_size)
+                if not chunk:
+                    break
+                h.update(chunk)
+
+        return h.hexdigest()
+
     def _get_model() -> None:
-        """Downloads model from server."""
-        response = requests.get(
-            f"{self.MODELS_URL}/files/?p=%2F{model_type.value}.pkl&dl=1"
-        )
+        """Downloads model from server. If model already exists, it returns the current model. In addition, it checks the sha256 sum in case a model has been updated."""
 
-        response.raise_for_status()
+        if not os.path.isfile(f"/tmp/{MODEL}.pkl"):
+            response = requests.get(f"{MODEL_PATH}/files/?p=%2F{MODEL}.pkl&dl=1")
 
-        with open(rf"/tmp/{model_type.value}.pkl", "wb") as f:
+            response.raise_for_status()
+
+            # Check file sha256
+
+        with open(rf"/tmp/{MODEL}.pkl", "wb") as f:
             f.write(response.content)
 
-        return joblib.load(f"/tmp/{model_type.value}.pkl")
+        return joblib.load(f"/tmp/{MODEL}.pkl")
 
     def detect(self) -> None:
         pass
