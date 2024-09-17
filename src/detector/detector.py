@@ -8,6 +8,7 @@ import sys
 import importlib
 import numpy as np
 
+import requests
 from streamad.util import StreamGenerator, CustomDS
 
 sys.path.append(os.getcwd())
@@ -23,7 +24,6 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 config = setup_config()
-TIMESTAMP_FORMAT = config["heidgaf"]["timestamp_format"]
 
 
 class Detector:
@@ -71,7 +71,17 @@ class Detector:
         logger.debug(f"(data={self.messages})")
 
     def _get_model() -> None:
-        pass
+        """Downloads model from server."""
+        response = requests.get(
+            f"{self.MODELS_URL}/files/?p=%2F{model_type.value}.pkl&dl=1"
+        )
+
+        response.raise_for_status()
+
+        with open(rf"/tmp/{model_type.value}.pkl", "wb") as f:
+            f.write(response.content)
+
+        return joblib.load(f"/tmp/{model_type.value}.pkl")
 
     def detect(self) -> None:
         pass
