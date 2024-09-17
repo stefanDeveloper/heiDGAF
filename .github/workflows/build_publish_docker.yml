@@ -56,6 +56,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.container }}
 
       - name: Build and push Docker image (${{ steps.meta.outputs.tags }})
+        if: github.event_name != 'pull_request' && contains(github.ref, '/tags/v')
         id: build-and-push
         uses: docker/build-push-action@v3
         with:
@@ -69,7 +70,6 @@ jobs:
 
       - name: Build and push Docker image (latest)
         id: build-and-push-latest
-        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v3
         with:
           context: .
