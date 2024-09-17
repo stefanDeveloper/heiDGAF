@@ -51,10 +51,9 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        if: github.event_name != 'pull_request'
         uses: docker/metadata-action@v5.5.1
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.container }}
 
       - name: Build and push Docker image (${{ steps.meta.outputs.tags }})
         id: build-and-push
