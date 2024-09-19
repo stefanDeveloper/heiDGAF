@@ -36,7 +36,7 @@ jobs:
 
     - name: Install requirements
       run: |
-         python -m pip install --upgrade pip
+        python -m pip install --upgrade pip
         python -m pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt
 
     - name: Test
