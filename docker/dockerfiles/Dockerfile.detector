@@ -2,7 +2,7 @@ FROM python:3
 
 WORKDIR /usr/src/app
 
-COPY requirements.detector.txt ./
+COPY requirements/requirements.detector.txt ./
 RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.detector.txt
 
 COPY src/base ./src/base

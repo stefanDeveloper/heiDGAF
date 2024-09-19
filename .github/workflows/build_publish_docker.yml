@@ -64,7 +64,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: "${{ env.IMAGE_NAME }}-${{ matrix.container }}:${{ steps.meta.outputs.tags }}"
           labels: ${{ steps.meta.outputs.labels }}
-          file: ./dockerfiles/Dockerfile.${{ matrix.container }}
+          file: ./docker/dockerfiles/Dockerfile.${{ matrix.container }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -76,7 +76,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ env.IMAGE_NAME }}-${{ matrix.container }}:latest
           labels: ${{ steps.meta.outputs.labels }}
-          file: ./dockerfiles/Dockerfile.${{ matrix.container }}
+          file: ./docker/dockerfiles/Dockerfile.${{ matrix.container }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

@@ -2,7 +2,7 @@ FROM python:3
 
 WORKDIR /usr/src/app
 
-COPY requirements.prefilter.txt ./
+COPY requirements/requirements.prefilter.txt ./
 RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.prefilter.txt
 
 COPY src/base ./src/base
