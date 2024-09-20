@@ -55,8 +55,8 @@ def validate_host(
     logger.debug(f"Validating host IP address {host}...")
     try:
         host = ipaddress.ip_address(host)
-    except ValueError:
-        raise ValueError(f"Invalid host: {host}")
+    except Exception as err:
+        raise ValueError(f"Invalid host: {host}, {err=}")
 
     logger.debug(f"Host {host} is valid.")
     return host

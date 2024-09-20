@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 CONFIG = setup_config()
 
-NEEDED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
+REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
 
 
 class FieldType:
@@ -48,12 +48,14 @@ class ListItem(FieldType):
         self.allowed_list = allowed_list
 
         if relevant_list and not all(e in allowed_list for e in relevant_list):
-            raise ValueError
+            raise ValueError('Relevant types are not allowed types')
 
         self.relevant_list = relevant_list
 
     def validate(self, value) -> bool:
         return True if value in self.allowed_list else False
+
+    # TODO: Add method to check if value in relevant list
 
 
 class LoglineHandler:
@@ -72,8 +74,8 @@ class LoglineHandler:
             self.instances_by_name[instance.name] = instance
             self.number_of_fields += 1
 
-        for needed_field in NEEDED_FIELDS:
-            if needed_field not in self.instances_by_name:
+        for required_field in REQUIRED_FIELDS:
+            if required_field not in self.instances_by_name:
                 raise ValueError("Not all needed fields are set in the configuration")
 
     def validate_logline(self, logline: str) -> bool:
