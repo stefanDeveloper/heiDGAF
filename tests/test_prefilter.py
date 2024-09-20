@@ -142,7 +142,7 @@ class TestFilterByError(unittest.TestCase):
     def test_filter_by_error_with_data_no_error_types(self, mock_produce_handler, mock_consume_handler):
         first_entry = json.dumps({
             "timestamp": "2024-05-21T08:31:28.119Z",
-            "status": "NOERROR",
+            "status_code": "NOERROR",
             "client_ip": "192.168.0.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
@@ -152,7 +152,7 @@ class TestFilterByError(unittest.TestCase):
         })
         second_entry = json.dumps({
             "timestamp": "2024-06-01T02:31:07.943Z",
-            "status": "NXDOMAIN",
+            "status_code": "NXDOMAIN",
             "client_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.biotech-hei.com",
@@ -162,7 +162,7 @@ class TestFilterByError(unittest.TestCase):
         })
         third_entry = json.dumps({
             "timestamp": "2024-06-01T01:37:41.796Z",
-            "status": "NXDOMAIN",
+            "status_code": "NXDOMAIN",
             "client_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-stadtbibliothek.de",
@@ -182,7 +182,7 @@ class TestFilterByError(unittest.TestCase):
     def test_filter_by_error_with_data_one_error_type(self, mock_produce_handler, mock_consume_handler):
         first_entry = json.dumps({
             "timestamp": "2024-05-21T08:31:28.119Z",
-            "status": "NOERROR",
+            "status_code": "NOERROR",
             "client_ip": "192.168.0.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
@@ -192,7 +192,7 @@ class TestFilterByError(unittest.TestCase):
         })
         second_entry = json.dumps({
             "timestamp": "2024-06-01T02:31:07.943Z",
-            "status": "NXDOMAIN",
+            "status_code": "NXDOMAIN",
             "client_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.biotech-hei.com",
@@ -202,7 +202,7 @@ class TestFilterByError(unittest.TestCase):
         })
         third_entry = json.dumps({
             "timestamp": "2024-06-01T01:37:41.796Z",
-            "status": "NXDOMAIN",
+            "status_code": "NXDOMAIN",
             "client_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-stadtbibliothek.de",
@@ -222,7 +222,7 @@ class TestFilterByError(unittest.TestCase):
     def test_filter_by_error_with_data_two_error_types(self, mock_produce_handler, mock_consume_handler):
         first_entry = json.dumps({
             "timestamp": "2024-05-21T08:31:28.119Z",
-            "status": "NOERROR",
+            "status_code": "NOERROR",
             "client_ip": "192.168.0.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
@@ -232,7 +232,7 @@ class TestFilterByError(unittest.TestCase):
         })
         second_entry = json.dumps({
             "timestamp": "2024-06-01T02:31:07.943Z",
-            "status": "NXDOMAIN",
+            "status_code": "NXDOMAIN",
             "client_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.biotech-hei.com",
@@ -242,7 +242,7 @@ class TestFilterByError(unittest.TestCase):
         })
         third_entry = json.dumps({
             "timestamp": "2024-06-01T01:37:41.796Z",
-            "status": "OTHER_TYPE",
+            "status_code": "OTHER_TYPE",
             "client_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-stadtbibliothek.de",
