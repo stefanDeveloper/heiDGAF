@@ -72,7 +72,7 @@ class Prefilter:
         logger.debug("Filtering data...")
         for e in self.unfiltered_data:
             e_as_json = ast.literal_eval(e)
-            if e_as_json["status"] in self.error_type:
+            if e_as_json["status_code"] in self.error_type:
                 self.filtered_data.append(e)
         logger.debug("Data filtered and now available in filtered_data.")
         logger.info("Data successfully filtered.")

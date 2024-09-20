@@ -58,6 +58,7 @@ class ListItem(FieldType):
     # TODO: Add method to check if value in relevant list
 
 
+# TODO: Test
 class LoglineHandler:
     def __init__(self):
         self.instances_by_name = {}
@@ -110,7 +111,7 @@ class LoglineHandler:
 
     def validate_logline_and_get_fields_as_json(self, logline: str) -> dict:
         if not self.validate_logline(logline):
-            raise ValueError("Incorrect logline, cannot return fields")
+            raise ValueError("Incorrect logline, validation unsuccessful")
 
         parts = logline.split()
         return_dict = {}

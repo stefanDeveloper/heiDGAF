@@ -1,12 +1,12 @@
+import ipaddress
 import json
 import logging
 import os
 import socket
 import sys
 
-from base.logline_handler import LoglineHandler
-
 sys.path.append(os.getcwd())
+from src.base.logline_handler import LoglineHandler
 from src.base import utils
 from src.logcollector.batch_handler import CollectorKafkaBatchSender
 from src.base.log_config import setup_logging
@@ -99,7 +99,7 @@ class LogCollector:
         log_data = self.logline_handler.validate_logline_and_get_fields_as_json(self.logline)
 
         logger.debug("Calling KafkaBatchSender to add message...")
-        subnet_id = f"{utils.get_first_part_of_ipv4_address(log_data.get('client_ip'), SUBNET_BITS)}_{SUBNET_BITS}"
+        subnet_id = f"{utils.get_first_part_of_ipv4_address(ipaddress.ip_address(log_data.get('client_ip')), SUBNET_BITS)}_{SUBNET_BITS}"
 
         self.batch_handler.add_message(subnet_id, json.dumps(log_data))
 
@@ -152,9 +152,9 @@ def main(one_iteration: bool = False) -> None:
             logger.debug("Before adding logline to batch")
             collector.add_logline_to_batch()
             logger.debug("After adding logline to batch")
-        except ValueError as e:
+        except ValueError as err:
             logger.debug("Incorrect logline: Waiting for next logline...")
-            logger.debug(e)
+            logger.debug(f"{err=}")
         except KeyboardInterrupt:
             logger.info("Closing down LogCollector...")
             collector.clear_logline()
