@@ -9,7 +9,7 @@ import sys
 import importlib
 import joblib
 import numpy as np
-
+import tempfile
 import requests
 import xgboost
 from streamad.util import StreamGenerator, CustomDS
@@ -50,6 +50,7 @@ class Detector:
         self.warnings = []
         self.begin_timestamp = None
         self.end_timestamp = None
+        self.model_path = os.path.join(tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pkl")
 
         logger.debug(f"Initializing Inspector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Detector')...")
@@ -116,17 +117,17 @@ class Detector:
     def _get_model(self) -> None:
         """Downloads model from server. If model already exists, it returns the current model. In addition, it checks the sha256 sum in case a model has been updated."""
 
-        if not os.path.isfile(f"/tmp/{MODEL}_{CHECKSUM}.pkl"):
+        if not os.path.isfile(self.model_path):
             response = requests.get(
                 f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pkl&dl=1"
             )
             response.raise_for_status()
 
-            with open(rf"/tmp/{MODEL}_{CHECKSUM}.pkl", "wb") as f:
+            with open(self.model_path, "wb") as f:
                 f.write(response.content)
 
         # Check file sha256
-        local_checksum = self._sha256sum(f"/tmp/{MODEL}_{CHECKSUM}.pkl")
+        local_checksum = self._sha256sum(self.model_path)
 
         if local_checksum != CHECKSUM:
             logger.warning(
