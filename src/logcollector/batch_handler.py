@@ -19,7 +19,6 @@ BATCH_SIZE = config["kafka"]["batch_sender"]["batch_size"]
 BATCH_TIMEOUT = config["kafka"]["batch_sender"]["batch_timeout"]
 
 
-# TODO: Test
 class BufferedBatch:
     """
     Data structure for managing the batch, buffer, and timestamps. The batch contains the latest messages and a
