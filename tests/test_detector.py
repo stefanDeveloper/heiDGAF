@@ -1,27 +1,101 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
+
+from requests import HTTPError
 from src.base import Batch
-from src.detector.detector import Detector, main
+from src.detector.detector import Detector, WrongChecksum, main
 
 
-@patch(
-    "src.detector.detector.CHECKSUM",
-    "21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b",
-)
-@patch("src.detector.detector.MODEL", "xg")
-@patch(
-    "src.detector.detector.MODEL_BASE_URL",
-    "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
-)
+class TestSha256Sum(unittest.TestCase):
+    @patch("src.detector.detector.KafkaConsumeHandler")
+    def test_sha256_no_file(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = Detector()
+
+        with self.assertRaises(FileNotFoundError):
+            sut._sha256sum("")
+
+    @patch("src.detector.detector.KafkaConsumeHandler")
+    def test_sha256_file(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = Detector()
+
+        with self.assertRaises(FileNotFoundError):
+            sut._sha256sum("")
+
+
 class TestGetModel(unittest.TestCase):
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b",
+    )
+    @patch("src.detector.detector.MODEL", "xg")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    )
     @patch("src.detector.detector.KafkaConsumeHandler")
     def test_get_model(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
         sut = Detector()
-        sut._get_model()
+
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "WRONG",
+    )
+    @patch("src.detector.detector.MODEL", "xg")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    )
+    @patch("src.detector.detector.KafkaConsumeHandler")
+    def test_get_model_not_existing(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        with self.assertRaises(WrongChecksum):
+            sut = Detector()
+
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b",
+    )
+    @patch("src.detector.detector.MODEL", "WRONG")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    )
+    @patch("src.detector.detector.KafkaConsumeHandler")
+    def test_get_model_not_existing(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        with self.assertRaises(WrongChecksum):
+            sut = Detector()
+
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "Test",
+    )
+    @patch("src.detector.detector.MODEL", "xg")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/WRONG/",
+    )
+    @patch("src.detector.detector.KafkaConsumeHandler")
+    def test_get_model_not_existing(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        with self.assertRaises(HTTPError):
+            sut = Detector()
 
 
 class TestInit(unittest.TestCase):

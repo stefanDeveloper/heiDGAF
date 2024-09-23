@@ -35,7 +35,7 @@ MODEL_BASE_URL = config["heidgaf"]["detector"]["base_url"]
 THRESHOLD = config["heidgaf"]["detector"]["threshold"]
 
 
-class WrongChecksum(Exception):
+class WrongChecksum(Exception):  # pragma: no cover
     """
     Exception if Checksum is not equal.
     """
@@ -118,9 +118,11 @@ class Detector:
         """Downloads model from server. If model already exists, it returns the current model. In addition, it checks the sha256 sum in case a model has been updated."""
 
         if not os.path.isfile(self.model_path):
+
             response = requests.get(
                 f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pkl&dl=1"
             )
+            logger.info(f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pkl&dl=1")
             response.raise_for_status()
 
             with open(self.model_path, "wb") as f:
@@ -146,18 +148,19 @@ class Detector:
         self.end_timestamp = None
         self.warnings = []
 
-    def detect(self) -> None:
+    def detect(self) -> None:  # pragma: no cover
         for message in self.messages:
             y_pred = self.model.predict(message["host_domain_name"])
             if y_pred > THRESHOLD:
                 self.warnings.append(message)
 
     def send_warning(self) -> None:
-        # TODO: Clarify output format.
-        pass
+        with open(f"{tempfile.gettempdir()}/warnings.json", "a") as f:
+            json.dump(self.messages, f)
+            f.write("\n")
 
 
-def main(one_iteration: bool = False):
+def main(one_iteration: bool = False):  # pragma: no cover
     """
     Creates the :class:`Detector` instance. Starts a loop that continously fetches data.
 
