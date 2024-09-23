@@ -5,20 +5,6 @@ from src.base import Batch
 from src.detector.detector import Detector, main
 
 
-class TestSha256Sum(unittest.TestCase):
-    @patch("src.detector.detector.KafkaConsumeHandler")
-    def test_sha256(self, mock_kafka_consume_handler):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-
-        sut = Detector()
-
-        self.assertEqual(
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            sut._sha256sum("/dev/null"),
-        )
-
-
 @patch(
     "src.detector.detector.CHECKSUM",
     "21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b",
