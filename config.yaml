@@ -27,7 +27,9 @@ heidgaf:
 
   detector:
     model: xg # XGBoost
-    path: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+    checksum: 21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b
+    base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+    threshold: 0.5
 
   subnet:
     subnet_bits: 24

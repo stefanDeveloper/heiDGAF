@@ -87,6 +87,8 @@ class KafkaProduceHandler(KafkaHandler):
         logger.debug(f"Initializing KafkaProduceHandler ({transactional_id=})...")
         super().__init__()
 
+        self.batch_schema = marshmallow_dataclass.class_schema(Batch)()
+
         conf = {
             "bootstrap.servers": self.brokers,
             "transactional.id": transactional_id,
@@ -336,8 +338,39 @@ class KafkaConsumeHandler(KafkaHandler):
             logger.error("Unknown data format.")
             raise ValueError
 
-    def consume_and_return_object(self):
-        key, data = self.consume_and_return_json_data()
-        city_schema = marshmallow_dataclass.class_schema(Batch)()
-        data_batch = city_schema.loads(data)
-        return key, data_batch
+    def consume_and_return_object(self) -> tuple[None | str, Batch]:
+        """
+        Calls the :meth:`consume()` method and waits for it to return data. Loads the data and converts it to a Batch
+        object. Returns the Batch object.
+
+        Returns:
+            Consumed data in Batch object
+
+        Raises:
+            ValueError: Invalid data format
+            KafkaMessageFetchException: Error during message fetching/consuming
+            KeyboardInterrupt: Execution interrupted by user
+        """
+        try:
+            key, value = self.consume()
+
+            if not key and not value:
+                logger.debug("No data returned.")
+                return None, {}
+        except KafkaMessageFetchException as e:
+            logger.debug(e)
+            raise
+        except KeyboardInterrupt:
+            raise
+
+        logger.debug("Loading JSON values from received data...")
+        json_from_message = json.loads(value)
+        logger.debug(f"{json_from_message=}")
+        eval_data = self.batch_schema.loads(value)
+
+        if isinstance(eval_data, dict):
+            logger.debug("Loaded available data. Returning it...")
+            return key, eval_data
+        else:
+            logger.error("Unknown data format.")
+            raise ValueError

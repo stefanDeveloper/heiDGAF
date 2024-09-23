@@ -10,8 +10,8 @@ from src.detector.detector import Detector, main
 class TestClearData(unittest.TestCase):
     def test_clear_data_with_existing_data(self):
         json_data = {
-            "begin_timestamp": "2024-05-21T08:31:27.000Z",
-            "end_timestamp": "2024-05-21T08:31:29.000Z",
+            "begin_timestamp": "2024-05-21T08:31:27.000000Z",
+            "end_timestamp": "2024-05-21T08:31:29.000000Z",
             "messages": [
                 {
                     "timestamp": "2024-05-21T08:31:28.119Z",
@@ -26,9 +26,7 @@ class TestClearData(unittest.TestCase):
             ],
         }
 
-        city_schema = marshmallow_dataclass.class_schema(Batch)()
-        data_batch = city_schema.load(json_data)
-        print(data_batch)
-        json_data_deserialized = city_schema.dump(data_batch)
-        print(json_data_deserialized)
+        base_schema = marshmallow_dataclass.class_schema(Batch)()
+        data_batch = base_schema.load(json_data)
+        json_data_deserialized = base_schema.dump(data_batch)
         self.assertEqual(json_data_deserialized, json_data)

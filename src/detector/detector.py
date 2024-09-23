@@ -11,6 +11,7 @@ import joblib
 import numpy as np
 
 import requests
+import xgboost
 from streamad.util import StreamGenerator, CustomDS
 
 sys.path.append(os.getcwd())
@@ -29,12 +30,32 @@ BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
 
 config = setup_config()
 MODEL = config["heidgaf"]["detector"]["model"]
-MODEL_PATH = config["heidgaf"]["detector"]["path"]
+CHECKSUM = config["heidgaf"]["detector"]["checksum"]
+MODEL_BASE_URL = config["heidgaf"]["detector"]["base_url"]
+THRESHOLD = config["heidgaf"]["detector"]["threshold"]
+
+
+class WrongChecksum(Exception):
+    """
+    Exception if Checksum is not equal.
+    """
+
+    pass
 
 
 class Detector:
     def __init__(self) -> None:
         self.topic = "detector"
+        self.messages = []
+        self.warnings = []
+        self.begin_timestamp = None
+        self.end_timestamp = None
+
+        logger.debug(f"Initializing Inspector...")
+        logger.debug(f"Calling KafkaConsumeHandler(topic='Detector')...")
+        self.kafka_consume_handler = KafkaConsumeHandler(topic="Detector")
+
+        self.model = self._get_model()
 
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
@@ -49,13 +70,12 @@ class Detector:
         logger.debug(
             "Inspector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
         )
-        key, data = self.kafka_consume_handler.consume_and_return_json_data()
+        key, data = self.kafka_consume_handler.consume_and_return_object()
 
         if data:
-            # TODO Fix convertion of data
-            self.begin_timestamp = data.get("begin_timestamp")
-            self.end_timestamp = data.get("end_timestamp")
-            self.messages = data.get("data")
+            self.begin_timestamp = data.begin_timestamp
+            self.end_timestamp = data.end_timestamp
+            self.messages = data.messages
             self.key = key
 
         if not self.messages:
@@ -72,7 +92,15 @@ class Detector:
         logger.debug("Received consumer message as json data.")
         logger.debug(f"(data={self.messages})")
 
-    def _sha256sum(self, file_path):
+    def _sha256sum(self, file_path: str) -> str:
+        """Return a SHA265 sum check to validate the model.
+
+        Args:
+            file_path (str): File path of model.
+
+        Returns:
+            str: SHA256 sum
+        """
         h = hashlib.sha256()
 
         with open(file_path, "rb") as file:
@@ -85,22 +113,46 @@ class Detector:
 
         return h.hexdigest()
 
-    def _get_model() -> None:
+    def _get_model(self) -> None:
         """Downloads model from server. If model already exists, it returns the current model. In addition, it checks the sha256 sum in case a model has been updated."""
 
-        if not os.path.isfile(f"/tmp/{MODEL}.pkl"):
-            response = requests.get(f"{MODEL_PATH}/files/?p=%2F{MODEL}.pkl&dl=1")
-
+        if not os.path.isfile(f"/tmp/{MODEL}_{CHECKSUM}.pkl"):
+            response = requests.get(
+                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pkl&dl=1"
+            )
             response.raise_for_status()
 
-            # Check file sha256
+            with open(rf"/tmp/{MODEL}_{CHECKSUM}.pkl", "wb") as f:
+                f.write(response.content)
 
-        with open(rf"/tmp/{MODEL}.pkl", "wb") as f:
-            f.write(response.content)
+        # Check file sha256
+        local_checksum = self._sha256sum(f"/tmp/{MODEL}_{CHECKSUM}.pkl")
 
-        return joblib.load(f"/tmp/{MODEL}.pkl")
+        if local_checksum != CHECKSUM:
+            logger.warning(
+                f"Checksum {CHECKSUM} SHA256 is not equal with new checksum {local_checksum}!"
+            )
+            raise WrongChecksum(
+                f"Checksum {CHECKSUM} SHA256 is not equal with new checksum {local_checksum}!"
+            )
+
+        return joblib.load(f"/tmp/{MODEL}_{CHECKSUM}.pkl")
+
+    def clear_data(self):
+        """Clears the data in the internal data structures."""
+        self.messages = []
+        self.begin_timestamp = None
+        self.end_timestamp = None
+        self.warnings = []
 
     def detect(self) -> None:
+        for message in self.messages:
+            y_pred = self.model.predict(message["host_domain_name"])
+            if y_pred > THRESHOLD:
+                self.warnings.append(message)
+
+    def send_warning(self) -> None:
+        # TODO: Clarify output format.
         pass
 
 
@@ -128,7 +180,10 @@ def main(one_iteration: bool = False):
         try:
             logger.debug("Before getting and filling data")
             detector.get_and_fill_data()
-
+            logger.debug("Inspect Data")
+            detector.detect()
+            logger.debug("Send warnings")
+            detector.send_warning()
         except KafkaMessageFetchException as e:  # pragma: no cover
             logger.debug(e)
         except IOError as e:

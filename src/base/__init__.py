@@ -7,6 +7,14 @@ import datetime
 
 @dataclass
 class Batch:
-    begin_timestamp: datetime.datetime = field()
-    end_timestamp: datetime.datetime
+    begin_timestamp: datetime.datetime = field(
+        metadata={
+            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%dT%H:%M:%S.%fZ")
+        }
+    )
+    end_timestamp: datetime.datetime = field(
+        metadata={
+            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%dT%H:%M:%S.%fZ")
+        }
+    )
     messages: List[dict] = field(default_factory=list)
