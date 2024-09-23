@@ -380,6 +380,16 @@ class TestCreateInstanceFromListEntry(unittest.TestCase):
         self.assertIsInstance(instance, IpAddress)
         self.assertEqual(instance.name, "test_name")
 
+    def test_create_ip_address_instance_with_false_number_of_fields(self):
+        # Arrange
+        field_list = ["test_name", "IpAddress", "this", "is", "wrong"]
+
+        # Act and Assert
+        with self.assertRaises(ValueError) as context:
+            LoglineHandler._create_instance_from_list_entry(field_list)
+
+        self.assertEqual(str(context.exception), "Invalid IpAddress parameters")
+
     def test_invalid_field_list_length(self):
         # Arrange
         field_list = ["test_name"]
@@ -401,6 +411,17 @@ class TestCreateInstanceFromListEntry(unittest.TestCase):
 
         # Assert
         self.assertEqual(str(context.exception), "Class 'NonExistentClass' not found")
+
+    def test_unsupported_class_name(self):
+        # Arrange
+        field_list = ["test_name", "LoglineHandler"]
+
+        # Act & Assert
+        with self.assertRaises(ValueError) as context:
+            LoglineHandler._create_instance_from_list_entry(field_list)
+
+        # Assert
+        self.assertEqual(str(context.exception), "Unsupported class 'LoglineHandler'")
 
     def test_invalid_regex_parameters(self):
         # Arrange
