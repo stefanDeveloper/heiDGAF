@@ -122,10 +122,124 @@ class TestInit(unittest.TestCase):
         self.assertEqual(str(context.exception), "No fields configured")
 
 
+class TestValidateLogline(unittest.TestCase):
+    @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
+    @patch('src.base.logline_handler.CONFIG', {
+        "loglines": {
+            "fields": [
+                ["timestamp", "RegEx", r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'],
+                ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+                ["client_ip", "IpAddress"],
+            ]
+        }
+    })
+    def test_validate_successful(self):
+        # Arrange
+        sut = LoglineHandler()
+
+        # Act and Assert
+        self.assertTrue(sut.validate_logline(
+            "2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.20"
+        ))
+
+    @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
+    @patch('src.base.logline_handler.CONFIG', {
+        "loglines": {
+            "fields": [
+                ["timestamp", "RegEx", r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'],
+                ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+                ["client_ip", "IpAddress"],
+                ["dns_server_ip", "IpAddress"],
+                ["domain_name", "RegEx", r'^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$'],
+                ["record_type", "ListItem", ["A", "AAAA"]],
+                ["response_ip", "IpAddress"],
+                ["size", "RegEx", r'^\d+b$'],
+            ]
+        }
+    })
+    def test_validate_successful_with_real_format(self):
+        # Arrange
+        sut = LoglineHandler()
+
+        # Act and Assert
+        self.assertTrue(sut.validate_logline(
+            "2024-07-28T14:45:30.123Z NXDOMAIN 127.0.0.2 126.24.5.20 domain.test A fe80::1 150b"
+        ))
+
+    @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
+    @patch('src.base.logline_handler.CONFIG', {
+        "loglines": {
+            "fields": [
+                ["timestamp", "RegEx", r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'],
+                ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+                ["client_ip", "IpAddress"],
+            ]
+        }
+    })
+    def test_validate_wrong_number_of_fields(self):
+        # Arrange
+        sut = LoglineHandler()
+
+        # Act and Assert
+        self.assertFalse(sut.validate_logline(
+            "2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.20 test"
+        ))
+
+    @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
+    @patch('src.base.logline_handler.CONFIG', {
+        "loglines": {
+            "fields": [
+                ["timestamp", "RegEx", r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'],
+                ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+                ["client_ip", "IpAddress"],
+            ]
+        }
+    })
+    def test_validate_empty(self):
+        # Arrange
+        sut = LoglineHandler()
+
+        # Act and Assert
+        self.assertFalse(sut.validate_logline(""))
+
+    @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
+    @patch('src.base.logline_handler.CONFIG', {
+        "loglines": {
+            "fields": [
+                ["timestamp", "RegEx", r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'],
+                ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+                ["client_ip", "IpAddress"],
+            ]
+        }
+    })
+    def test_validate_contains_invalid_fields(self):
+        # Arrange
+        sut = LoglineHandler()
+
+        # Act and Assert
+        self.assertFalse(sut.validate_logline(
+            "2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.300"
+        ))
+
+    @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
+    @patch('src.base.logline_handler.CONFIG', {
+        "loglines": {
+            "fields": [
+                ["timestamp", "RegEx", r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'],
+                ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+                ["client_ip", "IpAddress"],
+            ]
+        }
+    })
+    def test_validate_wrong_order_of_fields(self):
+        # Arrange
+        sut = LoglineHandler()
+
+        # Act and Assert
+        self.assertFalse(sut.validate_logline(
+            "NXDOMAIN 2024-07-28T14:45:30.123Z 126.24.5.20"
+        ))
+
+
 if __name__ == '__main__':
     unittest.main()
-
-# sut = LoglineHandler()
-# print(sut.validate_logline_and_get_fields_as_json(
-#     "2024-07-28T14:45:30.123Z NXDOMAIN 127.0.0.2 126.24.5.304 domain.test A fe80::1 150"
-# ))
