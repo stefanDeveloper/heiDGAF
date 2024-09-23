@@ -8,7 +8,6 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 CONFIG = setup_config()
-
 REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
 
 
@@ -140,6 +139,9 @@ class LoglineHandler:
             if required_field not in self.instances_by_name:
                 raise ValueError("Not all needed fields are set in the configuration")
 
+        if self.number_of_fields == 0:
+            raise ValueError("No fields configured")
+
     def validate_logline(self, logline: str) -> bool:
         """
         Validates the given input logline by checking if the number of fields is correct as well as all the fields, by
@@ -248,6 +250,3 @@ class LoglineHandler:
             raise ValueError(f"Unsupported class '{cls_name}'")
 
         return instance
-
-
-sut = Logline()
