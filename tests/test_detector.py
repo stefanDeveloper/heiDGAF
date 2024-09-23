@@ -9,7 +9,7 @@ from src.detector.detector import Detector, WrongChecksum, main
 
 class TestSha256Sum(unittest.TestCase):
     @patch("src.detector.detector.KafkaConsumeHandler")
-    def test_sha256_no_file(self, mock_kafka_consume_handler):
+    def test_sha256_empty_file(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -19,14 +19,14 @@ class TestSha256Sum(unittest.TestCase):
             sut._sha256sum("")
 
     @patch("src.detector.detector.KafkaConsumeHandler")
-    def test_sha256_file(self, mock_kafka_consume_handler):
+    def test_sha256_not_existing_file(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
         sut = Detector()
 
         with self.assertRaises(FileNotFoundError):
-            sut._sha256sum("")
+            sut._sha256sum("not_existing")
 
 
 class TestGetModel(unittest.TestCase):
