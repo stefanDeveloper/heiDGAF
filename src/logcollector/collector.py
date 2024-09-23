@@ -15,8 +15,6 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 config = utils.setup_config()
-VALID_STATUS_CODES = config["heidgaf"]["collector"]["valid_status_codes"]
-VALID_RECORD_TYPES = config["heidgaf"]["collector"]["valid_record_types"]
 LOGSERVER_HOSTNAME = config["heidgaf"]["logserver"]["hostname"]
 LOGSERVER_SENDING_PORT = config["heidgaf"]["logserver"]["port_out"]
 SUBNET_BITS = config["heidgaf"]["subnet"]["subnet_bits"]

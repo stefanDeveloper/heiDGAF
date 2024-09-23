@@ -19,13 +19,6 @@ heidgaf:
     port_out: 9999
     max_number_of_connections: 1000
 
-  collector:
-    valid_status_codes: [ "NOERROR", "NXDOMAIN" ]
-    valid_record_types: [ "A", "AAAA" ]
-
-  prefilter:
-    relevant_types: [ "NXDOMAIN" ]
-
   inspector:
     mode: univariate # multivariate, ensemble
     model: ZScoreDetector

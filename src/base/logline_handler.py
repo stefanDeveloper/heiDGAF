@@ -110,10 +110,22 @@ class ListItem(FieldType):
         """
         return True if value in self.allowed_list else False
 
-    # TODO: Add method to check if value in relevant list
+    def check_relevance(self, value) -> bool:
+        """
+        Checks if the given value is a relevant value.
+
+        Args:
+            value: Value to be checked for relevance
+
+        Returns:
+            True if the value is relevant, else False
+        """
+        if self.relevant_list:
+            return True if value in self.relevant_list else False
+
+        return True
 
 
-# TODO: Test
 class LoglineHandler:
     """
     Stores the configuration format of loglines and can be used to validate a given logline, i.e. checks if the given
@@ -183,6 +195,25 @@ class LoglineHandler:
 
         return True
 
+    def __get_fields_as_json(self, logline: str) -> dict:
+        """
+        Returns the fields of the given logline as dictionary, with the names of the fields as key, and the field value
+        as value. Does not validate fields.
+
+        Args:
+            logline (str): Logline to get the fields from
+
+        Returns:
+            Dictionary of field names as keys and field values as value
+        """
+        parts = logline.split()
+        return_dict = {}
+
+        for i in range(self.number_of_fields):
+            return_dict[self.instances_by_position[i].name] = parts[i]
+
+        return return_dict.copy()
+
     def validate_logline_and_get_fields_as_json(self, logline: str) -> dict:
         """
         Validates the fields and returns them as dictionary, with the names of the fields as key, and the field value
@@ -197,13 +228,28 @@ class LoglineHandler:
         if not self.validate_logline(logline):
             raise ValueError("Incorrect logline, validation unsuccessful")
 
-        parts = logline.split()
-        return_dict = {}
+        return self.__get_fields_as_json(logline)
 
-        for i in range(self.number_of_fields):
-            return_dict[self.instances_by_position[i].name] = parts[i]
+    def check_relevance(self, logline_dict: dict) -> bool:
+        """
+        Checks if the given logline is relevant.
 
-        return return_dict.copy()
+        Args:
+            logline_dict (dict): Logline parts to be checked for relevance as dictionary
+
+        Returns:
+            True if the logline is relevant, else False
+        """
+        relevant = True
+
+        for i in self.instances_by_position:
+            current_instance = self.instances_by_position[i]
+            if isinstance(current_instance, ListItem):
+                if not current_instance.check_relevance(logline_dict[current_instance.name]):
+                    relevant = False
+                    break
+
+        return relevant
 
     @staticmethod
     def _create_instance_from_list_entry(field_list: list):
