@@ -1,2 +1,3 @@
 joblib
 xgboost
+marshmallow_dataclass~=8.7.1
