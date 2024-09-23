@@ -5,6 +5,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
+from src.base.logline_handler import LoglineHandler
 from src.base.utils import setup_config
 from src.base.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException, KafkaProduceHandler
 from src.base.log_config import setup_logging
@@ -12,8 +13,7 @@ from src.base.log_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-config = setup_config()
-RELEVANT_TYPES = config["heidgaf"]["prefilter"]["relevant_types"]
+CONFIG = setup_config()
 
 
 class Prefilter:
@@ -22,15 +22,16 @@ class Prefilter:
     kept. Filtered data is then sent using topic ``Inspect``.
     """
 
-    def __init__(self, error_type: list[str]):
-        logger.debug(f"Initializing Prefilter for {error_type=}...")
+    def __init__(self):
+        logger.debug(f"Initializing Prefilter...")
         self.begin_timestamp = None
         self.end_timestamp = None
         self.unfiltered_data = []
         self.filtered_data = []
-        self.error_type = error_type
         self.subnet_id = None
 
+        logger.debug(f"Calling LoglineHandler()...")
+        self.logline_handler = LoglineHandler()
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='prefilter')...")
         self.kafka_produce_handler = KafkaProduceHandler(transactional_id='prefilter')
         logger.debug(f"Calling KafkaConsumeHandler(topic='Prefilter')...")
@@ -70,10 +71,12 @@ class Prefilter:
         the given error types are kept and added to ``filtered_data``, all other ones are discarded.
         """
         logger.debug("Filtering data...")
+
         for e in self.unfiltered_data:
             e_as_json = ast.literal_eval(e)
-            if e_as_json["status"] in self.error_type:
+            if self.logline_handler.check_relevance(e_as_json):
                 self.filtered_data.append(e)
+
         logger.debug("Data filtered and now available in filtered_data.")
         logger.info("Data successfully filtered.")
 
@@ -114,22 +117,10 @@ class Prefilter:
         logger.debug("Cleared data.")
 
 
-def create_logger_str(types_list: list) -> str:
-    if not types_list:
-        return "Not filtering by any types."
-
-    if len(types_list) == 1:
-        return f"Filtering by type '{types_list[0]}'..."
-
-    types_str = "', '".join(types_list[:-1])
-    last_type = types_list[-1]
-    return f"Filtering by types '{types_str}' and '{last_type}'..."
-
-
 def main(one_iteration: bool = False):
     logger.info("Starting Prefilter...")
-    prefilter = Prefilter(error_type=RELEVANT_TYPES)
-    logger.info(f"Prefilter started.\n    ⤷  {create_logger_str(RELEVANT_TYPES)}")
+    prefilter = Prefilter()
+    logger.info(f"Prefilter started.")
 
     iterations = 0
 

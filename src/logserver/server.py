@@ -12,11 +12,11 @@ from src.base.log_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-config = setup_config()
-HOSTNAME = config["heidgaf"]["logserver"]["hostname"]
-PORT_IN = config["heidgaf"]["logserver"]["port_in"]
-PORT_OUT = config["heidgaf"]["logserver"]["port_out"]
-MAX_NUMBER_OF_CONNECTIONS = config["heidgaf"]["logserver"]["max_number_of_connections"]
+CONFIG = setup_config()
+HOSTNAME = CONFIG["heidgaf"]["logserver"]["hostname"]
+PORT_IN = CONFIG["heidgaf"]["logserver"]["port_in"]
+PORT_OUT = CONFIG["heidgaf"]["logserver"]["port_out"]
+MAX_NUMBER_OF_CONNECTIONS = CONFIG["heidgaf"]["logserver"]["max_number_of_connections"]
 
 
 class LogServer:
