@@ -137,7 +137,7 @@ class Detector:
                 f"Checksum {CHECKSUM} SHA256 is not equal with new checksum {local_checksum}!"
             )
 
-        return joblib.load(f"/tmp/{MODEL}_{CHECKSUM}.pkl")
+        return joblib.load(self.model_path)
 
     def clear_data(self):
         """Clears the data in the internal data structures."""
