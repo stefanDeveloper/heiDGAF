@@ -2,7 +2,7 @@ import ipaddress
 import re
 import unittest
 
-from base.logline_handler import FieldType, RegEx, IpAddress, ListItem
+from src.base.logline_handler import FieldType, RegEx, IpAddress, ListItem
 
 
 class TestFieldType(unittest.TestCase):
