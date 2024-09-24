@@ -66,7 +66,9 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
     @patch("src.logserver.server.PORT_IN", 1234)
     @patch("src.logserver.server.PORT_OUT", 5678)
-    async def test_open(self):
+    @patch("src.logserver.server.LogServer.handle_kafka_inputs")
+    @patch("src.logserver.server.KafkaConsumeHandler")
+    async def test_open(self, mock_kafka_consume_handler, mock_handle_kafka):
         # Arrange
         sut = LogServer()
 
@@ -97,6 +99,7 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
             mock_receive_server.close.assert_called_once()
             mock_send_server.wait_closed.assert_awaited_once()
             mock_receive_server.wait_closed.assert_awaited_once()
+            mock_handle_kafka.assert_called_once()
 
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
     @patch("src.logserver.server.PORT_IN", 1234)
@@ -223,9 +226,23 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
 
 
 class TestHandleKafkaInputs(unittest.IsolatedAsyncioTestCase):
-    async def test_handle_kafka_with_no_return_values(self):
-        # TODO
-        pass
+    async def asyncSetUp(self):
+        self.sut = LogServer()
+        self.sut.kafka_consume_handler = AsyncMock()
+        self.sut.data_queue = MagicMock()
+
+    @patch('asyncio.get_running_loop')
+    async def test_handle_kafka_inputs(self, mock_get_running_loop):
+        mock_loop = AsyncMock()
+        mock_get_running_loop.return_value = mock_loop
+        self.sut.kafka_consume_handler.consume.return_value = ('key1', 'value1')
+
+        mock_loop.run_in_executor.side_effect = [('key1', 'value1'), asyncio.CancelledError()]
+
+        with self.assertRaises(asyncio.CancelledError):
+            await self.sut.handle_kafka_inputs()
+
+        self.sut.data_queue.put.assert_called_once_with('value1')
 
 
 class TestHandleSendLogline(unittest.IsolatedAsyncioTestCase):
