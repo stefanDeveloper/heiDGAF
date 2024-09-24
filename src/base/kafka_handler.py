@@ -3,6 +3,7 @@ The Write-Exactly-Once-Semantics used by the :class:`KafkaHandler` is shown by
 https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/eos-transactions.py,
 parts of which are similar to the code in this module.
 """
+
 import ast
 import json
 import logging
@@ -17,8 +18,10 @@ from confluent_kafka import (
     Producer,
     TopicPartition,
 )
+import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
+from src.base import Batch
 from src.base.log_config import setup_logging
 from src.base.utils import kafka_delivery_report, setup_config
 
@@ -34,6 +37,7 @@ class TooManyFailedAttemptsError(Exception):
     """
     Exception for too many failed attempts.
     """
+
     pass
 
 
@@ -41,6 +45,7 @@ class KafkaMessageFetchException(Exception):
     """
     Exception for failed fetch of Kafka messages during consuming.
     """
+
     pass
 
 
@@ -58,10 +63,7 @@ class KafkaHandler:
         self.consumer = None
 
         self.brokers = ",".join(
-            [
-                f"{broker['hostname']}:{broker['port']}"
-                for broker in KAFKA_BROKERS
-            ]
+            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
         )
         logger.debug(f"Retrieved {self.brokers=}.")
         logger.debug(f"Initialized KafkaHandler.")
@@ -84,6 +86,8 @@ class KafkaProduceHandler(KafkaHandler):
         """
         logger.debug(f"Initializing KafkaProduceHandler ({transactional_id=})...")
         super().__init__()
+
+        self.batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
         conf = {
             "bootstrap.servers": self.brokers,
@@ -157,7 +161,9 @@ class KafkaProduceHandler(KafkaHandler):
         logger.debug("Data sent to Producer.")
         logger.debug(f"({data=})")
 
-    def commit_transaction_with_retry(self, max_retries: int = 3, retry_interval_ms: int = 1000) -> None:
+    def commit_transaction_with_retry(
+        self, max_retries: int = 3, retry_interval_ms: int = 1000
+    ) -> None:
         """
         Commits a transaction including retries. If committing fails, it is retried after the given retry interval
         time up to ``max_retries`` times.
@@ -178,8 +184,8 @@ class KafkaProduceHandler(KafkaHandler):
                 committed = True
             except KafkaException as e:
                 if (
-                        "Conflicting commit_transaction API call is already in progress"
-                        in str(e)
+                    "Conflicting commit_transaction API call is already in progress"
+                    in str(e)
                 ):
                     retry_count += 1
                     logger.debug(
@@ -324,6 +330,43 @@ class KafkaConsumeHandler(KafkaHandler):
         json_from_message = json.loads(value)
         logger.debug(f"{json_from_message=}")
         eval_data = ast.literal_eval(value)
+
+        if isinstance(eval_data, dict):
+            logger.debug("Loaded available data. Returning it...")
+            return key, eval_data
+        else:
+            logger.error("Unknown data format.")
+            raise ValueError
+
+    def consume_and_return_object(self) -> tuple[None | str, Batch]:
+        """
+        Calls the :meth:`consume()` method and waits for it to return data. Loads the data and converts it to a Batch
+        object. Returns the Batch object.
+
+        Returns:
+            Consumed data in Batch object
+
+        Raises:
+            ValueError: Invalid data format
+            KafkaMessageFetchException: Error during message fetching/consuming
+            KeyboardInterrupt: Execution interrupted by user
+        """
+        try:
+            key, value = self.consume()
+
+            if not key and not value:
+                logger.debug("No data returned.")
+                return None, {}
+        except KafkaMessageFetchException as e:
+            logger.debug(e)
+            raise
+        except KeyboardInterrupt:
+            raise
+
+        logger.debug("Loading JSON values from received data...")
+        json_from_message = json.loads(value)
+        logger.debug(f"{json_from_message=}")
+        eval_data = self.batch_schema.loads(value)
 
         if isinstance(eval_data, dict):
             logger.debug("Loaded available data. Returning it...")

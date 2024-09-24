@@ -5,8 +5,8 @@ services:
 
   logcollector:
     build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.logcollector
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.logcollector
       network: host
     restart: "unless-stopped"
     depends_on:
@@ -29,8 +29,8 @@ services:
 
   logserver:
     build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.logserver
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.logserver
       network: host
     restart: "unless-stopped"
     depends_on:
@@ -56,8 +56,8 @@ services:
 
   inspector:
     build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.inspector
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.inspector
       network: host
     restart: "unless-stopped"
     depends_on:
@@ -81,8 +81,8 @@ services:
 
   prefilter:
     build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.prefilter
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.prefilter
       network: host
     restart: "unless-stopped"
     depends_on:

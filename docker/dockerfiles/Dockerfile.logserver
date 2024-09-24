@@ -2,11 +2,11 @@ FROM python:3
 
 WORKDIR /usr/src/app
 
-COPY requirements.logcollector.txt ./
+COPY requirements/requirements.logcollector.txt ./
 RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.logcollector.txt
 
 COPY src/base ./src/base
-COPY src/logcollector ./src/logcollector
+COPY src/logserver ./src/logserver
 COPY config.yaml .
 
-CMD [ "python", "src/logcollector/collector.py"]
+CMD [ "python", "src/logserver/server.py"]

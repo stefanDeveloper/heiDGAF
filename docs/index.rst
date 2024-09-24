@@ -1,10 +1,12 @@
 Welcome to heiDGAF's documentation!
 ===================================
 
-**heiDGAF** is a Python-based DNS analyzer to detect Domain Generation Algorithms (DGAs) tunneling, and data exfiltration of malicious actors.
+**heiDGAF** is a machine learning based DNS classifier for detecting Domain Generation Algorithms (DGAs), tunneling, and
+data exfiltration by malicious actors.
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`install <installation>` the project.
+Check out the :doc:`usage` section for further information on how to use the software, including how to
+:ref:`install <installation>` and :ref:`configure <configuration>` the project. For more details on the implementation
+and structure, take a look at the :doc:`pipeline` section.
 
 .. note::
 
@@ -14,6 +16,7 @@ Contents
 --------
 
 .. toctree::
+   :maxdepth: 2
 
    usage
    pipeline
