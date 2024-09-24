@@ -21,14 +21,14 @@ RECORD_TYPES = ["AAAA", "A", "PR", "CNAME"]
 
 def generate_dns_log_line():
     timestamp = (
-                        datetime.datetime.now() + datetime.timedelta(0, 0, random.randint(0, 900))
-                ).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        datetime.datetime.now() + datetime.timedelta(0, 0, random.randint(0, 900))
+    ).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
     status = random.choice(STATUSES)
     client_ip = f"192.168.{random.randint(0, 3)}.{random.randint(1, 255)}"
     server_ip = f"10.10.0.{random.randint(1, 10)}"
     record_type = random.choice(RECORD_TYPES)
     response = IP[random.randint(0, 1)]()
-    size = f"{random.randint(50, 150)}b"
+    size = f"{random.randint(50, 255)}b"
 
     return f"{timestamp} {status} {client_ip} {server_ip} random-ip.de {record_type} {response} {size}"
 
