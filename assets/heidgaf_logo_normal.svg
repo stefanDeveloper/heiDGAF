@@ -26,9 +26,9 @@
      inkscape:pagecheckerboard="true"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="0.11313709"
-     inkscape:cx="2024.0932"
-     inkscape:cy="1697.0563"
+     inkscape:zoom="0.16"
+     inkscape:cx="2875"
+     inkscape:cy="12.5"
      inkscape:window-width="1920"
      inkscape:window-height="1055"
      inkscape:window-x="0"
@@ -49,34 +49,38 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
-    <path
-       id="path17383"
-       style="fill:#ff6600;stroke-width:1.65527"
-       inkscape:transform-center-x="-3.156859e-06"
-       inkscape:transform-center-y="-1.9059161e-06"
-       d="M 38.436709,119.41794 96.790701,265.11621 91.692919,140.37945 188.2302,79.600709 284.9979,139.94587 281.88786,262.04146 342.0445,119.78743 342.0225,109.22682 190.03907,21.516419 38.417319,109.85727 Z"
-       sodipodi:nodetypes="ccccccccccc" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="369.09079"
-       y="281.91507"
-       id="text3226-0"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:188.041px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.52576"
+       x="408.03625"
+       y="269.55447"
+       id="text3226-0"
+       transform="scale(1.0064024,0.99363833)"><tspan
          sodipodi:role="line"
          id="tspan3224-9"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:211.667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
-         x="369.09079"
-         y="281.91507"><tspan
-           style="fill:#999999"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:188.041px;font-family:Lato;-inkscape-font-specification:'Lato, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:3.52576"
+         x="408.03625"
+         y="269.55447"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:188.041px;font-family:Lato;-inkscape-font-specification:'Lato, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#999999;stroke-width:3.52576"
            id="tspan32487-8">hei</tspan><tspan
            id="tspan9753"
-           style="fill:#ff7f2a">DGAF</tspan></tspan></text>
-    <path
-       id="path1540-8-4-7"
-       style="fill:#ff7f2a;stroke-width:1.65527"
-       inkscape:transform-center-x="-3.156859e-06"
-       inkscape:transform-center-y="-1.9059161e-06"
-       d="m 38.436699,128.41383 0.34313,166.49009 151.983461,87.7109 151.62181,-88.3408 -0.3411,-165.4907 -25.99446,64.77506 -30.82114,76.50724 c -28.42049,54.41518 -61.60217,17.29345 -93.99714,68.25773 -33.45479,-50.57747 -59.31547,-6.59735 -99.307371,-67.82413 l -29.11612,-73.49496 z"
-       sodipodi:nodetypes="ccccccccccc" />
+           style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:188.041px;font-family:Lato;-inkscape-font-specification:'Lato, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff7f2a;stroke-width:3.52576">DGAF</tspan></tspan></text>
+    <g
+       id="g62349">
+      <path
+         id="path17383"
+         style="fill:#ff6600;stroke-width:1.44773"
+         inkscape:transform-center-x="-4.38454e-06"
+         inkscape:transform-center-y="-1.3635502e-06"
+         d="M 94.494878,127.4963 145.53235,254.92667 141.07373,145.82962 225.507,92.671413 310.1418,145.4504 307.4217,252.23744 360.0358,127.81946 360.0166,118.58296 227.08907,41.869837 94.477919,119.13437 Z"
+         sodipodi:nodetypes="ccccccccccc" />
+      <path
+         id="path1540-8-4-7"
+         style="fill:#ff7f2a;stroke-width:1.44773"
+         inkscape:transform-center-x="-1.8433191e-06"
+         inkscape:transform-center-y="-2.4587315e-06"
+         d="m 94.494869,135.36427 0.300108,145.61527 132.927513,76.71356 132.6112,-77.26448 -0.29833,-144.74119 -22.73523,56.65345 -26.95673,66.91463 c -24.85708,47.59251 -53.87838,15.12517 -82.21162,59.69946 -29.26017,-44.23598 -51.87839,-5.77016 -86.85604,-59.32022 l -25.46549,-64.28004 z"
+         sodipodi:nodetypes="ccccccccccc" />
+    </g>
   </g>
 </svg>
