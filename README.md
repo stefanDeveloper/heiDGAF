@@ -15,7 +15,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/stefanDeveloper/heiDGAF">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/add-logo/assets/heidgaf_logo_normal.png?raw=true" alt="Logo" width="1280" height="400">
   </a>
 
   <h3 align="center">heiDGAF - Domain Generation Algorithms Finder</h3>
