@@ -52,7 +52,7 @@ class Detector:
         self.end_timestamp = None
         self.model_path = os.path.join(tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pkl")
 
-        logger.debug(f"Initializing Inspector...")
+        logger.debug(f"Initializing Detector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Detector')...")
         self.kafka_consume_handler = KafkaConsumeHandler(topic="Detector")
 
@@ -63,13 +63,13 @@ class Detector:
         logger.debug("Getting and filling data...")
         if self.messages:
             logger.warning(
-                "Inspector is busy: Not consuming new messages. Wait for the Inspector to finish the "
+                "Detector is busy: Not consuming new messages. Wait for the Detector to finish the "
                 "current workload."
             )
             return
 
         logger.debug(
-            "Inspector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
+            "Detector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
         )
         key, data = self.kafka_consume_handler.consume_and_return_object()
 
@@ -170,9 +170,9 @@ def main(one_iteration: bool = False):  # pragma: no cover
     Raises:
         KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
     """
-    logger.info("Starting Inspector...")
+    logger.info("Starting Detector...")
     detector = Detector()
-    logger.info(f"Inspector is running.")
+    logger.info(f"Detector is running.")
 
     iterations = 0
 
@@ -196,7 +196,7 @@ def main(one_iteration: bool = False):  # pragma: no cover
         except ValueError as e:
             logger.debug(e)
         except KeyboardInterrupt:
-            logger.info("Closing down Inspector...")
+            logger.info("Closing down Detector...")
             break
         finally:
             detector.clear_data()
