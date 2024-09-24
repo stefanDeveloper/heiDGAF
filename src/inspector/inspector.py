@@ -88,17 +88,12 @@ class Inspector:
         logger.debug(
             "Inspector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
         )
-        key, data = self.kafka_consume_handler.consume_and_return_json_data()
+        key, data = self.kafka_consume_handler.consume_and_return_object()
 
         if data:
-            # TODO Fix convertion of data
-            self.begin_timestamp = datetime.strptime(
-                data.get("begin_timestamp"), TIMESTAMP_FORMAT
-            )
-            self.end_timestamp = datetime.strptime(
-                data.get("end_timestamp"), TIMESTAMP_FORMAT
-            )
-            self.messages = [ast.literal_eval(item) for item in data.get("data")]
+            self.begin_timestamp = data.begin_timestamp
+            self.end_timestamp = data.end_timestamp
+            self.messages = data.messages
             self.key = key
 
         if not self.messages:

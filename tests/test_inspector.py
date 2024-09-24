@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
 import unittest
 from unittest.mock import MagicMock, patch
 
+from src.base import Batch
 from src.inspector.inspector import Inspector, main
 
 
@@ -26,11 +28,16 @@ class TestGetData(unittest.TestCase):
     def test_get_data_without_return_data(
         self, mock_kafka_consume_handler, mock_produce_handler
     ):
+        test_batch = Batch(
+            begin_timestamp=datetime.now(),
+            end_timestamp=datetime.now() + timedelta(0, 3),
+            messages=[],
+        )
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = (
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
             None,
-            {},
+            test_batch,
         )
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -45,16 +52,19 @@ class TestGetData(unittest.TestCase):
     def test_get_data_with_return_data(
         self, mock_kafka_consume_handler, mock_produce_handler
     ):
+        begin = datetime.now()
+        end = begin + timedelta(0, 3)
+        test_batch = Batch(
+            begin_timestamp=begin,
+            end_timestamp=end,
+            messages=[{"test": "test_message_1"}, {"test": "test_message_2"}],
+        )
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = "192.168.1.0/24", {
-            "begin_timestamp": "2024-05-21T08:31:27.000Z",
-            "end_timestamp": "2024-05-21T08:31:29.000Z",
-            "data": [
-                "test_message_1",
-                "test_message_2",
-            ],
-        }
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            None,
+            test_batch,
+        )
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
@@ -62,9 +72,11 @@ class TestGetData(unittest.TestCase):
         sut.messages = []
         sut.get_and_fill_data()
 
-        self.assertEqual("2024-05-21T08:31:27.000Z", sut.begin_timestamp)
-        self.assertEqual("2024-05-21T08:31:29.000Z", sut.end_timestamp)
-        self.assertEqual(["test_message_1", "test_message_2"], sut.messages)
+        self.assertEqual(begin, sut.begin_timestamp)
+        self.assertEqual(end, sut.end_timestamp)
+        self.assertEqual(
+            [{"test": "test_message_1"}, {"test": "test_message_2"}], sut.messages
+        )
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
@@ -244,13 +256,17 @@ class TestInspectFunction(unittest.TestCase):
         [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}],
     )
     def test_inspect_univariate(self, mock_kafka_consume_handler, mock_produce_handler):
+        test_batch = Batch(
+            begin_timestamp=datetime.now(),
+            end_timestamp=datetime.now() + timedelta(0, 3),
+            messages=[],
+        )
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = "172.126.0.0/24", {
-            "begin_timestamp": "2024-05-21T08:31:27.000Z",
-            "end_timestamp": "2024-05-21T08:31:29.000Z",
-            "data": [],
-        }
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
@@ -269,13 +285,17 @@ class TestInspectFunction(unittest.TestCase):
     def test_inspect_multivariate(
         self, mock_kafka_consume_handler, mock_produce_handler
     ):
+        test_batch = Batch(
+            begin_timestamp=datetime.now(),
+            end_timestamp=datetime.now() + timedelta(0, 3),
+            messages=[],
+        )
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_and_return_json_data.return_value = "172.126.0.0/24", {
-            "begin_timestamp": "2024-05-21T08:31:27.000Z",
-            "end_timestamp": "2024-05-21T08:31:29.000Z",
-            "data": [],
-        }
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
