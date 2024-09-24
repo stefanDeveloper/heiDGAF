@@ -9,4 +9,4 @@ COPY src/base ./src/base
 COPY src/detector ./src/detector
 COPY config.yaml .
 
-CMD [ "python", "src/detector/analyzer.py"]
+CMD [ "python", "src/detector/detector.py"]
