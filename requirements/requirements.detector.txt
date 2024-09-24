@@ -2,3 +2,5 @@ joblib
 xgboost
 marshmallow_dataclass~=8.7.1
 requests
+confluent-kafka~=2.4.0
+colorlog~=6.8.2

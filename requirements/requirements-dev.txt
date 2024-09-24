@@ -1,4 +1,1 @@
 pre-commit~=3.7.1
-confluent-kafka~=2.4.0
-colorlog~=6.8.2
-marshmallow_dataclass~=8.7.1
