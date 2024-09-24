@@ -34,7 +34,7 @@ heidgaf:
     anomaly_threshold: 0.01
     score_threshold: 0.5
     time_type: ms
-    time_range: 1
+    time_range: 20
 
   detector:
     model: xg # XGBoost
