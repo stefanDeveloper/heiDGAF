@@ -93,7 +93,7 @@ class Inspector:
         if data:
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
-            self.messages = data.messages
+            self.messages = data.data
             self.key = key
 
         if not self.messages:

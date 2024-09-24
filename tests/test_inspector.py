@@ -31,7 +31,7 @@ class TestGetData(unittest.TestCase):
         test_batch = Batch(
             begin_timestamp=datetime.now(),
             end_timestamp=datetime.now() + timedelta(0, 3),
-            messages=[],
+            data=[],
         )
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -57,7 +57,7 @@ class TestGetData(unittest.TestCase):
         test_batch = Batch(
             begin_timestamp=begin,
             end_timestamp=end,
-            messages=[{"test": "test_message_1"}, {"test": "test_message_2"}],
+            data=[{"test": "test_message_1"}, {"test": "test_message_2"}],
         )
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -259,7 +259,7 @@ class TestInspectFunction(unittest.TestCase):
         test_batch = Batch(
             begin_timestamp=datetime.now(),
             end_timestamp=datetime.now() + timedelta(0, 3),
-            messages=[],
+            data=[],
         )
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -288,7 +288,7 @@ class TestInspectFunction(unittest.TestCase):
         test_batch = Batch(
             begin_timestamp=datetime.now(),
             end_timestamp=datetime.now() + timedelta(0, 3),
-            messages=[],
+            data=[],
         )
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance

@@ -17,4 +17,4 @@ class Batch:
             "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%dT%H:%M:%S.%fZ")
         }
     )
-    messages: List[dict] = field(default_factory=list)
+    data: List[dict] = field(default_factory=list)
