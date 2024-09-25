@@ -8,6 +8,8 @@ import sys
 import importlib
 import numpy as np
 
+
+import numpy as np
 from streamad.util import StreamGenerator, CustomDS
 
 sys.path.append(os.getcwd())
@@ -62,6 +64,7 @@ class EnsembleModels(str, Enum):
 
 class Inspector:
     def __init__(self) -> None:
+        self.key = None
         self.topic = "Collector"
         self.begin_timestamp = None
         self.end_timestamp = None

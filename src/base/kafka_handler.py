@@ -115,7 +115,7 @@ class KafkaProduceHandler(KafkaHandler):
         self.producer.flush()
         logger.debug("Closed KafkaProduceHandler.")
 
-    def send(self, topic: str, data: str, key: None | str) -> None:
+    def send(self, topic: str, data: str, key: None | str = None) -> None:
         """
         Encodes the given data for transport and sends it with the specified topic.
 
