@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="1280mm"
+   height="640mm"
+   viewBox="0 0 1280 640"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   sodipodi:docname="heidgaf.svg"
+   inkscape:export-filename="/home/smachmeier/projects/emcl/heiDGAF/assets/heidgaf.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="true"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.16"
+     inkscape:cx="3168.75"
+     inkscape:cy="1068.75"
+     inkscape:window-width="1920"
+     inkscape:window-height="1055"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="-111.49138 : 716.4258 : 1"
+       inkscape:vp_y="0 : 999.99998 : 0"
+       inkscape:vp_z="1136.8215 : 705.0906 : 1"
+       inkscape:persp3d-origin="494.62128 : 564.47152 : 1"
+       id="perspective1763" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       id="path17383"
+       style="fill:#ff6600;stroke-width:1.66264"
+       inkscape:transform-center-x="-1.0521425e-05"
+       d="m 37.477694,242.26217 58.61368,146.34666 -5.12047,-125.29186 96.966906,-61.04923 97.19833,60.61372 -3.12388,122.63894 60.42435,-142.8871 -0.0221,-10.6076 -152.65978,-88.10073 -152.296496,88.73399 z"
+       sodipodi:nodetypes="ccccccccccc"
+       inkscape:transform-center-y="-2.4571107e-06" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.6304px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26576"
+       x="347.29651"
+       y="400.88873"
+       id="text3226-0"><tspan
+         sodipodi:role="line"
+         id="tspan3224-9"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:212.609px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.26576"
+         x="347.29651"
+         y="400.88873"><tspan
+           style="fill:#999999;stroke-width:0.26576"
+           id="tspan32487-8">hei</tspan><tspan
+           id="tspan9753"
+           style="fill:#ff7f2a;stroke-width:0.26576">DGAF</tspan></tspan></text>
+    <path
+       id="path1540-8-4-7"
+       style="fill:#ff7f2a;stroke-width:1.66264"
+       d="m 37.477684,251.29809 0.34466,167.23102 152.659816,88.10122 152.29656,-88.73393 -0.34262,-166.22717 -26.11013,65.06332 -30.95831,76.84771 c -28.54697,54.65734 -61.87631,17.37042 -94.41544,68.56149 -33.60368,-50.80254 -59.57944,-6.62671 -99.749316,-68.12596 l -29.24569,-73.82202 z"
+       sodipodi:nodetypes="ccccccccccc"
+       inkscape:transform-center-y="-6.5524795e-06" />
+    <ellipse
+       style="fill:#000000;stroke-width:0.827947"
+       id="path19945"
+       cx="157.27022"
+       cy="464.20929"
+       rx="9.219429"
+       ry="9.4969969" />
+    <ellipse
+       style="fill:#000000;stroke-width:0.827947"
+       id="path19945-9"
+       cx="224.77803"
+       cy="463.12769"
+       rx="9.219429"
+       ry="9.4969969" />
+    <ellipse
+       style="fill:#ffffff;stroke-width:0.334786"
+       id="path19945-9-7"
+       cx="228.83376"
+       cy="467.36005"
+       rx="3.6473985"
+       ry="3.9249668" />
+    <ellipse
+       style="fill:#ffffff;stroke-width:0.334786"
+       id="path19945-9-7-9"
+       cx="162.18272"
+       cy="468.66074"
+       rx="3.6473985"
+       ry="3.9249668" />
+    <ellipse
+       style="fill:#ffffff;stroke-width:0.617734"
+       id="path19945-9-7-9-2"
+       cx="155.10474"
+       cy="462.06097"
+       rx="6.7958593"
+       ry="7.1720676" />
+    <ellipse
+       style="fill:#ffffff;stroke-width:0.617734"
+       id="path19945-9-7-9-2-1"
+       cx="222.68065"
+       cy="460.94046"
+       rx="6.7958593"
+       ry="7.1720676" />
+  </g>
+</svg>

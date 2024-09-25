@@ -118,7 +118,7 @@ class TestGetData(unittest.TestCase):
         test_batch = Batch(
             begin_timestamp=datetime.now(),
             end_timestamp=datetime.now() + timedelta(0, 3),
-            messages=[],
+            data=[],
         )
 
         mock_kafka_consume_handler_instance = MagicMock()
@@ -140,7 +140,7 @@ class TestGetData(unittest.TestCase):
         test_batch = Batch(
             begin_timestamp=begin,
             end_timestamp=end,
-            messages=[{"test": "test_message_2"}],
+            data=[{"test": "test_message_2"}],
         )
 
         mock_kafka_consume_handler_instance = MagicMock()
@@ -165,7 +165,7 @@ class TestGetData(unittest.TestCase):
         test_batch = Batch(
             begin_timestamp=begin,
             end_timestamp=end,
-            messages=[{"test": "test_message_2"}],
+            data=[{"test": "test_message_2"}],
         )
 
         mock_kafka_consume_handler_instance = MagicMock()
@@ -187,7 +187,7 @@ class TestClearData(unittest.TestCase):
     def test_clear_data_without_existing_data(self, mock_kafka_consume_handler):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
-        test_batch = Batch(begin_timestamp=begin, end_timestamp=end, messages=[])
+        test_batch = Batch(begin_timestamp=begin, end_timestamp=end, data=[])
 
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -206,7 +206,7 @@ class TestClearData(unittest.TestCase):
     def test_clear_data_with_existing_data(self, mock_kafka_consume_handler):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
-        test_batch = Batch(begin_timestamp=begin, end_timestamp=end, messages=[])
+        test_batch = Batch(begin_timestamp=begin, end_timestamp=end, data=[])
 
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance

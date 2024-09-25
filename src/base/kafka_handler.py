@@ -230,6 +230,8 @@ class KafkaConsumeHandler(KafkaHandler):
         }
         logger.debug(f"Set {conf=}.")
 
+        self.batch_schema = marshmallow_dataclass.class_schema(Batch)()
+
         try:
             logger.debug("Calling Consumer(conf)...")
             self.consumer = Consumer(conf)
@@ -366,9 +368,13 @@ class KafkaConsumeHandler(KafkaHandler):
         logger.debug("Loading JSON values from received data...")
         json_from_message = json.loads(value)
         logger.debug(f"{json_from_message=}")
-        eval_data = self.batch_schema.loads(value)
 
-        if isinstance(eval_data, dict):
+        # TODO: Fix literal evaluation on data...
+        eval_data: dict = ast.literal_eval(value)
+        eval_data["data"] = [ast.literal_eval(item) for item in eval_data.get("data")]
+        eval_data: Batch = self.batch_schema.load(eval_data)
+
+        if isinstance(eval_data, Batch):
             logger.debug("Loaded available data. Returning it...")
             return key, eval_data
         else:

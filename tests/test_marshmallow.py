@@ -12,7 +12,7 @@ class TestClearData(unittest.TestCase):
         json_data = {
             "begin_timestamp": "2024-05-21T08:31:27.000000Z",
             "end_timestamp": "2024-05-21T08:31:29.000000Z",
-            "messages": [
+            "data": [
                 {
                     "timestamp": "2024-05-21T08:31:28.119Z",
                     "status": "NOERROR",
