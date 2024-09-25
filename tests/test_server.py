@@ -42,10 +42,11 @@ class TestInit(unittest.TestCase):
 
 
 class TestOpen(unittest.IsolatedAsyncioTestCase):
+    @patch('src.logserver.server.logger')
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
     @patch("src.logserver.server.PORT_IN", 1234)
     @patch("src.logserver.server.PORT_OUT", 5678)
-    async def test_open(self):
+    async def test_open(self, mock_logger):
         # Arrange
         sut = LogServer()
 
@@ -77,10 +78,11 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
             mock_send_server.wait_closed.assert_awaited_once()
             mock_receive_server.wait_closed.assert_awaited_once()
 
+    @patch('src.logserver.server.logger')
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
     @patch("src.logserver.server.PORT_IN", 1234)
     @patch("src.logserver.server.PORT_OUT", 5678)
-    async def test_open_keyboard_interrupt(self):
+    async def test_open_keyboard_interrupt(self, mock_logger):
         # Arrange
         sut = LogServer()
 
@@ -183,8 +185,9 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         writer.wait_closed.assert_awaited_once()
         self.assertEqual(0, server_instance.number_of_connections)
 
+    @patch('src.logserver.server.logger')
     @patch("src.logserver.server.MAX_NUMBER_OF_CONNECTIONS", 7)
-    async def test_handle_connection_rejects_additional_connections(self):
+    async def test_handle_connection_rejects_additional_connections(self, mock_logger):
         server_instance = LogServer()
         server_instance.number_of_connections = 7
 
@@ -230,7 +233,8 @@ class TestHandleReceiveLogline(unittest.IsolatedAsyncioTestCase):
 
 
 class TestSendLogline(unittest.IsolatedAsyncioTestCase):
-    async def test_send_logline_with_logline(self):
+    @patch('src.logserver.server.logger')
+    async def test_send_logline_with_logline(self, mock_logger):
         server_instance = LogServer()
         writer = AsyncMock()
         logline = "Test logline"
@@ -252,7 +256,8 @@ class TestSendLogline(unittest.IsolatedAsyncioTestCase):
 
 
 class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
-    async def test_receive_logline(self):
+    @patch('src.logserver.server.logger')
+    async def test_receive_logline(self, mock_logger):
         reader = AsyncMock()
         data_queue = MagicMock()
         server_instance = LogServer()
@@ -284,9 +289,10 @@ class TestGetNextLogline(unittest.TestCase):
 
 
 class TestMainFunction(unittest.TestCase):
+    @patch('src.logserver.server.logger')
     @patch('src.logserver.server.asyncio.run')
     @patch('src.logserver.server.LogServer')
-    def test_main(self, mock_log_server_class, mock_asyncio_run):
+    def test_main(self, mock_log_server_class, mock_asyncio_run, mock_logger):
         # Arrange
         mock_server_instance = MagicMock()
         mock_log_server_class.return_value = mock_server_instance
