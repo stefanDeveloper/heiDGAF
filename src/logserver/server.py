@@ -5,6 +5,7 @@ import queue
 import sys
 
 sys.path.append(os.getcwd())
+from src.base.kafka_handler import KafkaConsumeHandler
 from src.base.utils import setup_config
 from src.base import utils
 from src.base.log_config import setup_logging
@@ -17,6 +18,7 @@ HOSTNAME = CONFIG["heidgaf"]["logserver"]["hostname"]
 PORT_IN = CONFIG["heidgaf"]["logserver"]["port_in"]
 PORT_OUT = CONFIG["heidgaf"]["logserver"]["port_out"]
 MAX_NUMBER_OF_CONNECTIONS = CONFIG["heidgaf"]["logserver"]["max_number_of_connections"]
+LISTEN_ON_TOPIC = CONFIG["heidgaf"]["logserver"]["listen_on_topic"]
 
 
 class LogServer:
@@ -25,9 +27,6 @@ class LogServer:
         self.host = None
         self.port_out = None
         self.port_in = None
-        self.socket = None
-        self.number_of_connections = 0
-        self.data_queue = queue.Queue()
 
         logger.debug("Validating host name...")
         self.host = utils.validate_host(HOSTNAME)
@@ -37,6 +36,11 @@ class LogServer:
         self.port_out = utils.validate_port(PORT_OUT)
         logger.debug("Outgoing port is valid.")
         logger.debug("Initialized LogServer.")
+
+        self.socket = None
+        self.number_of_connections = 0
+        self.data_queue = queue.Queue()
+        self.kafka_consume_handler = KafkaConsumeHandler(topic=LISTEN_ON_TOPIC)
 
     async def open(self):
         logger.debug("Opening LogServer sockets...")
@@ -50,13 +54,15 @@ class LogServer:
         )
         logger.info(
             "LogServer is running:\n"
-            f"    ⤷  receiving on {self.host}:{self.port_in}\n"
+            f"    ⤷  receiving on {self.host}:{self.port_in} and Kafka topic '{LISTEN_ON_TOPIC}'\n"
             f"    ⤷  sending on {self.host}:{self.port_out}"
         )
 
         try:
             await asyncio.gather(
-                send_server.serve_forever(), receive_server.serve_forever()
+                send_server.serve_forever(),
+                receive_server.serve_forever(),
+                self.handle_kafka_inputs()
             )
         except KeyboardInterrupt:
             logger.debug("Stop serving...")
@@ -98,6 +104,14 @@ class LogServer:
             writer.close()
             await writer.wait_closed()
 
+    async def handle_kafka_inputs(self):
+        loop = asyncio.get_running_loop()
+
+        while True:
+            key, value = await loop.run_in_executor(None, self.kafka_consume_handler.consume)
+            logger.info(f"Received message via Kafka:\n    ⤷  {value}")
+            self.data_queue.put(value)
+
     async def handle_send_logline(self, reader, writer):
         logger.debug("Calling handle_connection with sending=True...")
         await self.handle_connection(reader, writer, True)
@@ -132,6 +146,8 @@ class LogServer:
             logger.debug("Returning logline...")
             return self.data_queue.get()
         return None
+
+    # TODO: Add a close method
 
 
 def main():

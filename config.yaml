@@ -18,6 +18,7 @@ heidgaf:
     port_in: 9998
     port_out: 9999
     max_number_of_connections: 1000
+    listen_on_topic: "LogServer"
 
   inspector:
     mode: univariate # multivariate, ensemble
