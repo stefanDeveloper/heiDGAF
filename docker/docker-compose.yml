@@ -10,6 +10,7 @@ services:
       network: host
     restart: "unless-stopped"
     depends_on:
+      - logserver
       - zookeeper
       - kafka1
       - kafka2
@@ -61,6 +62,9 @@ services:
       network: host
     restart: "unless-stopped"
     depends_on:
+      - logcollector
+      - prefilter
+      - logserver
       - zookeeper
       - kafka1
       - kafka2
@@ -86,6 +90,8 @@ services:
       network: host
     restart: "unless-stopped"
     depends_on:
+      - logcollector
+      - logserver
       - zookeeper
       - kafka1
       - kafka2

@@ -1,4 +1,6 @@
-FROM python:3
+FROM python:3-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /usr/src/app
 
@@ -8,5 +10,7 @@ RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requ
 COPY src/base ./src/base
 COPY src/prefilter ./src/prefilter
 COPY config.yaml .
+
+RUN rm -rf /root/.cache
 
 CMD [ "python", "src/prefilter/prefilter.py"]

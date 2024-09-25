@@ -1,4 +1,6 @@
 name: test_coverage
+permissions:
+  pull-requests: write
 on:
   push:
     branches:
@@ -51,7 +53,6 @@ jobs:
         python -m pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt
 
     - name: Test
-      if: startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.python-version, '3.10')
       run: |
         python -m coverage run -m unittest
         python -m coverage xml

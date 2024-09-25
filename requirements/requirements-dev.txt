@@ -1,11 +1,1 @@
-scikit-learn~=1.4.2
-scipy
-numpy~=1.26.4
-pyarrow
-polars~=1.0.0
-joblib~=1.4.2
-requests~=2.31.0
 pre-commit~=3.7.1
-confluent-kafka~=2.4.0
-colorlog~=6.8.2
-marshmallow_dataclass~=8.7.1

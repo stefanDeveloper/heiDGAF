@@ -14,7 +14,12 @@ from sklearn.metrics import classification_report
 sys.path.append(os.getcwd())
 from src.train.dataset import Dataset, DatasetLoader
 from src.train.feature import Preprocessor
-from src.train.model import Pipeline
+from src.train.model import (
+    Pipeline,
+    random_forest_model,
+    xgboost_model,
+    xgboost_rf_model,
+)
 
 
 @unique
@@ -44,7 +49,7 @@ class DNSAnalyzerTraining:
         self.datasets = DatasetLoader()
         match dataset:
             case "all":
-                self.dataset = datasets.Dataset(
+                self.dataset = Dataset(
                     data_path="",
                     data=pl.concat(
                         [
@@ -64,11 +69,11 @@ class DNSAnalyzerTraining:
 
         match model:
             case "rf":
-                self.model = models.random_forest_model
+                self.model = random_forest_model
             case "xg":
-                self.model = models.xgboost_model
+                self.model = xgboost_model
             case "xg-rf":
-                self.model = models.xgboost_rf_model
+                self.model = xgboost_rf_model
             case _:
                 raise NotImplementedError(f"Model not implemented!")
 
