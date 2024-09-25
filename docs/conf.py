@@ -70,7 +70,7 @@ html_theme_options = {
     "use_repository_button": True,
     "repository_url": "https://github.com/stefanDeveloper/heiDGAF",
 }
-html_logo = "../assets/heidgaf_logo_normal.svg"
+html_logo = "../assets/heidgaf_logo_readthedocs.png"
 # -- Options for EPUB output
 epub_show_urls = "footnote"
 
