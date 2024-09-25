@@ -70,11 +70,8 @@ html_theme_options = {
     "use_repository_button": True,
     "repository_url": "https://github.com/stefanDeveloper/heiDGAF",
 }
+html_logo = "../assets/heidgaf_logo_normal.svg"
 # -- Options for EPUB output
 epub_show_urls = "footnote"
 
 language = "en"
-
-# Run before: pip install sphinx_book_theme
-# To generate API docs, use in project directory:
-# sphinx-apidoc -T -M -o docs/api src/ "*/tests"
