@@ -1,10 +1,8 @@
 import unittest
-from unittest.mock import MagicMock, patch
 
 import marshmallow_dataclass
 
 from src.base import Batch
-from src.detector.detector import Detector, main
 
 
 class TestClearData(unittest.TestCase):
@@ -30,3 +28,7 @@ class TestClearData(unittest.TestCase):
         data_batch = base_schema.load(json_data)
         json_data_deserialized = base_schema.dump(data_batch)
         self.assertEqual(json_data_deserialized, json_data)
+
+
+if __name__ == '__main__':
+    unittest.main()
