@@ -2,14 +2,14 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="1280mm"
-   height="640mm"
-   viewBox="0 0 1280 640"
+   width="900mm"
+   height="900mm"
+   viewBox="0 0 900 900"
    version="1.1"
    id="svg5"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
-   sodipodi:docname="heidgaf.svg"
-   inkscape:export-filename="/home/smachmeier/projects/emcl/heiDGAF/assets/heidgaf.png"
+   sodipodi:docname="heidgaf_logo_readthedocs.svg"
+   inkscape:export-filename="/home/smachmeier/projects/emcl/heiDGAF/assets/heidgaf_logo_normal.png"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -22,13 +22,13 @@
      bordercolor="#666666"
      borderopacity="1.0"
      inkscape:pageshadow="2"
-     inkscape:pageopacity="1"
+     inkscape:pageopacity="0"
      inkscape:pagecheckerboard="true"
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="0.08"
-     inkscape:cx="2512.5"
-     inkscape:cy="-556.25"
+     inkscape:cx="1712.5"
+     inkscape:cy="2768.75"
      inkscape:window-width="1920"
      inkscape:window-height="1080"
      inkscape:window-x="0"
@@ -39,10 +39,10 @@
      id="defs2">
     <inkscape:perspective
        sodipodi:type="inkscape:persp3d"
-       inkscape:vp_x="-111.49138 : 716.4258 : 1"
-       inkscape:vp_y="0 : 999.99998 : 0"
-       inkscape:vp_z="1136.8215 : 705.0906 : 1"
-       inkscape:persp3d-origin="494.62128 : 564.47152 : 1"
+       inkscape:vp_x="-111.49138 : 976.42586 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="1136.8215 : 965.09066 : 1"
+       inkscape:persp3d-origin="494.62131 : 824.47156 : 1"
        id="perspective1763" />
   </defs>
   <g
@@ -51,32 +51,32 @@
      id="layer1">
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:213.619px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:4.00535"
-       x="384.96082"
-       y="410.86996"
-       id="text3226-0-0"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:188.041px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.52576"
+       x="61.935753"
+       y="864.20575"
+       id="text3226-0"
        transform="scale(1.0064024,0.99363833)"><tspan
          sodipodi:role="line"
-         id="tspan3224-9-9"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:213.619px;font-family:Lato;-inkscape-font-specification:'Lato, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:4.00535"
-         x="384.96082"
-         y="410.86996"><tspan
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:213.619px;font-family:Lato;-inkscape-font-specification:'Lato, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#999999;stroke-width:4.00535"
-           id="tspan32487-8-1">hei</tspan><tspan
-           id="tspan9753-9"
-           style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:213.619px;font-family:Lato;-inkscape-font-specification:'Lato, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff7f2a;stroke-width:4.00535">DGAF</tspan></tspan></text>
+         id="tspan3224-9"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:188.041px;font-family:Lato;-inkscape-font-specification:'Lato, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:3.52576"
+         x="61.935753"
+         y="864.20575"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:188.041px;font-family:Lato;-inkscape-font-specification:'Lato, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#999999;stroke-width:3.52576"
+           id="tspan32487-8">hei</tspan><tspan
+           id="tspan9753"
+           style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:188.041px;font-family:Lato;-inkscape-font-specification:'Lato, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff7f2a;stroke-width:3.52576">DGAF</tspan></tspan></text>
     <g
        id="g62349"
-       transform="matrix(1.1360254,0,0,1.1360254,-79.081804,103.98353)">
+       transform="matrix(1.9394912,0,0,1.9394912,8.9484421,-58.947547)">
       <path
-         id="path17383-6"
+         id="path17383"
          style="fill:#ff6600;stroke-width:1.44773"
          inkscape:transform-center-x="-4.38454e-06"
          inkscape:transform-center-y="-1.3635502e-06"
          d="M 94.494878,127.4963 145.53235,254.92667 141.07373,145.82962 225.507,92.671413 310.1418,145.4504 307.4217,252.23744 360.0358,127.81946 360.0166,118.58296 227.08907,41.869837 94.477919,119.13437 Z"
          sodipodi:nodetypes="ccccccccccc" />
       <path
-         id="path1540-8-4-7-2"
+         id="path1540-8-4-7"
          style="fill:#ff7f2a;stroke-width:1.44773"
          inkscape:transform-center-x="-1.8433191e-06"
          inkscape:transform-center-y="-2.4587315e-06"
