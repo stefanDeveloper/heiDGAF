@@ -167,6 +167,7 @@ class TestValidateLogline(unittest.TestCase):
             "2024-07-28T14:45:30.123Z NXDOMAIN 127.0.0.2 126.24.5.20 domain.test A fe80::1 150b"
         ))
 
+    @patch('src.base.logline_handler.logger')
     @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
     @patch('src.base.logline_handler.CONFIG', {
         "loglines": {
@@ -177,7 +178,7 @@ class TestValidateLogline(unittest.TestCase):
             ]
         }
     })
-    def test_validate_wrong_number_of_fields(self):
+    def test_validate_wrong_number_of_fields(self, mock_logger):
         # Arrange
         sut = LoglineHandler()
 
@@ -186,6 +187,7 @@ class TestValidateLogline(unittest.TestCase):
             "2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.20 test"
         ))
 
+    @patch('src.base.logline_handler.logger')
     @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
     @patch('src.base.logline_handler.CONFIG', {
         "loglines": {
@@ -196,13 +198,14 @@ class TestValidateLogline(unittest.TestCase):
             ]
         }
     })
-    def test_validate_empty(self):
+    def test_validate_empty(self, mock_logger):
         # Arrange
         sut = LoglineHandler()
 
         # Act and Assert
         self.assertFalse(sut.validate_logline(""))
 
+    @patch('src.base.logline_handler.logger')
     @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
     @patch('src.base.logline_handler.CONFIG', {
         "loglines": {
@@ -213,7 +216,7 @@ class TestValidateLogline(unittest.TestCase):
             ]
         }
     })
-    def test_validate_contains_invalid_fields(self):
+    def test_validate_contains_invalid_fields(self, mock_logger):
         # Arrange
         sut = LoglineHandler()
 
@@ -222,6 +225,7 @@ class TestValidateLogline(unittest.TestCase):
             "2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.300"
         ))
 
+    @patch('src.base.logline_handler.logger')
     @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
     @patch('src.base.logline_handler.CONFIG', {
         "loglines": {
@@ -232,7 +236,7 @@ class TestValidateLogline(unittest.TestCase):
             ]
         }
     })
-    def test_validate_wrong_order_of_fields(self):
+    def test_validate_wrong_order_of_fields(self, mock_logger):
         # Arrange
         sut = LoglineHandler()
 
@@ -278,6 +282,7 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
             "2024-07-28T14:45:30.123Z NXDOMAIN 127.0.0.2 126.24.5.20 domain.test A fe80::1 150b"
         ))
 
+    @patch('src.base.logline_handler.logger')
     @patch('src.base.logline_handler.REQUIRED_FIELDS', MOCK_REQUIRED_FIELDS)
     @patch('src.base.logline_handler.CONFIG', {
         "loglines": {
@@ -288,7 +293,7 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
             ]
         }
     })
-    def test_validate_false(self):
+    def test_validate_false(self, mock_logger):
         # Arrange
         sut = LoglineHandler()
 
