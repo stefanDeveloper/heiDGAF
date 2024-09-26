@@ -56,44 +56,42 @@
 
 ## About the Project
 
+![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/add-readthedocs-logo/docs/media/pipeline_overview.png?raw=true)
+
 ## Getting Started
+
+If you want to use heiDGAF, just use the provided Docker compose to quickly bootstrap your environment:
+
+```
+docker compose -f docker/docker-compose.yml up
+```
+
+### Developing
+
+> [!IMPORTANT]
+> More information will be added soon! Go and watch the repository for updates.
+
+Install all Python requirements:
 
 ```sh
 python -m venv .venv
-pip install .
+source .venv/bin/activate
 
-heidgaf -h
+pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt
 ```
 
-Run your analysis:
+Now, you can start each stage, e.g. the inspector:
 
 ```sh
-heidgaf inspect -r data/...
+python src/inspector/main.py
 ```
 
-Train your own model:
-
-```sh
-heidgaf train -m xg -d all
-```
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-### Data
+### Train your own models
 
 > [!IMPORTANT]
-> Currently, we set a fixed data format scheme. However, we plan to support custom schemes.
+> More information will be added soon! Go and watch the repository for updates.
 
-Currently, we support the data format scheme provided by the [DNS-Collector](https://github.com/dmachard/go-dnscollector/):
-
-- `{{ .timestamp }}`
-- `{{ .return_code }}`
-- `{{ .client_ip }}`
-- `{{ .server_ip }}`
-- `{{ .query }}`
-- `{{ .type }}`
-- `{{ .answer }}`
-- `{{ .size }}b`
+Currently, we enable two trained models, namely XGBoost and RandomForest.
 
 For training our models, we rely on the following data sets:
 
@@ -105,6 +103,26 @@ For training our models, we rely on the following data sets:
 
 However, we compute all feature separately and only rely on the `domain` and `class`.
 Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Data
+
+> [!IMPORTANT]
+> We support custom schemes.
+
+```yml
+loglines:
+  fields:
+    - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
+    - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+    - [ "client_ip", IpAddress ]
+    - [ "dns_server_ip", IpAddress ]
+    - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+    - [ "record_type", ListItem, [ "A", "AAAA" ] ]
+    - [ "response_ip", IpAddress ]
+    - [ "size", RegEx, '^\d+b$' ]
+```
 
 <!-- CONTRIBUTING -->
 ## Contributing
