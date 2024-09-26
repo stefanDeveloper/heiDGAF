@@ -30,13 +30,14 @@ class TestInit(unittest.TestCase):
         mock_producer.assert_called_once_with(expected_conf)
         mock_producer_instance.init_transactions.assert_called_once()
 
+    @patch('src.base.kafka_handler.logger')
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
         {'hostname': '127.0.0.1', 'port': 9999, },
         {'hostname': '127.0.0.2', 'port': 9998, },
         {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Producer")
-    def test_init_fail(self, mock_producer):
+    def test_init_fail(self, mock_producer, mock_logger):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
 
@@ -98,6 +99,7 @@ class TestSend(unittest.TestCase):
         mock_producer.produce.assert_not_called()
         mock_producer.commit_transaction_with_retry.assert_not_called()
 
+    @patch('src.base.kafka_handler.logger')
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
         {'hostname': '127.0.0.1', 'port': 9999, },
         {'hostname': '127.0.0.2', 'port': 9998, },
@@ -111,6 +113,7 @@ class TestSend(unittest.TestCase):
             mock_commit_transaction_with_retry,
             mock_kafka_delivery_report,
             mock_producer,
+            mock_logger,
     ):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
@@ -175,6 +178,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         self.assertEqual(mock_producer_instance.commit_transaction.call_count, 2)
         mock_sleep.assert_called_once_with(1.0)
 
+    @patch('src.base.kafka_handler.logger')
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
         {'hostname': '127.0.0.1', 'port': 9999, },
         {'hostname': '127.0.0.2', 'port': 9998, },
@@ -182,7 +186,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
     ])
     @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
-    def test_commit_retries_and_fails(self, mock_sleep, mock_producer):
+    def test_commit_retries_and_fails(self, mock_sleep, mock_producer, mock_logger):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
         mock_producer_instance.commit_transaction.side_effect = KafkaException(

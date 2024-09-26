@@ -15,9 +15,10 @@ class TestSetupConfig(unittest.TestCase):
         mock_yaml_safe_load.assert_called_once()
         self.assertEqual(result, {"some_yaml_data": "value"})
 
+    @patch('src.base.utils.logger')
     @patch("src.base.utils.CONFIG_FILEPATH", "fake/path/config.yaml")
     @patch("builtins.open", side_effect=FileNotFoundError)
-    def test_load_config_file_not_found(self, mock_open_file):
+    def test_load_config_file_not_found(self, mock_open_file, mock_logger):
         with self.assertRaises(FileNotFoundError):
             setup_config()
 

@@ -35,6 +35,7 @@ class TestInit(unittest.TestCase):
         mock_consumer.assert_called_once_with(expected_conf)
         mock_consumer_instance.assign.assert_called_once()
 
+    @patch('src.base.kafka_handler.logger')
     @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
     @patch("src.base.kafka_handler.KAFKA_BROKERS", [
         {'hostname': '127.0.0.1', 'port': 9999, },
@@ -42,7 +43,7 @@ class TestInit(unittest.TestCase):
         {'hostname': '127.0.0.3', 'port': 9997, },
     ])
     @patch("src.base.kafka_handler.Consumer")
-    def test_init_fail(self, mock_consumer):
+    def test_init_fail(self, mock_consumer, mock_logger):
         mock_consumer_instance = MagicMock()
         mock_consumer.return_value = mock_consumer_instance
 

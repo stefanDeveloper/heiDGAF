@@ -1,10 +1,11 @@
 import unittest
-from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
 
 from requests import HTTPError
+
 from src.base import Batch
-from src.detector.detector import Detector, WrongChecksum, main
+from src.detector.detector import Detector, WrongChecksum
 
 
 class TestSha256Sum(unittest.TestCase):
@@ -30,6 +31,11 @@ class TestSha256Sum(unittest.TestCase):
 
 
 class TestGetModel(unittest.TestCase):
+    def setUp(self):
+        patcher = patch('src.detector.detector.logger')
+        self.mock_logger = patcher.start()
+        self.addCleanup(patcher.stop)
+
     @patch(
         "src.detector.detector.CHECKSUM",
         "21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b",
@@ -99,8 +105,9 @@ class TestGetModel(unittest.TestCase):
 
 
 class TestInit(unittest.TestCase):
+    @patch('src.detector.detector.logger')
     @patch("src.detector.detector.KafkaConsumeHandler")
-    def test_init(self, mock_kafka_consume_handler):
+    def test_init(self, mock_kafka_consume_handler, mock_logger):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -112,9 +119,9 @@ class TestInit(unittest.TestCase):
 
 
 class TestGetData(unittest.TestCase):
+    @patch('src.detector.detector.logger')
     @patch("src.detector.detector.KafkaConsumeHandler")
-    def test_get_data_without_return_data(self, mock_kafka_consume_handler):
-
+    def test_get_data_without_return_data(self, mock_kafka_consume_handler, mock_logger):
         test_batch = Batch(
             begin_timestamp=datetime.now(),
             end_timestamp=datetime.now() + timedelta(0, 3),
@@ -133,8 +140,9 @@ class TestGetData(unittest.TestCase):
 
         self.assertEqual([], sut.messages)
 
+    @patch('src.detector.detector.logger')
     @patch("src.detector.detector.KafkaConsumeHandler")
-    def test_get_data_with_return_data(self, mock_kafka_consume_handler):
+    def test_get_data_with_return_data(self, mock_kafka_consume_handler, mock_logger):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(
@@ -158,8 +166,9 @@ class TestGetData(unittest.TestCase):
         self.assertEqual(end, sut.end_timestamp)
         self.assertEqual([{"test": "test_message_2"}], sut.messages)
 
+    @patch('src.detector.detector.logger')
     @patch("src.detector.detector.KafkaConsumeHandler")
-    def test_get_data_while_busy(self, mock_kafka_consume_handler):
+    def test_get_data_while_busy(self, mock_kafka_consume_handler, mock_logger):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(
@@ -183,8 +192,14 @@ class TestGetData(unittest.TestCase):
 
 
 class TestClearData(unittest.TestCase):
+    def setUp(self):
+        patcher = patch('src.detector.detector.logger')
+        self.mock_logger = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    @patch('src.detector.detector.logger')
     @patch("src.detector.detector.KafkaConsumeHandler")
-    def test_clear_data_without_existing_data(self, mock_kafka_consume_handler):
+    def test_clear_data_without_existing_data(self, mock_kafka_consume_handler, mock_logger):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(begin_timestamp=begin, end_timestamp=end, data=[])
@@ -202,8 +217,9 @@ class TestClearData(unittest.TestCase):
 
         self.assertEqual([], sut.messages)
 
+    @patch('src.detector.detector.logger')
     @patch("src.detector.detector.KafkaConsumeHandler")
-    def test_clear_data_with_existing_data(self, mock_kafka_consume_handler):
+    def test_clear_data_with_existing_data(self, mock_kafka_consume_handler, mock_logger):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(begin_timestamp=begin, end_timestamp=end, data=[])

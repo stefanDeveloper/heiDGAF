@@ -71,9 +71,10 @@ class TestInit(unittest.TestCase):
 
 
 class TestFetchLogline(unittest.TestCase):
+    @patch('src.logcollector.collector.logger')
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("socket.socket")
-    def test_fetch_logline_successful(self, mock_socket, mock_batch_handler):
+    def test_fetch_logline_successful(self, mock_socket, mock_batch_handler, mock_logger):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
         mock_socket_instance.connect.return_value = None
         mock_socket_instance.recv.side_effect = ["fake messages".encode("utf-8"), b""]
@@ -89,9 +90,10 @@ class TestFetchLogline(unittest.TestCase):
         mock_socket_instance.recv.assert_called_with(1024)
         self.assertEqual("fake messages", sut.logline)
 
+    @patch('src.logcollector.collector.logger')
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("socket.socket")
-    def test_fetch_logline_no_data_on_server(self, mock_socket, mock_batch_handler):
+    def test_fetch_logline_no_data_on_server(self, mock_socket, mock_batch_handler, mock_logger):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
         mock_socket_instance.connect.return_value = None
         mock_socket_instance.recv.side_effect = ["".encode("utf-8"), b""]
@@ -107,9 +109,10 @@ class TestFetchLogline(unittest.TestCase):
         mock_socket_instance.recv.assert_called_with(1024)
         self.assertIsNone(sut.logline)
 
+    @patch('src.logcollector.collector.logger')
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("socket.socket")
-    def test_fetch_logline_connection_error(self, mock_socket, mock_batch_handler):
+    def test_fetch_logline_connection_error(self, mock_socket, mock_batch_handler, mock_logger):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
         mock_socket_instance.connect.side_effect = ConnectionError("Unable to connect")
         mock_batch_handler_instance = MagicMock()
@@ -127,11 +130,12 @@ class TestFetchLogline(unittest.TestCase):
 
 
 class TestAddLoglineToBatch(unittest.TestCase):
+    @patch('src.logcollector.collector.logger')
     @patch("src.logcollector.collector.SUBNET_BITS", 22)
     @patch("src.base.utils.get_first_part_of_ipv4_address")
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
-    def test_add_to_batch_with_data(self, mock_logline_handler, mock_batch_handler, mock_get):
+    def test_add_to_batch_with_data(self, mock_logline_handler, mock_batch_handler, mock_get, mock_logger):
         mock_batch_handler_instance = MagicMock()
         mock_logline_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -194,6 +198,7 @@ class TestClearLogline(unittest.TestCase):
 
 
 class TestMainFunction(unittest.TestCase):
+    @patch('src.logcollector.collector.logger.info', MagicMock)
     @patch('src.logcollector.collector.LogCollector')
     def test_main_loop_execution(self, mock_log_collector):
         # Arrange
@@ -211,8 +216,9 @@ class TestMainFunction(unittest.TestCase):
         self.assertTrue(mock_collector_instance.add_logline_to_batch.called)
         self.assertTrue(mock_collector_instance.clear_logline.called)
 
+    @patch('src.logcollector.collector.logger')
     @patch('src.logcollector.collector.LogCollector')
-    def test_main_value_error_handling(self, mock_log_collector):
+    def test_main_value_error_handling(self, mock_log_collector, mock_logger):
         # Arrange
         mock_collector_instance = mock_log_collector.return_value
 
@@ -225,8 +231,9 @@ class TestMainFunction(unittest.TestCase):
         self.assertTrue(mock_collector_instance.clear_logline.called)
         self.assertTrue(mock_collector_instance.loop_exited)
 
+    @patch('src.logcollector.collector.logger')
     @patch('src.logcollector.collector.LogCollector')
-    def test_main_keyboard_interrupt(self, mock_log_collector):
+    def test_main_keyboard_interrupt(self, mock_log_collector, mock_logger):
         # Arrange
         mock_collector_instance = mock_log_collector.return_value
         mock_collector_instance.fetch_logline.side_effect = KeyboardInterrupt

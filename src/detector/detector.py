@@ -1,25 +1,18 @@
-import ast
-from datetime import datetime
-from enum import Enum, unique
 import hashlib
 import json
 import logging
 import os
 import sys
-import importlib
-import joblib
-import numpy as np
 import tempfile
+
+import joblib
 import requests
-import xgboost
-from streamad.util import StreamGenerator, CustomDS
 
 sys.path.append(os.getcwd())
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
     KafkaConsumeHandler,
     KafkaMessageFetchException,
-    KafkaProduceHandler,
 )
 from src.base.log_config import setup_logging
 
@@ -115,10 +108,12 @@ class Detector:
         return h.hexdigest()
 
     def _get_model(self) -> None:
-        """Downloads model from server. If model already exists, it returns the current model. In addition, it checks the sha256 sum in case a model has been updated."""
+        """
+        Downloads model from server. If model already exists, it returns the current model. In addition, it checks the
+        sha256 sum in case a model has been updated.
+        """
 
         if not os.path.isfile(self.model_path):
-
             response = requests.get(
                 f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pkl&dl=1"
             )
