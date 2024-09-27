@@ -95,6 +95,13 @@ python src/inspector/main.py
 
 Currently, we enable two trained models, namely XGBoost and RandomForest.
 
+```sh
+python -m venv .venv
+source .venv/bin/activate
+
+pip install -r requirements/requirements.train.txt
+```
+
 For training our models, we rely on the following data sets:
 
 - [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)

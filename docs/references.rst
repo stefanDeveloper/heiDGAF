@@ -1,0 +1,5 @@
+Paper Reference
+~~~~~~~~~~~~~~~
+
+.. bibliography::
+   :all:

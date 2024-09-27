@@ -282,21 +282,18 @@ Key Procedures
   - Use ``get_number_of_buffered_messages(key)`` to get the count of messages in the buffer for a specific key.
 
 3. **Completing a Batch**:
+
   - The ``complete_batch()`` method is called to finalize and retrieve the batch data for a specific key.
   - **Scenarios**:
 
-    - **Variant 1**: If only the current batch contains messages (buffer is empty), the batch is returned sorted by and
-      with its timestamps. ``begin_timestamp`` reflects the timestamp of the first message in the batch, and
-      ``end_timestamp`` the timestamp of the chronologically last message in the batch.
-    - **Variant 2**: If both the batch and buffer contain messages, the buffered messages are included in the returned
-      data. The ``begin_timestamp`` now reflects the first message's timestamp in the buffer instead of the batch.
+    - **Variant 1**: If only the current batch contains messages (buffer is empty), the batch is returned sorted by and with its timestamps. ``begin_timestamp`` reflects the timestamp of the first message in the batch, and ``end_timestamp`` the timestamp of the chronologically last message in the batch.
+    - **Variant 2**: If both the batch and buffer contain messages, the buffered messages are included in the returned data. The ``begin_timestamp`` now reflects the first message's timestamp in the buffer instead of the batch.
     - **Variant 3**: If only the buffer contains messages (no new messages arrived), the buffer data is discarded.
     - **Variant 4**: If neither the batch nor the buffer contains messages, a ``ValueError`` is raised.
 
 4. **Managing Stored Keys**:
 
-  - The ``get_stored_keys()`` method returns a set of all keys currently stored in either the batch or the buffer,
-    allowing the retrieval of all keys with associated messages or buffered data.
+  - The ``get_stored_keys()`` method returns a set of all keys currently stored in either the batch or the buffer, allowing the retrieval of all keys with associated messages or buffered data.
 
 Example Workflow
 ................
@@ -370,11 +367,14 @@ To configure the :class:`Prefilter` and customize the filtering behavior, the fo
     stages.
 
 
-Stage 4: Data Inspection
+Stage 4: Inspection
 ========================
 
 Overview
 --------
+
+The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage is essentiell to reduce 
+the load of the `Detection` stage. Otherwise, resource complexity would increase disproportionally. 
 
 Main Class
 ----------
@@ -382,15 +382,54 @@ Main Class
 .. py:currentmodule:: src.inspector.inspector
 .. autoclass:: Inspector
 
+The :class:`Inspector` is the primary class to run :class:`ZScoreDetector`
+
 Usage
 -----
+
+The :class:`Inspector` loads the StreamAD model to perform anomaly detection. It consumes batches on topic ``Inspect``. 
+For a new batch, it derives the timestamps ``begin_timestamp`` and ``end_timestamp``.
+Based on time type (e.g. ``s``, ``ms``) and time range (e.g. ``5``) the sliding non-overlapping window is created.
+
+.. note:: TODO Add mathematical explanation.
+  
+:math:`y = x`
+
+An anomaly is noted when it is greater than a ``score_threshold``. In addition, we support a relative anomaly threshold.
+So, if the anomaly threshold is ``0.01``, it sends anomalies for further detection if the amount of anomlies divided by the total amount of requests in the batch is greater.
 
 Configuration
 -------------
 
+All StreamAD modules are supported. This includes univariate, multivariate, and ensemble methods.
+In case special arguments are desired for your environment, ``model_args`` as dictionary can be passed for each model.
 
-Stage 5: Data Analysis
-======================
+Univariate models in `streamad.model`:
+
+- :class:`ZScoreDetector`
+- :class:`KNNDetector`
+- :class:`SpotDetector`
+- :class:`SRDetector`
+- :class:`OCSVMDetector`
+
+Multivariate models in `streamad.model`:
+
+- :class:`xStreamDetector`
+- :class:`RShashDetector`
+- :class:`HSTreeDetector`
+- :class:`LodaDetector`
+- :class:`OCSVMDetector`
+- :class:`RrcfDetector`
+
+Ensemble prediction in ``streamad.process:
+
+- :class:`WeightEnsemble`
+- :class:`VoteEnsemble`
+
+It takes a list of `streamad.model` for perform the ensemble prediction.
+
+Stage 5: Detection
+==================
 
 Overview
 --------
