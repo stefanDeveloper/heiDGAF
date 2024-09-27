@@ -3,7 +3,18 @@ import sys
 
 # Configuration file for the Sphinx documentation builder.
 
-sys.path.insert(0, os.path.abspath("../"))
+sys.path.insert(0, os.path.abspath("../src/"))
+
+
+# -- Path setup --------------------------------------------------------------
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+#
+
+sys.path.insert(0, os.path.abspath(".."))
+
 
 # -- Project information
 
@@ -16,16 +27,6 @@ author = "Stefan Machmeier and Manuel Fuchs"
 # version = __version__
 # The full version, including alpha/beta/rc tags
 # release = __version__
-
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-
-#sys.path.insert(0, os.path.abspath("../src"))
-
 
 # -- General configuration
 
@@ -44,14 +45,6 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinx.ext.mathjax"
 ]
-
-# apidoc settings
-apidoc_module_dir = "../src"
-apidoc_output_dir = "api"
-apidoc_excluded_paths = ["**/*test*"]
-apidoc_module_first = True
-apidoc_separate_modules = True
-apidoc_extra_args = ["-d 6"]
 
 # Napoleon settings
 napoleon_google_docstring = True
