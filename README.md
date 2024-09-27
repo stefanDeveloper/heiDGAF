@@ -66,6 +66,8 @@ If you want to use heiDGAF, just use the provided Docker compose to quickly boot
 docker compose -f docker/docker-compose.yml up
 ```
 
+![Terminal example](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/add-readthedocs-logo/assets/terminal_example.gif?raw=true)
+
 ### Developing
 
 > [!IMPORTANT]
