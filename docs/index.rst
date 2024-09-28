@@ -20,4 +20,6 @@ Contents
 
    usage
    pipeline
+   training
    api/index
+   references

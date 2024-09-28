@@ -37,6 +37,9 @@ class WrongChecksum(Exception):  # pragma: no cover
 
 
 class Detector:
+    """Logs detection with probability score of requests. It runs the provided machine learning model.
+    In addition, it returns all individually probabilities of the anomalous batch.
+    """
     def __init__(self) -> None:
         self.topic = "detector"
         self.messages = []
@@ -150,7 +153,7 @@ class Detector:
                 self.warnings.append(message)
 
     def send_warning(self) -> None:
-        with open(f"{tempfile.gettempdir()}/warnings.json", "a") as f:
+        with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a") as f:
             json.dump(self.messages, f)
             f.write("\n")
 

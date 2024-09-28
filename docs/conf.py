@@ -5,6 +5,17 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../src/"))
 
+
+# -- Path setup --------------------------------------------------------------
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+#
+
+sys.path.insert(0, os.path.abspath(".."))
+
+
 # -- Project information
 
 project = "heiDGAF"
@@ -16,15 +27,6 @@ author = "Stefan Machmeier and Manuel Fuchs"
 # version = __version__
 # The full version, including alpha/beta/rc tags
 # release = __version__
-
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-
-sys.path.insert(0, os.path.abspath(".."))
 
 # -- General configuration
 
@@ -40,6 +42,8 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
     "sphinx.ext.autosectionlabel",
+    "sphinxcontrib.bibtex",
+    "sphinx.ext.mathjax"
 ]
 
 # Napoleon settings
@@ -70,8 +74,13 @@ html_theme_options = {
     "use_repository_button": True,
     "repository_url": "https://github.com/stefanDeveloper/heiDGAF",
 }
-html_logo = "../assets/heidgaf_logo_normal.svg"
+html_logo = "../assets/heidgaf_logo_readthedocs.png"
 # -- Options for EPUB output
 epub_show_urls = "footnote"
 
 language = "en"
+
+# -- Bibliography ------------------------------------------------------------
+bibtex_bibfiles = ["refs.bib"]
+bibtex_default_style = "unsrt"
+bibtex_reference_style = "author_year"
