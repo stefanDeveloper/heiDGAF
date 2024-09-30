@@ -43,4 +43,8 @@ Now, you can start each stage, e.g. the inspector:
 Configuration
 -------------
 
-This section will show a table of all configuration values, and their default values.
+.. note::
+
+    This section will be updated to show a full table of all configuration values, and their default values.
+
+.. include:: configuration.rst
