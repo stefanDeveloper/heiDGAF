@@ -1,12 +1,9 @@
-import glob
-import logging
 from dataclasses import dataclass
-from typing import Any, Callable, List
+import glob
+from typing import Callable, List
 
-import numpy as np
 import polars as pl
 import sklearn.model_selection
-from fe_polars.encoding.one_hot_encoding import OneHotEncoder
 from torch.utils.data.dataset import Dataset
 
 
@@ -105,15 +102,15 @@ def cast_cic(data_path: List[str]):
 
 
 def cast_dgarchive(data_path: List[str]):
-    files = glob.glob("/home/smachmeier/Downloads/dgarchive/*.csv")
-    for file in files:
-        name = file.split("/")[-1].split(".")[0]
-        df = pl.read_csv(file, has_header=False, separator=",")
+    dataframes = []
+    for data in data_path:
+        df = pl.read_csv(data, has_header=False, separator=",")
         df = df.rename({"column_1": "query"})
         df = df.select("query")
         df = preprocess(df)
         df = df.with_columns([pl.lit("1").alias("class")])
-        df.write_csv(f"dgarchive/data_{name}.csv", separator=",")
+        dataframes.append(df)
+    return pl.concat(dataframes)
 
 
 def cast_dgta(data_path: str) -> pl.DataFrame:
@@ -160,8 +157,103 @@ class DatasetLoader:
             ],
             cast_dataset=cast_cic,
         )
+
         self.dgarchive_data = Dataset(
-            data_path=["/home/smachmeier/Downloads/dgarchive/*.csv"],
+            data_path=[
+                "/home/smachmeier/Downloads/dgarchive/bamital_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/banjori_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/bedep_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/beebone_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/blackhole_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/bobax_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/ccleaner_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/chinad_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/chir_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/conficker_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/corebot_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/cryptolocker_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/darkshell_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/diamondfox_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/dircrypt_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/dmsniff_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/dnsbenchmark_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/dnschanger_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/downloader_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/dyre_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/ebury_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/ekforward_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/emotet_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/feodo_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/fobber_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/gameover_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/gameover_p2p.csv"
+                "/home/smachmeier/Downloads/dgarchive/gozi_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/goznym_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/gspy_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/hesperbot_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/infy_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/locky_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/madmax_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/makloader_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/matsnu_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/mirai_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/modpack_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/monerominer_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/murofet_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/murofetweekly_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/mydoom_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/necurs_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/nymaim2_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/nymaim_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/oderoor_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/omexo_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/padcrypt_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/pandabanker_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/pitou_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/proslikefan_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/pushdo_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/pushdotid_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/pykspa2_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/pykspa2s_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/pykspa_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/qadars_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/qakbot_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/qhost_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/qsnatch_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/ramdo_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/ramnit_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/ranbyus_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/randomloader_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/redyms_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/rovnix_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/shifu_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/simda_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/sisron_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/sphinx_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/suppobox_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/sutra_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/symmi_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/szribi_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/tempedreve_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/tempedrevetdd_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/tinba_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/tinynuke_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/tofsee_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/torpig_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/tsifiri_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/ud2_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/ud3_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/ud4_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/urlzone_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/vawtrak_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/vidro_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/vidrotid_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/virut_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/volatilecedar_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/wd_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/xshellghost_dga.csv"
+                "/home/smachmeier/Downloads/dgarchive/xxhex_dga.csv"
+            ],
             cast_dataset=cast_dgarchive,
         )
 
@@ -181,13 +273,20 @@ class DatasetLoader:
     def cic_dataset(self) -> Dataset:
         return self.cic_data
 
+    @property
+    def dgarchive_dataset(self) -> Dataset:
+        return self.dgarchive_data
+
 
 @dataclass
 class Dataset:
     """Dataset class."""
 
     def __init__(
-        self, data_path: Any, data: pl.DataFrame = None, cast_dataset: Callable = None
+        self,
+        data_path: List[str],
+        data: pl.DataFrame = None,
+        cast_dataset: Callable = None,
     ) -> None:
         """Initializes data.
 
@@ -210,7 +309,6 @@ class Dataset:
             self.data = data
         else:
             raise NotImplementedError("No data given")
-        self.label_encoder = OneHotEncoder(features_to_encode=["class"])
         self.X_train, self.X_val, self.X_test, self.Y_train, self.Y_val, self.Y_test = (
             self.__train_test_val_split()
         )

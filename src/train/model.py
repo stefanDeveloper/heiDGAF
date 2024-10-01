@@ -7,14 +7,16 @@ from typing import Any
 import numpy as np
 import polars as pl
 import torch
-from fe_polars.encoding.target_encoding import TargetEncoder
-from fe_polars.imputing.base_imputing import Imputer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from xgboost import XGBClassifier, XGBRFClassifier
 
 sys.path.append(os.getcwd())
 from src.train.feature import Processor
+from src.base.log_config import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 class Pipeline:
@@ -23,8 +25,6 @@ class Pipeline:
     def __init__(
         self,
         preprocessor: Processor,
-        mean_imputer: Imputer,
-        target_encoder: TargetEncoder,
         clf: Any,
     ):
         """Initializes preprocessors, encoder, and model.
@@ -36,24 +36,22 @@ class Pipeline:
             clf (torch.nn.Modul): torch.nn.Modul for training.
         """
         self.preprocessor = preprocessor
-        self.mean_imputer = mean_imputer
-        self.target_encoder = target_encoder
         self.clf = clf
 
         # setting device on GPU if available, else CPU
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logging.info(f"Using device: {self.device}")
+        logger.info(f"Using device: {self.device}")
 
         if torch.cuda.is_available():
-            logging.debug("GPU detected")
-            logging.debug(f"\t{torch.cuda.get_device_name(0)}")
+            logger.debug("GPU detected")
+            logger.debug(f"\t{torch.cuda.get_device_name(0)}")
 
         if self.device.type == "cuda":
-            logging.debug("Memory Usage:")
-            logging.debug(
+            logger.debug("Memory Usage:")
+            logger.debug(
                 f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
             )
-            logging.debug(
+            logger.debug(
                 f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
             )
 
@@ -65,8 +63,6 @@ class Pipeline:
             y_train (np.array): Y labels.
         """
         x_train = self.preprocessor.transform(x=x_train)
-        x_train = self.target_encoder.fit_transform(x=x_train, y=y_train)
-        x_train = self.mean_imputer.fit_transform(x=x_train)
 
         clf = RandomizedSearchCV(
             self.clf["model"],
@@ -80,10 +76,10 @@ class Pipeline:
 
         start = time()
         model = clf.fit(x_train.to_numpy(), y_train.to_numpy().ravel())
-        logging.info(
+        logger.info(
             f"GridSearchCV took {time() - start:.2f} seconds for {len(clf.cv_results_['params']):d} candidate parameter settings."
         )
-        logging.info(model.best_params_)
+        logger.info(model.best_params_)
 
         self.clf = model
 
@@ -97,8 +93,6 @@ class Pipeline:
             np.array: Model output.
         """
         x = self.preprocessor.transform(x=x)
-        x = self.target_encoder.transform(x=x)
-        x = self.mean_imputer.transform(x=x)
         return self.clf.predict(X=x.to_numpy())
 
 

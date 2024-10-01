@@ -1,6 +1,5 @@
-from typing import Optional, List, Dict
+from typing import List
 from dataclasses import dataclass, field
-import marshmallow_dataclass
 import marshmallow.validate
 import datetime
 

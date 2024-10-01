@@ -1,14 +1,12 @@
+import logging
 import sys
 import os
-import logging
 from enum import Enum, unique
 
 import joblib
 import numpy as np
 import polars as pl
 import torch
-from fe_polars.encoding.target_encoding import TargetEncoder
-from fe_polars.imputing.base_imputing import Imputer
 from sklearn.metrics import classification_report
 
 sys.path.append(os.getcwd())
@@ -20,6 +18,10 @@ from src.train.model import (
     xgboost_model,
     xgboost_rf_model,
 )
+from src.base.log_config import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 @unique
@@ -27,6 +29,7 @@ class Dataset(str, Enum):
     ALL = "all"
     CIC = "cic"
     DGTA = "dgta"
+    DGARCHIVE = "dgarchive"
 
 
 @unique
@@ -57,6 +60,7 @@ class DetectorTraining:
                             self.datasets.cic_dataset.data,
                             self.datasets.bambenek_dataset.data,
                             self.datasets.dga_dataset.data,
+                            self.datasets.dgarchive_data.data,
                         ]
                     ),
                 )
@@ -64,6 +68,8 @@ class DetectorTraining:
                 self.dataset = self.datasets.cic_dataset.data
             case "dgta":
                 self.dataset = self.datasets.dgta_dataset.data
+            case "dgarchive":
+                self.dataset = self.datasets.dgarchive_data.data
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
 
@@ -87,9 +93,10 @@ class DetectorTraining:
             np.random.seed(seed)
             torch.manual_seed(seed)
 
-        logging.info(f"Loading data sets")
+        logger.info(f"Loading data sets")
 
         # Training model
+        logger.info(f"Loading data sets")
         model_pipeline = Pipeline(
             preprocessor=Processor(
                 features_to_drop=[
@@ -101,29 +108,28 @@ class DetectorTraining:
                     "tld",
                 ]
             ),
-            mean_imputer=Imputer(features_to_impute=[], strategy="mean"),
-            target_encoder=TargetEncoder(smoothing=100, features_to_encode=[]),
             clf=self.model,
         )
-        processor = Processor(
-            features_to_drop=[
-                "query",
-                "labels",
-                "thirdleveldomain",
-                "secondleveldomain",
-                "fqdn",
-                "tld",
-            ]
-        )
-        data = processor.transform(self.dataset.data)
-        data.write_csv("full_data.csv")
+        # TODO Add data storage functionality
+        # processor = Processor(
+        #     features_to_drop=[
+        #         "query",
+        #         "labels",
+        #         "thirdleveldomain",
+        #         "secondleveldomain",
+        #         "fqdn",
+        #         "tld",
+        #     ]
+        # )
+        # data = processor.transform(self.dataset.data)
+        # data.write_csv("full_data.csv")
 
         model_pipeline.fit(x_train=self.dataset.X_train, y_train=self.dataset.Y_train)
 
         y_pred = model_pipeline.predict(self.dataset.X_test)
-        logging.info(classification_report(self.dataset.Y_test, y_pred, labels=[0, 1]))
+        logger.info(classification_report(self.dataset.Y_test, y_pred, labels=[0, 1]))
 
         y_pred = model_pipeline.predict(self.dataset.X_val)
-        logging.info(classification_report(self.dataset.Y_val, y_pred, labels=[0, 1]))
+        logger.info(classification_report(self.dataset.Y_val, y_pred, labels=[0, 1]))
 
         joblib.dump(model_pipeline.clf, output_path)
