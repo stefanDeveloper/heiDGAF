@@ -6,7 +6,7 @@ from typing import List
 import polars as pl
 
 
-class Preprocessor:
+class Processor:
 
     def __init__(self, features_to_drop: List):
         """Init.
@@ -57,94 +57,47 @@ class Preprocessor:
                 ]
             )
 
-        x = x.with_columns(
-            [
-                # FQDN
-                (pl.col("query").str.len_chars().alias("fqdn_full_count")),
-                (
-                    pl.col("query")
-                    .str.count_matches(r"[a-zA-Z]")
-                    .truediv(pl.col("query").str.len_chars())
-                ).alias("fqdn_alpha_count"),
-                (
-                    pl.col("query")
-                    .str.count_matches(r"[0-9]")
-                    .truediv(pl.col("query").str.len_chars())
-                ).alias("fqdn_numeric_count"),
-                (
-                    pl.col("query")
-                    .str.count_matches(r"[^\w\s]")
-                    .truediv(pl.col("query").str.len_chars())
-                ).alias("fqdn_special_count"),
-            ]
-        )
-
-        x = x.with_columns(
-            [
-                (
-                    pl.col("secondleveldomain")
-                    .str.len_chars()
-                    .truediv(pl.col("secondleveldomain").str.len_chars())
-                    .alias("secondleveldomain_full_count")
-                ),
-                (
-                    pl.col("secondleveldomain")
-                    .str.count_matches(r"[a-zA-Z]")
-                    .truediv(pl.col("secondleveldomain").str.len_chars())
-                ).alias("secondleveldomain_alpha_count"),
-                (
-                    pl.col("secondleveldomain")
-                    .str.count_matches(r"[0-9]")
-                    .truediv(pl.col("secondleveldomain").str.len_chars())
-                ).alias("secondleveldomain_numeric_count"),
-                (
-                    pl.col("secondleveldomain")
-                    .str.count_matches(r"[^\w\s]")
-                    .truediv(pl.col("secondleveldomain").str.len_chars())
-                ).alias("secondleveldomain_special_count"),
-            ]
-        )
-
-        x = x.with_columns(
-            [
-                (
-                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
-                    .then(pl.lit(0))
-                    .otherwise(
-                        pl.col("thirdleveldomain")
-                        .str.len_chars()
-                        .truediv(pl.col("thirdleveldomain").str.len_chars())
-                    )
-                ).alias("thirdleveldomain_full_count"),
-                (
-                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
-                    .then(pl.lit(0))
-                    .otherwise(
-                        pl.col("thirdleveldomain")
-                        .str.count_matches(r"[a-zA-Z]")
-                        .truediv(pl.col("thirdleveldomain").str.len_chars())
-                    )
-                ).alias("thirdleveldomain_alpha_count"),
-                (
-                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
-                    .then(pl.lit(0))
-                    .otherwise(
-                        pl.col("thirdleveldomain")
-                        .str.count_matches(r"[0-9]")
-                        .truediv(pl.col("thirdleveldomain").str.len_chars())
-                    )
-                ).alias("thirdleveldomain_numeric_count"),
-                (
-                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
-                    .then(pl.lit(0))
-                    .otherwise(
-                        pl.col("thirdleveldomain")
-                        .str.count_matches(r"[^\w\s]")
-                        .truediv(pl.col("thirdleveldomain").str.len_chars())
-                    )
-                ).alias("thirdleveldomain_special_count"),
-            ]
-        )
+        for level in ["thirdleveldomain", "secondleveldomain", "fqdn"]:
+            x = x.with_columns(
+                [
+                    (
+                        pl.when(pl.col(level).str.len_chars().eq(0))
+                        .then(pl.lit(0))
+                        .otherwise(
+                            pl.col(level)
+                            .str.len_chars()
+                            .truediv(pl.col(level).str.len_chars())
+                        )
+                    ).alias(f"{level}_full_count"),
+                    (
+                        pl.when(pl.col(level).str.len_chars().eq(0))
+                        .then(pl.lit(0))
+                        .otherwise(
+                            pl.col(level)
+                            .str.count_matches(r"[a-zA-Z]")
+                            .truediv(pl.col(level).str.len_chars())
+                        )
+                    ).alias(f"{level}_alpha_count"),
+                    (
+                        pl.when(pl.col(level).str.len_chars().eq(0))
+                        .then(pl.lit(0))
+                        .otherwise(
+                            pl.col(level)
+                            .str.count_matches(r"[0-9]")
+                            .truediv(pl.col(level).str.len_chars())
+                        )
+                    ).alias(f"{level}_numeric_count"),
+                    (
+                        pl.when(pl.col(level).str.len_chars().eq(0))
+                        .then(pl.lit(0))
+                        .otherwise(
+                            pl.col(level)
+                            .str.count_matches(r"[^\w\s]")
+                            .truediv(pl.col(level).str.len_chars())
+                        )
+                    ).alias(f"{level}_special_count"),
+                ]
+            )
 
         x = x.with_columns(
             [

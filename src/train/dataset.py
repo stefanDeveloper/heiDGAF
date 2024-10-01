@@ -1,3 +1,4 @@
+import glob
 import logging
 from dataclasses import dataclass
 from typing import Any, Callable, List
@@ -103,6 +104,18 @@ def cast_cic(data_path: List[str]):
     return pl.concat(dataframes)
 
 
+def cast_dgarchive(data_path: List[str]):
+    files = glob.glob("/home/smachmeier/Downloads/dgarchive/*.csv")
+    for file in files:
+        name = file.split("/")[-1].split(".")[0]
+        df = pl.read_csv(file, has_header=False, separator=",")
+        df = df.rename({"column_1": "query"})
+        df = df.select("query")
+        df = preprocess(df)
+        df = df.with_columns([pl.lit("1").alias("class")])
+        df.write_csv(f"dgarchive/data_{name}.csv", separator=",")
+
+
 def cast_dgta(data_path: str) -> pl.DataFrame:
     def __custom_decode(data):
         retL = [None] * len(data)
@@ -146,6 +159,10 @@ class DatasetLoader:
                 "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_spam.csv",
             ],
             cast_dataset=cast_cic,
+        )
+        self.dgarchive_data = Dataset(
+            data_path=["/home/smachmeier/Downloads/dgarchive/*.csv"],
+            cast_dataset=cast_dgarchive,
         )
 
     @property

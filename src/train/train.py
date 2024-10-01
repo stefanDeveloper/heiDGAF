@@ -13,7 +13,7 @@ from sklearn.metrics import classification_report
 
 sys.path.append(os.getcwd())
 from src.train.dataset import Dataset, DatasetLoader
-from src.train.feature import Preprocessor
+from src.train.feature import Processor
 from src.train.model import (
     Pipeline,
     random_forest_model,
@@ -36,7 +36,7 @@ class Model(str, Enum):
     XG_BOOST_RANDOM_FOREST_CLASSIFIER = "xg-rf"
 
 
-class DNSAnalyzerTraining:
+class DetectorTraining:
     def __init__(
         self, model: Model.RANDOM_FOREST_CLASSIFIER, dataset: Dataset = Dataset.ALL
     ) -> None:
@@ -91,7 +91,7 @@ class DNSAnalyzerTraining:
 
         # Training model
         model_pipeline = Pipeline(
-            preprocessor=Preprocessor(
+            preprocessor=Processor(
                 features_to_drop=[
                     "query",
                     "labels",
@@ -105,7 +105,7 @@ class DNSAnalyzerTraining:
             target_encoder=TargetEncoder(smoothing=100, features_to_encode=[]),
             clf=self.model,
         )
-        processor = Preprocessor(
+        processor = Processor(
             features_to_drop=[
                 "query",
                 "labels",

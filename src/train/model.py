@@ -14,7 +14,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from xgboost import XGBClassifier, XGBRFClassifier
 
 sys.path.append(os.getcwd())
-from src.train.feature import Preprocessor
+from src.train.feature import Processor
 
 
 class Pipeline:
@@ -22,7 +22,7 @@ class Pipeline:
 
     def __init__(
         self,
-        preprocessor: Preprocessor,
+        preprocessor: Processor,
         mean_imputer: Imputer,
         target_encoder: TargetEncoder,
         clf: Any,
