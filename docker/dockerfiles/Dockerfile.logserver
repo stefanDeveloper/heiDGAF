@@ -4,8 +4,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /usr/src/app
 
-COPY requirements/requirements.logcollector.txt ./
-RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.logcollector.txt
+COPY requirements/requirements.logserver.txt ./
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.logserver.txt
 
 COPY src/base ./src/base
 COPY src/logserver ./src/logserver

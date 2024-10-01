@@ -4,6 +4,8 @@ import os
 import queue
 import sys
 
+import aiofiles
+
 sys.path.append(os.getcwd())
 from src.base.kafka_handler import KafkaConsumeHandler
 from src.base.utils import setup_config
@@ -62,7 +64,8 @@ class LogServer:
             await asyncio.gather(
                 send_server.serve_forever(),
                 receive_server.serve_forever(),
-                self.handle_kafka_inputs()
+                self.handle_kafka_inputs(),
+                self.async_follow(),
             )
         except KeyboardInterrupt:
             logger.debug("Stop serving...")
@@ -111,6 +114,26 @@ class LogServer:
             key, value = await loop.run_in_executor(None, self.kafka_consume_handler.consume)
             logger.info(f"Received message via Kafka:\n    ⤷  {value}")
             self.data_queue.put(value)
+
+    async def async_follow(self, file: str = "/opt/file.txt"):
+        async with aiofiles.open(file, mode='r') as file:
+            # jump to end of file
+            await file.seek(0, 2)
+
+            while True:
+                lines = await file.readlines()
+                if not lines:
+                    await asyncio.sleep(0.1)
+                    continue
+
+                for line in lines:
+                    # remove empty lines
+                    cleaned_line = line.strip()
+                    if not cleaned_line:
+                        continue
+
+                    logger.info(f"Extracted message from file:\n    ⤷  {cleaned_line}")
+                    self.data_queue.put(cleaned_line)
 
     async def handle_send_logline(self, reader, writer):
         logger.debug("Calling handle_connection with sending=True...")
