@@ -1,12 +1,10 @@
-from datetime import datetime
-from enum import Enum, unique
+import importlib
 import json
 import logging
 import os
 import sys
-import importlib
-import numpy as np
-
+from datetime import datetime
+from enum import Enum, unique
 
 import numpy as np
 from streamad.util import StreamGenerator, CustomDS

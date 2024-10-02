@@ -18,15 +18,15 @@ jobs:
     name: Docker ${{ matrix.container }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-        fail-fast: false
-        matrix:
-            os: ["ubuntu-latest"]
-            container: ["detector",
-                        "inspector",
-                        "logcollector",
-                        "logserver",
-                        "prefilter"
-                        ]
+      fail-fast: false
+      matrix:
+        os: [ "ubuntu-latest" ]
+        container: [ "detector",
+                     "inspector",
+                     "logcollector",
+                     "logserver",
+                     "prefilter"
+        ]
     permissions:
       contents: read
       packages: write

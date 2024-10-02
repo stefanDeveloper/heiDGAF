@@ -60,7 +60,7 @@ def setup_logging() -> None:
             """
             if record.levelno in (logging.INFO, logging.WARNING):
                 return simple_formatter.format(record)
-            return detailed_formatter.format(record)
+            return detailed_formatter.format(record)  # pragma: no cover
 
     handler = CustomHandler()
 

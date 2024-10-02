@@ -30,19 +30,23 @@ class TestLoggingSetup(unittest.TestCase):
         self.logger.removeHandler(self.handler)
         self.log_stream.close()
 
-    @patch("builtins.open", new_callable=mock_open, read_data='logging:\n  debug: true\n')
+    @patch(
+        "builtins.open", new_callable=mock_open, read_data="logging:\n  debug: true\n"
+    )
     @patch("yaml.safe_load")
     def test_debug_logging_enabled(self, mock_yaml_load, mock_file):
-        mock_yaml_load.return_value = {'logging': {'debug': True}}
+        mock_yaml_load.return_value = {"logging": {"debug": True}}
 
         setup_logging()
 
         self.assertEqual(self.logger.level, logging.DEBUG)
 
-    @patch("builtins.open", new_callable=mock_open, read_data='logging:\n  debug: false\n')
+    @patch(
+        "builtins.open", new_callable=mock_open, read_data="logging:\n  debug: false\n"
+    )
     @patch("yaml.safe_load")
     def test_info_logging_enabled(self, mock_yaml_load, mock_file):
-        mock_yaml_load.return_value = {'logging': {'debug': False}}
+        mock_yaml_load.return_value = {"logging": {"debug": False}}
 
         setup_logging()
 
@@ -54,10 +58,12 @@ class TestLoggingSetup(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             setup_logging()
 
-    @patch("builtins.open", new_callable=mock_open, read_data='logging:\n  debug: true\n')
+    @patch(
+        "builtins.open", new_callable=mock_open, read_data="logging:\n  debug: true\n"
+    )
     @patch("yaml.safe_load")
     def test_handler_replacement(self, mock_yaml_load, mock_file):
-        mock_yaml_load.return_value = {'logging': {'debug': True}}
+        mock_yaml_load.return_value = {"logging": {"debug": True}}
 
         setup_logging()
 

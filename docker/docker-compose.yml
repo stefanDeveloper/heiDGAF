@@ -53,6 +53,8 @@ services:
         reservations:
           cpus: '1'
           memory: 256m
+    volumes:
+      - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
 
 
   inspector:
