@@ -94,7 +94,7 @@ class ListItem(FieldType):
         self.allowed_list = allowed_list
 
         if relevant_list and not all(e in allowed_list for e in relevant_list):
-            raise ValueError('Relevant types are not allowed types')
+            raise ValueError("Relevant types are not allowed types")
 
         self.relevant_list = relevant_list
 
@@ -137,7 +137,7 @@ class LoglineHandler:
         self.instances_by_position = {}
         self.number_of_fields = 0
 
-        for field in CONFIG['loglines']['fields']:
+        for field in CONFIG["loglines"]["fields"]:
             instance = self._create_instance_from_list_entry(field)
 
             if self.instances_by_name.get(instance.name):
@@ -171,7 +171,8 @@ class LoglineHandler:
         # check number of entries
         if len(parts) != self.number_of_fields:
             logger.warning(
-                f"Logline contains {len(parts)} value(s), not {self.number_of_fields}.")
+                f"Logline contains {len(parts)} value(s), not {self.number_of_fields}."
+            )
             return False
 
         valid_values = []
@@ -245,7 +246,9 @@ class LoglineHandler:
         for i in self.instances_by_position:
             current_instance = self.instances_by_position[i]
             if isinstance(current_instance, ListItem):
-                if not current_instance.check_relevance(logline_dict[current_instance.name]):
+                if not current_instance.check_relevance(
+                    logline_dict[current_instance.name]
+                ):
                     relevant = False
                     break
 
@@ -284,7 +287,9 @@ class LoglineHandler:
                 raise ValueError("Invalid ListItem parameters")
 
             relevant_list = field_list[3] if len_of_field_list == 4 else None
-            instance = cls(name=name, allowed_list=field_list[2], relevant_list=relevant_list)
+            instance = cls(
+                name=name, allowed_list=field_list[2], relevant_list=relevant_list
+            )
 
         elif cls_name == "IpAddress":
             if len_of_field_list != 2:

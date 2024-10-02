@@ -75,7 +75,7 @@ class TestFetchLogline(unittest.TestCase):
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("socket.socket")
     def test_fetch_logline_successful(
-            self, mock_socket, mock_batch_handler, mock_logger
+        self, mock_socket, mock_batch_handler, mock_logger
     ):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
         mock_socket_instance.connect.return_value = None
@@ -96,7 +96,7 @@ class TestFetchLogline(unittest.TestCase):
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("socket.socket")
     def test_fetch_logline_no_data_on_server(
-            self, mock_socket, mock_batch_handler, mock_logger
+        self, mock_socket, mock_batch_handler, mock_logger
     ):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
         mock_socket_instance.connect.return_value = None
@@ -117,7 +117,7 @@ class TestFetchLogline(unittest.TestCase):
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("socket.socket")
     def test_fetch_logline_connection_error(
-            self, mock_socket, mock_batch_handler, mock_logger
+        self, mock_socket, mock_batch_handler, mock_logger
     ):
         mock_socket_instance = mock_socket.return_value.__enter__.return_value
         mock_socket_instance.connect.side_effect = ConnectionError("Unable to connect")
@@ -142,7 +142,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_add_to_batch_with_data(
-            self, mock_logline_handler, mock_batch_handler, mock_get, mock_logger
+        self, mock_logline_handler, mock_batch_handler, mock_get, mock_logger
     ):
         mock_batch_handler_instance = MagicMock()
         mock_logline_handler_instance = MagicMock()
@@ -238,9 +238,9 @@ class TestMainFunction(unittest.TestCase):
 
         # Act
         with patch.object(
-                mock_collector_instance,
-                "fetch_logline",
-                side_effect=ValueError("Simulated ValueError"),
+            mock_collector_instance,
+            "fetch_logline",
+            side_effect=ValueError("Simulated ValueError"),
         ):
             main(one_iteration=True)
 

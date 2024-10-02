@@ -30,5 +30,5 @@ class TestClearData(unittest.TestCase):
         self.assertEqual(json_data_deserialized, json_data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

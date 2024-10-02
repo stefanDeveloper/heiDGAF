@@ -27,9 +27,9 @@ Install all Python requirements.
    $ python -m venv .venv
 
 .. code-block:: console
-   
+
    $ source .venv/bin/activate
-   
+
 .. code-block:: console
 
    (.venv) $ pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt

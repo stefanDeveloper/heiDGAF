@@ -11,7 +11,7 @@ class TestInit(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_valid_init(
-            self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+        self, mock_produce_handler, mock_consume_handler, mock_logline_handler
     ):
         sut = Prefilter()
 
@@ -36,11 +36,11 @@ class TestGetAndFillData(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_get_data_without_new_data(
-            self,
-            mock_produce_handler,
-            mock_consume_handler,
-            mock_logline_handler,
-            mock_logger,
+        self,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
     ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -65,11 +65,11 @@ class TestGetAndFillData(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_get_data_with_new_data(
-            self,
-            mock_produce_handler,
-            mock_consume_handler,
-            mock_logline_handler,
-            mock_logger,
+        self,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
     ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -98,11 +98,11 @@ class TestGetAndFillData(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_get_data_with_existing_data(
-            self,
-            mock_batch_handler,
-            mock_consume_handler,
-            mock_logline_handler,
-            mock_logger,
+        self,
+        mock_batch_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
     ):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
@@ -134,11 +134,11 @@ class TestFilterByError(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_filter_by_error_empty_data(
-            self,
-            mock_produce_handler,
-            mock_consume_handler,
-            mock_logline_handler,
-            mock_logger,
+        self,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
     ):
         sut = Prefilter()
         sut.unfiltered_data = []
@@ -152,11 +152,11 @@ class TestFilterByError(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_filter_by_error_with_data_no_error_types(
-            self,
-            mock_produce_handler,
-            mock_consume_handler,
-            mock_logline_handler,
-            mock_logger,
+        self,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
     ):
         first_entry = json.dumps(
             {
@@ -208,11 +208,11 @@ class TestFilterByError(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_filter_by_error_with_data_one_error_type(
-            self,
-            mock_produce_handler,
-            mock_consume_handler,
-            mock_logline_handler,
-            mock_logger,
+        self,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
     ):
         first_entry = json.dumps(
             {
@@ -264,11 +264,11 @@ class TestFilterByError(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_filter_by_error_with_data_two_error_types(
-            self,
-            mock_produce_handler,
-            mock_consume_handler,
-            mock_logline_handler,
-            mock_logger,
+        self,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
     ):
         first_entry = json.dumps(
             {
@@ -322,11 +322,11 @@ class TestSendFilteredData(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_send_with_data(
-            self,
-            mock_produce_handler,
-            mock_consume_handler,
-            mock_logline_handler,
-            mock_logger,
+        self,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
     ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -380,11 +380,11 @@ class TestSendFilteredData(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_send_without_filtered_data_with_unfiltered_data(
-            self,
-            mock_produce_handler,
-            mock_consume_handler,
-            mock_logline_handler,
-            mock_logger,
+        self,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
     ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -402,7 +402,7 @@ class TestSendFilteredData(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_send_without_data(
-            self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+        self, mock_produce_handler, mock_consume_handler, mock_logline_handler
     ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -421,7 +421,7 @@ class TestClearData(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_clear_data_with_data(
-            self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+        self, mock_produce_handler, mock_consume_handler, mock_logline_handler
     ):
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
@@ -456,7 +456,7 @@ class TestClearData(unittest.TestCase):
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
     def test_clear_data_without_data(
-            self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+        self, mock_produce_handler, mock_consume_handler, mock_logline_handler
     ):
         sut = Prefilter()
         sut.unfiltered_data = []
@@ -518,7 +518,7 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.Prefilter")
     async def test_main_kafka_message_fetch_exception(
-            self, mock_prefilter, mock_logger
+        self, mock_prefilter, mock_logger
     ):
         # Arrange
         mock_prefilter_instance = mock_prefilter.return_value

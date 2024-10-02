@@ -34,7 +34,10 @@ class TestRegEx(unittest.TestCase):
 
         # Assert
         self.assertEqual(name, sut.name)
-        self.assertEqual(re.compile('^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$'), sut.pattern)
+        self.assertEqual(
+            re.compile("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"),
+            sut.pattern,
+        )
 
     def test_validate_successful(self):
         # Arrange
@@ -99,7 +102,9 @@ class TestListItem(unittest.TestCase):
         relevant_list = [23]
 
         # Act
-        sut = ListItem(name=name, allowed_list=allowed_list, relevant_list=relevant_list)
+        sut = ListItem(
+            name=name, allowed_list=allowed_list, relevant_list=relevant_list
+        )
 
         # Assert
         self.assertEqual(name, sut.name)
@@ -114,14 +119,18 @@ class TestListItem(unittest.TestCase):
 
         # Act and Assert
         with self.assertRaises(ValueError):
-            sut = ListItem(name=name, allowed_list=allowed_list, relevant_list=relevant_list)
+            sut = ListItem(
+                name=name, allowed_list=allowed_list, relevant_list=relevant_list
+            )
 
     def test_validate_successful(self):
         # Arrange
         name = "test_name"
         allowed_list = ["test", 23, "another_test"]
         relevant_list = [23]
-        sut = ListItem(name=name, allowed_list=allowed_list, relevant_list=relevant_list)
+        sut = ListItem(
+            name=name, allowed_list=allowed_list, relevant_list=relevant_list
+        )
 
         # Act and Assert
         self.assertTrue(sut.validate("test"))
@@ -133,7 +142,9 @@ class TestListItem(unittest.TestCase):
         name = "test_name"
         allowed_list = ["test", 23, "another_test"]
         relevant_list = [23]
-        sut = ListItem(name=name, allowed_list=allowed_list, relevant_list=relevant_list)
+        sut = ListItem(
+            name=name, allowed_list=allowed_list, relevant_list=relevant_list
+        )
 
         # Act and Assert
         self.assertFalse(sut.validate("Test"))
@@ -144,7 +155,9 @@ class TestListItem(unittest.TestCase):
         name = "test_name"
         allowed_list = ["test", 23, "another_test", 48]
         relevant_list = [23, 48]
-        sut = ListItem(name=name, allowed_list=allowed_list, relevant_list=relevant_list)
+        sut = ListItem(
+            name=name, allowed_list=allowed_list, relevant_list=relevant_list
+        )
 
         # Act and Assert
         self.assertTrue(sut.check_relevance(23))
@@ -154,7 +167,9 @@ class TestListItem(unittest.TestCase):
         name = "test_name"
         allowed_list = ["test", 23, "another_test", 48]
         relevant_list = [23, 48]
-        sut = ListItem(name=name, allowed_list=allowed_list, relevant_list=relevant_list)
+        sut = ListItem(
+            name=name, allowed_list=allowed_list, relevant_list=relevant_list
+        )
 
         # Act and Assert
         self.assertFalse(sut.check_relevance("this_is_not_relevant"))
@@ -164,11 +179,13 @@ class TestListItem(unittest.TestCase):
         name = "test_name"
         allowed_list = ["test", 23, "another_test", 48]
         relevant_list = []
-        sut = ListItem(name=name, allowed_list=allowed_list, relevant_list=relevant_list)
+        sut = ListItem(
+            name=name, allowed_list=allowed_list, relevant_list=relevant_list
+        )
 
         # Act and Assert
         self.assertTrue(sut.check_relevance("this_is_not_relevant"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

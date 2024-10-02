@@ -79,15 +79,19 @@ class LogServer:
     async def handle_connection(self, reader, writer, sending: bool):
         logger.debug(f"Handling connection with {sending=}...")
         if self.number_of_connections < MAX_NUMBER_OF_CONNECTIONS:
-            logger.debug(f"Adding connection to {self.number_of_connections}/{MAX_NUMBER_OF_CONNECTIONS}) open "
-                         f"connections...")
+            logger.debug(
+                f"Adding connection to {self.number_of_connections}/{MAX_NUMBER_OF_CONNECTIONS}) open "
+                f"connections..."
+            )
             self.number_of_connections += 1
             client_address = writer.get_extra_info("peername")
             logger.debug(f"Connection from {client_address} accepted")
 
             try:
                 if sending:
-                    logger.debug("Sending active: Calling send_logline for next available logline...")
+                    logger.debug(
+                        "Sending active: Calling send_logline for next available logline..."
+                    )
                     await self.send_logline(writer, self.get_next_logline())
                 else:
                     logger.debug("Receiving: Calling receive_logline...")
@@ -112,12 +116,14 @@ class LogServer:
         loop = asyncio.get_running_loop()
 
         while True:
-            key, value = await loop.run_in_executor(None, self.kafka_consume_handler.consume)
+            key, value = await loop.run_in_executor(
+                None, self.kafka_consume_handler.consume
+            )
             logger.info(f"Received message via Kafka:\n    ⤷  {value}")
             self.data_queue.put(value)
 
     async def async_follow(self, file: str = READ_FROM_FILE):
-        async with aiofiles.open(file, mode='r') as file:
+        async with aiofiles.open(file, mode="r") as file:
             # jump to end of file
             await file.seek(0, 2)
 
