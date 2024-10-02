@@ -1,7 +1,11 @@
 import asyncio
+import os
+import tempfile
 import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import aiofiles
 
 from src.logserver.server import LogServer, main
 
@@ -68,8 +72,9 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.PORT_IN", 1234)
     @patch("src.logserver.server.PORT_OUT", 5678)
     @patch("src.logserver.server.LogServer.handle_kafka_inputs")
+    @patch("src.logserver.server.LogServer.async_follow")
     @patch("src.logserver.server.KafkaConsumeHandler")
-    async def test_open(self, mock_kafka_consume_handler, mock_handle_kafka, mock_logger):
+    async def test_open(self, mock_kafka_consume_handler, mock_follow, mock_handle_kafka, mock_logger):
         # Arrange
         sut = LogServer()
 
@@ -101,6 +106,7 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
             mock_send_server.wait_closed.assert_awaited_once()
             mock_receive_server.wait_closed.assert_awaited_once()
             mock_handle_kafka.assert_called_once()
+            mock_follow.assert_called_once()
 
     @patch('src.logserver.server.logger')
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
@@ -234,8 +240,9 @@ class TestHandleKafkaInputs(unittest.IsolatedAsyncioTestCase):
         self.sut.kafka_consume_handler = AsyncMock()
         self.sut.data_queue = MagicMock()
 
+    @patch('src.logserver.server.logger')
     @patch('asyncio.get_running_loop')
-    async def test_handle_kafka_inputs(self, mock_get_running_loop):
+    async def test_handle_kafka_inputs(self, mock_get_running_loop, mock_logger):
         mock_loop = AsyncMock()
         mock_get_running_loop.return_value = mock_loop
         self.sut.kafka_consume_handler.consume.return_value = ('key1', 'value1')
@@ -246,6 +253,43 @@ class TestHandleKafkaInputs(unittest.IsolatedAsyncioTestCase):
             await self.sut.handle_kafka_inputs()
 
         self.sut.data_queue.put.assert_called_once_with('value1')
+
+
+class TestAsyncFollow(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.sut = LogServer()
+        self.sut.kafka_consume_handler = AsyncMock()
+        self.sut.data_queue = MagicMock()
+
+    @patch('src.logserver.server.logger')
+    async def test_async_follow(self, mock_logger):
+        with tempfile.NamedTemporaryFile(delete=False, mode='w+', newline='') as temp_file:
+            temp_file_path = temp_file.name
+            temp_file.write("Test line 1\n\n  \nTest line 2  \n")
+            temp_file.flush()
+
+        try:
+            task = asyncio.create_task(
+                self.sut.async_follow(temp_file_path)
+            )
+
+            await asyncio.sleep(0.2)
+
+            async with aiofiles.open(temp_file_path, mode='a') as f:
+                await f.write("Test line 3\n\n")
+                await f.write("Test line 4\n")
+
+            await asyncio.sleep(0.2)
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        finally:
+            os.remove(temp_file_path)
+
+        self.sut.data_queue.put.assert_any_call("Test line 3")
+        self.sut.data_queue.put.assert_any_call("Test line 4")
 
 
 class TestHandleSendLogline(unittest.IsolatedAsyncioTestCase):
