@@ -19,6 +19,7 @@ heidgaf:
     port_out: 9999
     max_number_of_connections: 1000
     listen_on_topic: "LogServer"
+    read_from_file: "/opt/file.txt"
 
   inspector:
     mode: univariate # multivariate, ensemble

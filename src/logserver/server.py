@@ -21,6 +21,7 @@ PORT_IN = CONFIG["heidgaf"]["logserver"]["port_in"]
 PORT_OUT = CONFIG["heidgaf"]["logserver"]["port_out"]
 MAX_NUMBER_OF_CONNECTIONS = CONFIG["heidgaf"]["logserver"]["max_number_of_connections"]
 LISTEN_ON_TOPIC = CONFIG["heidgaf"]["logserver"]["listen_on_topic"]
+READ_FROM_FILE = CONFIG["heidgaf"]["logserver"]["read_from_file"]
 
 
 class LogServer:
@@ -115,7 +116,7 @@ class LogServer:
             logger.info(f"Received message via Kafka:\n    ⤷  {value}")
             self.data_queue.put(value)
 
-    async def async_follow(self, file: str = "/opt/file.txt"):
+    async def async_follow(self, file: str = READ_FROM_FILE):
         async with aiofiles.open(file, mode='r') as file:
             # jump to end of file
             await file.seek(0, 2)
