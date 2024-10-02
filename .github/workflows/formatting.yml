@@ -18,7 +18,7 @@ jobs:
     - name: Set up Python 3.8
       uses: actions/setup-python@v5.2.0
       with:
-        python-version: '3.10'
+        python-version: '3.11'
 
     - name: Get pip cache path
       id: get-pip-path
