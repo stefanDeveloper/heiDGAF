@@ -23,7 +23,7 @@ class TestInit(unittest.TestCase):
 
 
 class TestGetData(unittest.TestCase):
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_get_data_without_return_data(
@@ -48,7 +48,7 @@ class TestGetData(unittest.TestCase):
 
         self.assertEqual([], sut.messages)
 
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_get_data_with_return_data(
@@ -251,14 +251,16 @@ class TestDataFunction(unittest.TestCase):
 
 
 class TestInspectFunction(unittest.TestCase):
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     @patch(
         "src.inspector.inspector.MODELS",
         [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}],
     )
-    def test_inspect_univariate(self, mock_kafka_consume_handler, mock_produce_handler, mock_logger):
+    def test_inspect_univariate(
+            self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
         test_batch = Batch(
             begin_timestamp=datetime.now(),
             end_timestamp=datetime.now() + timedelta(0, 3),
@@ -278,7 +280,7 @@ class TestInspectFunction(unittest.TestCase):
         sut.inspect()
         self.assertIsNotNone(sut.anomalies)
 
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     @patch(
@@ -308,7 +310,7 @@ class TestInspectFunction(unittest.TestCase):
         sut.inspect()
         self.assertIsNotNone(sut.anomalies)
 
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     @patch(
@@ -327,7 +329,7 @@ class TestInspectFunction(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             sut.inspect()
 
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     @patch(
@@ -347,7 +349,7 @@ class TestInspectFunction(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             sut.inspect()
 
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     @patch(
@@ -382,7 +384,7 @@ class TestInspectFunction(unittest.TestCase):
 
 
 class TestMainFunction(unittest.TestCase):
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.Inspector")
     def test_main_loop_execution(self, mock_inspector, mock_logger):
         # Arrange
@@ -398,7 +400,7 @@ class TestMainFunction(unittest.TestCase):
         self.assertTrue(mock_inspector_instance.get_and_fill_data.called)
         self.assertTrue(mock_inspector_instance.clear_data.called)
 
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.Inspector")
     def test_main_io_error_handling(self, mock_inspector, mock_logger):
         # Arrange
@@ -417,7 +419,7 @@ class TestMainFunction(unittest.TestCase):
         self.assertTrue(mock_inspector_instance.clear_data.called)
         self.assertTrue(mock_inspector_instance.loop_exited)
 
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.Inspector")
     def test_main_value_error_handling(self, mock_inspector, mock_logger):
         # Arrange
@@ -435,7 +437,7 @@ class TestMainFunction(unittest.TestCase):
         self.assertTrue(mock_inspector_instance.clear_data.called)
         self.assertTrue(mock_inspector_instance.loop_exited)
 
-    @patch('src.inspector.inspector.logger')
+    @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.Inspector")
     def test_main_keyboard_interrupt(self, mock_inspector, mock_logger):
         # Arrange

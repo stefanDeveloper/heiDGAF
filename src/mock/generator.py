@@ -5,7 +5,6 @@ import sys
 import time
 
 sys.path.append(os.getcwd())
-from src.base import utils
 from src.base.log_config import setup_logging
 from src.mock.log_generator import generate_dns_log_line
 

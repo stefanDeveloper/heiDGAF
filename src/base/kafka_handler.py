@@ -11,6 +11,7 @@ import os
 import sys
 import time
 
+import marshmallow_dataclass
 from confluent_kafka import (
     Consumer,
     KafkaError,
@@ -18,7 +19,6 @@ from confluent_kafka import (
     Producer,
     TopicPartition,
 )
-import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
 from src.base import Batch

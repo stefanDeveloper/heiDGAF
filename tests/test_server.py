@@ -67,18 +67,20 @@ class TestInit(unittest.TestCase):
 
 
 class TestOpen(unittest.IsolatedAsyncioTestCase):
-    @patch('src.logserver.server.logger')
+    @patch("src.logserver.server.logger")
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
     @patch("src.logserver.server.PORT_IN", 1234)
     @patch("src.logserver.server.PORT_OUT", 5678)
     @patch("src.logserver.server.LogServer.handle_kafka_inputs")
     @patch("src.logserver.server.LogServer.async_follow")
     @patch("src.logserver.server.KafkaConsumeHandler")
-    async def test_open(self, mock_kafka_consume_handler, mock_follow, mock_handle_kafka, mock_logger):
+    async def test_open(
+            self, mock_kafka_consume_handler, mock_follow, mock_handle_kafka, mock_logger
+    ):
         # Arrange
         sut = LogServer()
 
-        with patch('asyncio.start_server', new_callable=AsyncMock) as mock_start_server:
+        with patch("asyncio.start_server", new_callable=AsyncMock) as mock_start_server:
             mock_send_server = MagicMock()
             mock_receive_server = MagicMock()
 
@@ -94,10 +96,10 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
 
             # Assert
             mock_start_server.assert_any_call(
-                sut.handle_send_logline, '127.0.0.1', 5678
+                sut.handle_send_logline, "127.0.0.1", 5678
             )
             mock_start_server.assert_any_call(
-                sut.handle_receive_logline, '127.0.0.1', 1234
+                sut.handle_receive_logline, "127.0.0.1", 1234
             )
             mock_send_server.serve_forever.assert_awaited_once()
             mock_receive_server.serve_forever.assert_awaited_once()
@@ -108,7 +110,7 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
             mock_handle_kafka.assert_called_once()
             mock_follow.assert_called_once()
 
-    @patch('src.logserver.server.logger')
+    @patch("src.logserver.server.logger")
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
     @patch("src.logserver.server.PORT_IN", 1234)
     @patch("src.logserver.server.PORT_OUT", 5678)
@@ -116,7 +118,7 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
         # Arrange
         sut = LogServer()
 
-        with patch('asyncio.start_server', new_callable=AsyncMock) as mock_start_server:
+        with patch("asyncio.start_server", new_callable=AsyncMock) as mock_start_server:
             mock_send_server = MagicMock()
             mock_receive_server = MagicMock()
 
@@ -181,9 +183,7 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
 
         writer.close.assert_called_once()
         writer.wait_closed.assert_awaited_once()
-        self.assertEqual(
-            5, server_instance.number_of_connections
-        )
+        self.assertEqual(5, server_instance.number_of_connections)
 
     async def test_handle_connection_increases_and_decreases_connections(self):
         server_instance = LogServer()
@@ -215,7 +215,7 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         writer.wait_closed.assert_awaited_once()
         self.assertEqual(0, server_instance.number_of_connections)
 
-    @patch('src.logserver.server.logger')
+    @patch("src.logserver.server.logger")
     @patch("src.logserver.server.MAX_NUMBER_OF_CONNECTIONS", 7)
     async def test_handle_connection_rejects_additional_connections(self, mock_logger):
         server_instance = LogServer()
@@ -229,9 +229,7 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
 
         writer.close.assert_called_once()
         writer.wait_closed.assert_awaited_once()
-        self.assertEqual(
-            7, server_instance.number_of_connections
-        )
+        self.assertEqual(7, server_instance.number_of_connections)
 
 
 class TestHandleKafkaInputs(unittest.IsolatedAsyncioTestCase):
@@ -240,19 +238,22 @@ class TestHandleKafkaInputs(unittest.IsolatedAsyncioTestCase):
         self.sut.kafka_consume_handler = AsyncMock()
         self.sut.data_queue = MagicMock()
 
-    @patch('src.logserver.server.logger')
-    @patch('asyncio.get_running_loop')
+    @patch("src.logserver.server.logger")
+    @patch("asyncio.get_running_loop")
     async def test_handle_kafka_inputs(self, mock_get_running_loop, mock_logger):
         mock_loop = AsyncMock()
         mock_get_running_loop.return_value = mock_loop
-        self.sut.kafka_consume_handler.consume.return_value = ('key1', 'value1')
+        self.sut.kafka_consume_handler.consume.return_value = ("key1", "value1")
 
-        mock_loop.run_in_executor.side_effect = [('key1', 'value1'), asyncio.CancelledError()]
+        mock_loop.run_in_executor.side_effect = [
+            ("key1", "value1"),
+            asyncio.CancelledError(),
+        ]
 
         with self.assertRaises(asyncio.CancelledError):
             await self.sut.handle_kafka_inputs()
 
-        self.sut.data_queue.put.assert_called_once_with('value1')
+        self.sut.data_queue.put.assert_called_once_with("value1")
 
 
 class TestAsyncFollow(unittest.IsolatedAsyncioTestCase):
@@ -261,21 +262,21 @@ class TestAsyncFollow(unittest.IsolatedAsyncioTestCase):
         self.sut.kafka_consume_handler = AsyncMock()
         self.sut.data_queue = MagicMock()
 
-    @patch('src.logserver.server.logger')
+    @patch("src.logserver.server.logger")
     async def test_async_follow(self, mock_logger):
-        with tempfile.NamedTemporaryFile(delete=False, mode='w+', newline='') as temp_file:
+        with tempfile.NamedTemporaryFile(
+                delete=False, mode="w+", newline=""
+        ) as temp_file:
             temp_file_path = temp_file.name
             temp_file.write("Test line 1\n\n  \nTest line 2  \n")
             temp_file.flush()
 
         try:
-            task = asyncio.create_task(
-                self.sut.async_follow(temp_file_path)
-            )
+            task = asyncio.create_task(self.sut.async_follow(temp_file_path))
 
             await asyncio.sleep(0.2)
 
-            async with aiofiles.open(temp_file_path, mode='a') as f:
+            async with aiofiles.open(temp_file_path, mode="a") as f:
                 await f.write("Test line 3\n\n")
                 await f.write("Test line 4\n")
 
@@ -321,7 +322,7 @@ class TestHandleReceiveLogline(unittest.IsolatedAsyncioTestCase):
 
 
 class TestSendLogline(unittest.IsolatedAsyncioTestCase):
-    @patch('src.logserver.server.logger')
+    @patch("src.logserver.server.logger")
     async def test_send_logline_with_logline(self, mock_logger):
         server_instance = LogServer()
         writer = AsyncMock()
@@ -344,7 +345,7 @@ class TestSendLogline(unittest.IsolatedAsyncioTestCase):
 
 
 class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
-    @patch('src.logserver.server.logger')
+    @patch("src.logserver.server.logger")
     async def test_receive_logline(self, mock_logger):
         reader = AsyncMock()
         data_queue = MagicMock()
@@ -377,9 +378,9 @@ class TestGetNextLogline(unittest.TestCase):
 
 
 class TestMainFunction(unittest.TestCase):
-    @patch('src.logserver.server.logger')
-    @patch('src.logserver.server.asyncio.run')
-    @patch('src.logserver.server.LogServer')
+    @patch("src.logserver.server.logger")
+    @patch("src.logserver.server.asyncio.run")
+    @patch("src.logserver.server.LogServer")
     def test_main(self, mock_log_server_class, mock_asyncio_run, mock_logger):
         # Arrange
         mock_server_instance = MagicMock()

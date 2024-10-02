@@ -7,11 +7,23 @@ from src.base.kafka_handler import KafkaProduceHandler
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     def test_init(self, mock_producer):
         mock_producer_instance = MagicMock()
@@ -30,12 +42,24 @@ class TestInit(unittest.TestCase):
         mock_producer.assert_called_once_with(expected_conf)
         mock_producer_instance.init_transactions.assert_called_once()
 
-    @patch('src.base.kafka_handler.logger')
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch("src.base.kafka_handler.logger")
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     def test_init_fail(self, mock_producer, mock_logger):
         mock_producer_instance = MagicMock()
@@ -46,8 +70,9 @@ class TestInit(unittest.TestCase):
             "transactional.id": "test_transactional_id",
         }
 
-        with patch.object(mock_producer_instance, 'init_transactions',
-                          side_effect=KafkaException):
+        with patch.object(
+                mock_producer_instance, "init_transactions", side_effect=KafkaException
+        ):
             with self.assertRaises(KafkaException):
                 sut = KafkaProduceHandler(transactional_id="test_transactional_id")
 
@@ -56,11 +81,23 @@ class TestInit(unittest.TestCase):
 
 
 class TestSend(unittest.TestCase):
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     @patch("src.base.kafka_handler.KafkaProduceHandler.commit_transaction_with_retry")
     @patch("src.base.kafka_handler.kafka_delivery_report")
@@ -85,11 +122,23 @@ class TestSend(unittest.TestCase):
         mock_commit_transaction_with_retry.assert_called_once()
         mock_producer_instance.begin_transaction.assert_called_once()
 
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     def test_send_with_empty_data_string(self, mock_producer):
         sut = KafkaProduceHandler(transactional_id="test_transactional_id")
@@ -99,12 +148,24 @@ class TestSend(unittest.TestCase):
         mock_producer.produce.assert_not_called()
         mock_producer.commit_transaction_with_retry.assert_not_called()
 
-    @patch('src.base.kafka_handler.logger')
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch("src.base.kafka_handler.logger")
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     @patch("src.base.kafka_handler.kafka_delivery_report")
     @patch("src.base.kafka_handler.KafkaProduceHandler.commit_transaction_with_retry")
@@ -137,11 +198,23 @@ class TestSend(unittest.TestCase):
 
 class TestCommitTransactionWithRetry(unittest.TestCase):
     # def test_commit_transaction_with_retry(self):
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
     def test_commit_successful(self, mock_sleep, mock_producer):
@@ -155,11 +228,23 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         mock_producer_instance.commit_transaction.assert_called_once()
         mock_sleep.assert_not_called()
 
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
     def test_commit_retries_then_successful(self, mock_sleep, mock_producer):
@@ -178,12 +263,24 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         self.assertEqual(mock_producer_instance.commit_transaction.call_count, 2)
         mock_sleep.assert_called_once_with(1.0)
 
-    @patch('src.base.kafka_handler.logger')
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch("src.base.kafka_handler.logger")
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
     def test_commit_retries_and_fails(self, mock_sleep, mock_producer, mock_logger):
@@ -203,11 +300,23 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         )
         self.assertEqual(mock_sleep.call_count, 3)
 
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     @patch("time.sleep", return_value=None)
     def test_commit_fails_with_other_exception(self, mock_sleep, mock_producer):
@@ -227,11 +336,23 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
 
 
 class TestDel(unittest.TestCase):
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Producer")
     def test_del(self, mock_producer):
         mock_producer_instance = MagicMock()
