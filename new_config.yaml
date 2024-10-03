@@ -1,0 +1,71 @@
+pipeline:
+  stage_1: # Log Storage
+    input_kafka_topic: "LogServer"
+    input_file: "/opt/file.txt"
+    max_number_of_server_connections: 1000
+    logging:
+      debug: false
+
+  stage_2: # Log Collection
+    logline_format:
+      - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
+      - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+      - [ "client_ip", IpAddress ]
+      - [ "dns_server_ip", IpAddress ]
+      - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+      - [ "record_type", ListItem, [ "A", "AAAA" ] ]
+      - [ "response_ip", IpAddress ]
+      - [ "size", RegEx, '^\d+b$' ]
+    batch_size: 1000
+    batch_timeout: 20.0
+    subnet:
+      subnet_bits: 24
+    logging:
+      debug: false
+
+  stage_3: # Log Filtering
+    logging:
+      debug: false
+
+  stage_4: # Data Inspection
+    inspector:
+      mode: univariate # multivariate, ensemble
+      # Only used when mode is set to ensemble
+      ensemble:
+        model: WeightEnsemble
+        module: streamad.process
+        model_args:
+      models:
+        - model: ZScoreDetector
+          module: streamad.model
+          model_args:
+            is_global: false
+      anomaly_threshold: 0.01
+      score_threshold: 0.5
+      time_type: ms
+      time_range: 20
+    logging:
+      debug: false
+
+  stage_5: # Data Analysis
+    detector:
+      model: xg # XGBoost
+      checksum: 21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b
+      base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+      threshold: 0.5
+    logging:
+      debug: false
+
+environment:
+  kafka_brokers:
+    - hostname: 172.27.0.3
+      port: 8097
+    - hostname: 172.27.0.4
+      port: 8098
+    - hostname: 172.27.0.5
+      port: 8099
+
+  logserver:
+    hostname: 172.27.0.8
+    port_in: 9998
+    port_out: 9999
