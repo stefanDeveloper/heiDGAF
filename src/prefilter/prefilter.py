@@ -1,19 +1,18 @@
 import ast
 import json
-import logging
 import os
 import sys
 
 sys.path.append(os.getcwd())
 from src.base.logline_handler import LoglineHandler
-from src.base.utils import setup_config
-from src.base.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException, KafkaProduceHandler
-from src.base.log_config import setup_logging
+from src.base.kafka_handler import (
+    KafkaConsumeHandler,
+    KafkaMessageFetchException,
+    KafkaProduceHandler,
+)
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
-
-CONFIG = setup_config()
+logger = get_logger("src.prefilter.prefilter")
 
 
 class Prefilter:
@@ -33,7 +32,7 @@ class Prefilter:
         logger.debug(f"Calling LoglineHandler()...")
         self.logline_handler = LoglineHandler()
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='prefilter')...")
-        self.kafka_produce_handler = KafkaProduceHandler(transactional_id='prefilter')
+        self.kafka_produce_handler = KafkaProduceHandler(transactional_id="prefilter")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Prefilter')...")
         self.kafka_consume_handler = KafkaConsumeHandler(topic="Prefilter")
         logger.debug("Initialized Prefilter.")
@@ -55,12 +54,16 @@ class Prefilter:
             self.unfiltered_data = data.get("data")
 
         if not self.unfiltered_data:
-            logger.info(f"Received message:\n"
-                        f"    ⤷  Empty data field: No unfiltered data available. subnet_id: '{self.subnet_id}'")
+            logger.info(
+                f"Received message:\n"
+                f"    ⤷  Empty data field: No unfiltered data available. subnet_id: '{self.subnet_id}'"
+            )
         else:
-            logger.info(f"Received message:\n"
-                        f"    ⤷  Contains data field of {len(self.unfiltered_data)} message(s) with "
-                        f"subnet_id: '{self.subnet_id}'.")
+            logger.info(
+                f"Received message:\n"
+                f"    ⤷  Contains data field of {len(self.unfiltered_data)} message(s) with "
+                f"subnet_id: '{self.subnet_id}'."
+            )
 
         logger.debug("Received consumer message as JSON data.")
         logger.debug(f"{data=}")
@@ -102,11 +105,15 @@ class Prefilter:
             data=json.dumps(data_to_send),
             key=self.subnet_id,
         )
-        logger.debug(f"Sent filtered data with time frame from {self.begin_timestamp} to {self.end_timestamp} and data"
-                     f" ({len(self.filtered_data)} message(s)).")
-        logger.info(f"Filtered data was successfully sent:\n"
-                    f"    ⤷  Contains data field of {len(self.filtered_data)} message(s). Originally: "
-                    f"{len(self.unfiltered_data)} message(s). Belongs to subnet_id '{self.subnet_id}'.")
+        logger.debug(
+            f"Sent filtered data with time frame from {self.begin_timestamp} to {self.end_timestamp} and data"
+            f" ({len(self.filtered_data)} message(s))."
+        )
+        logger.info(
+            f"Filtered data was successfully sent:\n"
+            f"    ⤷  Contains data field of {len(self.filtered_data)} message(s). Originally: "
+            f"{len(self.unfiltered_data)} message(s). Belongs to subnet_id '{self.subnet_id}'."
+        )
 
     def clear_data(self):
         """

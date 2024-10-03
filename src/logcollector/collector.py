@@ -1,6 +1,5 @@
 import ipaddress
 import json
-import logging
 import os
 import socket
 import sys
@@ -9,16 +8,15 @@ sys.path.append(os.getcwd())
 from src.base.logline_handler import LoglineHandler
 from src.base import utils
 from src.logcollector.batch_handler import CollectorKafkaBatchSender
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("src.logcollector.collector")
 
 config = utils.setup_config()
-LOGSERVER_HOSTNAME = config["heidgaf"]["logserver"]["hostname"]
-LOGSERVER_SENDING_PORT = config["heidgaf"]["logserver"]["port_out"]
-SUBNET_BITS = config["heidgaf"]["subnet"]["subnet_bits"]
-BATCH_SIZE = config["kafka"]["batch_sender"]["batch_size"]
+LOGSERVER_HOSTNAME = config["environment"]["logserver"]["hostname"]
+LOGSERVER_SENDING_PORT = config["environment"]["logserver"]["port_out"]
+SUBNET_BITS = config["pipeline"]["stage_2"]["subnet"]["subnet_bits"]
+BATCH_SIZE = config["pipeline"]["stage_2"]["batch_size"]
 
 
 class LogCollector:
@@ -42,9 +40,7 @@ class LogCollector:
             f"Calling CollectorKafkaBatchSender(transactional_id='collector')..."
         )
         self.batch_handler = CollectorKafkaBatchSender()
-        logger.debug(
-            f"Calling LoglineHandler()..."
-        )
+        logger.debug("Calling LoglineHandler()...")
         self.logline_handler = LoglineHandler()
         logger.debug("Initialized LogCollector.")
 
@@ -68,7 +64,9 @@ class LogCollector:
                 )
                 logger.debug("Connected to LogServer. Retrieving data...")
 
-                data = self.client_socket.recv(1024)  # loglines are at most ~150 bytes long
+                data = self.client_socket.recv(
+                    1024
+                )  # loglines are at most ~150 bytes long
 
                 if not data:
                     logger.debug("No data available on LogServer.")
@@ -90,11 +88,11 @@ class LogCollector:
         """
         logger.debug("Adding logline to batch...")
         if not self.logline:
-            raise ValueError(
-                "Failed to add logline to batch: No logline."
-            )
+            raise ValueError("Failed to add logline to batch: No logline.")
 
-        log_data = self.logline_handler.validate_logline_and_get_fields_as_json(self.logline)
+        log_data = self.logline_handler.validate_logline_and_get_fields_as_json(
+            self.logline
+        )
 
         logger.debug("Calling KafkaBatchSender to add message...")
         subnet_id = f"{utils.get_first_part_of_ipv4_address(ipaddress.ip_address(log_data.get('client_ip')), SUBNET_BITS)}_{SUBNET_BITS}"
@@ -131,9 +129,11 @@ def main(one_iteration: bool = False) -> None:
     """
     logger.info("Starting LogCollector...")
     collector = LogCollector()
-    logger.info("LogCollector started.\n"
-                "    ⤷  Fetching loglines from LogServer...\n"
-                "    ⤷  Data will be sent when the respective batch is full or the global timer runs out.")
+    logger.info(
+        "LogCollector started.\n"
+        "    ⤷  Fetching loglines from LogServer...\n"
+        "    ⤷  Data will be sent when the respective batch is full or the global timer runs out."
+    )
 
     iterations = 0
 

@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 import queue
 import sys
@@ -8,17 +7,18 @@ sys.path.append(os.getcwd())
 from src.base.kafka_handler import KafkaConsumeHandler
 from src.base.utils import setup_config
 from src.base import utils
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("src.logserver.server")
 
 CONFIG = setup_config()
-HOSTNAME = CONFIG["heidgaf"]["logserver"]["hostname"]
-PORT_IN = CONFIG["heidgaf"]["logserver"]["port_in"]
-PORT_OUT = CONFIG["heidgaf"]["logserver"]["port_out"]
-MAX_NUMBER_OF_CONNECTIONS = CONFIG["heidgaf"]["logserver"]["max_number_of_connections"]
-LISTEN_ON_TOPIC = CONFIG["heidgaf"]["logserver"]["listen_on_topic"]
+HOSTNAME = CONFIG["environment"]["logserver"]["hostname"]
+PORT_IN = CONFIG["environment"]["logserver"]["port_in"]
+PORT_OUT = CONFIG["environment"]["logserver"]["port_out"]
+MAX_NUMBER_OF_CONNECTIONS = CONFIG["pipeline"]["stage_1"][
+    "max_number_of_server_connections"
+]
+LISTEN_ON_TOPIC = CONFIG["pipeline"]["stage_1"]["input_kafka_topic"]
 
 
 class LogServer:
@@ -62,7 +62,7 @@ class LogServer:
             await asyncio.gather(
                 send_server.serve_forever(),
                 receive_server.serve_forever(),
-                self.handle_kafka_inputs()
+                self.handle_kafka_inputs(),
             )
         except KeyboardInterrupt:
             logger.debug("Stop serving...")
@@ -75,15 +75,19 @@ class LogServer:
     async def handle_connection(self, reader, writer, sending: bool):
         logger.debug(f"Handling connection with {sending=}...")
         if self.number_of_connections < MAX_NUMBER_OF_CONNECTIONS:
-            logger.debug(f"Adding connection to {self.number_of_connections}/{MAX_NUMBER_OF_CONNECTIONS}) open "
-                         f"connections...")
+            logger.debug(
+                f"Adding connection to {self.number_of_connections}/{MAX_NUMBER_OF_CONNECTIONS}) open "
+                f"connections..."
+            )
             self.number_of_connections += 1
             client_address = writer.get_extra_info("peername")
             logger.debug(f"Connection from {client_address} accepted")
 
             try:
                 if sending:
-                    logger.debug("Sending active: Calling send_logline for next available logline...")
+                    logger.debug(
+                        "Sending active: Calling send_logline for next available logline..."
+                    )
                     await self.send_logline(writer, self.get_next_logline())
                 else:
                     logger.debug("Receiving: Calling receive_logline...")
@@ -108,7 +112,9 @@ class LogServer:
         loop = asyncio.get_running_loop()
 
         while True:
-            key, value = await loop.run_in_executor(None, self.kafka_consume_handler.consume)
+            key, value = await loop.run_in_executor(
+                None, self.kafka_consume_handler.consume
+            )
             logger.info(f"Received message via Kafka:\n    ⤷  {value}")
             self.data_queue.put(value)
 

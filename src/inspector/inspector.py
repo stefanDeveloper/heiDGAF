@@ -1,12 +1,9 @@
-from datetime import datetime
-from enum import Enum, unique
+import importlib
 import json
-import logging
 import os
 import sys
-import importlib
-import numpy as np
-
+from datetime import datetime
+from enum import Enum, unique
 
 import numpy as np
 from streamad.util import StreamGenerator, CustomDS
@@ -18,20 +15,19 @@ from src.base.kafka_handler import (
     KafkaMessageFetchException,
     KafkaProduceHandler,
 )
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("src.inspector.inspector")
 
 config = setup_config()
-MODE = config["heidgaf"]["inspector"]["mode"]
-ENSEMBLE = config["heidgaf"]["inspector"]["ensemble"]
-MODELS = config["heidgaf"]["inspector"]["models"]
-ANOMALY_THRESHOLD = config["heidgaf"]["inspector"]["anomaly_threshold"]
-SCORE_THRESHOLD = config["heidgaf"]["inspector"]["score_threshold"]
-TIME_TYPE = config["heidgaf"]["inspector"]["time_type"]
-TIME_RANGE = config["heidgaf"]["inspector"]["time_range"]
-TIMESTAMP_FORMAT = config["heidgaf"]["timestamp_format"]
+MODE = config["pipeline"]["stage_4"]["inspector"]["mode"]
+ENSEMBLE = config["pipeline"]["stage_4"]["inspector"]["ensemble"]
+MODELS = config["pipeline"]["stage_4"]["inspector"]["models"]
+ANOMALY_THRESHOLD = config["pipeline"]["stage_4"]["inspector"]["anomaly_threshold"]
+SCORE_THRESHOLD = config["pipeline"]["stage_4"]["inspector"]["score_threshold"]
+TIME_TYPE = config["pipeline"]["stage_4"]["inspector"]["time_type"]
+TIME_RANGE = config["pipeline"]["stage_4"]["inspector"]["time_range"]
+TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 
 
 VALID_UNIVARIATE_MODELS = [

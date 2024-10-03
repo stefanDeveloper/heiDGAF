@@ -1,6 +1,5 @@
 import hashlib
 import json
-import logging
 import os
 import sys
 import tempfile
@@ -14,18 +13,17 @@ from src.base.kafka_handler import (
     KafkaConsumeHandler,
     KafkaMessageFetchException,
 )
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("src.detector.detector")
 
-BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+BUF_SIZE = 65536  # let's read stuff in 64kb chunks!
 
 config = setup_config()
-MODEL = config["heidgaf"]["detector"]["model"]
-CHECKSUM = config["heidgaf"]["detector"]["checksum"]
-MODEL_BASE_URL = config["heidgaf"]["detector"]["base_url"]
-THRESHOLD = config["heidgaf"]["detector"]["threshold"]
+MODEL = config["pipeline"]["stage_5"]["detector"]["model"]
+CHECKSUM = config["pipeline"]["stage_5"]["detector"]["checksum"]
+MODEL_BASE_URL = config["pipeline"]["stage_5"]["detector"]["base_url"]
+THRESHOLD = config["pipeline"]["stage_5"]["detector"]["threshold"]
 
 
 class WrongChecksum(Exception):  # pragma: no cover

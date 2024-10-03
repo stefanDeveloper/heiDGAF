@@ -1,16 +1,13 @@
-import logging
 import os
 import socket
 import sys
 import time
 
 sys.path.append(os.getcwd())
-from src.base import utils
-from src.base.log_config import setup_logging
 from src.mock.log_generator import generate_dns_log_line
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 if __name__ == "__main__":

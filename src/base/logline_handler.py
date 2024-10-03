@@ -1,13 +1,12 @@
-import logging
 import re
 
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 from src.base.utils import setup_config, validate_host
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 CONFIG = setup_config()
+LOGLINE_FIELDS = CONFIG["pipeline"]["stage_2"]["logline_format"]
 REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
 
 
@@ -137,7 +136,7 @@ class LoglineHandler:
         self.instances_by_position = {}
         self.number_of_fields = 0
 
-        for field in CONFIG['loglines']['fields']:
+        for field in LOGLINE_FIELDS:
             instance = self._create_instance_from_list_entry(field)
 
             if self.instances_by_name.get(instance.name):

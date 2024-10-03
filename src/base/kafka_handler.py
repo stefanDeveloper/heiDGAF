@@ -6,11 +6,11 @@ parts of which are similar to the code in this module.
 
 import ast
 import json
-import logging
 import os
 import sys
 import time
 
+import marshmallow_dataclass
 from confluent_kafka import (
     Consumer,
     KafkaError,
@@ -18,19 +18,18 @@ from confluent_kafka import (
     Producer,
     TopicPartition,
 )
-import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
 from src.base import Batch
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 from src.base.utils import kafka_delivery_report, setup_config
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger()
+
+CONSUMER_GROUP_ID = "consumer_group"
 
 config = setup_config()
-KAFKA_BROKERS = config["kafka"]["brokers"]
-CONSUMER_GROUP_ID = config["kafka"]["consumer"]["group_id"]
+KAFKA_BROKERS = config["environment"]["kafka_brokers"]
 
 
 class TooManyFailedAttemptsError(Exception):
