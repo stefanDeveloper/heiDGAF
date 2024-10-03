@@ -14,7 +14,7 @@ The following parameters control the logging behavior.
    * - modules
      - For each module, the ``debug`` field can be set to show debug-level logging messages.
 
-If a ``debug`` field is set to false, only info-level logging is shown. By default, all the fields are set to ``false``.
+If a ``debug`` field is set to ``false``, only info-level logging is shown. By default, all the fields are set to ``false``.
 
 
 Pipeline Configuration
