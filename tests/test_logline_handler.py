@@ -24,7 +24,11 @@ class TestInit(unittest.TestCase):
         ip_address_instance = MagicMock()
         ip_address_instance.name = "client_ip"
 
-        mock_create.side_effect = [regex_instance, list_item_instance, ip_address_instance]
+        mock_create.side_effect = [
+            regex_instance,
+            list_item_instance,
+            ip_address_instance,
+        ]
 
         expected_instances_by_name = {
             "timestamp": regex_instance,
@@ -64,7 +68,12 @@ class TestInit(unittest.TestCase):
         ip_address_instance = MagicMock()
         ip_address_instance.name = "client_ip"
 
-        mock_create.side_effect = [regex_1_instance, list_item_instance, regex_2_instance, ip_address_instance]
+        mock_create.side_effect = [
+            regex_1_instance,
+            list_item_instance,
+            regex_2_instance,
+            ip_address_instance,
+        ]
 
         # Act and Assert
         with self.assertRaises(ValueError) as context:
@@ -92,11 +101,14 @@ class TestInit(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             LoglineHandler()
 
-        self.assertEqual(str(context.exception), "Not all needed fields are set in the configuration")
+        self.assertEqual(
+            str(context.exception), "Not all needed fields are set in the configuration"
+        )
 
     @patch('src.base.logline_handler.REQUIRED_FIELDS', [])
     @patch('src.base.logline_handler.LOGLINE_FIELDS', [])
     @patch('src.base.logline_handler.LoglineHandler._create_instance_from_list_entry')
+
     def test_init_no_fields(self, mock_create):
         # Arrange
         mock_create.side_effect = []
@@ -202,9 +214,9 @@ class TestValidateLogline(unittest.TestCase):
         sut = LoglineHandler()
 
         # Act and Assert
-        self.assertFalse(sut.validate_logline(
-            "NXDOMAIN 2024-07-28T14:45:30.123Z 126.24.5.20"
-        ))
+        self.assertFalse(
+            sut.validate_logline("NXDOMAIN 2024-07-28T14:45:30.123Z 126.24.5.20")
+        )
 
 
 class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
@@ -256,7 +268,9 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
                 "NXDOMAIN 2024-07-28T14:45:30.123Z 126.24.5.20"
             )
 
-        self.assertEqual(str(context.exception), "Incorrect logline, validation unsuccessful")
+        self.assertEqual(
+            str(context.exception), "Incorrect logline, validation unsuccessful"
+        )
 
 
 class TestCheckRelevance(unittest.TestCase):
@@ -275,33 +289,54 @@ class TestCheckRelevance(unittest.TestCase):
 
     def test_check_relevant_value(self):
         # Act and Assert
-        self.assertTrue(self.sut.check_relevance(
-            {"timestamp": "2024-07-28T14:45:30.123Z", "status_code": "NXDOMAIN", "test_1": "123",
-             "client_ip": "10.0.0.4", "test_2": "TEST"}
-        ))
+        self.assertTrue(
+            self.sut.check_relevance(
+                {
+                    "timestamp": "2024-07-28T14:45:30.123Z",
+                    "status_code": "NXDOMAIN",
+                    "test_1": "123",
+                    "client_ip": "10.0.0.4",
+                    "test_2": "TEST",
+                }
+            )
+        )
 
     def test_check_irrelevant_value_1(self):
         # incorrect in all lists
         # Act and Assert
-        self.assertFalse(self.sut.check_relevance(
-            {"timestamp": "2024-07-28T14:45:30.123Z", "status_code": "NOERROR", "test_1": "123",
-             "client_ip": "10.0.0.4", "test_2": "789"}
-        ))
+        self.assertFalse(
+            self.sut.check_relevance(
+                {
+                    "timestamp": "2024-07-28T14:45:30.123Z",
+                    "status_code": "NOERROR",
+                    "test_1": "123",
+                    "client_ip": "10.0.0.4",
+                    "test_2": "789",
+                }
+            )
+        )
 
     def test_check_irrelevant_value_2(self):
         # correct in one list, but not all
         # Act and Assert
-        self.assertFalse(self.sut.check_relevance(
-            {"timestamp": "2024-07-28T14:45:30.123Z", "status_code": "NXDOMAIN", "test_1": "123",
-             "client_ip": "10.0.0.4", "test_2": "789"}
-        ))
+        self.assertFalse(
+            self.sut.check_relevance(
+                {
+                    "timestamp": "2024-07-28T14:45:30.123Z",
+                    "status_code": "NXDOMAIN",
+                    "test_1": "123",
+                    "client_ip": "10.0.0.4",
+                    "test_2": "789",
+                }
+            )
+        )
 
 
 class TestCreateInstanceFromListEntry(unittest.TestCase):
 
     def test_create_regex_instance(self):
         # Arrange
-        field_list = ["test_name", "RegEx", r'pattern']
+        field_list = ["test_name", "RegEx", r"pattern"]
 
         # Act
         instance = LoglineHandler._create_instance_from_list_entry(field_list)
@@ -309,11 +344,16 @@ class TestCreateInstanceFromListEntry(unittest.TestCase):
         # Assert
         self.assertIsInstance(instance, RegEx)
         self.assertEqual("test_name", instance.name)
-        self.assertEqual(re.compile('pattern'), instance.pattern)
+        self.assertEqual(re.compile("pattern"), instance.pattern)
 
     def test_create_list_item_instance(self):
         # Arrange
-        field_list = ["test_name", "ListItem", ["item1", "item2", "rel1", "rel2"], ["rel1", "rel2"]]
+        field_list = [
+            "test_name",
+            "ListItem",
+            ["item1", "item2", "rel1", "rel2"],
+            ["rel1", "rel2"],
+        ]
 
         # Act
         instance = LoglineHandler._create_instance_from_list_entry(field_list)
@@ -401,5 +441,5 @@ class TestCreateInstanceFromListEntry(unittest.TestCase):
         self.assertEqual(str(context.exception), "Invalid ListItem parameters")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

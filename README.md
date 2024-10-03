@@ -56,7 +56,7 @@
 
 ## About the Project
 
-![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/add-readthedocs-logo/docs/media/pipeline_overview.png?raw=true)
+![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/pipeline_overview.png?raw=true)
 
 ## Getting Started
 
@@ -66,7 +66,7 @@ If you want to use heiDGAF, just use the provided Docker compose to quickly boot
 docker compose -f docker/docker-compose.yml up
 ```
 
-![Terminal example](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/add-readthedocs-logo/assets/terminal_example.gif?raw=true)
+![Terminal example](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true)
 
 ### Developing
 
@@ -79,7 +79,7 @@ Install all Python requirements:
 python -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt
+pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
 ```
 
 Now, you can start each stage, e.g. the inspector:

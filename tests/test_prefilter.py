@@ -10,7 +10,9 @@ class TestInit(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_valid_init(self, mock_produce_handler, mock_consume_handler, mock_logline_handler):
+    def test_valid_init(
+            self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+    ):
         sut = Prefilter()
 
         self.assertIsNone(sut.begin_timestamp)
@@ -29,17 +31,25 @@ class TestInit(unittest.TestCase):
 
 
 class TestGetAndFillData(unittest.TestCase):
-    @patch('src.prefilter.prefilter.logger')
+    @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_get_data_without_new_data(self, mock_produce_handler, mock_consume_handler, mock_logline_handler,
-                                       mock_logger):
+    def test_get_data_without_new_data(
+            self,
+            mock_produce_handler,
+            mock_consume_handler,
+            mock_logline_handler,
+            mock_logger,
+    ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = None, {}
+        mock_consume_handler_instance.consume_and_return_json_data.return_value = (
+            None,
+            {},
+        )
 
         sut = Prefilter()
         sut.get_and_fill_data()
@@ -50,21 +60,29 @@ class TestGetAndFillData(unittest.TestCase):
 
         mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
 
-    @patch('src.prefilter.prefilter.logger')
+    @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_get_data_with_new_data(self, mock_produce_handler, mock_consume_handler, mock_logline_handler,
-                                    mock_logger):
+    def test_get_data_with_new_data(
+            self,
+            mock_produce_handler,
+            mock_consume_handler,
+            mock_logline_handler,
+            mock_logger,
+    ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = "127.0.0.0/24", {
-            "begin_timestamp": "2024-05-21T08:31:28.119Z",
-            "end_timestamp": "2024-05-21T08:31:29.432Z",
-            "data": ["test_data_1", "test_data_2"],
-        }
+        mock_consume_handler_instance.consume_and_return_json_data.return_value = (
+            "127.0.0.0/24",
+            {
+                "begin_timestamp": "2024-05-21T08:31:28.119Z",
+                "end_timestamp": "2024-05-21T08:31:29.432Z",
+                "data": ["test_data_1", "test_data_2"],
+            },
+        )
 
         sut = Prefilter()
         sut.get_and_fill_data()
@@ -75,21 +93,29 @@ class TestGetAndFillData(unittest.TestCase):
 
         mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
 
-    @patch('src.prefilter.prefilter.logger')
+    @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_get_data_with_existing_data(self, mock_batch_handler, mock_consume_handler, mock_logline_handler,
-                                         mock_logger):
+    def test_get_data_with_existing_data(
+            self,
+            mock_batch_handler,
+            mock_consume_handler,
+            mock_logline_handler,
+            mock_logger,
+    ):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = "127.0.0.0/24", {
-            "begin_timestamp": "2024-05-21T08:31:28.119Z",
-            "end_timestamp": "2024-05-21T08:31:29.432Z",
-            "data": ["test_data_1", "test_data_2"],
-        }
+        mock_consume_handler_instance.consume_and_return_json_data.return_value = (
+            "127.0.0.0/24",
+            {
+                "begin_timestamp": "2024-05-21T08:31:28.119Z",
+                "end_timestamp": "2024-05-21T08:31:29.432Z",
+                "data": ["test_data_1", "test_data_2"],
+            },
+        )
 
         sut = Prefilter()
         sut.unfiltered_data = ["old_test_data_1", "old_test_data_2"]
@@ -103,12 +129,17 @@ class TestGetAndFillData(unittest.TestCase):
 
 
 class TestFilterByError(unittest.TestCase):
-    @patch('src.prefilter.prefilter.logger')
+    @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_filter_by_error_empty_data(self, mock_produce_handler, mock_consume_handler, mock_logline_handler,
-                                        mock_logger):
+    def test_filter_by_error_empty_data(
+            self,
+            mock_produce_handler,
+            mock_consume_handler,
+            mock_logline_handler,
+            mock_logger,
+    ):
         sut = Prefilter()
         sut.unfiltered_data = []
 
@@ -116,42 +147,53 @@ class TestFilterByError(unittest.TestCase):
 
         self.assertEqual([], sut.filtered_data)
 
-    @patch('src.prefilter.prefilter.logger')
+    @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_filter_by_error_with_data_no_error_types(self, mock_produce_handler, mock_consume_handler,
-                                                      mock_logline_handler, mock_logger):
-        first_entry = json.dumps({
-            "timestamp": "2024-05-21T08:31:28.119Z",
-            "status_code": "NOERROR",
-            "client_ip": "192.168.0.105",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.heidelberg-botanik.de",
-            "record_type": "A",
-            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-            "size": "150b",
-        })
-        second_entry = json.dumps({
-            "timestamp": "2024-06-01T02:31:07.943Z",
-            "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.biotech-hei.com",
-            "record_type": "AAAA",
-            "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
-            "size": "117b",
-        })
-        third_entry = json.dumps({
-            "timestamp": "2024-06-01T01:37:41.796Z",
-            "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.heidelberg-stadtbibliothek.de",
-            "record_type": "A",
-            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-            "size": "150b",
-        })
+    def test_filter_by_error_with_data_no_error_types(
+            self,
+            mock_produce_handler,
+            mock_consume_handler,
+            mock_logline_handler,
+            mock_logger,
+    ):
+        first_entry = json.dumps(
+            {
+                "timestamp": "2024-05-21T08:31:28.119Z",
+                "status_code": "NOERROR",
+                "client_ip": "192.168.0.105",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.heidelberg-botanik.de",
+                "record_type": "A",
+                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+                "size": "150b",
+            }
+        )
+        second_entry = json.dumps(
+            {
+                "timestamp": "2024-06-01T02:31:07.943Z",
+                "status_code": "NXDOMAIN",
+                "client_ip": "192.168.1.206",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.biotech-hei.com",
+                "record_type": "AAAA",
+                "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
+                "size": "117b",
+            }
+        )
+        third_entry = json.dumps(
+            {
+                "timestamp": "2024-06-01T01:37:41.796Z",
+                "status_code": "NXDOMAIN",
+                "client_ip": "192.168.1.206",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.heidelberg-stadtbibliothek.de",
+                "record_type": "A",
+                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+                "size": "150b",
+            }
+        )
 
         sut = Prefilter()
         sut.unfiltered_data = [first_entry, second_entry, third_entry]
@@ -161,42 +203,53 @@ class TestFilterByError(unittest.TestCase):
 
         self.assertEqual([], sut.filtered_data)
 
-    @patch('src.prefilter.prefilter.logger')
+    @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_filter_by_error_with_data_one_error_type(self, mock_produce_handler, mock_consume_handler,
-                                                      mock_logline_handler, mock_logger):
-        first_entry = json.dumps({
-            "timestamp": "2024-05-21T08:31:28.119Z",
-            "status_code": "NOERROR",
-            "client_ip": "192.168.0.105",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.heidelberg-botanik.de",
-            "record_type": "A",
-            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-            "size": "150b",
-        })
-        second_entry = json.dumps({
-            "timestamp": "2024-06-01T02:31:07.943Z",
-            "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.biotech-hei.com",
-            "record_type": "AAAA",
-            "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
-            "size": "117b",
-        })
-        third_entry = json.dumps({
-            "timestamp": "2024-06-01T01:37:41.796Z",
-            "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.heidelberg-stadtbibliothek.de",
-            "record_type": "A",
-            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-            "size": "150b",
-        })
+    def test_filter_by_error_with_data_one_error_type(
+            self,
+            mock_produce_handler,
+            mock_consume_handler,
+            mock_logline_handler,
+            mock_logger,
+    ):
+        first_entry = json.dumps(
+            {
+                "timestamp": "2024-05-21T08:31:28.119Z",
+                "status_code": "NOERROR",
+                "client_ip": "192.168.0.105",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.heidelberg-botanik.de",
+                "record_type": "A",
+                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+                "size": "150b",
+            }
+        )
+        second_entry = json.dumps(
+            {
+                "timestamp": "2024-06-01T02:31:07.943Z",
+                "status_code": "NXDOMAIN",
+                "client_ip": "192.168.1.206",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.biotech-hei.com",
+                "record_type": "AAAA",
+                "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
+                "size": "117b",
+            }
+        )
+        third_entry = json.dumps(
+            {
+                "timestamp": "2024-06-01T01:37:41.796Z",
+                "status_code": "NXDOMAIN",
+                "client_ip": "192.168.1.206",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.heidelberg-stadtbibliothek.de",
+                "record_type": "A",
+                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+                "size": "150b",
+            }
+        )
 
         sut = Prefilter()
         sut.unfiltered_data = [first_entry, second_entry, third_entry]
@@ -206,42 +259,53 @@ class TestFilterByError(unittest.TestCase):
 
         self.assertEqual([second_entry, third_entry], sut.filtered_data)
 
-    @patch('src.prefilter.prefilter.logger')
+    @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_filter_by_error_with_data_two_error_types(self, mock_produce_handler, mock_consume_handler,
-                                                       mock_logline_handler, mock_logger):
-        first_entry = json.dumps({
-            "timestamp": "2024-05-21T08:31:28.119Z",
-            "status_code": "NOERROR",
-            "client_ip": "192.168.0.105",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.heidelberg-botanik.de",
-            "record_type": "A",
-            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-            "size": "150b",
-        })
-        second_entry = json.dumps({
-            "timestamp": "2024-06-01T02:31:07.943Z",
-            "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.biotech-hei.com",
-            "record_type": "AAAA",
-            "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
-            "size": "117b",
-        })
-        third_entry = json.dumps({
-            "timestamp": "2024-06-01T01:37:41.796Z",
-            "status_code": "OTHER_TYPE",
-            "client_ip": "192.168.1.206",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.heidelberg-stadtbibliothek.de",
-            "record_type": "A",
-            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-            "size": "150b",
-        })
+    def test_filter_by_error_with_data_two_error_types(
+            self,
+            mock_produce_handler,
+            mock_consume_handler,
+            mock_logline_handler,
+            mock_logger,
+    ):
+        first_entry = json.dumps(
+            {
+                "timestamp": "2024-05-21T08:31:28.119Z",
+                "status_code": "NOERROR",
+                "client_ip": "192.168.0.105",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.heidelberg-botanik.de",
+                "record_type": "A",
+                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+                "size": "150b",
+            }
+        )
+        second_entry = json.dumps(
+            {
+                "timestamp": "2024-06-01T02:31:07.943Z",
+                "status_code": "NXDOMAIN",
+                "client_ip": "192.168.1.206",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.biotech-hei.com",
+                "record_type": "AAAA",
+                "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
+                "size": "117b",
+            }
+        )
+        third_entry = json.dumps(
+            {
+                "timestamp": "2024-06-01T01:37:41.796Z",
+                "status_code": "OTHER_TYPE",
+                "client_ip": "192.168.1.206",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.heidelberg-stadtbibliothek.de",
+                "record_type": "A",
+                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+                "size": "150b",
+            }
+        )
 
         sut = Prefilter()
         sut.unfiltered_data = [first_entry, second_entry, third_entry]
@@ -253,11 +317,17 @@ class TestFilterByError(unittest.TestCase):
 
 
 class TestSendFilteredData(unittest.TestCase):
-    @patch('src.prefilter.prefilter.logger')
+    @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_send_with_data(self, mock_produce_handler, mock_consume_handler, mock_logline_handler, mock_logger):
+    def test_send_with_data(
+            self,
+            mock_produce_handler,
+            mock_consume_handler,
+            mock_logline_handler,
+            mock_logger,
+    ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
@@ -300,15 +370,22 @@ class TestSendFilteredData(unittest.TestCase):
         sut.send_filtered_data()
 
         mock_produce_handler_instance.send.assert_called_once_with(
-            topic="Inspect", data=expected_message, key="192.168.1.0_24",
+            topic="Inspect",
+            data=expected_message,
+            key="192.168.1.0_24",
         )
 
-    @patch('src.prefilter.prefilter.logger')
+    @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_send_without_filtered_data_with_unfiltered_data(self, mock_produce_handler, mock_consume_handler,
-                                                             mock_logline_handler, mock_logger):
+    def test_send_without_filtered_data_with_unfiltered_data(
+            self,
+            mock_produce_handler,
+            mock_consume_handler,
+            mock_logline_handler,
+            mock_logger,
+    ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
@@ -324,7 +401,9 @@ class TestSendFilteredData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_send_without_data(self, mock_produce_handler, mock_consume_handler, mock_logline_handler):
+    def test_send_without_data(
+            self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+    ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
@@ -341,7 +420,9 @@ class TestClearData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_clear_data_with_data(self, mock_produce_handler, mock_consume_handler, mock_logline_handler):
+    def test_clear_data_with_data(
+            self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+    ):
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status": "NOERROR",
@@ -374,7 +455,9 @@ class TestClearData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.KafkaConsumeHandler")
     @patch("src.prefilter.prefilter.KafkaProduceHandler")
-    def test_clear_data_without_data(self, mock_produce_handler, mock_consume_handler, mock_logline_handler):
+    def test_clear_data_without_data(
+            self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+    ):
         sut = Prefilter()
         sut.unfiltered_data = []
         sut.filtered_data = []
@@ -385,8 +468,8 @@ class TestClearData(unittest.TestCase):
 
 
 class TestMainFunction(unittest.IsolatedAsyncioTestCase):
-    @patch('src.prefilter.prefilter.logger')
-    @patch('src.prefilter.prefilter.Prefilter')
+    @patch("src.prefilter.prefilter.logger")
+    @patch("src.prefilter.prefilter.Prefilter")
     async def test_main_normal_flow(self, mock_prefilter, mock_logger):
         # Arrange
         mock_prefilter_instance = mock_prefilter.return_value
@@ -404,8 +487,8 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
         mock_prefilter_instance.send_filtered_data.assert_called()
         mock_prefilter_instance.clear_data.assert_called()
 
-    @patch('src.prefilter.prefilter.logger')
-    @patch('src.prefilter.prefilter.Prefilter')
+    @patch("src.prefilter.prefilter.logger")
+    @patch("src.prefilter.prefilter.Prefilter")
     async def test_main_ioerror(self, mock_prefilter, mock_logger):
         # Arrange
         mock_prefilter_instance = mock_prefilter.return_value
@@ -418,8 +501,8 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
 
         mock_prefilter_instance.clear_data.assert_called()
 
-    @patch('src.prefilter.prefilter.logger')
-    @patch('src.prefilter.prefilter.Prefilter')
+    @patch("src.prefilter.prefilter.logger")
+    @patch("src.prefilter.prefilter.Prefilter")
     async def test_main_valueerror(self, mock_prefilter, mock_logger):
         # Arrange
         mock_prefilter_instance = mock_prefilter.return_value
@@ -432,13 +515,17 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
         # Assert
         mock_prefilter_instance.clear_data.assert_called()
 
-    @patch('src.prefilter.prefilter.logger')
-    @patch('src.prefilter.prefilter.Prefilter')
-    async def test_main_kafka_message_fetch_exception(self, mock_prefilter, mock_logger):
+    @patch("src.prefilter.prefilter.logger")
+    @patch("src.prefilter.prefilter.Prefilter")
+    async def test_main_kafka_message_fetch_exception(
+            self, mock_prefilter, mock_logger
+    ):
         # Arrange
         mock_prefilter_instance = mock_prefilter.return_value
         mock_prefilter_instance.clear_data.return_value = MagicMock()
-        mock_prefilter_instance.get_and_fill_data.side_effect = KafkaMessageFetchException
+        mock_prefilter_instance.get_and_fill_data.side_effect = (
+            KafkaMessageFetchException
+        )
 
         # Act
         main(one_iteration=True)
@@ -446,8 +533,8 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
         # Assert
         mock_prefilter_instance.clear_data.assert_called()
 
-    @patch('src.prefilter.prefilter.logger')
-    @patch('src.prefilter.prefilter.Prefilter')
+    @patch("src.prefilter.prefilter.logger")
+    @patch("src.prefilter.prefilter.Prefilter")
     async def test_main_keyboard_interrupt(self, mock_prefilter, mock_logger):
         # Arrange
         mock_prefilter_instance = mock_prefilter.return_value
