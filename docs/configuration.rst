@@ -124,6 +124,11 @@ functionality of the modules.
      - 0.5
      - TODO
 
+Environment Configuration
+.........................
+
+The following parameters control the infrastructure of the software.
+
 .. list-table:: ``environment`` Parameters
    :header-rows: 1
    :widths: 15 15 50
