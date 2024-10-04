@@ -10,13 +10,15 @@ from src.base import utils
 from src.logcollector.batch_handler import CollectorKafkaBatchSender
 from src.base.log_config import get_logger
 
-logger = get_logger("src.logcollector.collector")
+logger = get_logger("log_collection.collector")
 
 config = utils.setup_config()
 LOGSERVER_HOSTNAME = config["environment"]["logserver"]["hostname"]
 LOGSERVER_SENDING_PORT = config["environment"]["logserver"]["port_out"]
-SUBNET_BITS = config["pipeline"]["stage_2"]["subnet"]["subnet_bits"]
-BATCH_SIZE = config["pipeline"]["stage_2"]["batch_size"]
+SUBNET_BITS = config["pipeline"]["log_collection"]["batch_handler"]["subnet"][
+    "subnet_bits"
+]
+BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 
 
 class LogCollector:

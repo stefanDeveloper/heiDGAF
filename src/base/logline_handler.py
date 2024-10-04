@@ -6,7 +6,7 @@ from src.base.utils import setup_config, validate_host
 logger = get_logger()
 
 CONFIG = setup_config()
-LOGLINE_FIELDS = CONFIG["pipeline"]["stage_2"]["logline_format"]
+LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["logline_format"]
 REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
 
 

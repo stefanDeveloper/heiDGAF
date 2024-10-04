@@ -11,17 +11,17 @@ from src.base.utils import setup_config
 from src.base import utils
 from src.base.log_config import get_logger
 
-logger = get_logger("src.logserver.server")
+logger = get_logger("log_storage.logserver")
 
 CONFIG = setup_config()
 HOSTNAME = CONFIG["environment"]["logserver"]["hostname"]
 PORT_IN = CONFIG["environment"]["logserver"]["port_in"]
 PORT_OUT = CONFIG["environment"]["logserver"]["port_out"]
-MAX_NUMBER_OF_CONNECTIONS = CONFIG["pipeline"]["stage_1"][
-    "max_number_of_server_connections"
+MAX_NUMBER_OF_CONNECTIONS = CONFIG["pipeline"]["log_storage"]["logserver"][
+    "max_number_of_connections"
 ]
-LISTEN_ON_TOPIC = CONFIG["pipeline"]["stage_1"]["input_kafka_topic"]
-READ_FROM_FILE = CONFIG["pipeline"]["stage_1"]["input_file"]
+LISTEN_ON_TOPIC = CONFIG["pipeline"]["log_storage"]["logserver"]["input_kafka_topic"]
+READ_FROM_FILE = CONFIG["pipeline"]["log_storage"]["logserver"]["input_file"]
 
 
 class LogServer:

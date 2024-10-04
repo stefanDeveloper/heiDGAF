@@ -12,7 +12,7 @@ from src.base.kafka_handler import (
 )
 from src.base.log_config import get_logger
 
-logger = get_logger("src.prefilter.prefilter")
+logger = get_logger("log_filtering.prefilter")
 
 
 class Prefilter:

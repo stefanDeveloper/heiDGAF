@@ -2,41 +2,44 @@ logging:
   base:
     debug: false
   modules:
-    src.logserver.server:
+    log_storage.logserver:
       debug: false
-    src.logcollector.batch_handler:
+    log_collection.collector:
       debug: false
-    src.logcollector.collector:
+    log_collection.batch_handler:
       debug: false
-    src.prefilter.prefilter:
+    log_filtering.prefilter:
       debug: false
-    src.inspector.inspector:
+    data_inspection.inspector:
       debug: false
-    src.detector.detector:
+    data_analysis.detector:
       debug: false
 
 pipeline:
-  stage_1: # Log Storage
-    input_kafka_topic: "LogServer"
-    input_file: "/opt/file.txt"
-    max_number_of_server_connections: 1000
+  log_storage:
+    logserver:
+      input_kafka_topic: "LogServer"
+      input_file: "/opt/file.txt"
+      max_number_of_connections: 1000
 
-  stage_2: # Log Collection
-    logline_format:
-      - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
-      - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
-      - [ "client_ip", IpAddress ]
-      - [ "dns_server_ip", IpAddress ]
-      - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
-      - [ "record_type", ListItem, [ "A", "AAAA" ] ]
-      - [ "response_ip", IpAddress ]
-      - [ "size", RegEx, '^\d+b$' ]
-    batch_size: 1000
-    batch_timeout: 20.0
-    subnet:
-      subnet_bits: 24
+  log_collection:
+    collector:
+      logline_format:
+        - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
+        - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+        - [ "client_ip", IpAddress ]
+        - [ "dns_server_ip", IpAddress ]
+        - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+        - [ "record_type", ListItem, [ "A", "AAAA" ] ]
+        - [ "response_ip", IpAddress ]
+        - [ "size", RegEx, '^\d+b$' ]
+    batch_handler:
+      batch_size: 1000
+      batch_timeout: 20.0
+      subnet:
+        subnet_bits: 24
 
-  stage_4: # Data Inspection
+  data_inspection:
     inspector:
       mode: univariate # multivariate, ensemble
       # Only used when mode is set to ensemble
@@ -54,7 +57,7 @@ pipeline:
       time_type: ms
       time_range: 20
 
-  stage_5: # Data Analysis
+  data_analysis:
     detector:
       model: xg # XGBoost
       checksum: 21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b

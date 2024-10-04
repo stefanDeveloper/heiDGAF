@@ -15,15 +15,15 @@ from src.base.kafka_handler import (
 )
 from src.base.log_config import get_logger
 
-logger = get_logger("src.detector.detector")
+logger = get_logger("data_analysis.detector")
 
 BUF_SIZE = 65536  # let's read stuff in 64kb chunks!
 
 config = setup_config()
-MODEL = config["pipeline"]["stage_5"]["detector"]["model"]
-CHECKSUM = config["pipeline"]["stage_5"]["detector"]["checksum"]
-MODEL_BASE_URL = config["pipeline"]["stage_5"]["detector"]["base_url"]
-THRESHOLD = config["pipeline"]["stage_5"]["detector"]["threshold"]
+MODEL = config["pipeline"]["data_analysis"]["detector"]["model"]
+CHECKSUM = config["pipeline"]["data_analysis"]["detector"]["checksum"]
+MODEL_BASE_URL = config["pipeline"]["data_analysis"]["detector"]["base_url"]
+THRESHOLD = config["pipeline"]["data_analysis"]["detector"]["threshold"]
 
 
 class WrongChecksum(Exception):  # pragma: no cover

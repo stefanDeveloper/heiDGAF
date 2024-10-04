@@ -10,11 +10,11 @@ from src.base.utils import setup_config
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
 
-logger = get_logger("src.logcollector.batch_handler")
+logger = get_logger("log_collection.batch_handler")
 
 config = setup_config()
-BATCH_SIZE = config["pipeline"]["stage_2"]["batch_size"]
-BATCH_TIMEOUT = config["pipeline"]["stage_2"]["batch_timeout"]
+BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
+BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
 
 
 class BufferedBatch:

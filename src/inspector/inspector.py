@@ -17,16 +17,16 @@ from src.base.kafka_handler import (
 )
 from src.base.log_config import get_logger
 
-logger = get_logger("src.inspector.inspector")
+logger = get_logger("data_inspection.inspector")
 
 config = setup_config()
-MODE = config["pipeline"]["stage_4"]["inspector"]["mode"]
-ENSEMBLE = config["pipeline"]["stage_4"]["inspector"]["ensemble"]
-MODELS = config["pipeline"]["stage_4"]["inspector"]["models"]
-ANOMALY_THRESHOLD = config["pipeline"]["stage_4"]["inspector"]["anomaly_threshold"]
-SCORE_THRESHOLD = config["pipeline"]["stage_4"]["inspector"]["score_threshold"]
-TIME_TYPE = config["pipeline"]["stage_4"]["inspector"]["time_type"]
-TIME_RANGE = config["pipeline"]["stage_4"]["inspector"]["time_range"]
+MODE = config["pipeline"]["data_inspection"]["inspector"]["mode"]
+ENSEMBLE = config["pipeline"]["data_inspection"]["inspector"]["ensemble"]
+MODELS = config["pipeline"]["data_inspection"]["inspector"]["models"]
+ANOMALY_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["anomaly_threshold"]
+SCORE_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["score_threshold"]
+TIME_TYPE = config["pipeline"]["data_inspection"]["inspector"]["time_type"]
+TIME_RANGE = config["pipeline"]["data_inspection"]["inspector"]["time_range"]
 TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 
 
