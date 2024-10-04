@@ -51,6 +51,14 @@
     <img src="https://img.shields.io/github/actions/workflow/status/stefanDeveloper/heiDGAF/build_test_windows.yml?branch=main&logo=windows&style=for-the-badge&label=windows" alt="Windows WorkFlows" />
     </a>
   </td>
+  <tr>
+    <td>Coverage</td>
+    <td>
+      <a href="https://github.com/stefanDeveloper/heiDGAF/actions/workflows/test_coverage.yml">
+        <img src="https://heibox.uni-heidelberg.de/d/804c3af0ae564aa89436/files/?p=%2Fcoverage_33-add-test-coverage-to-readme.svg&dl=1" alt="Code Coverage" />
+      </a>
+    </td>
+  </tr>
 </tr>
 </table>
 
