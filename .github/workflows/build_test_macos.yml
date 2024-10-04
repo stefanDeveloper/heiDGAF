@@ -26,29 +26,15 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-        # Caching improves build time, we use pythonLocation to cache everything including wheels to avoid building
-        # wheels at each build (pandas/Pypy is extremely time consuming)
-        # sed replacement is performed to rectify PyPy path which ends with /bin
-        # cache key takes into account the Python version of the runner to avoid version mismatch on updates.
-      - name: Get pip cache path
-        id: get-pip-path
-        run: |
-          id=$(echo ${{ env.pythonLocation }} | sed 's/\/bin//g')
-          echo "name=id::$id" >> $GITHUB_OUTPUT
-
-      - name: Pip cache
-        uses: actions/cache@v3
-        id: pip-cache
-        with:
-          path: ${{ steps.get-pip-path.outputs.id }}
-          key: ${{ steps.get-pip-path.outputs.id }}-${{ hashFiles('setup.py') }}-${{ hashFiles('requirements/requirements-dev.txt') }}-${{ hashFiles('requirements/requirements-logcollector.txt') }}-${{ hashFiles('requirements/requirements-detector.txt') }}-${{ hashFiles('requirements/requirements-prefilter.txt') }}-${{ hashFiles('requirements/requirements-inspector.txt') }}-${{ hashFiles('requirements/requirements-logserver.txt') }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements/requirements.*.txt
 
       - name: Install requirements
-        if: steps.pip-cache.outputs.cache-hit != 'true'
         run: |
           python -m pip install --upgrade pip
           python -m pip install pyyaml
-          python -m pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
+          python -m pip install -r requirements/requirements.dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
 
       - name: Test
         if: startsWith(matrix.os, 'macos') && !startsWith(github.ref, 'refs/tags/')

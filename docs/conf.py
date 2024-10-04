@@ -43,7 +43,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.autosectionlabel",
     "sphinxcontrib.bibtex",
-    "sphinx.ext.mathjax"
+    "sphinx.ext.mathjax",
 ]
 
 # Napoleon settings

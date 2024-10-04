@@ -60,8 +60,8 @@ class EnsembleModels(str, Enum):
 
 
 class Inspector:
-    """Finds anomalies in a batch of requests and produces it to the ``Detector``.
-    """
+    """Finds anomalies in a batch of requests and produces it to the ``Detector``."""
+
     def __init__(self) -> None:
         self.key = None
         self.topic = "Collector"
