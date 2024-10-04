@@ -23,55 +23,72 @@ Pipeline Configuration
 The following parameters control the behavior of each stage of the heiDGAF pipeline, including the
 functionality of the modules.
 
-.. list-table:: ``pipeline.stage_1`` Parameters
+``pipeline.log_storage``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table:: ``logserver`` Parameters
    :header-rows: 1
-   :widths: 15 15 50
+   :widths: 30 20 50
 
    * - Parameter
      - Default Value
      - Description
-   * - input_kafka_topic
-     - ``"/opt/file.txt"``
-     - File name of a file to which new log lines are appended continuously. If no such file should be used, keep the default setting. If Docker is used, also keep this setting unchanged. Instead, the ``docker/.env`` variable ``MOUNT_PATH`` must be changed.
    * - input_kafka_topic
      - ``"LogServer"``
-     - Topic on which the :class:`LogServer` checks for incoming log lines via Kafka.
-   * - max_number_of_server_connections
-     - 1000
-     - Maximum number of simultaneous connections that the :class:`LogServer` allows for both sending and receiving.
+     - Kafka topic for incoming log lines.
+   * - input_file
+     - ``"/opt/file.txt"``
+     - File for appending new log lines continuously.
 
-.. list-table:: ``pipeline.stage_2`` Parameters
+       Keep this setting unchanged if using Docker; modify the ``MOUNT_PATH`` in ``docker/.env`` instead.
+   * - max_number_of_connections
+     - ``1000``
+     - Maximum number of simultaneous connections for sending and receiving.
+
+``pipeline.log_collection``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table:: ``collector`` Parameters
    :header-rows: 1
-   :widths: 15 15 50
+   :widths: 30 70
+
+   * - Parameter
+     - Description
+   * - logline_format
+     - Defines the expected format for incoming log lines. See the TODO section for more details.
+
+.. list-table:: ``batch_handler`` Parameters
+   :header-rows: 1
+   :widths: 30 20 50
 
    * - Parameter
      - Default Value
      - Description
-   * - logline_format
-     - TODO
-     - TODO
    * - batch_size
-     - 1000
+     - ``1000``
      - TODO
    * - batch_timeout
-     - 20.0
+     - ``20.0``
      - TODO
    * - subnet.subnet_bits
-     - 24
-     - The number of bits, after which to cut off the client’s IPv4 address to use as `subnet_id`.
+     - ``24``
+     - The number of bits to trim from the client's IPv4 address for use as ``subnet_id``.
 
-.. list-table:: ``pipeline.stage_4.inspector`` Parameters
+``pipeline.data_inspection``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table:: ``inspector`` Parameters
    :header-rows: 1
-   :widths: 15 15 50
+   :widths: 30 20 50
 
    * - Parameter
      - Default Value
      - Description
    * - mode
-     - univariate
+     - ``univariate``
      - TODO
    * - ensemble.model
-     - WeightEnsemble
+     - ``WeightEnsemble``
      - TODO
    * - ensemble.module
      - ``streamad.process``
@@ -80,7 +97,7 @@ functionality of the modules.
      -
      - TODO
    * - models.model
-     - ZScoreDetector
+     - ``ZScoreDetector``
      - TODO
    * - models.module
      - ``streamad.model``
@@ -92,36 +109,39 @@ functionality of the modules.
      - ``false``
      - TODO
    * - anomaly_threshold
-     - 0.01
+     - ``0.01``
      - TODO
    * - score_threshold
-     - 0.5
+     - ``0.5``
      - TODO
    * - time_type
-     - ms
+     - ``ms``
      - TODO
    * - time_range
-     - 20
+     - ``20``
      - TODO
 
-.. list-table:: ``pipeline.stage_5.detector`` Parameters
+``pipeline.data_analysis``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table:: ``detector`` Parameters
    :header-rows: 1
-   :widths: 15 15 50
+   :widths: 30 20 50
 
    * - Parameter
      - Default Value
      - Description
    * - model
-     - xg
+     - ``xg``
      - TODO
    * - checksum
-     - 21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b
+     -
      - TODO
    * - base_url
      - https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
      - TODO
    * - threshold
-     - 0.5
+     - ``0.5``
      - TODO
 
 Environment Configuration
