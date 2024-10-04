@@ -44,13 +44,13 @@ jobs:
         id: pip-cache
         with:
           path: ${{ steps.get-pip-path.outputs.id }}
-          key: ${{ steps.get-pip-path.outputs.id }}-${{ hashFiles('setup.py') }}-${{ hashFiles('requirements/requirements-dev.txt') }}-${{ hashFiles('requirements/requirements-logcollector.txt') }}-${{ hashFiles('requirements/requirements-detector.txt') }}-${{ hashFiles('requirements/requirements-prefilter.txt') }}-${{ hashFiles('requirements/requirements-inspector.txt') }}-${{ hashFiles('requirements/requirements-logserver.txt') }}
+          key: ${{ steps.get-pip-path.outputs.id }}-${{ hashFiles('setup.py') }}-${{ hashFiles('requirements/requirements.dev.txt') }}-${{ hashFiles('requirements/requirements.logcollector.txt') }}-${{ hashFiles('requirements/requirements.detector.txt') }}-${{ hashFiles('requirements/requirements.prefilter.txt') }}-${{ hashFiles('requirements/requirements.inspector.txt') }}-${{ hashFiles('requirements/requirements.logserver.txt') }}
 
       - name: Install requirements
         if: steps.pip-cache.outputs.cache-hit != 'true'
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements/requirements-dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
+          python -m pip install -r requirements/requirements.dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
 
       - name: Test
         run: |

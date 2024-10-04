@@ -36,7 +36,7 @@ def setup_config():
 
 
 def validate_host(
-        host: int | str | bytes | ipaddress.IPv4Address | ipaddress.IPv6Address
+    host: int | str | bytes | ipaddress.IPv4Address | ipaddress.IPv6Address,
 ) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
     """
     Checks if the given host is a valid IP address. If it is, the IP address is returned with IP address type.
@@ -99,7 +99,9 @@ def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
         )
 
 
-def get_first_part_of_ipv4_address(address: ipaddress.IPv4Address, length: int) -> ipaddress.IPv4Address:
+def get_first_part_of_ipv4_address(
+    address: ipaddress.IPv4Address, length: int
+) -> ipaddress.IPv4Address:
     """
     Returns the first part of an IPv4 address, the rest is filled with 0. For example:
     >>> get_first_part_of_ipv4_address(ipaddress.IPv4Address("255.255.255.255"), 23)
@@ -118,9 +120,9 @@ def get_first_part_of_ipv4_address(address: ipaddress.IPv4Address, length: int) 
         raise ValueError("Invalid length. Must be between 0 and 32.")
 
     if isinstance(address, ipaddress.IPv4Address):
-        binary_string = ''.join(format(byte, '08b') for byte in address.packed)
+        binary_string = "".join(format(byte, "08b") for byte in address.packed)
         first_part_binary = binary_string[:length]
-        first_part_binary_padded = first_part_binary.ljust(32, '0')
+        first_part_binary_padded = first_part_binary.ljust(32, "0")
         first_part_address = ipaddress.IPv4Address(int(first_part_binary_padded, 2))
     else:
         raise ValueError("Invalid IP address format")

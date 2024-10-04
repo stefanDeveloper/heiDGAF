@@ -71,7 +71,7 @@ class TestInit(unittest.TestCase):
         }
 
         with patch.object(
-                mock_producer_instance, "init_transactions", side_effect=KafkaException
+            mock_producer_instance, "init_transactions", side_effect=KafkaException
         ):
             with self.assertRaises(KafkaException):
                 sut = KafkaProduceHandler(transactional_id="test_transactional_id")
@@ -102,10 +102,10 @@ class TestSend(unittest.TestCase):
     @patch("src.base.kafka_handler.KafkaProduceHandler.commit_transaction_with_retry")
     @patch("src.base.kafka_handler.kafka_delivery_report")
     def test_send_with_data(
-            self,
-            mock_kafka_delivery_report,
-            mock_commit_transaction_with_retry,
-            mock_producer,
+        self,
+        mock_kafka_delivery_report,
+        mock_commit_transaction_with_retry,
+        mock_producer,
     ):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
@@ -170,11 +170,11 @@ class TestSend(unittest.TestCase):
     @patch("src.base.kafka_handler.kafka_delivery_report")
     @patch("src.base.kafka_handler.KafkaProduceHandler.commit_transaction_with_retry")
     def test_send_fail(
-            self,
-            mock_commit_transaction_with_retry,
-            mock_kafka_delivery_report,
-            mock_producer,
-            mock_logger,
+        self,
+        mock_commit_transaction_with_retry,
+        mock_kafka_delivery_report,
+        mock_producer,
+        mock_logger,
     ):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance

@@ -373,9 +373,9 @@ Stage 4: Inspection
 Overview
 --------
 
-The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage is essentiell to reduce 
-the load on the `Detection` stage. 
-Otherwise, resource complexity would increase disproportionately. 
+The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage is essentiell to reduce
+the load on the `Detection` stage.
+Otherwise, resource complexity would increase disproportionately.
 
 Main Class
 ----------
@@ -390,7 +390,7 @@ Usage
 -----
 
 The :class:`Inspector` loads the StreamAD model to perform anomaly detection.
-It consumes batches on the topic ``inspect``, usually produced by the ``Prefilter``. 
+It consumes batches on the topic ``inspect``, usually produced by the ``Prefilter``.
 For a new batch, it derives the timestamps ``begin_timestamp`` and ``end_timestamp``.
 Based on time type (e.g. ``s``, ``ms``) and time range (e.g. ``5``) the sliding non-overlapping window is created.
 For univariate time-series, it counts the number of occurances, whereas for multivariate, it considers the packet size. :cite:`schuppen_fanci_2018`
@@ -462,4 +462,3 @@ Configuration
 -------------
 
 In case you want to load self-trained models, the :class:`Detector` needs a URL path, model name, and SHA256 checksum to download the model during start-up.
-

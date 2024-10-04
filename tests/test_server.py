@@ -75,7 +75,7 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.LogServer.async_follow")
     @patch("src.logserver.server.KafkaConsumeHandler")
     async def test_open(
-            self, mock_kafka_consume_handler, mock_follow, mock_handle_kafka, mock_logger
+        self, mock_kafka_consume_handler, mock_follow, mock_handle_kafka, mock_logger
     ):
         # Arrange
         sut = LogServer()
@@ -265,7 +265,7 @@ class TestAsyncFollow(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.logger")
     async def test_async_follow(self, mock_logger):
         with tempfile.NamedTemporaryFile(
-                delete=False, mode="w+", newline=""
+            delete=False, mode="w+", newline=""
         ) as temp_file:
             temp_file_path = temp_file.name
             temp_file.write("Test line 1\n\n  \nTest line 2  \n")

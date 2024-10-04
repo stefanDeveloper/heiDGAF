@@ -10,11 +10,23 @@ CONSUMER_GROUP_ID = "test_group_id"
 
 class TestInit(unittest.TestCase):
     @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Consumer")
     def test_init(self, mock_consumer):
         mock_consumer_instance = MagicMock()
@@ -35,13 +47,25 @@ class TestInit(unittest.TestCase):
         mock_consumer.assert_called_once_with(expected_conf)
         mock_consumer_instance.assign.assert_called_once()
 
-    @patch('src.base.kafka_handler.logger')
+    @patch("src.base.kafka_handler.logger")
     @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Consumer")
     def test_init_fail(self, mock_consumer, mock_logger):
         mock_consumer_instance = MagicMock()
@@ -55,8 +79,7 @@ class TestInit(unittest.TestCase):
             "enable.partition.eof": True,
         }
 
-        with patch.object(mock_consumer_instance, 'assign',
-                          side_effect=KafkaException):
+        with patch.object(mock_consumer_instance, "assign", side_effect=KafkaException):
             with self.assertRaises(KafkaException):
                 sut = KafkaConsumeHandler(topic="test_topic")
 
@@ -68,11 +91,23 @@ class TestInit(unittest.TestCase):
 
 class TestDel(unittest.TestCase):
     @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Consumer")
     def test_del_with_existing_consumer(self, mock_consumer):
         # Arrange
@@ -89,11 +124,23 @@ class TestDel(unittest.TestCase):
         mock_consumer_instance.close.assert_called_once()
 
     @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
-    @patch("src.base.kafka_handler.KAFKA_BROKERS", [
-        {'hostname': '127.0.0.1', 'port': 9999, },
-        {'hostname': '127.0.0.2', 'port': 9998, },
-        {'hostname': '127.0.0.3', 'port': 9997, },
-    ])
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
     @patch("src.base.kafka_handler.Consumer")
     def test_del_with_existing_consumer(self, mock_consumer):
         # Arrange

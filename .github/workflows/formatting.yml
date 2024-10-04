@@ -1,0 +1,41 @@
+name: pre-commit
+
+on:
+    push:
+        branches:
+        - main
+    pull_request:
+        branches:
+        - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4.2.0
+
+    - name: Setup py-3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements/requirements.*.txt
+
+    - name: Install requirements
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements/requirements.dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
+
+    - name: Cache pre-commit hooks
+      uses: actions/cache@v4.0.2
+      with:
+        path: ~/.cache/pre-commit
+        key: ${{ runner.os }}-precommit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+    - name: Install pre-commit
+      run: pip install pre-commit
+
+    - name: Run pre-commit
+      run: pre-commit run --all-files

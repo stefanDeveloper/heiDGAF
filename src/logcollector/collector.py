@@ -56,7 +56,7 @@ class LogCollector:
         logger.debug("Fetching new logline from LogServer...")
         try:
             with socket.socket(
-                    socket.AF_INET, socket.SOCK_STREAM
+                socket.AF_INET, socket.SOCK_STREAM
             ) as self.client_socket:
                 logger.debug(
                     f"Trying to connect to LogServer ({self.log_server['host']}:{self.log_server['port']})..."

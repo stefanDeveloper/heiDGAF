@@ -74,7 +74,9 @@ class BufferedBatch:
         return 0
 
     @staticmethod
-    def sort_messages(data: list[tuple[str, str]], timestamp_format: str = "%Y-%m-%dT%H:%M:%S.%fZ") -> list[str]:
+    def sort_messages(
+        data: list[tuple[str, str]], timestamp_format: str = "%Y-%m-%dT%H:%M:%S.%fZ"
+    ) -> list[str]:
         """
         Sorts the given list of loglines by their respective timestamps, in ascending order.
 
@@ -87,13 +89,17 @@ class BufferedBatch:
         Returns:
             List of log lines as strings sorted by timestamps (ascending)
         """
-        sorted_data = sorted(data, key=lambda x: datetime.strptime(x[0], timestamp_format))
+        sorted_data = sorted(
+            data, key=lambda x: datetime.strptime(x[0], timestamp_format)
+        )
         loglines = [message for _, message in sorted_data]
 
         return loglines
 
     @staticmethod
-    def extract_tuples_from_json_formatted_strings(data: list[str]) -> list[tuple[str, str]]:
+    def extract_tuples_from_json_formatted_strings(
+        data: list[str],
+    ) -> list[tuple[str, str]]:
         """
         Args:
             data (list[str]): Input list of strings to be prepared
@@ -163,7 +169,9 @@ class BufferedBatch:
             key (str): Key for which to sort entries
         """
         if key in self.buffer:
-            self.buffer[key] = self.sort_messages(self.extract_tuples_from_json_formatted_strings(self.buffer[key]))
+            self.buffer[key] = self.sort_messages(
+                self.extract_tuples_from_json_formatted_strings(self.buffer[key])
+            )
 
     def sort_batch(self, key: str):
         """
@@ -173,7 +181,9 @@ class BufferedBatch:
             key (str): Key for which to sort entries
         """
         if key in self.batch:
-            self.batch[key] = self.sort_messages(self.extract_tuples_from_json_formatted_strings(self.batch[key]))
+            self.batch[key] = self.sort_messages(
+                self.extract_tuples_from_json_formatted_strings(self.batch[key])
+            )
 
     def complete_batch(self, key: str) -> dict:
         """
@@ -217,7 +227,9 @@ class BufferedBatch:
 
         if self.buffer:  # Variant 3: Only buffer has entries
             logger.debug("Variant 3: Only buffer has entries.")
-            logger.debug("Deleting buffer data (has no influence on analysis since it was too long ago)...")
+            logger.debug(
+                "Deleting buffer data (has no influence on analysis since it was too long ago)..."
+            )
             del self.buffer[key]
         else:  # Variant 4: No data exists
             logger.debug("Variant 4: No data exists. Nothing to send.")
@@ -284,10 +296,14 @@ class CollectorKafkaBatchSender:
         number_of_messages_for_key = self.batch.get_number_of_messages(key)
 
         if number_of_messages_for_key >= BATCH_SIZE:
-            logger.debug(f"Batch for {key=} is full. Calling _send_batch_for_key({key})...")
+            logger.debug(
+                f"Batch for {key=} is full. Calling _send_batch_for_key({key})..."
+            )
             self._send_batch_for_key(key)
-            logger.info(f"Full batch: Successfully sent batch messages for subnet_id {key}.\n"
-                        f"    ⤷  {number_of_messages_for_key} messages sent.")
+            logger.info(
+                f"Full batch: Successfully sent batch messages for subnet_id {key}.\n"
+                f"    ⤷  {number_of_messages_for_key} messages sent."
+            )
         elif not self.timer:  # First time setting the timer
             logger.debug("Timer not set yet. Calling _reset_timer()...")
             self._reset_timer()
@@ -302,7 +318,9 @@ class CollectorKafkaBatchSender:
         for key in self.batch.get_stored_keys():
             number_of_keys += 1
             total_number_of_batch_messages += self.batch.get_number_of_messages(key)
-            total_number_of_buffer_messages += self.batch.get_number_of_buffered_messages(key)
+            total_number_of_buffer_messages += (
+                self.batch.get_number_of_buffered_messages(key)
+            )
             self._send_batch_for_key(key)
 
         if reset_timer:
@@ -312,17 +330,21 @@ class CollectorKafkaBatchSender:
             return
 
         if number_of_keys == 1:
-            logger.info("Successfully sent all batches.\n"
-                        f"    ⤷  Batch for one subnet_id with "
-                        f"{total_number_of_batch_messages + total_number_of_buffer_messages} message(s) sent ("
-                        f"{total_number_of_batch_messages} batch message(s), {total_number_of_buffer_messages} "
-                        f"buffer message(s)).")
+            logger.info(
+                "Successfully sent all batches.\n"
+                f"    ⤷  Batch for one subnet_id with "
+                f"{total_number_of_batch_messages + total_number_of_buffer_messages} message(s) sent ("
+                f"{total_number_of_batch_messages} batch message(s), {total_number_of_buffer_messages} "
+                f"buffer message(s))."
+            )
         else:  # if number_of_keys > 1
-            logger.info("Successfully sent all batches.\n"
-                        f"    ⤷  Batches for {number_of_keys} subnet_ids sent. "
-                        f"In total: {total_number_of_batch_messages + total_number_of_buffer_messages} messages ("
-                        f"{total_number_of_batch_messages} batch message(s), {total_number_of_buffer_messages} "
-                        f"buffer message(s))")
+            logger.info(
+                "Successfully sent all batches.\n"
+                f"    ⤷  Batches for {number_of_keys} subnet_ids sent. "
+                f"In total: {total_number_of_batch_messages + total_number_of_buffer_messages} messages ("
+                f"{total_number_of_batch_messages} batch message(s), {total_number_of_buffer_messages} "
+                f"buffer message(s))"
+            )
 
     def _send_batch_for_key(self, key: str) -> None:
         logger.debug(f"Starting to send the batch for {key=}...")

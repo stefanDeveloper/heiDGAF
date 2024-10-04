@@ -123,7 +123,7 @@ class LogServer:
             self.data_queue.put(value)
 
     async def async_follow(self, file: str = READ_FROM_FILE):
-        async with aiofiles.open(file, mode='r') as file:
+        async with aiofiles.open(file, mode="r") as file:
             # jump to end of file
             await file.seek(0, 2)
 

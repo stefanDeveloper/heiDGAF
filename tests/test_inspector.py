@@ -27,7 +27,7 @@ class TestGetData(unittest.TestCase):
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_get_data_without_return_data(
-            self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
         test_batch = Batch(
             begin_timestamp=datetime.now(),
@@ -52,7 +52,7 @@ class TestGetData(unittest.TestCase):
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_get_data_with_return_data(
-            self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
@@ -83,7 +83,7 @@ class TestGetData(unittest.TestCase):
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_get_data_while_busy(
-            self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_produce_handler
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -109,7 +109,7 @@ class TestClearData(unittest.TestCase):
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_clear_data_without_existing_data(
-            self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_produce_handler
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -130,7 +130,7 @@ class TestClearData(unittest.TestCase):
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_clear_data_with_existing_data(
-            self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_produce_handler
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -216,7 +216,7 @@ class TestDataFunction(unittest.TestCase):
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_count_errors_empty_messages(
-            self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_produce_handler
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -234,7 +234,7 @@ class TestDataFunction(unittest.TestCase):
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     def test_mean_packet_size_empty_messages(
-            self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_produce_handler
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -259,7 +259,7 @@ class TestInspectFunction(unittest.TestCase):
         [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}],
     )
     def test_inspect_univariate(
-            self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
         test_batch = Batch(
             begin_timestamp=datetime.now(),
@@ -289,7 +289,7 @@ class TestInspectFunction(unittest.TestCase):
     )
     @patch("src.inspector.inspector.MODE", "multivariate")
     def test_inspect_multivariate(
-            self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
         test_batch = Batch(
             begin_timestamp=datetime.now(),
@@ -318,7 +318,7 @@ class TestInspectFunction(unittest.TestCase):
         [{"model": "INVALID", "module": "streamad.model"}],
     )
     def test_invalid_model_univariate(
-            self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -338,7 +338,7 @@ class TestInspectFunction(unittest.TestCase):
     )
     @patch("src.inspector.inspector.MODE", "multivariate")
     def test_invalid_model_multivariate(
-            self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -358,7 +358,7 @@ class TestInspectFunction(unittest.TestCase):
     )
     @patch("src.inspector.inspector.MODE", "ensemble")
     def test_invalid_model_ensemble(
-            self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -408,9 +408,9 @@ class TestMainFunction(unittest.TestCase):
 
         # Act
         with patch.object(
-                mock_inspector_instance,
-                "get_and_fill_data",
-                side_effect=IOError("Simulated IOError"),
+            mock_inspector_instance,
+            "get_and_fill_data",
+            side_effect=IOError("Simulated IOError"),
         ):
             with self.assertRaises(IOError):
                 main(one_iteration=True)
@@ -427,9 +427,9 @@ class TestMainFunction(unittest.TestCase):
 
         # Act
         with patch.object(
-                mock_inspector_instance,
-                "get_and_fill_data",
-                side_effect=ValueError("Simulated ValueError"),
+            mock_inspector_instance,
+            "get_and_fill_data",
+            side_effect=ValueError("Simulated ValueError"),
         ):
             main(one_iteration=True)
 

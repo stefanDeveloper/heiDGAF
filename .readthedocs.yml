@@ -11,12 +11,13 @@ build:
 python:
   install:
     - requirements: docs/requirements.txt
-    - requirements: requirements/requirements-dev.txt
+    - requirements: requirements/requirements.dev.txt
     - requirements: requirements/requirements.logcollector.txt
     - requirements: requirements/requirements.prefilter.txt
     - requirements: requirements/requirements.inspector.txt
     - requirements: requirements/requirements.detector.txt
     - requirements: requirements/requirements.train.txt
+    - requirements: requirements/requirements.logserver.txt
 
 sphinx:
   configuration: docs/conf.py
