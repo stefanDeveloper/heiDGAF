@@ -17,6 +17,7 @@ python:
     - requirements: requirements/requirements.inspector.txt
     - requirements: requirements/requirements.detector.txt
     - requirements: requirements/requirements.train.txt
+    - requirements: requirements/requirements.logserver.txt
 
 sphinx:
   configuration: docs/conf.py
