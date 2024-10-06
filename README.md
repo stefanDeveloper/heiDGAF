@@ -3,11 +3,13 @@
 <!-- PROJECT SHIELDS -->
 <div align="center">
 
+[![Codecov Coverage][coverage-shield]][coverage-url]
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![EUPL License][license-shield]][license-url]
+
 
 </div>
 
@@ -51,6 +53,14 @@
     <img src="https://img.shields.io/github/actions/workflow/status/stefanDeveloper/heiDGAF/build_test_windows.yml?branch=main&logo=windows&style=for-the-badge&label=windows" alt="Windows WorkFlows" />
     </a>
   </td>
+  <tr>
+    <td><b>Coverage</b></td>
+    <td>
+      <a href="https://github.com/stefanDeveloper/heiDGAF/actions/workflows/test_coverage.yml">
+        <img src="https://heibox.uni-heidelberg.de/d/804c3af0ae564aa89436/files/?p=%2Fcoverage_33-add-test-coverage-to-readme.svg&dl=1" alt="Code Coverage" />
+      </a>
+    </td>
+  </tr>
 </tr>
 </table>
 
@@ -169,3 +179,5 @@ Distributed under the EUPL License. See `LICENSE.txt` for more information.
 [issues-url]: https://github.com/stefanDeveloper/heiDGAF/issues
 [license-shield]: https://img.shields.io/github/license/stefanDeveloper/heiDGAF.svg?style=for-the-badge
 [license-url]: https://github.com/stefanDeveloper/heiDGAF/blob/master/LICENSE.txt
+[coverage-shield]: https://img.shields.io/codecov/c/github/stefanDeveloper/heiDGAF?style=for-the-badge
+[coverage-url]: https://app.codecov.io/github/stefanDeveloper/heiDGAF
