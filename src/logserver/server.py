@@ -83,7 +83,9 @@ class LogServer:
         finally:
             send_server.close()
             receive_server.close()
-            await asyncio.gather(send_server.wait_closed(), receive_server.wait_closed())
+            await asyncio.gather(
+                send_server.wait_closed(), receive_server.wait_closed()
+            )
             logger.debug("Both sockets closed.")
 
     async def handle_connection(self, reader, writer, sending: bool) -> None:
