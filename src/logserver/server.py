@@ -25,6 +25,12 @@ READ_FROM_FILE = CONFIG["heidgaf"]["logserver"]["read_from_file"]
 
 
 class LogServer:
+    """
+    Server for receiving, storing and sending single log lines. Opens a port for receiving messages, listens for log
+    lines via Kafka and reads newly added lines from an input file. To retrieve a log line from the server,
+    other modules can connect to its outgoing/sending port. The server will then send its oldest log line as a response.
+    """
+
     def __init__(self) -> None:
         logger.debug("Initializing LogServer...")
         self.host = None
@@ -45,7 +51,11 @@ class LogServer:
         self.data_queue = queue.Queue()
         self.kafka_consume_handler = KafkaConsumeHandler(topic=LISTEN_ON_TOPIC)
 
-    async def open(self):
+    async def open(self) -> None:
+        """
+        Opens both ports for sending and receiving and starts reading from the input file as well as listening for
+        messages via Kafka. Can be stopped via a ``KeyboardInterrupt``.
+        """
         logger.debug("Opening LogServer sockets...")
         logger.debug(f"Creating the sending socket on port {self.port_out}...")
         send_server = await asyncio.start_server(
@@ -70,13 +80,23 @@ class LogServer:
             )
         except KeyboardInterrupt:
             logger.debug("Stop serving...")
+        finally:
+            send_server.close()
+            receive_server.close()
+            await asyncio.gather(send_server.wait_closed(), receive_server.wait_closed())
+            logger.debug("Both sockets closed.")
 
-        send_server.close()
-        receive_server.close()
-        await asyncio.gather(send_server.wait_closed(), receive_server.wait_closed())
-        logger.debug("Both sockets closed.")
+    async def handle_connection(self, reader, writer, sending: bool) -> None:
+        """
+        Handles new incoming connection attempts. If the maximum number of possible connections is not yet reached, the
+        connection is approved and the log line is sent or received, depending on the calling method. If the number is
+        reached, a warning message will be printed and no connection gets established.
 
-    async def handle_connection(self, reader, writer, sending: bool):
+        Args:
+            reader: Responsible for reading incoming data
+            writer: Responsible for writing outgoing data
+            sending (bool): Sending if True, receiving otherwise
+        """
         logger.debug(f"Handling connection with {sending=}...")
         if self.number_of_connections < MAX_NUMBER_OF_CONNECTIONS:
             logger.debug(
@@ -112,7 +132,11 @@ class LogServer:
             writer.close()
             await writer.wait_closed()
 
-    async def handle_kafka_inputs(self):
+    async def handle_kafka_inputs(self) -> None:
+        """
+        Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is added
+        to the data queue.
+        """
         loop = asyncio.get_running_loop()
 
         while True:
@@ -122,7 +146,14 @@ class LogServer:
             logger.info(f"Received message via Kafka:\n    ⤷  {value}")
             self.data_queue.put(value)
 
-    async def async_follow(self, file: str = READ_FROM_FILE):
+    async def async_follow(self, file: str = READ_FROM_FILE) -> None:
+        """
+        Continuously checks for new lines at the end of the input file. If one or multiple new lines are found, any
+        empty lines are removed and the remaining lines added to the data queue.
+
+        Args:
+            file (str): File to be read as string
+        """
         async with aiofiles.open(file, mode="r") as file:
             # jump to end of file
             await file.seek(0, 2)
@@ -142,16 +173,37 @@ class LogServer:
                     logger.info(f"Extracted message from file:\n    ⤷  {cleaned_line}")
                     self.data_queue.put(cleaned_line)
 
-    async def handle_send_logline(self, reader, writer):
+    async def handle_send_logline(self, reader, writer) -> None:
+        """
+        Handles the sending of a logline by calling :meth:`handle_connection` with ``sending=True``.
+
+        Args:
+            reader: Responsible for reading incoming data
+            writer: Responsible for writing outgoing data
+        """
         logger.debug("Calling handle_connection with sending=True...")
         await self.handle_connection(reader, writer, True)
 
-    async def handle_receive_logline(self, reader, writer):
+    async def handle_receive_logline(self, reader, writer) -> None:
+        """
+        Handles the receiving of a logline by calling :meth:`handle_connection` with ``sending=False``.
+
+        Args:
+            reader: Responsible for reading incoming data
+            writer: Responsible for writing outgoing data
+        """
         logger.debug("Calling handle_connection with sending=False...")
         await self.handle_connection(reader, writer, False)
 
     @staticmethod
-    async def send_logline(writer, logline):
+    async def send_logline(writer, logline) -> None:
+        """
+        Sends the given log line encoded as UTF-8 to the connected component.
+
+        Args:
+            writer: Responsible for writing outgoing data
+            logline: Logline to be sent
+        """
         if logline:
             logger.debug(f"Sending {logline=}...")
             writer.write(logline.encode("utf-8"))
@@ -161,7 +213,13 @@ class LogServer:
 
         logger.debug("No logline available")
 
-    async def receive_logline(self, reader):
+    async def receive_logline(self, reader) -> None:
+        """
+        Receives a log line encoded as UTF-8 from the connected component and adds it to the data queue.
+
+        Args:
+            reader: Responsible for reading incoming data
+        """
         while True:
             data = await reader.read(1024)
             if not data:
@@ -171,16 +229,23 @@ class LogServer:
             self.data_queue.put(received_message)
 
     def get_next_logline(self) -> str | None:
+        """
+        Returns and removes the oldest log line in the data queue.
+
+        Returns:
+            Oldest log line in the data queue.
+        """
         logger.debug("Getting next available logline...")
         if not self.data_queue.empty():
             logger.debug("Returning logline...")
             return self.data_queue.get()
         return None
 
-    # TODO: Add a close method
 
-
-def main():
+def main() -> None:
+    """
+    Creates the :class:`LogServer` instance and starts it.
+    """
     logger.info("Starting LogServer...")
     server_instance = LogServer()
     logger.debug("LogServer started. Opening sockets...")
