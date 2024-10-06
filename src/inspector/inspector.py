@@ -23,7 +23,9 @@ config = setup_config()
 MODE = config["pipeline"]["data_inspection"]["inspector"]["mode"]
 ENSEMBLE = config["pipeline"]["data_inspection"]["inspector"]["ensemble"]
 MODELS = config["pipeline"]["data_inspection"]["inspector"]["models"]
-ANOMALY_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["anomaly_threshold"]
+ANOMALY_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"][
+    "anomaly_threshold"
+]
 SCORE_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["score_threshold"]
 TIME_TYPE = config["pipeline"]["data_inspection"]["inspector"]["time_type"]
 TIME_RANGE = config["pipeline"]["data_inspection"]["inspector"]["time_range"]

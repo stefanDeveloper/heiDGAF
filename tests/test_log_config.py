@@ -96,10 +96,7 @@ class TestLoggingSetup(unittest.TestCase):
     @patch("src.base.log_config.load_config")
     def test_multiple_handler_prevention(self, mock_load_config):
         mock_load_config.return_value = {
-            "logging": {
-                "base": {"debug": True},
-                "modules": {}
-            }
+            "logging": {"base": {"debug": True}, "modules": {}}
         }
 
         # Get the logger for the first time
