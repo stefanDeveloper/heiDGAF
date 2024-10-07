@@ -10,16 +10,12 @@ MOCK_REQUIRED_FIELDS = ["timestamp", "status_code"]
 class TestInit(unittest.TestCase):
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    ["timestamp", "RegEx", r"^\d+b$"],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["client_ip", "IpAddress"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d+b$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["client_ip", "IpAddress"],
+        ],
     )
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
     def test_init_successful(self, mock_create):
@@ -58,17 +54,13 @@ class TestInit(unittest.TestCase):
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    ["timestamp", "RegEx", r"^\d+b$"],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["status_code", "RegEx", r"^\d+b$"],
-                    ["client_ip", "IpAddress"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d+b$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["status_code", "RegEx", r"^\d+b$"],
+            ["client_ip", "IpAddress"],
+        ],
     )
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
     def test_init_multiple_fields_with_same_name(self, mock_create):
@@ -97,15 +89,11 @@ class TestInit(unittest.TestCase):
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    ["timestamp", "RegEx", r"^\d+b$"],
-                    ["client_ip", "IpAddress"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d+b$"],
+            ["client_ip", "IpAddress"],
+        ],
     )
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
     def test_init_missing_fields(self, mock_create):
@@ -126,7 +114,7 @@ class TestInit(unittest.TestCase):
         )
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", [])
-    @patch("src.base.logline_handler.CONFIG", {"loglines": {"fields": []}})
+    @patch("src.base.logline_handler.LOGLINE_FIELDS", [])
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
     def test_init_no_fields(self, mock_create):
         # Arrange
@@ -142,20 +130,12 @@ class TestInit(unittest.TestCase):
 class TestValidateLogline(unittest.TestCase):
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    [
-                        "timestamp",
-                        "RegEx",
-                        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
-                    ],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["client_ip", "IpAddress"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["client_ip", "IpAddress"],
+        ],
     )
     def test_validate_successful(self):
         # Arrange
@@ -168,29 +148,21 @@ class TestValidateLogline(unittest.TestCase):
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    [
-                        "timestamp",
-                        "RegEx",
-                        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
-                    ],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["client_ip", "IpAddress"],
-                    ["dns_server_ip", "IpAddress"],
-                    [
-                        "domain_name",
-                        "RegEx",
-                        r"^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$",
-                    ],
-                    ["record_type", "ListItem", ["A", "AAAA"]],
-                    ["response_ip", "IpAddress"],
-                    ["size", "RegEx", r"^\d+b$"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["client_ip", "IpAddress"],
+            ["dns_server_ip", "IpAddress"],
+            [
+                "domain_name",
+                "RegEx",
+                r"^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$",
+            ],
+            ["record_type", "ListItem", ["A", "AAAA"]],
+            ["response_ip", "IpAddress"],
+            ["size", "RegEx", r"^\d+b$"],
+        ],
     )
     def test_validate_successful_with_real_format(self):
         # Arrange
@@ -206,20 +178,12 @@ class TestValidateLogline(unittest.TestCase):
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    [
-                        "timestamp",
-                        "RegEx",
-                        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
-                    ],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["client_ip", "IpAddress"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["client_ip", "IpAddress"],
+        ],
     )
     def test_validate_wrong_number_of_fields(self, mock_logger):
         # Arrange
@@ -233,20 +197,12 @@ class TestValidateLogline(unittest.TestCase):
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    [
-                        "timestamp",
-                        "RegEx",
-                        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
-                    ],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["client_ip", "IpAddress"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["client_ip", "IpAddress"],
+        ],
     )
     def test_validate_empty(self, mock_logger):
         # Arrange
@@ -258,20 +214,12 @@ class TestValidateLogline(unittest.TestCase):
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    [
-                        "timestamp",
-                        "RegEx",
-                        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
-                    ],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["client_ip", "IpAddress"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["client_ip", "IpAddress"],
+        ],
     )
     def test_validate_contains_invalid_fields(self, mock_logger):
         # Arrange
@@ -285,20 +233,12 @@ class TestValidateLogline(unittest.TestCase):
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    [
-                        "timestamp",
-                        "RegEx",
-                        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
-                    ],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["client_ip", "IpAddress"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["client_ip", "IpAddress"],
+        ],
     )
     def test_validate_wrong_order_of_fields(self, mock_logger):
         # Arrange
@@ -313,29 +253,21 @@ class TestValidateLogline(unittest.TestCase):
 class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    [
-                        "timestamp",
-                        "RegEx",
-                        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
-                    ],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["client_ip", "IpAddress"],
-                    ["dns_server_ip", "IpAddress"],
-                    [
-                        "domain_name",
-                        "RegEx",
-                        r"^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$",
-                    ],
-                    ["record_type", "ListItem", ["A", "AAAA"]],
-                    ["response_ip", "IpAddress"],
-                    ["size", "RegEx", r"^\d+b$"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["client_ip", "IpAddress"],
+            ["dns_server_ip", "IpAddress"],
+            [
+                "domain_name",
+                "RegEx",
+                r"^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$",
+            ],
+            ["record_type", "ListItem", ["A", "AAAA"]],
+            ["response_ip", "IpAddress"],
+            ["size", "RegEx", r"^\d+b$"],
+        ],
     )
     def test_validate_true(self):
         # Arrange
@@ -363,20 +295,12 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    [
-                        "timestamp",
-                        "RegEx",
-                        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
-                    ],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["client_ip", "IpAddress"],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["client_ip", "IpAddress"],
+        ],
     )
     def test_validate_false(self, mock_logger):
         # Arrange
@@ -396,22 +320,14 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
 class TestCheckRelevance(unittest.TestCase):
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
-        "src.base.logline_handler.CONFIG",
-        {
-            "loglines": {
-                "fields": [
-                    [
-                        "timestamp",
-                        "RegEx",
-                        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
-                    ],
-                    ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-                    ["test_1", "ListItem", ["123", "456"]],
-                    ["client_ip", "IpAddress"],
-                    ["test_2", "ListItem", ["789", "TEST"], ["TEST"]],
-                ]
-            }
-        },
+        "src.base.logline_handler.LOGLINE_FIELDS",
+        [
+            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["test_1", "ListItem", ["123", "456"]],
+            ["client_ip", "IpAddress"],
+            ["test_2", "ListItem", ["789", "TEST"], ["TEST"]],
+        ],
     )
     def setUp(self):
         # Arrange

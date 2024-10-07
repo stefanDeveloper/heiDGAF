@@ -1,6 +1,5 @@
 import importlib
 import json
-import logging
 import os
 import sys
 from datetime import datetime
@@ -16,20 +15,21 @@ from src.base.kafka_handler import (
     KafkaMessageFetchException,
     KafkaProduceHandler,
 )
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("data_inspection.inspector")
 
 config = setup_config()
-MODE = config["heidgaf"]["inspector"]["mode"]
-ENSEMBLE = config["heidgaf"]["inspector"]["ensemble"]
-MODELS = config["heidgaf"]["inspector"]["models"]
-ANOMALY_THRESHOLD = config["heidgaf"]["inspector"]["anomaly_threshold"]
-SCORE_THRESHOLD = config["heidgaf"]["inspector"]["score_threshold"]
-TIME_TYPE = config["heidgaf"]["inspector"]["time_type"]
-TIME_RANGE = config["heidgaf"]["inspector"]["time_range"]
-TIMESTAMP_FORMAT = config["heidgaf"]["timestamp_format"]
+MODE = config["pipeline"]["data_inspection"]["inspector"]["mode"]
+ENSEMBLE = config["pipeline"]["data_inspection"]["inspector"]["ensemble"]
+MODELS = config["pipeline"]["data_inspection"]["inspector"]["models"]
+ANOMALY_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"][
+    "anomaly_threshold"
+]
+SCORE_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["score_threshold"]
+TIME_TYPE = config["pipeline"]["data_inspection"]["inspector"]["time_type"]
+TIME_RANGE = config["pipeline"]["data_inspection"]["inspector"]["time_range"]
+TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 
 
 VALID_UNIVARIATE_MODELS = [

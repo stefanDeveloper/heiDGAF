@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 import queue
 import sys
@@ -10,18 +9,19 @@ sys.path.append(os.getcwd())
 from src.base.kafka_handler import KafkaConsumeHandler
 from src.base.utils import setup_config
 from src.base import utils
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("log_storage.logserver")
 
 CONFIG = setup_config()
-HOSTNAME = CONFIG["heidgaf"]["logserver"]["hostname"]
-PORT_IN = CONFIG["heidgaf"]["logserver"]["port_in"]
-PORT_OUT = CONFIG["heidgaf"]["logserver"]["port_out"]
-MAX_NUMBER_OF_CONNECTIONS = CONFIG["heidgaf"]["logserver"]["max_number_of_connections"]
-LISTEN_ON_TOPIC = CONFIG["heidgaf"]["logserver"]["listen_on_topic"]
-READ_FROM_FILE = CONFIG["heidgaf"]["logserver"]["read_from_file"]
+HOSTNAME = CONFIG["environment"]["logserver"]["hostname"]
+PORT_IN = CONFIG["environment"]["logserver"]["port_in"]
+PORT_OUT = CONFIG["environment"]["logserver"]["port_out"]
+MAX_NUMBER_OF_CONNECTIONS = CONFIG["pipeline"]["log_storage"]["logserver"][
+    "max_number_of_connections"
+]
+LISTEN_ON_TOPIC = CONFIG["pipeline"]["log_storage"]["logserver"]["input_kafka_topic"]
+READ_FROM_FILE = CONFIG["pipeline"]["log_storage"]["logserver"]["input_file"]
 
 
 class LogServer:

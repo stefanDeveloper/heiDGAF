@@ -1,23 +1,18 @@
 import ast
 import json
-import logging
 import os
 import sys
 
 sys.path.append(os.getcwd())
 from src.base.logline_handler import LoglineHandler
-from src.base.utils import setup_config
 from src.base.kafka_handler import (
     KafkaConsumeHandler,
     KafkaMessageFetchException,
     KafkaProduceHandler,
 )
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
-
-CONFIG = setup_config()
+logger = get_logger("log_filtering.prefilter")
 
 
 class Prefilter:

@@ -1,6 +1,5 @@
 import ipaddress
 import json
-import logging
 import os
 import socket
 import sys
@@ -9,16 +8,17 @@ sys.path.append(os.getcwd())
 from src.base.logline_handler import LoglineHandler
 from src.base import utils
 from src.logcollector.batch_handler import CollectorKafkaBatchSender
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("log_collection.collector")
 
 config = utils.setup_config()
-LOGSERVER_HOSTNAME = config["heidgaf"]["logserver"]["hostname"]
-LOGSERVER_SENDING_PORT = config["heidgaf"]["logserver"]["port_out"]
-SUBNET_BITS = config["heidgaf"]["subnet"]["subnet_bits"]
-BATCH_SIZE = config["kafka"]["batch_sender"]["batch_size"]
+LOGSERVER_HOSTNAME = config["environment"]["logserver"]["hostname"]
+LOGSERVER_SENDING_PORT = config["environment"]["logserver"]["port_out"]
+SUBNET_BITS = config["pipeline"]["log_collection"]["batch_handler"]["subnet"][
+    "subnet_bits"
+]
+BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 
 
 class LogCollector:
@@ -42,7 +42,7 @@ class LogCollector:
             f"Calling CollectorKafkaBatchSender(transactional_id='collector')..."
         )
         self.batch_handler = CollectorKafkaBatchSender()
-        logger.debug(f"Calling LoglineHandler()...")
+        logger.debug("Calling LoglineHandler()...")
         self.logline_handler = LoglineHandler()
         logger.debug("Initialized LogCollector.")
 
