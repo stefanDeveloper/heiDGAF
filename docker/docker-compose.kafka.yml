@@ -25,9 +25,10 @@ services:
       - "8097:8097"
       - "29092:29092"
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka1:8097", "--list"]
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka1:8097", "--list" ]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -54,9 +55,10 @@ services:
       - "8098:8098"
       - "29093:29093"
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka2:8098", "--list"]
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka2:8098", "--list" ]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -81,9 +83,10 @@ services:
       - "8099:8099"
       - "29094:29094"
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka3:8099", "--list"]
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka3:8099", "--list" ]
       interval: 30s
       timeout: 10s
       retries: 10
