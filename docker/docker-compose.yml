@@ -10,11 +10,14 @@ services:
       network: host
     restart: "unless-stopped"
     depends_on:
-      - logserver
-      - zookeeper
-      - kafka1
-      - kafka2
-      - kafka3
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      logserver:
+        condition: service_started
     networks:
       heidgaf:
         ipv4_address: 172.27.0.7
@@ -35,10 +38,12 @@ services:
       network: host
     restart: "unless-stopped"
     depends_on:
-      - zookeeper
-      - kafka1
-      - kafka2
-      - kafka3
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
     ports:
       - 9998:9998
     networks:
@@ -64,13 +69,18 @@ services:
       network: host
     restart: "unless-stopped"
     depends_on:
-      - logcollector
-      - prefilter
-      - logserver
-      - zookeeper
-      - kafka1
-      - kafka2
-      - kafka3
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      logserver:
+        condition: service_started
+      prefilter:
+        condition: service_started
+      logcollector:
+        condition: service_started
     networks:
       heidgaf:
         ipv4_address: 172.27.0.6
@@ -92,12 +102,16 @@ services:
       network: host
     restart: "unless-stopped"
     depends_on:
-      - logcollector
-      - logserver
-      - zookeeper
-      - kafka1
-      - kafka2
-      - kafka3
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      logcollector:
+        condition: service_started
+      logserver:
+        condition: service_started
     networks:
       heidgaf:
         ipv4_address: 172.27.0.9
