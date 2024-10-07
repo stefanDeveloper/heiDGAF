@@ -37,7 +37,11 @@ class Prefilter:
         self.kafka_consume_handler = KafkaConsumeHandler(topic="Prefilter")
         logger.debug("Initialized Prefilter.")
 
-    def get_and_fill_data(self):
+    def get_and_fill_data(self) -> None:
+        """
+        Clears data already stored and consumes new data. Unpacks the data and checks if it is empty. If that is the
+        case, an info message is shown, otherwise the data is stored internally, including timestamps.
+        """
         logger.debug("Checking for existing data...")
         if self.unfiltered_data:
             logger.warning("Overwriting existing data by new message...")
@@ -84,6 +88,9 @@ class Prefilter:
         logger.info("Data successfully filtered.")
 
     def send_filtered_data(self):
+        """
+        Sends the filtered data if available via the :class:`KafkaProduceHandler`.
+        """
         if not self.unfiltered_data:
             logger.debug("No unfiltered or filtered data is available.")
             return
@@ -124,7 +131,19 @@ class Prefilter:
         logger.debug("Cleared data.")
 
 
-def main(one_iteration: bool = False):
+def main(one_iteration: bool = False) -> None:
+    """
+    Runs the main loop with by
+
+    1. Retrieving new data,
+    2. Filtering the data and
+    3. Sending the filtered data if not empty.
+
+    Stops by a ``KeyboardInterrupt``, any internal data is lost.
+
+    Args:
+        one_iteration (bool): Only one iteration is done if True (for testing purposes). False by default.
+    """
     logger.info("Starting Prefilter...")
     prefilter = Prefilter()
     logger.info(f"Prefilter started.")
