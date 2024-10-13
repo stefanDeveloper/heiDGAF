@@ -41,5 +41,17 @@ jobs:
       run: pre-commit run --all-files
       continue-on-error: true
 
+    - name: Commit changes if needed
+      run: |
+        git config --local user.name "GitHub Actions"
+        git config --local user.email "actions@github.com"
+        git add .
+        git diff-index --quiet HEAD || git commit -m "Pre-commit fixes by GitHub Actions"
+
+    - name: Push changes
+      uses: ad-m/github-push-action@v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Run pre-commit on fixed files
       run: pre-commit run --all-files
