@@ -1,3 +1,4 @@
+import ipaddress
 import unittest
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import MagicMock, patch
@@ -135,14 +136,136 @@ class TestFetchLogline(unittest.TestCase):
         self.assertIsNone(sut.logline)
 
 
+class TestGetSubnetId(unittest.TestCase):
+    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    def test_get_subnet_id_ipv4(self, mock_logline_handler, mock_batch_handler):
+        # Arrange
+        test_address = ipaddress.IPv4Address("192.168.1.1")
+        expected_result = f"192.168.1.0_24"
+        sut = LogCollector()
+
+        # Act
+        result = sut.get_subnet_id(test_address)
+
+        # Assert
+        self.assertEqual(expected_result, result)
+
+    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    def test_get_subnet_id_ipv4_zero(self, mock_logline_handler, mock_batch_handler):
+        # Arrange
+        test_address = ipaddress.IPv4Address("0.0.0.0")
+        expected_result = f"0.0.0.0_24"
+        sut = LogCollector()
+
+        # Act
+        result = sut.get_subnet_id(test_address)
+
+        # Assert
+        self.assertEqual(expected_result, result)
+
+    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 23)
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    def test_get_subnet_id_ipv4_max(self, mock_logline_handler, mock_batch_handler):
+        # Arrange
+        test_address = ipaddress.IPv4Address("255.255.255.255")
+        expected_result = f"255.255.254.0_23"
+        sut = LogCollector()
+
+        # Act
+        result = sut.get_subnet_id(test_address)
+
+        # Assert
+        self.assertEqual(expected_result, result)
+
+    @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 64)
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    def test_get_subnet_id_ipv6(self, mock_logline_handler, mock_batch_handler):
+        # Arrange
+        test_address = ipaddress.IPv6Address("2001:db8:85a3:1234:5678:8a2e:0370:7334")
+        expected_result = f"2001:db8:85a3:1234::_64"
+        sut = LogCollector()
+
+        # Act
+        result = sut.get_subnet_id(test_address)
+
+        # Assert
+        self.assertEqual(expected_result, result)
+
+    @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 64)
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    def test_get_subnet_id_ipv6_zero(self, mock_logline_handler, mock_batch_handler):
+        # Arrange
+        test_address = ipaddress.IPv6Address("::")
+        expected_result = f"::_64"
+        sut = LogCollector()
+
+        # Act
+        result = sut.get_subnet_id(test_address)
+
+        # Assert
+        self.assertEqual(expected_result, result)
+
+    @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    def test_get_subnet_id_ipv6_max(self, mock_logline_handler, mock_batch_handler):
+        # Arrange
+        test_address = ipaddress.IPv6Address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+        expected_result = f"ffff:ffff:ffff::_48"
+        sut = LogCollector()
+
+        # Act
+        result = sut.get_subnet_id(test_address)
+
+        # Assert
+        self.assertEqual(expected_result, result)
+
+    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
+    @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    def test_get_subnet_id_unsupported_type(
+            self, mock_logline_handler, mock_batch_handler
+    ):
+        # Arrange
+        test_address = "192.168.1.1"  # String instead of IPv4Address or IPv6Address
+        sut = LogCollector()
+
+        # Act & Assert
+        with self.assertRaises(ValueError):
+            # noinspection PyTypeChecker
+            sut.get_subnet_id(test_address)
+
+    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
+    @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
+    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    def test_get_subnet_id_none(self, mock_logline_handler, mock_batch_handler):
+        # Arrange
+        test_address = None
+        sut = LogCollector()
+
+        # Act & Assert
+        with self.assertRaises(ValueError):
+            # noinspection PyTypeChecker
+            sut.get_subnet_id(test_address)
+
+
 class TestAddLoglineToBatch(unittest.TestCase):
     @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.SUBNET_BITS", 22)
-    @patch("src.base.utils.get_first_part_of_ipv4_address")
+    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
+    @patch("src.base.utils.normalize_ipv4_address")
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_add_to_batch_with_data(
-        self, mock_logline_handler, mock_batch_handler, mock_get, mock_logger
+            self, mock_logline_handler, mock_batch_handler, mock_normalize, mock_logger
     ):
         mock_batch_handler_instance = MagicMock()
         mock_logline_handler_instance = MagicMock()
@@ -158,7 +281,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
             "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
             "size": "150b",
         }
-        mock_get.return_value = "192.168.0.0"
+        mock_normalize.return_value = ("192.168.0.0", 22)
 
         expected_message = (
             '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
