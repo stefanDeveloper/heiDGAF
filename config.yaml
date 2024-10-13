@@ -36,8 +36,9 @@ pipeline:
     batch_handler:
       batch_size: 1000
       batch_timeout: 20.0
-      subnet:
-        subnet_bits: 24
+      subnet_id:
+        ipv4_prefix_length: 24
+        ipv6_prefix_length: 64
 
   data_inspection:
     inspector:

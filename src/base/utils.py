@@ -99,32 +99,45 @@ def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
         )
 
 
-def get_first_part_of_ipv4_address(
-    address: ipaddress.IPv4Address, length: int
-) -> ipaddress.IPv4Address:
+def normalize_ipv4_address(
+        address: ipaddress.IPv4Address, prefix_length: int
+) -> tuple[ipaddress.IPv4Address, int]:
     """
     Returns the first part of an IPv4 address, the rest is filled with 0. For example:
-    >>> get_first_part_of_ipv4_address(ipaddress.IPv4Address("255.255.255.255"), 23)
-    IPv4Address('255.255.254.0')
-    >>> get_first_part_of_ipv4_address(ipaddress.IPv4Address("172.126.15.3"), 8)
-    IPv4Address('172.0.0.0')
+    >>> normalize_ipv4_address(ipaddress.IPv4Address("255.255.255.255"), 23)
+    (IPv4Address('255.255.254.0'), 23)
+    >>> normalize_ipv4_address(ipaddress.IPv4Address("172.126.15.3"), 8)
+    (IPv4Address('172.0.0.0'), 8)
 
     Args:
-        address (ipaddress.IPv4Address): The IPv4 Address to get the first part of
-        length (int): Length of the first part, the other ``32 - length`` bits are set to 0
+        address (ipaddress.IPv4Address): The IPv4 address to get the subnet ID of
+        prefix_length (int): Prefix length to be used for the subnet ID
 
     Returns:
-        IPv4Address with first ``length`` bits kept, others set to 0
+        Subnet ID of the given IP address
     """
-    if length < 0 or length > 32:
-        raise ValueError("Invalid length. Must be between 0 and 32.")
+    if not (0 <= prefix_length <= 32):
+        raise ValueError("Invalid prefix length for IPv4. Must be between 0 and 32.")
 
-    if isinstance(address, ipaddress.IPv4Address):
-        binary_string = "".join(format(byte, "08b") for byte in address.packed)
-        first_part_binary = binary_string[:length]
-        first_part_binary_padded = first_part_binary.ljust(32, "0")
-        first_part_address = ipaddress.IPv4Address(int(first_part_binary_padded, 2))
-    else:
-        raise ValueError("Invalid IP address format")
+    net = ipaddress.IPv4Network((address, prefix_length), strict=False)
+    return net.network_address, prefix_length
 
-    return first_part_address
+
+def normalize_ipv6_address(
+        address: ipaddress.IPv6Address, prefix_length: int
+) -> tuple[ipaddress.IPv6Address, int]:
+    """
+    Returns the first part of an IPv6 address, the rest is filled with 0.
+
+    Args:
+        address (ipaddress.IPv6Address): The IPv6 address to get the subnet ID of
+        prefix_length (int): Prefix length to be used for the subnet ID
+
+    Returns:
+        Subnet ID of the given IP address
+    """
+    if not (0 <= prefix_length <= 128):
+        raise ValueError("Invalid prefix length for IPv6. Must be between 0 and 128.")
+
+    net = ipaddress.IPv6Network((address, prefix_length), strict=False)
+    return net.network_address, prefix_length
