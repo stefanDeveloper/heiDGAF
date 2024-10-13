@@ -100,7 +100,7 @@ def kafka_delivery_report(err: None | KafkaError, msg: None | Message):
 
 
 def normalize_ipv4_address(
-        address: ipaddress.IPv4Address, prefix_length: int
+    address: ipaddress.IPv4Address, prefix_length: int
 ) -> tuple[ipaddress.IPv4Address, int]:
     """
     Returns the first part of an IPv4 address, the rest is filled with 0. For example:
@@ -124,7 +124,7 @@ def normalize_ipv4_address(
 
 
 def normalize_ipv6_address(
-        address: ipaddress.IPv6Address, prefix_length: int
+    address: ipaddress.IPv6Address, prefix_length: int
 ) -> tuple[ipaddress.IPv6Address, int]:
     """
     Returns the first part of an IPv6 address, the rest is filled with 0.

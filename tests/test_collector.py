@@ -232,7 +232,7 @@ class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_unsupported_type(
-            self, mock_logline_handler, mock_batch_handler
+        self, mock_logline_handler, mock_batch_handler
     ):
         # Arrange
         test_address = "192.168.1.1"  # String instead of IPv4Address or IPv6Address
@@ -265,7 +265,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
     @patch("src.logcollector.collector.CollectorKafkaBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_add_to_batch_with_data(
-            self, mock_logline_handler, mock_batch_handler, mock_normalize, mock_logger
+        self, mock_logline_handler, mock_batch_handler, mock_normalize, mock_logger
     ):
         mock_batch_handler_instance = MagicMock()
         mock_logline_handler_instance = MagicMock()
