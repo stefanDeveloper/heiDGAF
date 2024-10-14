@@ -1,5 +1,4 @@
 import pickle
-import shutil
 import sys
 import os
 
@@ -8,7 +7,6 @@ import optuna
 import torch
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
-from sklearn.svm import SVC
 
 
 sys.path.append(os.getcwd())

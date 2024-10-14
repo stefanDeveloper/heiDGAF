@@ -13,23 +13,24 @@ logger = get_logger("train.feature")
 
 
 class Processor:
+    """Processor for data set. Extracts features from data space."""
 
     def __init__(self, features_to_drop: List):
         """Init.
 
         Args:
-            feature_to_drop (list): list of feature to drop
+            feature_to_drop (list): List of feature to drop
         """
         self.features_to_drop = features_to_drop
 
     def transform(self, x: pl.DataFrame) -> pl.DataFrame:
-        """Transform our dataset with new features
+        """Transform our dataset with new features.
 
         Args:
-            x (pl.DataFrame): dataframe with our features
+            x (pl.DataFrame): pl.DataFrame with our features.
 
         Returns:
-            pl.DataFrame: preprocessed dataframe
+            pl.DataFrame: Preprocessed dataframe.
         """
         logger.debug("Start data transformation")
         x = x.with_columns(

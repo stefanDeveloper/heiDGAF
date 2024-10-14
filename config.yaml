@@ -59,8 +59,8 @@ pipeline:
 
   data_analysis:
     detector:
-      model: xg # XGBoost
-      checksum: 21d1f40c9e186a08e9d2b400cea607f4163b39d187a9f9eca3da502b21cf3b9b
+      model: rf # XGBoost
+      checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
       base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
       threshold: 0.5
 

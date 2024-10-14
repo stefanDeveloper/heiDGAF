@@ -30,7 +30,6 @@ class DatasetEnum(str, Enum):
 class ModelEnum(str, Enum):
     RANDOM_FOREST_CLASSIFIER = "rf"
     XG_BOOST_CLASSIFIER = "xg"
-    XG_BOOST_RANDOM_FOREST_CLASSIFIER = "xg-rf"
 
 
 class DetectorTraining:
@@ -60,7 +59,7 @@ class DetectorTraining:
                             self.datasets.cic_dataset.data,
                             self.datasets.bambenek_dataset.data,
                             self.datasets.dga_dataset.data,
-                            # self.datasets.dgarchive_data.data,
+                            self.datasets.dgarchive_data.data,
                         ]
                     ),
                     max_rows=100,

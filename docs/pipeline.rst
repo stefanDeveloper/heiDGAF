@@ -375,7 +375,7 @@ Overview
 
 The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage is essentiell to reduce
 the load on the `Detection` stage.
-Otherwise, resource complexity would increase disproportionately.
+Otherwise, resource complexity increases disproportionately.
 
 Main Class
 ----------
@@ -393,20 +393,17 @@ The :class:`Inspector` loads the StreamAD model to perform anomaly detection.
 It consumes batches on the topic ``inspect``, usually produced by the ``Prefilter``.
 For a new batch, it derives the timestamps ``begin_timestamp`` and ``end_timestamp``.
 Based on time type (e.g. ``s``, ``ms``) and time range (e.g. ``5``) the sliding non-overlapping window is created.
-For univariate time-series, it counts the number of occurances, whereas for multivariate, it considers the packet size. :cite:`schuppen_fanci_2018`
+For univariate time-series, it counts the number of occurances, whereas for multivariate, it considers the number of occurances and packet size. :cite:`schuppen_fanci_2018`
 
-.. note:: TODO Add mathematical explanation.
-
-:math:`y = x`
-
-An anomaly is noted when it is greater than a ``score_threshold``. In addition, we support a relative anomaly threshold.
-So, if the anomaly threshold is ``0.01``, it sends anomalies for further detection, if the amount of anomlies divided by the total amount of requests in the batch is greater.
+An anomaly is noted when it is greater than a ``score_threshold``.
+In addition, we support a relative anomaly threshold.
+So, if the anomaly threshold is ``0.01``, it sends anomalies for further detection, if the amount of anomlies divided by the total amount of requests in the batch is greater than ``0.01``.
 
 Configuration
 -------------
 
 All StreamAD models are supported. This includes univariate, multivariate, and ensemble methods.
-In case special arguments are desired for your environment, the ``model_args`` as a dictionary can be passed for each model.
+In case special arguments are desired for your environment, the ``model_args`` as a dictionary ``dict`` can be passed for each model.
 
 Univariate models in `streamad.model`:
 
@@ -417,7 +414,7 @@ Univariate models in `streamad.model`:
 - :class:`OCSVMDetector`
 
 Multivariate models in `streamad.model`:
-Currently, we rely on the packet size for multivariate processing.
+Currently, we rely on the packet size and number occurances for multivariate processing.
 
 - :class:`xStreamDetector`
 - :class:`RShashDetector`
@@ -439,11 +436,13 @@ Stage 5: Detection
 Overview
 --------
 
-The `Detector` resembles the heart of heiDGAF. It runs pre-trained machine learning models to get a probability outcome of DNS requests.
+The `Detector` resembles the heart of heiDGAF. It runs pre-trained machine learning models to get a probability outcome for the DNS requests.
 The pre-trained models are under the EUPL-1.2 license online available.
 In total, we rely on the following data sets for the pre-trained models we offer:
 
 - `CIC-Bell-DNS-2021 <https://www.unb.ca/cic/datasets/dns-2021.html>`_
+- `DGTA-BENCH - Domain Generation and Tunneling Algorithms for Benchmark <https://data.mendeley.com/datasets/2wzf9bz7xr/1>`_
+- `DGArchive <https://dgarchive.caad.fkie.fraunhofer.de/>`_
 
 Main Class
 ----------
@@ -456,7 +455,7 @@ Usage
 
 The :class:`Detector` consumes anomalous batches of requests.
 It calculates a probability score for each request, and at last, an overall score of the batch.
-Such alerts are log to ``/tmp/warnings.json``.
+Alerts are log to ``/tmp/warnings.json``.
 
 Configuration
 -------------
