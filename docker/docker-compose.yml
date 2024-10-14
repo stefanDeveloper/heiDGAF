@@ -128,8 +128,10 @@ services:
 
   detector:
     build:
-      context: ./dockerfiles
-      dockerfile: Dockerfile.detector
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.detector
+      network: host
+    restart: "unless-stopped"
     depends_on:
       kafka1:
         condition: service_healthy
@@ -141,6 +143,9 @@ services:
         condition: service_started
       logserver:
         condition: service_started
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.10
     deploy:
       mode: "replicated"
       replicas: 1

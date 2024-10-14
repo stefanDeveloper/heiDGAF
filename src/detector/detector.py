@@ -155,11 +155,17 @@ class Detector:
         for message in self.messages:
             y_pred = self.model.predict_proba(message["host_domain_name"])
             if y_pred > THRESHOLD:
-                self.warnings.append(message)
+                warning = {
+                    "request": message,
+                    "probability": y_pred,
+                    "model": MODEL,
+                    "sha256": CHECKSUM,
+                }
+                self.warnings.append(warning)
 
     def send_warning(self) -> None:
         with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a") as f:
-            json.dump(self.messages, f)
+            json.dump(self.warnings, f)
             f.write("\n")
 
 
