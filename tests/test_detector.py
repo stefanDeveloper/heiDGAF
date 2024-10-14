@@ -38,9 +38,9 @@ class TestGetModel(unittest.TestCase):
 
     @patch(
         "src.detector.detector.CHECKSUM",
-        "04970cd6fe0be5369248d24541c7b8faf69718706019f80280a0a687884f35fb",
+        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
     )
-    @patch("src.detector.detector.MODEL", "xg")
+    @patch("src.detector.detector.MODEL", "rf")
     @patch(
         "src.detector.detector.MODEL_BASE_URL",
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",

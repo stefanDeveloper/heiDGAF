@@ -1,8 +1,7 @@
 numpy
 xgboost
-scikit-learn~=1.4.2
+scikit-learn~=1.5.2
 scipy
 torch
 pyarrow
 polars
-joblib~=1.4.2
