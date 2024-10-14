@@ -126,13 +126,35 @@ services:
           cpus: '1'
           memory: 256m
 
-  # detector:
-  #   build:
-  #     context: ./dockerfiles
-  #     dockerfile: Dockerfile.detector
-  #   deploy:
-  #     mode: "replicated"
-  #     replicas: 6
+  detector:
+    build:
+      context: ./dockerfiles
+      dockerfile: Dockerfile.detector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      logcollector:
+        condition: service_started
+      logserver:
+        condition: service_started
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+          devices:
+            - driver: nvidia
+              count: 1 # alternatively, use `count: all` for all GPUs
+              capabilities: [gpu]
 
 networks:
   heidgaf:

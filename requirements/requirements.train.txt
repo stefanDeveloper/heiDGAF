@@ -1,5 +1,4 @@
 numpy
-polars
 xgboost
 scikit-learn~=1.4.2
 scipy
@@ -7,4 +6,3 @@ torch
 pyarrow
 polars
 joblib~=1.4.2
-feature-engineering-polars

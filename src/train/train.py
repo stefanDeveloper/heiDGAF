@@ -1,9 +1,7 @@
-import logging
 import sys
 import os
 from enum import Enum, unique
 
-import joblib
 import numpy as np
 import polars as pl
 import torch
@@ -14,9 +12,6 @@ from src.train.dataset import Dataset, DatasetLoader, Dataset
 from src.train.feature import Processor
 from src.train.model import (
     Pipeline,
-    random_forest_model,
-    xgboost_model,
-    xgboost_rf_model,
 )
 from src.base.log_config import get_logger
 
@@ -50,7 +45,8 @@ class DetectorTraining:
 
         Args:
             model (torch.nn.Module): Fit model.
-            dataset (heidgaf.datasets.Dataset): Data set for training.
+            dataset (src.train.datasets.Dataset): Data set for training.
+            data_base_path(src.train.train.DatasetEnum):
         """
         logger.info("Get DatasetLoader.")
         self.datasets = DatasetLoader(base_path=data_base_path, max_rows=100)
@@ -64,7 +60,7 @@ class DetectorTraining:
                             self.datasets.cic_dataset.data,
                             self.datasets.bambenek_dataset.data,
                             self.datasets.dga_dataset.data,
-                            self.datasets.dgarchive_data.data,
+                            # self.datasets.dgarchive_data.data,
                         ]
                     ),
                     max_rows=100,
@@ -77,16 +73,7 @@ class DetectorTraining:
                 self.dataset = self.datasets.dgarchive_data
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
-
-        match model:
-            case "rf":
-                self.model = random_forest_model
-            case "xg":
-                self.model = xgboost_model
-            case "xg-rf":
-                self.model = xgboost_rf_model
-            case _:
-                raise NotImplementedError(f"Model not implemented!")
+        self.model = model
 
     def train(self, seed=42, output_path: str = "model.pkl"):
         """Starts training of the model. Checks prior if GPU is available.
@@ -101,7 +88,7 @@ class DetectorTraining:
         # Training model
         logger.info(f"Set up Pipeline.")
         model_pipeline = Pipeline(
-            preprocessor=Processor(
+            processor=Processor(
                 features_to_drop=[
                     "query",
                     "labels",
@@ -111,22 +98,22 @@ class DetectorTraining:
                     "tld",
                 ]
             ),
-            clf=self.model,
+            model=self.model,
+            dataset=self.dataset,
         )
 
         logger.info("Fit model.")
-        model_pipeline.fit(x_train=self.dataset.X_train, y_train=self.dataset.Y_train)
+        model_pipeline.fit()
 
         logger.info("Validate test set")
         y_pred = model_pipeline.predict(self.dataset.X_test)
+        y_pred = [round(value) for value in y_pred]
         logger.info(classification_report(self.dataset.Y_test, y_pred, labels=[0, 1]))
 
         logger.info("Test validation test.")
         y_pred = model_pipeline.predict(self.dataset.X_val)
+        y_pred = [round(value) for value in y_pred]
         logger.info(classification_report(self.dataset.Y_val, y_pred, labels=[0, 1]))
-
-        # TODO Dump models (XGBoost must be saved differently)
-        joblib.dump(model_pipeline.clf, output_path)
 
 
 if __name__ == "__main__":  # pragma: no cover

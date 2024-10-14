@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import pickle
 import sys
 import tempfile
 
@@ -45,7 +46,9 @@ class Detector:
         self.warnings = []
         self.begin_timestamp = None
         self.end_timestamp = None
-        self.model_path = os.path.join(tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pkl")
+        self.model_path = os.path.join(
+            tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pickle"
+        )
 
         logger.debug(f"Initializing Detector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Detector')...")
@@ -117,9 +120,9 @@ class Detector:
 
         if not os.path.isfile(self.model_path):
             response = requests.get(
-                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pkl&dl=1"
+                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pickle&dl=1"
             )
-            logger.info(f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pkl&dl=1")
+            logger.info(f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pickle&dl=1")
             response.raise_for_status()
 
             with open(self.model_path, "wb") as f:
@@ -136,7 +139,10 @@ class Detector:
                 f"Checksum {CHECKSUM} SHA256 is not equal with new checksum {local_checksum}!"
             )
 
-        return joblib.load(self.model_path)
+        with open(self.model_path, "rb") as input_file:
+            clf = pickle.load(input_file)
+
+        return clf
 
     def clear_data(self):
         """Clears the data in the internal data structures."""
@@ -147,7 +153,7 @@ class Detector:
 
     def detect(self) -> None:  # pragma: no cover
         for message in self.messages:
-            y_pred = self.model.predict(message["host_domain_name"])
+            y_pred = self.model.predict_proba(message["host_domain_name"])
             if y_pred > THRESHOLD:
                 self.warnings.append(message)
 

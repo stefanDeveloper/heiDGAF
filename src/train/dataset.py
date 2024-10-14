@@ -84,8 +84,12 @@ def cast_dga(data_path: str, max_rows: int):
     df = df.drop(["DGA_family", "Type"])
     df = df.with_columns([pl.lit("malicious").alias("class")])
     df = preprocess(df)
+
+    df_legit = df.filter(pl.col("class").eq(0))[:max_rows]
+    df_malicious = df.filter(pl.col("class").eq(1))[:max_rows]
+
     logger.info(f"Data loaded with shape {df.shape}")
-    return df[:max_rows]
+    return pl.concat([df_legit, df_malicious])
 
 
 def cast_bambenek(data_path: str, max_rows: int):
@@ -95,8 +99,12 @@ def cast_bambenek(data_path: str, max_rows: int):
     df = df.drop(["DGA_family", "Type"])
     df = df.with_columns([pl.lit("malicious").alias("class")])
     df = preprocess(df)
+
+    df_legit = df.filter(pl.col("class").eq(0))[:max_rows]
+    df_malicious = df.filter(pl.col("class").eq(1))[:max_rows]
+
     logger.info(f"Data loaded with shape {df.shape}")
-    return df[:max_rows]
+    return pl.concat([df_legit, df_malicious])
 
 
 def cast_cic(data_path: List[str], max_rows: int):
@@ -104,15 +112,19 @@ def cast_cic(data_path: List[str], max_rows: int):
     for data in data_path:
         logger.info(f"Start casting data set {data}.")
         y = data.split("_")[-1].split(".")[0]
-        df = pl.read_csv(data, has_header=False)
+        df = pl.read_csv(
+            data, has_header=False, n_rows=max_rows if max_rows > 0 else None
+        )
         if y == "benign":
             df = df.with_columns([pl.lit("legit").alias("class")])
         else:
             df = df.with_columns([pl.lit(y).alias("class")])
         df = df.rename({"column_1": "query"})
         df = preprocess(df)
-        dataframes.append(df[:max_rows])
+
         logger.info(f"Data loaded with shape {df.shape}")
+        dataframes.append(df)
+
     return pl.concat(dataframes)
 
 
@@ -120,13 +132,18 @@ def cast_dgarchive(data_path: List[str], max_rows: int):
     dataframes = []
     for data in data_path:
         logger.info(f"Start casting data set {data}.")
-        df = pl.read_csv(data, has_header=False, separator=",")
+        df = pl.read_csv(
+            data,
+            has_header=False,
+            separator=",",
+            n_rows=max_rows if max_rows > 0 else None,
+        )
         df = df.rename({"column_1": "query"})
         df = df.select("query")
         df = df.with_columns([pl.lit("1").alias("class")])
         df = preprocess(df)
-        dataframes.append(df[:max_rows])
         logger.info(f"Data loaded with shape {df.shape}")
+        dataframes.append(df)
     return pl.concat(dataframes)
 
 
@@ -145,8 +162,11 @@ def cast_dgta(data_path: str, max_rows: int) -> pl.DataFrame:
         pl.col("query").map_elements(__custom_decode, return_dtype=pl.Utf8)
     )
     df = preprocess(df)
+    df_legit = df.filter(pl.col("class").eq(0))[:max_rows]
+    df_malicious = df.filter(pl.col("class").eq(1))[:max_rows]
+
     logger.info(f"Data loaded with shape {df.shape}")
-    return df[:max_rows]
+    return pl.concat([df_legit, df_malicious])
 
 
 class DatasetLoader:
@@ -356,7 +376,14 @@ class Dataset:
 
     def __train_test_val_split(
         self, train_frac: float = 0.8, random_state: int = None
-    ) -> tuple[list, list, list, list, list, list]:
+    ) -> tuple[
+        pl.DataFrame,
+        pl.DataFrame,
+        pl.DataFrame,
+        pl.DataFrame,
+        pl.DataFrame,
+        pl.DataFrame,
+    ]:
         """Splits data set in train, test, and validation set
 
         Args:
