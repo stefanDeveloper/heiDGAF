@@ -10,7 +10,7 @@ import torch
 from sklearn.metrics import classification_report
 
 sys.path.append(os.getcwd())
-from src.train.dataset import Dataset, DatasetLoader
+from src.train.dataset import Dataset, DatasetLoader, Dataset
 from src.train.feature import Processor
 from src.train.model import (
     Pipeline,
@@ -24,7 +24,7 @@ logger = get_logger("train.train")
 
 
 @unique
-class Dataset(str, Enum):
+class DatasetEnum(str, Enum):
     ALL = "all"
     CIC = "cic"
     DGTA = "dgta"
@@ -32,7 +32,7 @@ class Dataset(str, Enum):
 
 
 @unique
-class Model(str, Enum):
+class ModelEnum(str, Enum):
     RANDOM_FOREST_CLASSIFIER = "rf"
     XG_BOOST_CLASSIFIER = "xg"
     XG_BOOST_RANDOM_FOREST_CLASSIFIER = "xg-rf"
@@ -41,9 +41,10 @@ class Model(str, Enum):
 class DetectorTraining:
     def __init__(
         self,
-        model: Model.RANDOM_FOREST_CLASSIFIER,
-        dataset: Dataset = Dataset.ALL,
+        model: ModelEnum.RANDOM_FOREST_CLASSIFIER,
+        dataset: DatasetEnum = DatasetEnum.ALL,
         data_base_path: str = "./data",
+        max_rows: int = -1,
     ) -> None:
         """Trainer class to fit models on data sets.
 
@@ -51,7 +52,8 @@ class DetectorTraining:
             model (torch.nn.Module): Fit model.
             dataset (heidgaf.datasets.Dataset): Data set for training.
         """
-        self.datasets = DatasetLoader(base_path=data_base_path)
+        logger.info("Get DatasetLoader.")
+        self.datasets = DatasetLoader(base_path=data_base_path, max_rows=100)
         match dataset:
             case "all":
                 self.dataset = Dataset(
@@ -65,13 +67,14 @@ class DetectorTraining:
                             self.datasets.dgarchive_data.data,
                         ]
                     ),
+                    max_rows=100,
                 )
             case "cic":
-                self.dataset = self.datasets.cic_dataset.data
+                self.dataset = self.datasets.cic_dataset
             case "dgta":
-                self.dataset = self.datasets.dgta_dataset.data
+                self.dataset = self.datasets.dgta_dataset
             case "dgarchive":
-                self.dataset = self.datasets.dgarchive_data.data
+                self.dataset = self.datasets.dgarchive_data
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
 
@@ -95,10 +98,8 @@ class DetectorTraining:
             np.random.seed(seed)
             torch.manual_seed(seed)
 
-        logger.info(f"Loading data sets")
-
         # Training model
-        logger.info(f"Loading data sets")
+        logger.info(f"Set up Pipeline.")
         model_pipeline = Pipeline(
             preprocessor=Processor(
                 features_to_drop=[
@@ -112,28 +113,19 @@ class DetectorTraining:
             ),
             clf=self.model,
         )
-        # TODO Add data storage functionality
-        # processor = Processor(
-        #     features_to_drop=[
-        #         "query",
-        #         "labels",
-        #         "thirdleveldomain",
-        #         "secondleveldomain",
-        #         "fqdn",
-        #         "tld",
-        #     ]
-        # )
-        # data = processor.transform(self.dataset.data)
-        # data.write_csv("full_data.csv")
 
+        logger.info("Fit model.")
         model_pipeline.fit(x_train=self.dataset.X_train, y_train=self.dataset.Y_train)
 
+        logger.info("Validate test set")
         y_pred = model_pipeline.predict(self.dataset.X_test)
         logger.info(classification_report(self.dataset.Y_test, y_pred, labels=[0, 1]))
 
+        logger.info("Test validation test.")
         y_pred = model_pipeline.predict(self.dataset.X_val)
         logger.info(classification_report(self.dataset.Y_val, y_pred, labels=[0, 1]))
 
+        # TODO Dump models (XGBoost must be saved differently)
         joblib.dump(model_pipeline.clf, output_path)
 
 

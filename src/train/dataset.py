@@ -1,13 +1,20 @@
+import sys
+import os
 from dataclasses import dataclass
-import glob
 from typing import Callable, List
 
 import polars as pl
 import sklearn.model_selection
 from torch.utils.data.dataset import Dataset
 
+sys.path.append(os.getcwd())
+from src.base.log_config import get_logger
+
+logger = get_logger("train.feature")
+
 
 def preprocess(x: pl.DataFrame):
+    logger.debug("Start preprocessing data.")
     x = x.with_columns(
         [
             (pl.col("query").str.split(".").alias("labels")),
@@ -66,31 +73,36 @@ def preprocess(x: pl.DataFrame):
             )
         ]
     )
-
+    logger.debug("End preprocessing data.")
     return x
 
 
-def cast_dga(data_path: str):
+def cast_dga(data_path: str, max_rows: int):
+    logger.info(f"Start casting data set {data_path}.")
     df = pl.read_csv(data_path)
     df = df.rename({"Domain": "query"})
     df = df.drop(["DGA_family", "Type"])
     df = df.with_columns([pl.lit("malicious").alias("class")])
     df = preprocess(df)
-    return df
+    logger.info(f"Data loaded with shape {df.shape}")
+    return df[:max_rows]
 
 
-def cast_bambenek(data_path: str):
+def cast_bambenek(data_path: str, max_rows: int):
+    logger.info(f"Start casting data set {data_path}.")
     df = pl.read_csv(data_path)
     df = df.rename({"Domain": "query"})
     df = df.drop(["DGA_family", "Type"])
     df = df.with_columns([pl.lit("malicious").alias("class")])
     df = preprocess(df)
-    return df
+    logger.info(f"Data loaded with shape {df.shape}")
+    return df[:max_rows]
 
 
-def cast_cic(data_path: List[str]):
+def cast_cic(data_path: List[str], max_rows: int):
     dataframes = []
     for data in data_path:
+        logger.info(f"Start casting data set {data}.")
         y = data.split("_")[-1].split(".")[0]
         df = pl.read_csv(data, has_header=False)
         if y == "benign":
@@ -99,54 +111,64 @@ def cast_cic(data_path: List[str]):
             df = df.with_columns([pl.lit(y).alias("class")])
         df = df.rename({"column_1": "query"})
         df = preprocess(df)
-        dataframes.append(df)
+        dataframes.append(df[:max_rows])
+        logger.info(f"Data loaded with shape {df.shape}")
     return pl.concat(dataframes)
 
 
-def cast_dgarchive(data_path: List[str]):
+def cast_dgarchive(data_path: List[str], max_rows: int):
     dataframes = []
     for data in data_path:
+        logger.info(f"Start casting data set {data}.")
         df = pl.read_csv(data, has_header=False, separator=",")
         df = df.rename({"column_1": "query"})
         df = df.select("query")
         df = df.with_columns([pl.lit("1").alias("class")])
         df = preprocess(df)
-        dataframes.append(df)
+        dataframes.append(df[:max_rows])
+        logger.info(f"Data loaded with shape {df.shape}")
     return pl.concat(dataframes)
 
 
-def cast_dgta(data_path: str) -> pl.DataFrame:
+def cast_dgta(data_path: str, max_rows: int) -> pl.DataFrame:
     def __custom_decode(data):
         return str(data.decode("latin-1").encode("utf-8").decode("utf-8"))
+
+    logger.info(f"Start casting data set {data_path}.")
 
     df = pl.read_parquet(data_path)
     df = df.rename({"domain": "query"})
 
     # Drop unnecessary column
     df = df.drop("__index_level_0__")
-    print(df)
     df = df.with_columns(
         pl.col("query").map_elements(__custom_decode, return_dtype=pl.Utf8)
     )
     df = preprocess(df)
-    return df
+    logger.info(f"Data loaded with shape {df.shape}")
+    return df[:max_rows]
 
 
 class DatasetLoader:
-    def __init__(self, base_path: str = "") -> None:
+    def __init__(self, base_path: str = "", max_rows: int = -1) -> None:
+        logger.info("Initialise DatasetLoader")
+
         self.dgta_data = Dataset(
             data_path=f"{base_path}/dgta/dgta-benchmark.parquet",
             cast_dataset=cast_dgta,
+            max_rows=max_rows,
         )
 
         self.dga_data = Dataset(
             data_path=f"{base_path}/360_dga_domain.csv",
             cast_dataset=cast_dga,
+            max_rows=max_rows,
         )
 
         self.bambenek_data = Dataset(
             data_path=f"{base_path}/bambenek_dga_domain.csv",
             cast_dataset=cast_bambenek,
+            max_rows=max_rows,
         )
 
         self.cic_data = Dataset(
@@ -157,6 +179,7 @@ class DatasetLoader:
                 f"{base_path}/cic/CICBellDNS2021_CSV_spam.csv",
             ],
             cast_dataset=cast_cic,
+            max_rows=max_rows,
         )
 
         self.dgarchive_data = Dataset(
@@ -256,7 +279,10 @@ class DatasetLoader:
                 f"{base_path}/dgarchive/xxhex_dga.csv",
             ],
             cast_dataset=cast_dgarchive,
+            max_rows=max_rows,
         )
+
+        logger.info("Finished initialisation.")
 
     @property
     def dgta_dataset(self) -> Dataset:
@@ -288,6 +314,7 @@ class Dataset:
         data_path: List[str],
         data: pl.DataFrame = None,
         cast_dataset: Callable = None,
+        max_rows: int = -1,
     ) -> None:
         """Initializes data.
 
@@ -302,14 +329,19 @@ class Dataset:
         Raises:
             NotImplementedError: _description_
         """
-        if cast_dataset != None:
-            self.data = cast_dataset(data_path)
+        if cast_dataset != None and data_path != "":
+            logger.info("Cast function provided, load data set.")
+            self.data = cast_dataset(data_path, max_rows)
         elif data_path != "":
+            logger.info("Data path provided, load data set.")
             self.data = pl.read_csv(data_path)
         elif not data is None:
+            logger.info("Data set provided, load data set.")
             self.data = data
         else:
+            logger.error("No data given!")
             raise NotImplementedError("No data given")
+
         self.X_train, self.X_val, self.X_test, self.Y_train, self.Y_val, self.Y_test = (
             self.__train_test_val_split()
         )
@@ -334,6 +366,8 @@ class Dataset:
         Returns:
             tuple[list, list, list, list, list, list]: X_train, X_val, X_test, Y_train, Y_val, Y_test
         """
+
+        logger.info("Create train, validation, and test split.")
 
         self.data = self.data.filter(pl.col("query").str.len_chars() > 0)
         self.data = self.data.unique(subset="query")

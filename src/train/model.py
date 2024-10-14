@@ -1,6 +1,5 @@
 import sys
 import os
-import logging
 from time import time
 from typing import Any
 
@@ -61,8 +60,11 @@ class Pipeline:
             x_train (np.array): X data.
             y_train (np.array): Y labels.
         """
+        logger.info("Start data set transformation.")
         x_train = self.preprocessor.transform(x=x_train)
+        logger.info("End data set transformation.")
 
+        # TODO Optimize hyperparameter optimization
         clf = RandomizedSearchCV(
             self.clf["model"],
             self.clf["search"],
@@ -116,8 +118,14 @@ xgboost_rf_params = {
     "device": "cuda",
 }
 
+
+def save_xgboost():
+    pass
+
+
 xgboost_model = {
     "model": XGBClassifier(**xgboost_params),
+    "save": save_xgboost,
     "search": {
         "eta": list(np.linspace(0.1, 0.6, 6)),
         "gamma": [int(x) for x in np.linspace(0, 10, 10)],
@@ -129,16 +137,25 @@ xgboost_model = {
         "reg_lambda": np.array([0.4, 0.6, 0.8, 1, 1.2, 1.4]),
     },
 }
+
 xgboost_rf_model = {
     "model": XGBRFClassifier(**xgboost_rf_params),
+    "save": save_xgboost,
     "search": {
         "max_depth": [3, 6, 9],
         "eta": list(np.linspace(0.1, 0.6, 6)),
         "gamma": [int(x) for x in np.linspace(0, 10, 10)],
     },
 }
+
+
+def save_rf():
+    pass
+
+
 random_forest_model = {
     "model": RandomForestClassifier(),
+    "save": save_xgboost,
     "search": {
         "n_estimators": [int(x) for x in np.linspace(start=200, stop=1000, num=10)],
         "max_features": [42],
@@ -147,4 +164,10 @@ random_forest_model = {
         "min_samples_leaf": [1, 2, 4],
         "bootstrap": [True, False],
     },
+}
+
+svm_model = {
+    "model": "",
+    "save": save_xgboost,
+    "search": {},
 }

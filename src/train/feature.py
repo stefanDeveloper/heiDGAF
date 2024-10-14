@@ -1,6 +1,5 @@
 import sys
 import os
-import logging
 import math
 from string import ascii_lowercase as alc
 from typing import List
@@ -51,7 +50,7 @@ class Processor:
                 ),
             ]
         )
-        # Get letter frequency
+        logger.debug("Get letter frequency")
         for i in alc:
             x = x.with_columns(
                 [
@@ -63,7 +62,7 @@ class Processor:
                     ).alias(f"freq_{i}"),
                 ]
             )
-
+        logger.debug("Get full, alpha, special, and numeric count.")
         for level in ["thirdleveldomain", "secondleveldomain", "fqdn"]:
             x = x.with_columns(
                 [
@@ -106,6 +105,7 @@ class Processor:
                 ]
             )
 
+        logger.debug("Get frequency standard deviation, median, variance, and mean.")
         x = x.with_columns(
             [
                 (
@@ -131,6 +131,9 @@ class Processor:
             ]
         )
 
+        logger.debug(
+            "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
+        )
         for level in ["thirdleveldomain", "secondleveldomain", "fqdn"]:
             x = x.with_columns(
                 [
@@ -194,7 +197,8 @@ class Processor:
                             lambda x: [
                                 float(str(x).count(c)) / len(str(x))
                                 for c in dict.fromkeys(list(str(x)))
-                            ]
+                            ],
+                            return_dtype=pl.List(pl.Float64),
                         )
                     ).alias("prob"),
                 ]
@@ -215,9 +219,10 @@ class Processor:
             x = x.drop("prob")
         logger.debug("Finished entropy calculation")
 
-        # Fill NaN
+        logger.debug("Fill NaN.")
         x = x.fill_nan(0)
-        # Drop features not useful anymore
+
+        logger.debug("Drop features that are not useful.")
         x = x.drop(self.features_to_drop)
 
         logger.debug("Finished data transformation")
