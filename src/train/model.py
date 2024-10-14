@@ -13,10 +13,9 @@ from xgboost import XGBClassifier, XGBRFClassifier
 
 sys.path.append(os.getcwd())
 from src.train.feature import Processor
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("train.model")
 
 
 class Pipeline:

@@ -8,10 +8,9 @@ from typing import List
 import polars as pl
 
 sys.path.append(os.getcwd())
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("train.feature")
 
 
 class Processor:

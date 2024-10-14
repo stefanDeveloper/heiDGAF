@@ -27,6 +27,8 @@ def preprocess(x: pl.DataFrame):
         ]
     )
 
+    x = x.filter(pl.col("labels").list.len().ne(1))
+
     x = x.with_columns(
         [
             # Second-level domain
@@ -107,152 +109,151 @@ def cast_dgarchive(data_path: List[str]):
         df = pl.read_csv(data, has_header=False, separator=",")
         df = df.rename({"column_1": "query"})
         df = df.select("query")
-        df = preprocess(df)
         df = df.with_columns([pl.lit("1").alias("class")])
+        df = preprocess(df)
         dataframes.append(df)
     return pl.concat(dataframes)
 
 
 def cast_dgta(data_path: str) -> pl.DataFrame:
     def __custom_decode(data):
-        retL = [None] * len(data)
-        for i, datum in enumerate(data):
-            retL[i] = str(datum.decode("latin-1").encode("utf-8").decode("utf-8"))
-
-        return pl.Series(retL)
+        return str(data.decode("latin-1").encode("utf-8").decode("utf-8"))
 
     df = pl.read_parquet(data_path)
     df = df.rename({"domain": "query"})
 
     # Drop unnecessary column
     df = df.drop("__index_level_0__")
-    df = df.with_columns([pl.col("query").map(__custom_decode)])
+    print(df)
+    df = df.with_columns(
+        pl.col("query").map_elements(__custom_decode, return_dtype=pl.Utf8)
+    )
     df = preprocess(df)
     return df
 
 
 class DatasetLoader:
-    def __init__(self) -> None:
+    def __init__(self, base_path: str = "") -> None:
         self.dgta_data = Dataset(
-            data_path="/home/smachmeier/projects/heiDGA/data/dgta/dgta-benchmark.parquet",
+            data_path=f"{base_path}/dgta/dgta-benchmark.parquet",
             cast_dataset=cast_dgta,
         )
 
         self.dga_data = Dataset(
-            data_path="/home/smachmeier/projects/heiDGA/data/360_dga_domain.csv",
+            data_path=f"{base_path}/360_dga_domain.csv",
             cast_dataset=cast_dga,
         )
 
         self.bambenek_data = Dataset(
-            data_path="/home/smachmeier/projects/heiDGA/data/bambenek_dga_domain.csv",
+            data_path=f"{base_path}/bambenek_dga_domain.csv",
             cast_dataset=cast_bambenek,
         )
 
         self.cic_data = Dataset(
             data_path=[
-                "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_benign.csv",
-                "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_malware.csv",
-                "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_phishing.csv",
-                "/home/smachmeier/projects/heiDGA/example/CICBellDNS2021_CSV_spam.csv",
+                f"{base_path}/cic/CICBellDNS2021_CSV_benign.csv",
+                f"{base_path}/cic/CICBellDNS2021_CSV_malware.csv",
+                f"{base_path}/cic/CICBellDNS2021_CSV_phishing.csv",
+                f"{base_path}/cic/CICBellDNS2021_CSV_spam.csv",
             ],
             cast_dataset=cast_cic,
         )
 
         self.dgarchive_data = Dataset(
             data_path=[
-                "/home/smachmeier/Downloads/dgarchive/bamital_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/banjori_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/bedep_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/beebone_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/blackhole_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/bobax_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/ccleaner_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/chinad_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/chir_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/conficker_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/corebot_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/cryptolocker_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/darkshell_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/diamondfox_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/dircrypt_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/dmsniff_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/dnsbenchmark_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/dnschanger_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/downloader_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/dyre_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/ebury_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/ekforward_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/emotet_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/feodo_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/fobber_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/gameover_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/gameover_p2p.csv"
-                "/home/smachmeier/Downloads/dgarchive/gozi_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/goznym_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/gspy_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/hesperbot_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/infy_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/locky_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/madmax_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/makloader_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/matsnu_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/mirai_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/modpack_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/monerominer_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/murofet_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/murofetweekly_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/mydoom_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/necurs_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/nymaim2_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/nymaim_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/oderoor_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/omexo_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/padcrypt_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/pandabanker_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/pitou_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/proslikefan_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/pushdo_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/pushdotid_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/pykspa2_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/pykspa2s_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/pykspa_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/qadars_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/qakbot_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/qhost_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/qsnatch_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/ramdo_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/ramnit_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/ranbyus_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/randomloader_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/redyms_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/rovnix_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/shifu_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/simda_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/sisron_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/sphinx_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/suppobox_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/sutra_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/symmi_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/szribi_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/tempedreve_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/tempedrevetdd_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/tinba_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/tinynuke_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/tofsee_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/torpig_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/tsifiri_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/ud2_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/ud3_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/ud4_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/urlzone_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/vawtrak_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/vidro_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/vidrotid_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/virut_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/volatilecedar_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/wd_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/xshellghost_dga.csv"
-                "/home/smachmeier/Downloads/dgarchive/xxhex_dga.csv"
+                f"{base_path}/dgarchive/bamital_dga.csv",
+                f"{base_path}/dgarchive/banjori_dga.csv",
+                f"{base_path}/dgarchive/bedep_dga.csv",
+                f"{base_path}/dgarchive/beebone_dga.csv",
+                f"{base_path}/dgarchive/blackhole_dga.csv",
+                f"{base_path}/dgarchive/bobax_dga.csv",
+                f"{base_path}/dgarchive/ccleaner_dga.csv",
+                f"{base_path}/dgarchive/chinad_dga.csv",
+                f"{base_path}/dgarchive/chir_dga.csv",
+                f"{base_path}/dgarchive/conficker_dga.csv",
+                f"{base_path}/dgarchive/corebot_dga.csv",
+                f"{base_path}/dgarchive/cryptolocker_dga.csv",
+                f"{base_path}/dgarchive/darkshell_dga.csv",
+                f"{base_path}/dgarchive/diamondfox_dga.csv",
+                f"{base_path}/dgarchive/dircrypt_dga.csv",
+                f"{base_path}/dgarchive/dmsniff_dga.csv",
+                f"{base_path}/dgarchive/dnsbenchmark_dga.csv",
+                f"{base_path}/dgarchive/dnschanger_dga.csv",
+                f"{base_path}/dgarchive/downloader_dga.csv",
+                f"{base_path}/dgarchive/dyre_dga.csv",
+                f"{base_path}/dgarchive/ebury_dga.csv",
+                f"{base_path}/dgarchive/ekforward_dga.csv",
+                f"{base_path}/dgarchive/emotet_dga.csv",
+                f"{base_path}/dgarchive/feodo_dga.csv",
+                f"{base_path}/dgarchive/fobber_dga.csv",
+                f"{base_path}/dgarchive/gameover_dga.csv",
+                f"{base_path}/dgarchive/gameover_p2p.csv",
+                f"{base_path}/dgarchive/gozi_dga.csv",
+                f"{base_path}/dgarchive/goznym_dga.csv",
+                f"{base_path}/dgarchive/gspy_dga.csv",
+                f"{base_path}/dgarchive/hesperbot_dga.csv",
+                f"{base_path}/dgarchive/infy_dga.csv",
+                f"{base_path}/dgarchive/locky_dga.csv",
+                f"{base_path}/dgarchive/madmax_dga.csv",
+                f"{base_path}/dgarchive/makloader_dga.csv",
+                f"{base_path}/dgarchive/matsnu_dga.csv",
+                f"{base_path}/dgarchive/mirai_dga.csv",
+                f"{base_path}/dgarchive/modpack_dga.csv",
+                f"{base_path}/dgarchive/monerominer_dga.csv",
+                f"{base_path}/dgarchive/murofet_dga.csv",
+                f"{base_path}/dgarchive/murofetweekly_dga.csv",
+                f"{base_path}/dgarchive/mydoom_dga.csv",
+                f"{base_path}/dgarchive/necurs_dga.csv",
+                f"{base_path}/dgarchive/nymaim2_dga.csv",
+                f"{base_path}/dgarchive/nymaim_dga.csv",
+                f"{base_path}/dgarchive/oderoor_dga.csv",
+                f"{base_path}/dgarchive/omexo_dga.csv",
+                f"{base_path}/dgarchive/padcrypt_dga.csv",
+                f"{base_path}/dgarchive/pandabanker_dga.csv",
+                f"{base_path}/dgarchive/pitou_dga.csv",
+                f"{base_path}/dgarchive/proslikefan_dga.csv",
+                f"{base_path}/dgarchive/pushdo_dga.csv",
+                f"{base_path}/dgarchive/pushdotid_dga.csv",
+                f"{base_path}/dgarchive/pykspa2_dga.csv",
+                f"{base_path}/dgarchive/pykspa2s_dga.csv",
+                f"{base_path}/dgarchive/pykspa_dga.csv",
+                f"{base_path}/dgarchive/qadars_dga.csv",
+                f"{base_path}/dgarchive/qakbot_dga.csv",
+                f"{base_path}/dgarchive/qhost_dga.csv",
+                f"{base_path}/dgarchive/qsnatch_dga.csv",
+                f"{base_path}/dgarchive/ramdo_dga.csv",
+                f"{base_path}/dgarchive/ramnit_dga.csv",
+                f"{base_path}/dgarchive/ranbyus_dga.csv",
+                f"{base_path}/dgarchive/randomloader_dga.csv",
+                f"{base_path}/dgarchive/redyms_dga.csv",
+                f"{base_path}/dgarchive/rovnix_dga.csv",
+                f"{base_path}/dgarchive/shifu_dga.csv",
+                f"{base_path}/dgarchive/simda_dga.csv",
+                f"{base_path}/dgarchive/sisron_dga.csv",
+                f"{base_path}/dgarchive/sphinx_dga.csv",
+                f"{base_path}/dgarchive/suppobox_dga.csv",
+                f"{base_path}/dgarchive/sutra_dga.csv",
+                f"{base_path}/dgarchive/symmi_dga.csv",
+                f"{base_path}/dgarchive/szribi_dga.csv",
+                f"{base_path}/dgarchive/tempedreve_dga.csv",
+                f"{base_path}/dgarchive/tempedrevetdd_dga.csv",
+                f"{base_path}/dgarchive/tinba_dga.csv",
+                f"{base_path}/dgarchive/tinynuke_dga.csv",
+                f"{base_path}/dgarchive/tofsee_dga.csv",
+                f"{base_path}/dgarchive/torpig_dga.csv",
+                f"{base_path}/dgarchive/tsifiri_dga.csv",
+                f"{base_path}/dgarchive/ud2_dga.csv",
+                f"{base_path}/dgarchive/ud3_dga.csv",
+                f"{base_path}/dgarchive/ud4_dga.csv",
+                f"{base_path}/dgarchive/urlzone_dga.csv",
+                f"{base_path}/dgarchive/vawtrak_dga.csv",
+                f"{base_path}/dgarchive/vidro_dga.csv",
+                f"{base_path}/dgarchive/vidrotid_dga.csv",
+                f"{base_path}/dgarchive/virut_dga.csv",
+                f"{base_path}/dgarchive/volatilecedar_dga.csv",
+                f"{base_path}/dgarchive/wd_dga.csv",
+                f"{base_path}/dgarchive/xshellghost_dga.csv",
+                f"{base_path}/dgarchive/xxhex_dga.csv",
             ],
             cast_dataset=cast_dgarchive,
         )

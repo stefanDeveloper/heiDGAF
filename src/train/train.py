@@ -18,10 +18,9 @@ from src.train.model import (
     xgboost_model,
     xgboost_rf_model,
 )
-from src.base.log_config import setup_logging
+from src.base.log_config import get_logger
 
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger("train.train")
 
 
 @unique
@@ -41,7 +40,10 @@ class Model(str, Enum):
 
 class DetectorTraining:
     def __init__(
-        self, model: Model.RANDOM_FOREST_CLASSIFIER, dataset: Dataset = Dataset.ALL
+        self,
+        model: Model.RANDOM_FOREST_CLASSIFIER,
+        dataset: Dataset = Dataset.ALL,
+        data_base_path: str = "./data",
     ) -> None:
         """Trainer class to fit models on data sets.
 
@@ -49,7 +51,7 @@ class DetectorTraining:
             model (torch.nn.Module): Fit model.
             dataset (heidgaf.datasets.Dataset): Data set for training.
         """
-        self.datasets = DatasetLoader()
+        self.datasets = DatasetLoader(base_path=data_base_path)
         match dataset:
             case "all":
                 self.dataset = Dataset(
@@ -133,3 +135,12 @@ class DetectorTraining:
         logger.info(classification_report(self.dataset.Y_val, y_pred, labels=[0, 1]))
 
         joblib.dump(model_pipeline.clf, output_path)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    name = sys.argv[1]
+    ds = sys.argv[2]
+    output_train_path = sys.argv[3]
+
+    trainer = DetectorTraining(model=name, dataset=ds)
+    trainer.train()
