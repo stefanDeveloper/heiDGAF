@@ -34,25 +34,4 @@ jobs:
         path: ~/.cache/pre-commit
         key: ${{ runner.os }}-precommit-${{ hashFiles('.pre-commit-config.yaml') }}
 
-    - name: Install pre-commit
-      run: pip install pre-commit
-
-    - name: Run pre-commit and fix files
-      run: pre-commit run --all-files
-      continue-on-error: true
-
-    - name: Commit changes if needed
-      run: |
-        git config --local user.name "github-actions[bot]"
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git add .
-        git diff-index --quiet HEAD || git commit -m "Pre-commit fixes by GitHub Actions"
-
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.ref }}
-
-    - name: Run pre-commit on fixed files
-      run: pre-commit run --all-files
+    - uses: pre-commit/action@v3.0.1
