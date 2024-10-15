@@ -15,8 +15,11 @@ logger = get_logger("log_collection.collector")
 config = utils.setup_config()
 LOGSERVER_HOSTNAME = config["environment"]["logserver"]["hostname"]
 LOGSERVER_SENDING_PORT = config["environment"]["logserver"]["port_out"]
-SUBNET_BITS = config["pipeline"]["log_collection"]["batch_handler"]["subnet"][
-    "subnet_bits"
+IPV4_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
+    "ipv4_prefix_length"
+]
+IPV6_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
+    "ipv6_prefix_length"
 ]
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 
@@ -82,6 +85,28 @@ class LogCollector:
             )
             raise
 
+    @staticmethod
+    def get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+        """
+        Args:
+            address (ipaddress.IPv4Address | ipaddress.IPv6Address): IP address to get the subnet ID for
+
+        Returns:
+            subnet ID for the given IP address as string
+        """
+        if isinstance(address, ipaddress.IPv4Address):
+            normalized_ip_address, prefix_length = utils.normalize_ipv4_address(
+                address, IPV4_PREFIX_LENGTH
+            )
+        elif isinstance(address, ipaddress.IPv6Address):
+            normalized_ip_address, prefix_length = utils.normalize_ipv6_address(
+                address, IPV6_PREFIX_LENGTH
+            )
+        else:
+            raise ValueError("Unsupported IP address type")
+
+        return f"{normalized_ip_address}_{prefix_length}"
+
     def add_logline_to_batch(self) -> None:
         """
         Sends the validated logline in JSON format to :class:`CollectorKafkaBatchSender`, where it is stored in
@@ -97,7 +122,7 @@ class LogCollector:
         )
 
         logger.debug("Calling KafkaBatchSender to add message...")
-        subnet_id = f"{utils.get_first_part_of_ipv4_address(ipaddress.ip_address(log_data.get('client_ip')), SUBNET_BITS)}_{SUBNET_BITS}"
+        subnet_id = self.get_subnet_id(ipaddress.ip_address(log_data.get("client_ip")))
 
         self.batch_handler.add_message(subnet_id, json.dumps(log_data))
 

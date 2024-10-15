@@ -95,66 +95,230 @@ class TestKafkaDeliveryReport(unittest.TestCase):
         mock_logger.debug.assert_called_once()
 
 
-class TestGetFirstPartOfIPv4Address(unittest.TestCase):
-    def test_get_first_part_of_ipv4_address_valid_24_bits(self):
-        ipv4_address = ipaddress.IPv4Address("192.168.1.1")
-        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 24)
-        expected_first_part = ipaddress.IPv4Address("192.168.1.0")
-        self.assertEqual(expected_first_part, first_part_ipv4)
+class TestNormalizeIPv4Address(unittest.TestCase):
+    def test_normalize_ip_address_valid_24_bits(self):
+        # Arrange
+        test_address = ipaddress.IPv4Address("192.168.1.1")
+        prefix_length = 24
+        expected_result_address = ipaddress.IPv4Address("192.168.1.0")
 
-    def test_get_first_part_of_ipv4_address_valid_12_bits(self):
-        ipv4_address = ipaddress.IPv4Address("192.168.1.1")
-        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 12)
-        expected_first_part = ipaddress.IPv4Address("192.160.0.0")
-        self.assertEqual(expected_first_part, first_part_ipv4)
+        # Act
+        result = normalize_ipv4_address(test_address, prefix_length)
 
-    def test_get_first_part_of_ipv4_address_zero_24_bits(self):
-        ipv4_address = ipaddress.IPv4Address("0.0.0.1")
-        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 24)
-        expected_first_part = ipaddress.IPv4Address("0.0.0.0")
-        self.assertEqual(expected_first_part, first_part_ipv4)
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
 
-    def test_get_first_part_of_ipv4_address_max_24_bits(self):
-        ipv4_address = ipaddress.IPv4Address("255.255.255.1")
-        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 24)
-        expected_first_part = ipaddress.IPv4Address("255.255.255.0")
-        self.assertEqual(expected_first_part, first_part_ipv4)
+    def test_normalize_ip_address_valid_12_bits(self):
+        # Arrange
+        test_address = ipaddress.IPv4Address("192.168.1.1")
+        prefix_length = 12
+        expected_result_address = ipaddress.IPv4Address("192.160.0.0")
 
-    def test_get_first_part_of_ipv4_address_invalid_24_bits(self):
-        ipv6_address = ipaddress.IPv6Address("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+        # Act
+        result = normalize_ipv4_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_zero_24_bits(self):
+        # Arrange
+        test_address = ipaddress.IPv4Address("0.0.0.1")
+        prefix_length = 24
+        expected_result_address = ipaddress.IPv4Address("0.0.0.0")
+
+        # Act
+        result = normalize_ipv4_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_max_23_bits(self):
+        # Arrange
+        test_address = ipaddress.IPv4Address("255.255.255.1")
+        prefix_length = 23
+        expected_result_address = ipaddress.IPv4Address("255.255.254.0")
+
+        # Act
+        result = normalize_ipv4_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_invalid_24_bits(self):
+        test_address = ipaddress.IPv6Address("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
         with self.assertRaises(ValueError):
             # noinspection PyTypeChecker
-            get_first_part_of_ipv4_address(ipv6_address, 24)
+            normalize_ipv4_address(test_address, 24)
 
-    def test_get_first_part_of_ipv4_address_valid(self):
-        ipv4_address = ipaddress.IPv4Address("192.168.1.1")
-        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 12)
-        expected_first_part = ipaddress.IPv4Address("192.160.0.0")
-        self.assertEqual(first_part_ipv4, expected_first_part)
+    def test_normalize_ip_address_valid(self):
+        # Arrange
+        test_address = ipaddress.IPv4Address("192.168.1.1")
+        prefix_length = 12
+        expected_result_address = ipaddress.IPv4Address("192.160.0.0")
 
-    def test_get_first_part_of_ipv4_address_zero_length(self):
-        ipv4_address = ipaddress.IPv4Address("192.168.1.1")
-        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 0)
-        expected_first_part = ipaddress.IPv4Address("0.0.0.0")
-        self.assertEqual(first_part_ipv4, expected_first_part)
+        # Act
+        result = normalize_ipv4_address(test_address, prefix_length)
 
-    def test_get_first_part_of_ipv4_address_full_length(self):
-        ipv4_address = ipaddress.IPv4Address("192.168.1.1")
-        first_part_ipv4 = get_first_part_of_ipv4_address(ipv4_address, 32)
-        self.assertEqual(first_part_ipv4, ipv4_address)
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
 
-    def test_get_first_part_of_ipv4_address_invalid_length(self):
-        ipv4_address = ipaddress.IPv4Address("192.168.1.1")
+    def test_normalize_ip_address_zero_length(self):
+        # Arrange
+        test_address = ipaddress.IPv4Address("192.168.1.1")
+        prefix_length = 0
+        expected_result_address = ipaddress.IPv4Address("0.0.0.0")
+
+        # Act
+        result = normalize_ipv4_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_full_length(self):
+        # Arrange
+        test_address = ipaddress.IPv4Address("192.168.1.1")
+        prefix_length = 32
+        expected_result_address = ipaddress.IPv4Address("192.168.1.1")
+
+        # Act
+        result = normalize_ipv4_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_invalid_length(self):
+        test_address = ipaddress.IPv4Address("192.168.1.1")
         with self.assertRaises(ValueError):
-            get_first_part_of_ipv4_address(ipv4_address, -1)
+            normalize_ipv4_address(test_address, -1)
         with self.assertRaises(ValueError):
-            get_first_part_of_ipv4_address(ipv4_address, 33)
+            normalize_ipv4_address(test_address, 33)
 
-    def test_get_first_part_of_ipv4_address_invalid_format(self):
-        ipv6_address = ipaddress.IPv6Address("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+    def test_normalize_ip_address_invalid_format(self):
+        test_address = ipaddress.IPv6Address("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
         with self.assertRaises(ValueError):
             # noinspection PyTypeChecker
-            get_first_part_of_ipv4_address(ipv6_address, 12)
+            normalize_ipv4_address(test_address, 12)
+
+
+class TestNormalizeIPv6Address(unittest.TestCase):
+    def test_normalize_ip_address_valid_64_bits(self):
+        # Arrange
+        test_address = ipaddress.IPv6Address("2001:db8:85a3:1234:5678:8a2e:0370:7334")
+        prefix_length = 64
+        expected_result_address = ipaddress.IPv6Address("2001:db8:85a3:1234::")
+
+        # Act
+        result = normalize_ipv6_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_valid_48_bits(self):
+        # Arrange
+        test_address = ipaddress.IPv6Address("2001:db8:85a3:1234:5678:8a2e:0370:7334")
+        prefix_length = 48
+        expected_result_address = ipaddress.IPv6Address("2001:db8:85a3::")
+
+        # Act
+        result = normalize_ipv6_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_zero_64_bits(self):
+        # Arrange
+        test_address = ipaddress.IPv6Address("::1")
+        prefix_length = 64
+        expected_result_address = ipaddress.IPv6Address("::")
+
+        # Act
+        result = normalize_ipv6_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_max_63_bits(self):
+        # Arrange
+        test_address = ipaddress.IPv6Address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+        prefix_length = 63
+        expected_result_address = ipaddress.IPv6Address("ffff:ffff:ffff:fffe::")
+
+        # Act
+        result = normalize_ipv6_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_invalid_64_bits(self):
+        test_address = ipaddress.IPv4Address("192.168.1.1")
+        with self.assertRaises(ValueError):
+            # noinspection PyTypeChecker
+            normalize_ipv6_address(test_address, 64)
+
+    def test_normalize_ip_address_valid(self):
+        # Arrange
+        test_address = ipaddress.IPv6Address("2001:db8:85a3:1234:5678:8a2e:0370:7334")
+        prefix_length = 32
+        expected_result_address = ipaddress.IPv6Address("2001:db8::")
+
+        # Act
+        result = normalize_ipv6_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_zero_length(self):
+        # Arrange
+        test_address = ipaddress.IPv6Address("2001:db8:85a3:1234:5678:8a2e:0370:7334")
+        prefix_length = 0
+        expected_result_address = ipaddress.IPv6Address("::")
+
+        # Act
+        result = normalize_ipv6_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_full_length(self):
+        # Arrange
+        test_address = ipaddress.IPv6Address("2001:db8:85a3:1234:5678:8a2e:0370:7334")
+        prefix_length = 128
+        expected_result_address = ipaddress.IPv6Address(
+            "2001:db8:85a3:1234:5678:8a2e:0370:7334"
+        )
+
+        # Act
+        result = normalize_ipv6_address(test_address, prefix_length)
+
+        # Assert
+        expected_result = (expected_result_address, prefix_length)
+        self.assertEqual(expected_result, result)
+
+    def test_normalize_ip_address_invalid_length(self):
+        test_address = ipaddress.IPv6Address("2001:db8:85a3:1234:5678:8a2e:0370:7334")
+        with self.assertRaises(ValueError):
+            normalize_ipv6_address(test_address, -1)
+        with self.assertRaises(ValueError):
+            normalize_ipv6_address(test_address, 129)
+
+    def test_normalize_ip_address_invalid_format(self):
+        test_address = ipaddress.IPv4Address("192.168.1.1")
+        with self.assertRaises(ValueError):
+            # noinspection PyTypeChecker
+            normalize_ipv6_address(test_address, 64)
 
 
 if __name__ == "__main__":
