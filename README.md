@@ -20,7 +20,7 @@
     <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/heidgaf_logo_normal.png?raw=true" alt="Logo">
   </a>
 
-  <h3 align="center">heiDGAF - Domain Generation Algorithms Finder</h3>
+<h3 align="center">heiDGAF - Domain Generation Algorithms Finder</h3>
 
   <p align="center">
     Machine learning-based DNS classifier for detecting Domain Generation Algorithms (DGAs), tunneling, and data exfiltration by malicious actors.
@@ -89,8 +89,10 @@ Install all Python requirements:
 python -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements/requirements.dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
+sh install_requirements.sh
 ```
+
+Alternatively, you can use `pip install` and enter all needed requirements individually with `-r requirements.*.txt`.
 
 Now, you can start each stage, e.g. the inspector:
 
@@ -144,10 +146,14 @@ loglines:
 ```
 
 <!-- CONTRIBUTING -->
-## Contributing
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any
+contributions you make are **greatly appreciated**.
+
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also
+simply open an issue with the tag "enhancement".
 Don't forget to give the project a star! Thanks again!
 
 ### Top contributors:
@@ -160,6 +166,7 @@ Don't forget to give the project a star! Thanks again!
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- LICENSE -->
+
 ## License
 
 Distributed under the EUPL License. See `LICENSE.txt` for more information.
@@ -169,15 +176,27 @@ Distributed under the EUPL License. See `LICENSE.txt` for more information.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
 [contributors-shield]: https://img.shields.io/github/contributors/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+
 [contributors-url]: https://github.com/stefanDeveloper/heiDGAF/graphs/contributors
+
 [forks-shield]: https://img.shields.io/github/forks/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+
 [forks-url]: https://github.com/stefanDeveloper/heiDGAF/network/members
+
 [stars-shield]: https://img.shields.io/github/stars/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+
 [stars-url]: https://github.com/stefanDeveloper/heiDGAF/stargazers
+
 [issues-shield]: https://img.shields.io/github/issues/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+
 [issues-url]: https://github.com/stefanDeveloper/heiDGAF/issues
+
 [license-shield]: https://img.shields.io/github/license/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+
 [license-url]: https://github.com/stefanDeveloper/heiDGAF/blob/master/LICENSE.txt
+
 [coverage-shield]: https://img.shields.io/codecov/c/github/stefanDeveloper/heiDGAF?style=for-the-badge
+
 [coverage-url]: https://app.codecov.io/github/stefanDeveloper/heiDGAF
