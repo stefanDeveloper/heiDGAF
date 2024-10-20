@@ -2,7 +2,6 @@ include:
   - "docker-compose.kafka.yml"
 
 services:
-
   logcollector:
     build:
       context: ..
