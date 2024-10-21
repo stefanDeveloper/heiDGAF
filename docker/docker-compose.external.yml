@@ -1,0 +1,146 @@
+services:
+
+  logcollector:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.logcollector
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      logserver:
+        condition: service_started
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.7
+    volumes:
+      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+    memswap_limit: 768m
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+
+  logserver:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.logserver
+      network: host
+    restart: "unless-stopped"
+    ports:
+      - 9998:9998
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.8
+    memswap_limit: 768m
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+    volumes:
+      - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
+      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+
+
+  inspector:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.inspector
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      logserver:
+        condition: service_started
+      prefilter:
+        condition: service_started
+      logcollector:
+        condition: service_started
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.6
+    volumes:
+      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+
+  prefilter:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.prefilter
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      logcollector:
+        condition: service_started
+      logserver:
+        condition: service_started
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.9
+    volumes:
+      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+
+  detector:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.detector
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      logcollector:
+        condition: service_started
+      logserver:
+        condition: service_started
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.10
+    volumes:
+      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+          devices:
+            - driver: nvidia
+              count: 1 # alternatively, use `count: all` for all GPUs
+              capabilities: [gpu]
+
+networks:
+  heidgaf:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.27.0.0/16
+          gateway: 172.27.0.1
