@@ -339,6 +339,9 @@ class KafkaConsumeHandler(KafkaHandler):
             logger.error("Unknown data format.")
             raise ValueError
 
+    def _is_dicts(self, obj):
+        return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
+
     def consume_and_return_object(self) -> tuple[None | str, Batch]:
         """
         Calls the :meth:`consume()` method and waits for it to return data. Loads the data and converts it to a Batch
@@ -359,7 +362,7 @@ class KafkaConsumeHandler(KafkaHandler):
                 logger.debug("No data returned.")
                 return None, {}
         except KafkaMessageFetchException as e:
-            logger.debug(e)
+            logger.warning(e)
             raise
         except KeyboardInterrupt:
             raise
@@ -368,9 +371,16 @@ class KafkaConsumeHandler(KafkaHandler):
         json_from_message = json.loads(value)
         logger.debug(f"{json_from_message=}")
 
-        # TODO: Fix literal evaluation on data...
         eval_data: dict = ast.literal_eval(value)
-        eval_data["data"] = [ast.literal_eval(item) for item in eval_data.get("data")]
+        logger.debug("Check if data is a list of dicts")
+
+        if self._is_dicts(eval_data.get("data")):
+            eval_data["data"] = eval_data.get("data")
+        else:
+            eval_data["data"] = [
+                ast.literal_eval(item) for item in eval_data.get("data")
+            ]
+
         eval_data: Batch = self.batch_schema.load(eval_data)
 
         if isinstance(eval_data, Batch):

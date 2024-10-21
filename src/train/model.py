@@ -76,7 +76,7 @@ class Pipeline:
         """
         logger.info("Start data set transformation.")
         x_train = self.processor.transform(x=self.dataset.X_train)
-        logger.info("End data set transformation.")
+        logger.info(f"End data set transformation with shape {x_train.shape}.")
 
         self.x_train = x_train.to_numpy()
         self.y_train = self.dataset.Y_train.to_numpy().ravel()
@@ -154,7 +154,7 @@ class Pipeline:
             pickle.dump(self.clf, fout)
 
     def train_sklearn_rf(self, trial):
-        self.clf = RandomForestClassifier(**trial.params)
+        self.clf = RandomForestModel(**trial.params)
         self.clf.fit(self.x_train, self.y_train)
 
         logger.info("Save trained model to a file.")

@@ -64,7 +64,6 @@ class Inspector:
 
     def __init__(self) -> None:
         self.key = None
-        self.topic = "Collector"
         self.begin_timestamp = None
         self.end_timestamp = None
         self.messages = []
@@ -74,7 +73,7 @@ class Inspector:
         logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
         self.kafka_consume_handler = KafkaConsumeHandler(topic="Inspect")
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='Inspect')...")
-        self.kafka_produce_handler = KafkaProduceHandler(transactional_id="Inspect")
+        self.kafka_produce_handler = KafkaProduceHandler(transactional_id="inspect")
         logger.debug(f"Initialized Inspector.")
 
     def get_and_fill_data(self) -> None:
@@ -401,16 +400,26 @@ class Inspector:
         if total_anomalies / len(self.X) > ANOMALY_THRESHOLD:
             logger.debug("Sending data to KafkaProduceHandler...")
             logger.info("Sending anomalies to detector for further analysation.")
-            data_to_send = {
-                "begin_timestamp": self.begin_timestamp.strftime(TIMESTAMP_FORMAT),
-                "end_timestamp": self.end_timestamp.strftime(TIMESTAMP_FORMAT),
-                "data": self.messages,
-            }
-            self.kafka_produce_handler.send(
-                topic=self.topic,
-                data=json.dumps(data_to_send),
-                key=self.key,
-            )
+            buckets = {}
+            for message in self.messages:
+                if message["client_ip"] in buckets.keys():
+                    buckets[message["client_ip"]].append(message)
+                else:
+                    buckets[message["client_ip"]] = []
+                    buckets.get(message["client_ip"]).append(message)
+            for key, value in buckets.items():
+                logger.info(f"Sending anomalies to detector for {key}.")
+                logger.info(f"Sending anomalies to detector for {value}.")
+                data_to_send = {
+                    "begin_timestamp": self.begin_timestamp.strftime(TIMESTAMP_FORMAT),
+                    "end_timestamp": self.end_timestamp.strftime(TIMESTAMP_FORMAT),
+                    "data": value,
+                }
+                self.kafka_produce_handler.send(
+                    topic="Detector",
+                    data=json.dumps(data_to_send),
+                    key=key,
+                )
 
 
 def main(one_iteration: bool = False):

@@ -5,7 +5,8 @@ import pickle
 import sys
 import tempfile
 
-import joblib
+import numpy as np
+import math
 import requests
 
 sys.path.append(os.getcwd())
@@ -41,7 +42,6 @@ class Detector:
     """
 
     def __init__(self) -> None:
-        self.topic = "detector"
         self.messages = []
         self.warnings = []
         self.begin_timestamp = None
@@ -117,7 +117,7 @@ class Detector:
         Downloads model from server. If model already exists, it returns the current model. In addition, it checks the
         sha256 sum in case a model has been updated.
         """
-
+        logger.info(f"Get model: {MODEL} with checksum {CHECKSUM}")
         if not os.path.isfile(self.model_path):
             response = requests.get(
                 f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pickle&dl=1"
@@ -151,10 +151,245 @@ class Detector:
         self.end_timestamp = None
         self.warnings = []
 
+    def _get_features(self, query: str):
+        """Transform a dataset with new features using numpy.
+
+        Args:
+            query (str): A string to process.
+
+        Returns:
+            dict: Preprocessed data with computed features.
+        """
+        # logger.debug("Start data transformation")
+
+        # # Splitting by dots to calculate label length and max length
+        # label_parts = query.split(".")
+        # label_length = len(label_parts)
+        # label_max = max(len(part) for part in label_parts)
+        # label_average = len(query.strip("."))
+
+        # logger.debug("Get letter frequency")
+        # alc = "abcdefghijklmnopqrstuvwxyz"
+        # freq = {
+        #     f"freq_{i}": query.lower().count(i) / len(query) if len(query) > 0 else 0
+        #     for i in alc
+        # }
+
+        # logger.debug("Get full, alpha, special, and numeric count.")
+
+        # def calculate_counts(level: str) -> dict:
+        #     if len(level) == 0:
+        #         return {
+        #             "full_count": 0,
+        #             "alpha_count": 0,
+        #             "numeric_count": 0,
+        #             "special_count": 0,
+        #         }
+
+        #     full_count = len(level)
+        #     alpha_count = sum(c.isalpha() for c in level) / full_count
+        #     numeric_count = sum(c.isdigit() for c in level) / full_count
+        #     special_count = (
+        #         sum(not c.isalnum() and not c.isspace() for c in level) / full_count
+        #     )
+
+        #     return {
+        #         "full_count": full_count,
+        #         "alpha_count": alpha_count,
+        #         "numeric_count": numeric_count,
+        #         "special_count": special_count,
+        #     }
+
+        # levels = {
+        #     "fqdn": query,
+        #     "thirdleveldomain": label_parts[0] if len(label_parts) > 2 else "",
+        #     "secondleveldomain": label_parts[1] if len(label_parts) > 1 else "",
+        # }
+        # counts = {
+        #     level: calculate_counts(level_value)
+        #     for level, level_value in levels.items()
+        # }
+
+        # logger.debug("Get frequency standard deviation, median, variance, and mean.")
+        # freq_values = np.array(list(freq.values()))
+        # freq_std = np.std(freq_values)
+        # freq_var = np.var(freq_values)
+        # freq_median = np.median(freq_values)
+        # freq_mean = np.mean(freq_values)
+
+        # logger.debug(
+        #     "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
+        # )
+        # stats = {}
+        # for level, count_dict in counts.items():
+        #     values = np.array(list(count_dict.values()))
+        #     stats[f"{level}_std"] = np.std(values)
+        #     stats[f"{level}_var"] = np.var(values)
+        #     stats[f"{level}_median"] = np.median(values)
+        #     stats[f"{level}_mean"] = np.mean(values)
+
+        # logger.debug("Start entropy calculation")
+
+        # def calculate_entropy(s: str) -> float:
+        #     if len(s) == 0:
+        #         return 0
+        #     probabilities = [float(s.count(c)) / len(s) for c in dict.fromkeys(list(s))]
+        #     entropy = -sum(p * math.log(p, 2) for p in probabilities)
+        #     return entropy
+
+        # entropy = {level: calculate_entropy(value) for level, value in levels.items()}
+
+        # logger.debug("Finished entropy calculation")
+
+        # # Final feature aggregation
+        # features = {
+        #     "label_length": label_length,
+        #     "label_max": label_max,
+        #     "label_average": label_average,
+        #     **freq,
+        #     "freq_std": freq_std,
+        #     "freq_var": freq_var,
+        #     "freq_median": freq_median,
+        #     "freq_mean": freq_mean,
+        #     **{
+        #         f"{level}_{key}": value
+        #         for level, count_dict in counts.items()
+        #         for key, value in count_dict.items()
+        #     },
+        #     **stats,
+        #     **{
+        #         f"{level}_entropy": entropy_value
+        #         for level, entropy_value in entropy.items()
+        #     },
+        # }
+        # print(len(features.keys()))
+        # # Final feature aggregation as a NumPy array
+        # basic_features = np.array([label_length, label_max, label_average])
+        # print(freq)
+        # freq_features = np.array([freq_std, freq_var, freq_median, freq_mean])
+
+        # # Flatten counts and stats for each level into arrays
+        # level_features = np.hstack([counts[level] for level in levels.keys()])
+        # stats_features = np.array([stats[f'{level}_std'] for level in levels.keys()] +
+        #                         [stats[f'{level}_var'] for level in levels.keys()] +
+        #                         [stats[f'{level}_median'] for level in levels.keys()] +
+        #                         [stats[f'{level}_mean'] for level in levels.keys()])
+
+        # # Entropy features
+        # entropy_features = np.array([entropy[level] for level in levels.keys()])
+
+        # # Concatenate all features into a single numpy array
+        # all_features = np.concatenate([basic_features, freq, freq_features, level_features, stats_features, entropy_features])
+
+        # logger.debug("Finished data transformation")
+        # Splitting by dots to calculate label length and max length
+        label_parts = query.split(".")
+        label_length = len(label_parts)
+        label_max = max(len(part) for part in label_parts)
+        label_average = len(query.strip("."))
+
+        logger.debug("Get letter frequency")
+        alc = "abcdefghijklmnopqrstuvwxyz"
+        freq = np.array(
+            [query.lower().count(i) / len(query) if len(query) > 0 else 0 for i in alc]
+        )
+
+        logger.debug("Get full, alpha, special, and numeric count.")
+
+        def calculate_counts(level: str) -> np.ndarray:
+            if len(level) == 0:
+                return np.array([0, 0, 0, 0])
+
+            full_count = len(level)
+            alpha_count = sum(c.isalpha() for c in level) / full_count
+            numeric_count = sum(c.isdigit() for c in level) / full_count
+            special_count = (
+                sum(not c.isalnum() and not c.isspace() for c in level) / full_count
+            )
+
+            return np.array([full_count, alpha_count, numeric_count, special_count])
+
+        levels = {
+            "fqdn": query,
+            "thirdleveldomain": label_parts[0] if len(label_parts) > 2 else "",
+            "secondleveldomain": label_parts[1] if len(label_parts) > 1 else "",
+        }
+        counts = {
+            level: calculate_counts(level_value)
+            for level, level_value in levels.items()
+        }
+
+        logger.debug("Get frequency standard deviation, median, variance, and mean.")
+        freq_std = np.std(freq)
+        freq_var = np.var(freq)
+        freq_median = np.median(freq)
+        freq_mean = np.mean(freq)
+
+        logger.debug(
+            "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
+        )
+        stats = {}
+        for level, count_array in counts.items():
+            stats[f"{level}_std"] = np.std(count_array)
+            stats[f"{level}_var"] = np.var(count_array)
+            stats[f"{level}_median"] = np.median(count_array)
+            stats[f"{level}_mean"] = np.mean(count_array)
+
+        logger.debug("Start entropy calculation")
+
+        def calculate_entropy(s: str) -> float:
+            if len(s) == 0:
+                return 0
+            probabilities = [float(s.count(c)) / len(s) for c in dict.fromkeys(list(s))]
+            entropy = -sum(p * math.log(p, 2) for p in probabilities)
+            return entropy
+
+        entropy = {level: calculate_entropy(value) for level, value in levels.items()}
+
+        logger.debug("Finished entropy calculation")
+
+        # Final feature aggregation as a NumPy array
+        basic_features = np.array([label_length, label_max, label_average])
+        freq_features = np.array([freq_std, freq_var, freq_median, freq_mean])
+
+        # Flatten counts and stats for each level into arrays
+        level_features = np.hstack([counts[level] for level in levels.keys()])
+        stats_features = np.array(
+            [stats[f"{level}_std"] for level in levels.keys()]
+            + [stats[f"{level}_var"] for level in levels.keys()]
+            + [stats[f"{level}_median"] for level in levels.keys()]
+            + [stats[f"{level}_mean"] for level in levels.keys()]
+        )
+
+        # Entropy features
+        entropy_features = np.array([entropy[level] for level in levels.keys()])
+
+        # Concatenate all features into a single numpy array
+        all_features = np.concatenate(
+            [
+                basic_features,
+                freq,
+                freq_features,
+                level_features,
+                stats_features,
+                entropy_features,
+            ]
+        )
+
+        logger.debug("Finished data transformation")
+
+        return all_features.reshape(1, -1)
+
     def detect(self) -> None:  # pragma: no cover
+        logger.info("Start detecting malicious requests.")
         for message in self.messages:
-            y_pred = self.model.predict_proba(message["host_domain_name"])
-            if y_pred > THRESHOLD:
+            # TODO Calculate features
+            y_pred = self.model.predict_proba(
+                self._get_features(message["domain_name"])
+            )
+            logger.info(f"Prediction: {y_pred}")
+            if np.argmaxy_pred > THRESHOLD:
+                logger.info("Append malicious request to warning.")
                 warning = {
                     "request": message,
                     "probability": y_pred,
@@ -164,9 +399,19 @@ class Detector:
                 self.warnings.append(warning)
 
     def send_warning(self) -> None:
-        with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a") as f:
-            json.dump(self.warnings, f)
-            f.write("\n")
+        logger.info("Store alert to file.")
+        if len(self.warnings) > 0:
+            overall_score = 0
+            for warning in self.warnings:
+                overall_score += warning["probability"]
+            overall_score = overall_score / len(self.warnings)
+            alert = {"overall_score": overall_score, "result": self.warnings}
+            logger.info(f"Add alert: {alert}")
+            with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a") as f:
+                json.dump(alert, f)
+                f.write("\n")
+        else:
+            logger.info("No warning produced.")
 
 
 def main(one_iteration: bool = False):  # pragma: no cover

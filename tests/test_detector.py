@@ -30,6 +30,30 @@ class TestSha256Sum(unittest.TestCase):
             sut._sha256sum("not_existing")
 
 
+class TestFeatures(unittest.TestCase):
+    def setUp(self):
+        patcher = patch("src.detector.detector.logger")
+        self.mock_logger = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+    )
+    @patch("src.detector.detector.MODEL", "rf")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    )
+    @patch("src.detector.detector.KafkaConsumeHandler")
+    def test_get_model(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = Detector()
+        sut._get_features("google.de")
+
+
 class TestGetModel(unittest.TestCase):
     def setUp(self):
         patcher = patch("src.detector.detector.logger")

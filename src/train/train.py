@@ -59,7 +59,7 @@ class DetectorTraining:
                             self.datasets.cic_dataset.data,
                             self.datasets.bambenek_dataset.data,
                             self.datasets.dga_dataset.data,
-                            self.datasets.dgarchive_data.data,
+                            self.datasets.dgarchive_dataset.data,
                         ]
                     ),
                     max_rows=100,
