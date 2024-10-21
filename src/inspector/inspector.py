@@ -265,7 +265,7 @@ class Inspector:
 
     def inspect(self):
         """Runs anomaly detection on given StreamAD Model on either univariate, multivariate data, or as an ensemble."""
-        if len(MODELS) == 0:
+        if MODELS == None or len(MODELS) == 0:
             logger.warning("No model ist set!")
             raise NotImplementedError(f"No model is set!")
         match MODE:
@@ -349,11 +349,14 @@ class Inspector:
             module = importlib.import_module(model["module"])
             module_model = getattr(module, model["model"])
             self.model.append(module_model(**model["model_args"]))
+
         for x in stream.iter_item():
+            scores = []
             # Fit all models in ensemble
             for models in self.model:
-                models.fit_score(x)
-            score = ensemble.ensemble([model for model in self.model])
+                scores.append(models.fit_score(x))
+            # TODO Calibrators are missing
+            score = ensemble.ensemble(scores)
             if score != None:
                 self.anomalies.append(score)
             else:
@@ -382,6 +385,7 @@ class Inspector:
         self.X = self._count_errors(
             self.messages, self.begin_timestamp, self.end_timestamp
         )
+        print(self.X.shape)
 
         ds = CustomDS(self.X, self.X)
         stream = StreamGenerator(ds.data)
