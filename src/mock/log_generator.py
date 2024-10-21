@@ -19,7 +19,7 @@ IP = [random_ipv4, random_ipv6]
 RECORD_TYPES = ["AAAA", "A", "PR", "CNAME"]
 
 
-def generate_dns_log_line():
+def generate_dns_log_line(domain: str):
     timestamp = (
         datetime.datetime.now() + datetime.timedelta(0, 0, random.randint(0, 900))
     ).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
@@ -30,7 +30,7 @@ def generate_dns_log_line():
     response = IP[random.randint(0, 1)]()
     size = f"{random.randint(50, 255)}b"
 
-    return f"{timestamp} {status} {client_ip} {server_ip} random-ip.de {record_type} {response} {size}"
+    return f"{timestamp} {status} {client_ip} {server_ip} {domain} {record_type} {response} {size}"
 
 
 if __name__ == "__main__":

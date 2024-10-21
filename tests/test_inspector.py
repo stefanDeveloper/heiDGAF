@@ -1,9 +1,36 @@
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
+import numpy as np
+import json
 
+from streamad.model import ZScoreDetector, RShashDetector
 from src.base import Batch
 from src.inspector.inspector import Inspector, main
+
+DEFAULT_DATA = {
+    "client_ip": "192.168.0.167",
+    "dns_ip": "10.10.0.10",
+    "response_ip": "252.79.173.222",
+    "timestamp": "",
+    "status": "NXDOMAIN",
+    "host_domain_name": "24sata.info",
+    "record_type": "A",
+    "size": "100b",
+}
+
+TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
+
+def get_batch(data):
+    begin = datetime.now()
+    end = begin + timedelta(0, 3)
+    test_batch = Batch(
+        begin_timestamp=begin,
+        end_timestamp=end,
+        data=data if data != None else [],
+    )
+    return test_batch
 
 
 class TestInit(unittest.TestCase):
@@ -29,16 +56,11 @@ class TestGetData(unittest.TestCase):
     def test_get_data_without_return_data(
         self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
-        test_batch = Batch(
-            begin_timestamp=datetime.now(),
-            end_timestamp=datetime.now() + timedelta(0, 3),
-            data=[],
-        )
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
             None,
-            test_batch,
+            get_batch(None),
         )
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -54,13 +76,7 @@ class TestGetData(unittest.TestCase):
     def test_get_data_with_return_data(
         self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
-        begin = datetime.now()
-        end = begin + timedelta(0, 3)
-        test_batch = Batch(
-            begin_timestamp=begin,
-            end_timestamp=end,
-            data=[{"test": "test_message_1"}, {"test": "test_message_2"}],
-        )
+        test_batch = get_batch([{"test": "test_message_1"}, {"test": "test_message_2"}])
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
@@ -74,11 +90,36 @@ class TestGetData(unittest.TestCase):
         sut.messages = []
         sut.get_and_fill_data()
 
-        self.assertEqual(begin, sut.begin_timestamp)
-        self.assertEqual(end, sut.end_timestamp)
+        self.assertEqual(test_batch.begin_timestamp, sut.begin_timestamp)
+        self.assertEqual(test_batch.end_timestamp, sut.end_timestamp)
         self.assertEqual(
             [{"test": "test_message_1"}, {"test": "test_message_2"}], sut.messages
         )
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    def test_get_data_with_no_return_data(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        begin = None
+        end = None
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            None,
+            None,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.messages = []
+        sut.get_and_fill_data()
+
+        self.assertEqual(begin, sut.begin_timestamp)
+        self.assertEqual(end, sut.end_timestamp)
+        self.assertEqual([], sut.messages)
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
     @patch("src.inspector.inspector.KafkaConsumeHandler")
@@ -166,22 +207,16 @@ class TestDataFunction(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
 
         sut = Inspector()
-        begin_timestamp = "2024-07-02T12:52:45.000Z"
-        end_timestamp = "2024-07-02T12:52:55.000Z"
-        messages = [
-            {
-                "client_ip": "192.168.0.167",
-                "dns_ip": "10.10.0.10",
-                "response_ip": "252.79.173.222",
-                "timestamp": "2024-07-02T12:52:50.988Z",
-                "status": "NXDOMAIN",
-                "host_domain_name": "24sata.info",
-                "record_type": "A",
-                "size": "111b",
-            },
-        ]
-        self.assertIsNotNone(
-            sut._count_errors(messages, begin_timestamp, end_timestamp)
+        begin_timestamp = datetime.now()
+        end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        messages = [data]
+        np.testing.assert_array_equal(
+            np.asarray([[1.0], [0.0]]),
+            sut._count_errors(messages, begin_timestamp, end_timestamp),
         )
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
@@ -195,22 +230,16 @@ class TestDataFunction(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
 
         sut = Inspector()
-        begin_timestamp = "2024-07-02T12:52:45.000Z"
-        end_timestamp = "2024-07-02T12:52:55.000Z"
-        messages = [
-            {
-                "client_ip": "192.168.0.167",
-                "dns_ip": "10.10.0.10",
-                "response_ip": "252.79.173.222",
-                "timestamp": "2024-07-02T12:52:50.988Z",
-                "status": "NXDOMAIN",
-                "host_domain_name": "24sata.info",
-                "record_type": "A",
-                "size": "111b",
-            },
-        ]
-        self.assertIsNotNone(
-            sut._mean_packet_size(messages, begin_timestamp, end_timestamp)
+        begin_timestamp = datetime.now()
+        end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        messages = [data]
+        np.testing.assert_array_equal(
+            np.asarray([[100], [0.0]]),
+            sut._mean_packet_size(messages, begin_timestamp, end_timestamp),
         )
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
@@ -224,11 +253,15 @@ class TestDataFunction(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
 
         sut = Inspector()
-        begin_timestamp = "2024-07-02T12:52:45.000Z"
-        end_timestamp = "2024-07-02T12:52:55.000Z"
-        messages = []
-        self.assertIsNotNone(
-            sut._count_errors(messages, begin_timestamp, end_timestamp)
+        begin_timestamp = datetime.now()
+        end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        np.testing.assert_array_equal(
+            np.asarray([[0.0], [0.0]]),
+            sut._count_errors([], begin_timestamp, end_timestamp),
         )
 
     @patch("src.inspector.inspector.KafkaProduceHandler")
@@ -242,11 +275,15 @@ class TestDataFunction(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
 
         sut = Inspector()
-        begin_timestamp = "2024-07-02T12:52:45.000Z"
-        end_timestamp = "2024-07-02T12:52:55.000Z"
-        messages = []
-        self.assertIsNotNone(
-            sut._mean_packet_size(messages, begin_timestamp, end_timestamp)
+        begin_timestamp = datetime.now()
+        end_timestamp = begin_timestamp + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        np.testing.assert_array_equal(
+            np.asarray([[0.0], [0.0]]),
+            sut._mean_packet_size([], begin_timestamp, end_timestamp),
         )
 
 
@@ -256,16 +293,67 @@ class TestInspectFunction(unittest.TestCase):
     @patch("src.inspector.inspector.KafkaConsumeHandler")
     @patch(
         "src.inspector.inspector.MODELS",
+        None,
+    )
+    def test_inspect_none_models(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            get_batch(None),
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        with self.assertRaises(NotImplementedError):
+            sut.inspect()
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        "",
+    )
+    def test_inspect_empy_models(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            get_batch(None),
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        with self.assertRaises(NotImplementedError):
+            sut.inspect()
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
         [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}],
     )
+    @patch("src.inspector.inspector.TIME_TYPE", "ms")
+    @patch("src.inspector.inspector.TIME_RANGE", 1)
     def test_inspect_univariate(
         self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
-        test_batch = Batch(
-            begin_timestamp=datetime.now(),
-            end_timestamp=datetime.now() + timedelta(0, 3),
-            data=[],
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
         )
+        test_batch.data = [data]
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
@@ -278,7 +366,85 @@ class TestInspectFunction(unittest.TestCase):
         sut = Inspector()
         sut.get_and_fill_data()
         sut.inspect()
-        self.assertIsNotNone(sut.anomalies)
+        self.assertEqual([0, 0], sut.anomalies)
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [
+            {
+                "model": "ZScoreDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            }
+        ],
+    )
+    @patch("src.inspector.inspector.TIME_TYPE", "ms")
+    @patch("src.inspector.inspector.TIME_RANGE", 1)
+    def test_inspect_univariate(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        test_batch.data = [data]
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        sut.inspect()
+        self.assertNotEqual([None, None], sut.anomalies)
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [
+            {"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}},
+            {"model": "KNNDetector", "module": "streamad.model", "model_args": {}},
+        ],
+    )
+    @patch("src.inspector.inspector.TIME_TYPE", "ms")
+    @patch("src.inspector.inspector.TIME_RANGE", 1)
+    def test_inspect_univariate_two_models(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        test_batch.data = [data]
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        sut.inspect()
+        self.assertEqual([0, 0], sut.anomalies)
+        self.assertTrue(isinstance(sut.model, ZScoreDetector))
 
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.KafkaProduceHandler")
@@ -291,11 +457,14 @@ class TestInspectFunction(unittest.TestCase):
     def test_inspect_multivariate(
         self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
     ):
-        test_batch = Batch(
-            begin_timestamp=datetime.now(),
-            end_timestamp=datetime.now() + timedelta(0, 3),
-            data=[],
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
         )
+        test_batch.data = [data]
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
@@ -308,7 +477,223 @@ class TestInspectFunction(unittest.TestCase):
         sut = Inspector()
         sut.get_and_fill_data()
         sut.inspect()
-        self.assertIsNotNone(sut.anomalies)
+        self.assertEqual([0, 0], sut.anomalies)
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [
+            {
+                "model": "RShashDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            }
+        ],
+    )
+    @patch("src.inspector.inspector.MODE", "multivariate")
+    def test_inspect_multivariate_window_len(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        test_batch.data = [data]
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        sut.inspect()
+        self.assertNotEqual([None, None], sut.anomalies)
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [
+            {"model": "RShashDetector", "module": "streamad.model", "model_args": {}},
+            {"model": "xStreamDetector", "module": "streamad.model", "model_args": {}},
+        ],
+    )
+    @patch("src.inspector.inspector.MODE", "multivariate")
+    def test_inspect_multivariate_two_models(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        test_batch.data = [data]
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        sut.inspect()
+        self.assertEqual([0, 0], sut.anomalies)
+        self.assertTrue(isinstance(sut.model, RShashDetector))
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [
+            {"model": "KNNDetector", "module": "streamad.model", "model_args": {}},
+            {"model": "SpotDetector", "module": "streamad.model", "model_args": {}},
+        ],
+    )
+    @patch(
+        "src.inspector.inspector.ENSEMBLE",
+        {
+            "model": "WeightEnsemble",
+            "module": "streamad.process",
+            "model_args": {"ensemble_weights": [0.6, 0.4]},
+        },
+    )
+    @patch("src.inspector.inspector.MODE", "ensemble")
+    def test_inspect_ensemble(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        test_batch.data = [data]
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        sut.inspect()
+        self.assertEqual([0, 0], sut.anomalies)
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [
+            {
+                "model": "KNNDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            },
+            {
+                "model": "SpotDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            },
+        ],
+    )
+    @patch(
+        "src.inspector.inspector.ENSEMBLE",
+        {
+            "model": "WeightEnsemble",
+            "module": "streamad.process",
+            "model_args": {"ensemble_weights": [0.6, 0.4]},
+        },
+    )
+    @patch("src.inspector.inspector.MODE", "ensemble")
+    def test_inspect_ensemble_window_len(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        test_batch.data = [data]
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        sut.inspect()
+        self.assertNotEqual([None, None], sut.anomalies)
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [
+            {"model": "RShashDetector", "module": "streamad.model", "model_args": {}},
+            {"model": "SpotDetector", "module": "streamad.model", "model_args": {}},
+        ],
+    )
+    @patch(
+        "src.inspector.inspector.ENSEMBLE",
+        {
+            "model": "WeightEnsemble",
+            "module": "streamad.process",
+            "model_args": {"ensemble_weights": [0.6, 0.4]},
+        },
+    )
+    @patch("src.inspector.inspector.MODE", "ensemble")
+    def test_inspect_ensemble_invalid(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        test_batch.data = [data]
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        with self.assertRaises(NotImplementedError):
+            sut.inspect()
 
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.KafkaProduceHandler")
@@ -381,6 +766,42 @@ class TestInspectFunction(unittest.TestCase):
         sut = Inspector()
         with self.assertRaises(NotImplementedError):
             sut.inspect()
+
+
+class TestSend(unittest.TestCase):
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch("src.inspector.inspector.SCORE_THRESHOLD", 0.1)
+    @patch("src.inspector.inspector.ANOMALY_THRESHOLD", 0.01)
+    def test_send(self, mock_kafka_consume_handler, mock_produce_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.anomalies = [0.9, 0.9]
+        sut.X = np.array([[0.0], [0.0]])
+        sut.begin_timestamp = datetime.now()
+        sut.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            sut.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        sut.messages = [data]
+        sut.send_data()
+
+        mock_produce_handler_instance.send.assert_called_once_with(
+            topic="Detector",
+            data=json.dumps(
+                {
+                    "begin_timestamp": sut.begin_timestamp.strftime(TIMESTAMP_FORMAT),
+                    "end_timestamp": sut.end_timestamp.strftime(TIMESTAMP_FORMAT),
+                    "data": [data],
+                }
+            ),
+            key="192.168.0.167",
+        )
 
 
 class TestMainFunction(unittest.TestCase):

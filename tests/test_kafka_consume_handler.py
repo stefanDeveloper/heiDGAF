@@ -157,5 +157,33 @@ class TestDel(unittest.TestCase):
         mock_consumer_instance.close.assert_not_called()
 
 
+class TestDict(unittest.TestCase):
+    @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
+    @patch("src.base.kafka_handler.Consumer")
+    def test_dict(self, mock_consumer):
+        mock_consumer_instance = MagicMock()
+        mock_consumer.return_value = mock_consumer_instance
+
+        sut = KafkaConsumeHandler(topic="test_topic")
+        self.assertTrue(sut._is_dicts([{}, {}]))
+
+
 if __name__ == "__main__":
     unittest.main()
