@@ -385,7 +385,6 @@ class Inspector:
         self.X = self._count_errors(
             self.messages, self.begin_timestamp, self.end_timestamp
         )
-        print(self.X.shape)
 
         ds = CustomDS(self.X, self.X)
         stream = StreamGenerator(ds.data)

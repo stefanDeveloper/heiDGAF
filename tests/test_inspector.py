@@ -485,6 +485,45 @@ class TestInspectFunction(unittest.TestCase):
     @patch(
         "src.inspector.inspector.MODELS",
         [
+            {
+                "model": "RShashDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            }
+        ],
+    )
+    @patch("src.inspector.inspector.MODE", "multivariate")
+    def test_inspect_multivariate_window_len(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+    ):
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        test_batch.data = [data]
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+            "test",
+            test_batch,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        sut.inspect()
+        self.assertNotEqual([None, None], sut.anomalies)
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.KafkaProduceHandler")
+    @patch("src.inspector.inspector.KafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
+        [
             {"model": "RShashDetector", "module": "streamad.model", "model_args": {}},
             {"model": "xStreamDetector", "module": "streamad.model", "model_args": {}},
         ],
