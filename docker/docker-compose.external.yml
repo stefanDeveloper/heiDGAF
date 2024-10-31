@@ -13,7 +13,7 @@ services:
       heidgaf:
         ipv4_address: 172.27.0.7
     volumes:
-      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+      - ./config.yaml:/usr/src/app/config.yaml
     memswap_limit: 768m
     deploy:
       resources:
@@ -46,7 +46,7 @@ services:
           memory: 256m
     volumes:
       - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
-      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+      - ./config.yaml:/usr/src/app/config.yaml
 
 
   inspector:
@@ -66,7 +66,7 @@ services:
       heidgaf:
         ipv4_address: 172.27.0.6
     volumes:
-      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+      - ./config.yaml:/usr/src/app/config.yaml
     deploy:
       mode: "replicated"
       replicas: 1
@@ -93,7 +93,7 @@ services:
       heidgaf:
         ipv4_address: 172.27.0.9
     volumes:
-      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+      - ./config.yaml:/usr/src/app/config.yaml
     deploy:
       mode: "replicated"
       replicas: 1
@@ -120,7 +120,7 @@ services:
       heidgaf:
         ipv4_address: 172.27.0.10
     volumes:
-      - /home/smachmeier/projects/heiDGAF/config.yaml:/usr/src/app/config.yaml
+      - ./config.yaml:/usr/src/app/config.yaml
     deploy:
       mode: "replicated"
       replicas: 1
