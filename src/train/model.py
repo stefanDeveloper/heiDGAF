@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import pickle
 import sys
 import os
@@ -5,6 +6,7 @@ import os
 import xgboost as xgb
 import optuna
 import torch
+import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 
@@ -35,15 +37,21 @@ class Pipeline:
         """
         self.processor = processor
         self.dataset = dataset
+        logger.info("Start data set transformation.")
+        x_train = self.processor.transform(x=self.dataset.X_train)
+        logger.info(f"End data set transformation with shape {x_train.shape}.")
+
+        self.x_train = x_train.to_numpy()
+        self.y_train = self.dataset.Y_train.to_numpy().ravel()
         match model:
             case "rf":
-                self.model_objective = self.objective_sklearn_rf
-                self.model_training = self.train_sklearn_rf
-                self.model_predict = self.predict_sklearn_rf
+                self.model = RandomForestModel(
+                    processor=self.processor, x_train=self.x_train, y_train=self.y_train
+                )
             case "xg":
-                self.model_objective = self.objective_xgboost
-                self.model_training = self.train_xgboost
-                self.model_predict = self.predict_xgboost
+                self.model = XGBoostModel(
+                    processor=self.processor, x_train=self.x_train, y_train=self.y_train
+                )
             case _:
                 raise NotImplementedError(f"Model not implemented!")
 
@@ -74,18 +82,11 @@ class Pipeline:
             x_train (np.array): X data.
             y_train (np.array): Y labels.
         """
-        logger.info("Start data set transformation.")
-        x_train = self.processor.transform(x=self.dataset.X_train)
-        logger.info(f"End data set transformation with shape {x_train.shape}.")
-
-        self.x_train = x_train.to_numpy()
-        self.y_train = self.dataset.Y_train.to_numpy().ravel()
-
         if not os.path.exists(CV_RESULT_DIR):
             os.mkdir(CV_RESULT_DIR)
 
         study = optuna.create_study(direction="maximize")
-        study.optimize(self.model_objective, n_trials=20, timeout=600)
+        study.optimize(self.model.objective, n_trials=20, timeout=600)
 
         logger.info(f"Number of finished trials: {len(study.trials)}")
         logger.info("Best trial:")
@@ -96,7 +97,7 @@ class Pipeline:
         for key, value in trial.params.items():
             logger.info(f"    {key}: {value}")
 
-        self.model_training(trial)
+        self.model.train(trial)
 
     def predict(self, x):
         """Predicts given X.
@@ -107,61 +108,37 @@ class Pipeline:
         Returns:
             np.array: Model output.
         """
-        return self.model_predict(x)
+        return self.model.predict(x)
 
-    def predict_xgboost(self, x):
-        """Predicts given X.
 
-        Args:
-            x (np.array): X data
+class Model(metaclass=ABCMeta):
+    def __init__(
+        self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
+    ) -> None:
+        self.processor = processor
+        self.x_train = x_train
+        self.y_train = y_train
 
-        Returns:
-            np.array: Model output.
-        """
-        x = self.processor.transform(x=x)
-        dtest = xgb.DMatrix(x.to_numpy())
-        return self.clf.predict(dtest)
+    @abstractmethod
+    def objective(self, trial):
+        pass
 
-    def predict_sklearn_rf(self, x):
-        """Predicts given X.
+    @abstractmethod
+    def predict(self, x):
+        pass
 
-        Args:
-            x (np.array): X data
+    @abstractmethod
+    def train(self, trial):
+        pass
 
-        Returns:
-            np.array: Model output.
-        """
-        x = self.processor.transform(x=x)
-        return self.clf.predict(x)
 
-    def train_xgboost(self, trial):
-        logger.info("Number of estimators: {}".format(trial.user_attrs["n_estimators"]))
+class XGBoostModel(Model):
+    def __init__(
+        self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
+    ) -> None:
+        super().__init__(processor, x_train, y_train)
 
-        dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
-
-        params = {
-            "verbosity": 0,
-            "objective": "binary:logistic",
-            "eval_metric": "auc",
-        }
-
-        self.clf = xgb.train(
-            {**trial.params, **params}, dtrain, trial.user_attrs["n_estimators"]
-        )
-
-        logger.info("Save trained model to a file.")
-        with open(f"{trial.number}.pickle", "wb") as fout:
-            pickle.dump(self.clf, fout)
-
-    def train_sklearn_rf(self, trial):
-        self.clf = RandomForestModel(**trial.params)
-        self.clf.fit(self.x_train, self.y_train)
-
-        logger.info("Save trained model to a file.")
-        with open(f"{trial.number}.pickle", "wb") as fout:
-            pickle.dump(self.clf, fout)
-
-    def objective_xgboost(self, trial: optuna.trial.BaseTrial):
+    def objective(self, trial):
         dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
 
         param = {
@@ -222,11 +199,50 @@ class Pipeline:
         best_score = xgb_cv_results["test-auc-mean"].values[-1]
         return best_score
 
-    def objective_sklearn_rf(self, trial: optuna.trial.BaseTrial):
-        rf_max_depth = trial.suggest_int("max_depth", 2, 32, log=True)
-        rf_n_estimators = trial.suggest_int("n_estimators", 2, 32, log=True)
+    def predict(self, x):
+        """Predicts given X.
+
+        Args:
+            x (np.array): X data
+
+        Returns:
+            np.array: Model output.
+        """
+        x = self.processor.transform(x=x)
+        dtest = xgb.DMatrix(x.to_numpy())
+        return self.clf.predict(dtest)
+
+    def train(self, trial):
+        logger.info("Number of estimators: {}".format(trial.user_attrs["n_estimators"]))
+
+        dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
+
+        params = {
+            "verbosity": 0,
+            "objective": "binary:logistic",
+            "eval_metric": "auc",
+        }
+
+        self.clf = xgb.train(
+            {**trial.params, **params}, dtrain, trial.user_attrs["n_estimators"]
+        )
+
+        logger.info("Save trained model to a file.")
+        with open(f"{trial.number}.pickle", "wb") as fout:
+            pickle.dump(self.clf, fout)
+
+
+class RandomForestModel(Model):
+    def __init__(
+        self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
+    ) -> None:
+        super().__init__(processor, x_train, y_train)
+
+    def objective(self, trial):
+        max_depth = trial.suggest_int("max_depth", 2, 32, log=True)
+        n_estimators = trial.suggest_int("n_estimators", 2, 32, log=True)
         classifier_obj = RandomForestClassifier(
-            max_depth=rf_max_depth, n_estimators=rf_n_estimators
+            max_depth=max_depth, n_estimators=n_estimators
         )
 
         score = cross_val_score(
@@ -240,30 +256,22 @@ class Pipeline:
         accuracy = score.mean()
         return accuracy
 
+    def predict(self, x):
+        """Predicts given X.
 
-class XGBoostModel:
-    def __init__(self) -> None:
-        pass
+        Args:
+            x (np.array): X data
 
-    def objective(self):
-        pass
+        Returns:
+            np.array: Model output.
+        """
+        x = self.processor.transform(x=x)
+        return self.clf.predict(x)
 
-    def predict(self):
-        pass
+    def train(self, trial):
+        self.clf = RandomForestClassifier(**trial.params)
+        self.clf.fit(self.x_train, self.y_train)
 
-    def train(self):
-        pass
-
-
-class RandomForestModel:
-    def __init__(self) -> None:
-        pass
-
-    def objective(self):
-        pass
-
-    def predict(self):
-        pass
-
-    def train(self):
-        pass
+        logger.info("Save trained model to a file.")
+        with open(f"{trial.number}.pickle", "wb") as fout:
+            pickle.dump(self.clf, fout)
