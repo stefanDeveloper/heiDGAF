@@ -1,7 +1,9 @@
 from abc import ABCMeta, abstractmethod
+import hashlib
 import pickle
 import sys
 import os
+import tempfile
 
 import xgboost as xgb
 import optuna
@@ -26,7 +28,9 @@ CV_RESULT_DIR = "./results"
 class Pipeline:
     """Pipeline for training models."""
 
-    def __init__(self, processor: Processor, model: str, dataset: Dataset):
+    def __init__(
+        self, processor: Processor, model: str, dataset: Dataset, model_output_path: str
+    ):
         """Initializes preprocessors, encoder, and model.
 
         Args:
@@ -37,6 +41,7 @@ class Pipeline:
         """
         self.processor = processor
         self.dataset = dataset
+        self.model_output_path = model_output_path
         logger.info("Start data set transformation.")
         x_train = self.processor.transform(x=self.dataset.X_train)
         logger.info(f"End data set transformation with shape {x_train.shape}.")
@@ -97,7 +102,7 @@ class Pipeline:
         for key, value in trial.params.items():
             logger.info(f"    {key}: {value}")
 
-        self.model.train(trial)
+        self.model.train(trial, self.model_output_path)
 
     def predict(self, x):
         """Predicts given X.
@@ -119,6 +124,27 @@ class Model(metaclass=ABCMeta):
         self.x_train = x_train
         self.y_train = y_train
 
+    def sha256sum(self, file_path: str) -> str:
+        """Return a SHA265 sum check to validate the model.
+
+        Args:
+            file_path (str): File path of model.
+
+        Returns:
+            str: SHA256 sum
+        """
+        h = hashlib.sha256()
+
+        with open(file_path, "rb") as file:
+            while True:
+                # Reading is buffered, so we can read smaller chunks.
+                chunk = file.read(h.block_size)
+                if not chunk:
+                    break
+                h.update(chunk)
+
+        return h.hexdigest()
+
     @abstractmethod
     def objective(self, trial):
         pass
@@ -128,7 +154,7 @@ class Model(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def train(self, trial):
+    def train(self, trial, output_path):
         pass
 
 
@@ -212,7 +238,7 @@ class XGBoostModel(Model):
         dtest = xgb.DMatrix(x.to_numpy())
         return self.clf.predict(dtest)
 
-    def train(self, trial):
+    def train(self, trial, output_path):
         logger.info("Number of estimators: {}".format(trial.user_attrs["n_estimators"]))
 
         dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
@@ -223,12 +249,21 @@ class XGBoostModel(Model):
             "eval_metric": "auc",
         }
 
-        self.clf = xgb.train(
-            {**trial.params, **params}, dtrain, trial.user_attrs["n_estimators"]
+        self.clf = xgb.XGBClassifier(
+            {**trial.params, **params}, trial.user_attrs["n_estimators"]
         )
+        self.clf.fit(dtrain)
 
         logger.info("Save trained model to a file.")
-        with open(f"{trial.number}.pickle", "wb") as fout:
+        with open(
+            os.path.join(tempfile.gettempdir(), f"xg_{trial.number}.pickle"), "wb"
+        ) as fout:
+            pickle.dump(self.clf, fout)
+
+        sha256sum = self.sha256sum(
+            os.path.join(tempfile.gettempdir(), f"xg_{trial.number}.pickle")
+        )
+        with open(os.path.join(output_path, f"xg_{sha256sum}.pickle"), "wb") as fout:
             pickle.dump(self.clf, fout)
 
 
@@ -239,10 +274,21 @@ class RandomForestModel(Model):
         super().__init__(processor, x_train, y_train)
 
     def objective(self, trial):
-        max_depth = trial.suggest_int("max_depth", 2, 32, log=True)
-        n_estimators = trial.suggest_int("n_estimators", 2, 32, log=True)
+        # Define hyperparameters to optimize
+        n_estimators = trial.suggest_int("n_estimators", 50, 300)
+        max_depth = trial.suggest_int("max_depth", 2, 20)
+        min_samples_split = trial.suggest_int("min_samples_split", 2, 20)
+        min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 20)
+        max_features = trial.suggest_categorical("max_features", ["sqrt", "log2", None])
+
+        # Create model with suggested hyperparameters
         classifier_obj = RandomForestClassifier(
-            max_depth=max_depth, n_estimators=n_estimators
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+            max_features=max_features,
+            random_state=42,
         )
 
         score = cross_val_score(
@@ -268,10 +314,18 @@ class RandomForestModel(Model):
         x = self.processor.transform(x=x)
         return self.clf.predict(x)
 
-    def train(self, trial):
+    def train(self, trial, output_path):
         self.clf = RandomForestClassifier(**trial.params)
         self.clf.fit(self.x_train, self.y_train)
 
         logger.info("Save trained model to a file.")
-        with open(f"{trial.number}.pickle", "wb") as fout:
+        with open(
+            os.path.join(tempfile.gettempdir(), f"rf_{trial.number}.pickle"), "wb"
+        ) as fout:
+            pickle.dump(self.clf, fout)
+
+        sha256sum = self.sha256sum(
+            os.path.join(tempfile.gettempdir(), f"rf_{trial.number}.pickle")
+        )
+        with open(os.path.join(output_path, f"rf_{sha256sum}.pickle"), "wb") as fout:
             pickle.dump(self.clf, fout)

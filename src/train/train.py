@@ -1,7 +1,9 @@
+import argparse
 import sys
 import os
 from enum import Enum, unique
 
+import click
 import numpy as np
 import polars as pl
 import torch
@@ -36,6 +38,7 @@ class DetectorTraining:
     def __init__(
         self,
         model: ModelEnum.RANDOM_FOREST_CLASSIFIER,
+        model_output_path: str = "./",
         dataset: DatasetEnum = DatasetEnum.ALL,
         data_base_path: str = "./data",
         max_rows: int = -1,
@@ -48,7 +51,8 @@ class DetectorTraining:
             data_base_path(src.train.train.DatasetEnum):
         """
         logger.info("Get DatasetLoader.")
-        self.datasets = DatasetLoader(base_path=data_base_path, max_rows=100)
+        self.datasets = DatasetLoader(base_path=data_base_path, max_rows=max_rows)
+        self.model_output_path = model_output_path
         match dataset:
             case "all":
                 self.dataset = Dataset(
@@ -62,7 +66,7 @@ class DetectorTraining:
                             self.datasets.dgarchive_dataset.data,
                         ]
                     ),
-                    max_rows=100,
+                    max_rows=max_rows,
                 )
             case "cic":
                 self.dataset = self.datasets.cic_dataset
@@ -99,6 +103,7 @@ class DetectorTraining:
             ),
             model=self.model,
             dataset=self.dataset,
+            model_output_path=self.model_output_path,
         )
 
         logger.info("Fit model.")
@@ -115,10 +120,49 @@ class DetectorTraining:
         logger.info(classification_report(self.dataset.Y_val, y_pred, labels=[0, 1]))
 
 
-if __name__ == "__main__":  # pragma: no cover
-    name = sys.argv[1]
-    ds = sys.argv[2]
-    output_train_path = sys.argv[3]
-
-    trainer = DetectorTraining(model=name, dataset=ds)
+@click.command()
+@click.option(
+    "-m",
+    "--model",
+    type=click.Choice(["xg", "rf"]),
+    help="Model to train, choose between XGBoost and RandomForest classifier",
+)
+@click.option(
+    "-ds",
+    "--dataset",
+    default="all",
+    type=click.Choice(["all", "dgarchive", "cic", "dgta"]),
+    help="Data set to train model, choose between all available datasets, DGArchive, CIC and DGTA.",
+)
+@click.option(
+    "-ds_path",
+    "--dataset_path",
+    type=click.Path(exists=True),
+    help="Dataset path, follow folder structure.",
+)
+@click.option(
+    "-ds_max_rows",
+    "--dataset_max_rows",
+    default=-1,
+    type=int,
+    help="Maximum rows to load from each dataset.",
+)
+@click.option(
+    "-m_output_path",
+    "--model_output_path",
+    type=click.Path(exists=True),
+    help="Model output path. Stores model with {{MODEL}}_{{SHA256}}.pickle.",
+)
+def main(model, dataset, dataset_path, dataset_max_rows, model_output_path):
+    trainer = DetectorTraining(
+        model=model,
+        dataset=dataset,
+        data_base_path=dataset_path,
+        max_rows=dataset_max_rows,
+        model_output_path=model_output_path,
+    )
     trainer.train()
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()
