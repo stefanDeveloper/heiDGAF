@@ -246,7 +246,7 @@ class XGBoostModel(Model):
         xgb_cv_results.to_csv(filepath, index=False)
 
         # Extract the best score.
-        best_fdr = xgb_cv_results["test-fdr-mean"].values[-1]
+        best_fdr = xgb_cv_results["test-auc-mean"].values[-1]
         return best_fdr
 
     def predict(self, x):
@@ -259,8 +259,8 @@ class XGBoostModel(Model):
             np.array: Model output.
         """
         x = self.processor.transform(x=x)
-        dtest = xgb.DMatrix(x.to_numpy())
-        return self.clf.predict(dtest)
+        # dtest = xgb.DMatrix(x.to_numpy())
+        return self.clf.predict(x)
 
     def train(self, trial, output_path):
         logger.info("Number of estimators: {}".format(trial.user_attrs["n_estimators"]))
@@ -271,10 +271,11 @@ class XGBoostModel(Model):
             "verbosity": 0,
             "objective": "binary:logistic",
             "eval_metric": "auc",
+            "device": self.device,
         }
 
         self.clf = xgb.XGBClassifier(
-            {**trial.params, **params}, trial.user_attrs["n_estimators"]
+            n_estimators=trial.user_attrs["n_estimators"], **trial.params, **params
         )
         self.clf.fit(self.x_train, self.y_train)
 
