@@ -5,6 +5,7 @@ import sys
 import os
 import tempfile
 
+from sklearn.metrics import make_scorer
 import xgboost as xgb
 import optuna
 import torch
@@ -21,7 +22,7 @@ from src.train.dataset import Dataset
 logger = get_logger("train.model")
 
 SEED = 108
-N_FOLDS = 3
+N_FOLDS = 5
 CV_RESULT_DIR = "./results"
 
 
@@ -59,26 +60,6 @@ class Pipeline:
                 )
             case _:
                 raise NotImplementedError(f"Model not implemented!")
-
-        # setting device on GPU if available, else CPU
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logger.info(f"Using device: {self.device}")
-
-        if torch.cuda.is_available():
-            logger.debug("GPU detected")
-            logger.debug(f"\t{torch.cuda.get_device_name(0)}")
-
-        if self.device.type == "cuda":
-            logger.debug("Memory Usage:")
-            logger.debug(
-                f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
-            )
-            logger.debug(
-                f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
-            )
-            self.device = "gpu"
-        else:
-            self.device = "cpu"
 
     def fit(self):
         """Fits models to training data.
@@ -123,6 +104,25 @@ class Model(metaclass=ABCMeta):
         self.processor = processor
         self.x_train = x_train
         self.y_train = y_train
+        # setting device on GPU if available, else CPU
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logger.info(f"Using device: {self.device}")
+
+        if torch.cuda.is_available():
+            logger.info("GPU detected")
+            logger.info(f"\t{torch.cuda.get_device_name(0)}")
+
+        if self.device.type == "cuda":
+            logger.info("Memory Usage:")
+            logger.info(
+                f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
+            )
+            logger.info(
+                f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
+            )
+            self.device = "gpu"
+        else:
+            self.device = "cpu"
 
     def sha256sum(self, file_path: str) -> str:
         """Return a SHA265 sum check to validate the model.
@@ -163,6 +163,29 @@ class XGBoostModel(Model):
         self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
     ) -> None:
         super().__init__(processor, x_train, y_train)
+
+    def fdr_metric(self, preds: np.ndarray, dtrain: xgb.DMatrix) -> tuple[str, float]:
+        # Get the true labels
+        labels = dtrain.get_label()
+
+        # Threshold predictions to get binary outcomes (assuming binary classification with 0.5 threshold)
+        preds_binary = (preds > 0.5).astype(int)
+
+        # Calculate False Positives (FP) and True Positives (TP)
+        FP = np.sum((preds_binary == 1) & (labels == 0))
+        TP = np.sum((preds_binary == 1) & (labels == 1))
+
+        # Avoid division by zero
+        if FP + TP == 0:
+            fdr = 0.0
+        else:
+            fdr = FP / (FP + TP)
+
+        # Return the result in the format (name, value)
+        return (
+            "fdr",
+            1 - fdr,
+        )  # -1 is essentiell since XGBoost wants a scoring value (higher is better). However, FDR represents a loss function.
 
     def objective(self, trial):
         dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
@@ -212,6 +235,7 @@ class XGBoostModel(Model):
             early_stopping_rounds=100,
             seed=SEED,
             verbose_eval=False,
+            custom_metric=self.fdr_metric,
         )
 
         # Set n_estimators as a trial attribute; Accessible via study.trials_dataframe().
@@ -222,8 +246,8 @@ class XGBoostModel(Model):
         xgb_cv_results.to_csv(filepath, index=False)
 
         # Extract the best score.
-        best_score = xgb_cv_results["test-auc-mean"].values[-1]
-        return best_score
+        best_fdr = xgb_cv_results["test-fdr-mean"].values[-1]
+        return best_fdr
 
     def predict(self, x):
         """Predicts given X.
@@ -241,7 +265,7 @@ class XGBoostModel(Model):
     def train(self, trial, output_path):
         logger.info("Number of estimators: {}".format(trial.user_attrs["n_estimators"]))
 
-        dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
+        # dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
 
         params = {
             "verbosity": 0,
@@ -252,7 +276,7 @@ class XGBoostModel(Model):
         self.clf = xgb.XGBClassifier(
             {**trial.params, **params}, trial.user_attrs["n_estimators"]
         )
-        self.clf.fit(dtrain)
+        self.clf.fit(self.x_train, self.y_train)
 
         logger.info("Save trained model to a file.")
         with open(
@@ -273,6 +297,22 @@ class RandomForestModel(Model):
     ) -> None:
         super().__init__(processor, x_train, y_train)
 
+    # Define the custom FDR metric
+    def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
+        # False Positives (FP): cases where the model predicted 1 but the actual label is 0
+        FP = np.sum((y_pred == 1) & (y_true == 0))
+
+        # True Positives (TP): cases where the model correctly predicted 1
+        TP = np.sum((y_pred == 1) & (y_true == 1))
+
+        # Compute FDR, avoiding division by zero
+        if FP + TP == 0:
+            fdr = 0.0
+        else:
+            fdr = FP / (FP + TP)
+
+        return fdr
+
     def objective(self, trial):
         # Define hyperparameters to optimize
         n_estimators = trial.suggest_int("n_estimators", 50, 300)
@@ -288,19 +328,22 @@ class RandomForestModel(Model):
             min_samples_split=min_samples_split,
             min_samples_leaf=min_samples_leaf,
             max_features=max_features,
-            random_state=42,
+            random_state=SEED,
         )
+
+        # Create a scorer using make_scorer, setting greater_is_better to False since lower FDR is better
+        fdr_scorer = make_scorer(self.fdr_metric, greater_is_better=False)
 
         score = cross_val_score(
             classifier_obj,
             self.x_train,
             self.y_train,
             n_jobs=-1,
-            cv=3,
-            scoring="roc_auc",
+            cv=N_FOLDS,
+            scoring=fdr_scorer,
         )
-        accuracy = score.mean()
-        return accuracy
+        fdr = score.mean()
+        return fdr
 
     def predict(self, x):
         """Predicts given X.
