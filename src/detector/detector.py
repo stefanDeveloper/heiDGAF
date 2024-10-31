@@ -8,6 +8,7 @@ import tempfile
 import numpy as np
 import math
 import requests
+from numpy import median
 
 sys.path.append(os.getcwd())
 from src.base.utils import setup_config
@@ -280,13 +281,12 @@ class Detector:
     def send_warning(self) -> None:
         logger.info("Store alert to file.")
         if len(self.warnings) > 0:
-            overall_score = 0
-            for warning in self.warnings:
-                overall_score += warning["probability"]
-            overall_score = overall_score / len(self.warnings)
+            overall_score = median(
+                [warning["probability"] for warning in self.warnings]
+            )
             alert = {"overall_score": overall_score, "result": self.warnings}
             logger.info(f"Add alert: {alert}")
-            with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a") as f:
+            with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a+") as f:
                 json.dump(alert, f)
                 f.write("\n")
         else:

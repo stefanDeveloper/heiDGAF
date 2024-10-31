@@ -1,6 +1,8 @@
+import os
+import tempfile
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, mock_open
 
 from requests import HTTPError
 
@@ -215,6 +217,98 @@ class TestGetData(unittest.TestCase):
         sut.get_and_fill_data()
 
         self.assertEqual([{"test": "test_message_2"}], sut.messages)
+
+
+class TestSendWarning(unittest.TestCase):
+    def setUp(self):
+        patcher = patch("src.detector.detector.logger")
+        self.mock_logger = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+    )
+    @patch("src.detector.detector.MODEL", "rf")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    )
+    @patch("src.detector.detector.KafkaConsumeHandler")
+    def test_save_warning(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = Detector()
+        sut.warnings = [
+            {
+                "request": "google.de",
+                "probability": 0.8765,
+                "model": "rf",
+                "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+            },
+            {
+                "request": "request.de",
+                "probability": 0.12388,
+                "model": "rf",
+                "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+            },
+        ]
+        open_mock = mock_open()
+        with patch("src.detector.detector.open", open_mock, create=True):
+            sut.send_warning()
+
+        open_mock.assert_called_with(
+            os.path.join(tempfile.gettempdir(), "warnings.json"), "a+"
+        )
+
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+    )
+    @patch("src.detector.detector.MODEL", "rf")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    )
+    @patch("src.detector.detector.KafkaConsumeHandler")
+    def test_save_empty_warning(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = Detector()
+        sut.warnings = []
+        open_mock = mock_open()
+        with patch("src.detector.detector.open", open_mock, create=True):
+            sut.send_warning()
+
+        open_mock.assert_not_called()
+
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+    )
+    @patch("src.detector.detector.MODEL", "rf")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    )
+    @patch("src.detector.detector.KafkaConsumeHandler")
+    def test_save_warning_error(self, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = Detector()
+        sut.warnings = [
+            {
+                "request": "request.de",
+                "probability": "INVALID",
+                "model": "rf",
+                "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+            }
+        ]
+        with self.assertRaises(Exception):
+            sut.send_warning()
 
 
 class TestClearData(unittest.TestCase):
