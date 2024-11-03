@@ -4,12 +4,10 @@ import sys
 import time
 
 sys.path.append(os.getcwd())
-from src.base.log_config import setup_logging
 from src.mock.log_generator import generate_dns_log_line
 from src.base.log_config import get_logger
 
 logger = get_logger()
-
 
 if __name__ == "__main__":
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:

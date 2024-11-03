@@ -26,9 +26,9 @@ READ_FROM_FILE = CONFIG["pipeline"]["log_storage"]["logserver"]["input_file"]
 
 class LogServer:
     """
-    Server for receiving, storing and sending single log lines. Opens a port for receiving messages, listens for log
-    lines via Kafka and reads newly added lines from an input file. To retrieve a log line from the server,
-    other modules can connect to its outgoing/sending port. The server will then send its oldest log line as a response.
+    Server for receiving, storing and sending single log lines. Opens a port for receiving messages, listens for
+    messages via Kafka and reads newly added lines from an input file. To retrieve a message from the server,
+    other modules can connect to its outgoing/sending port. The server will then send its oldest message as a response.
     """
 
     def __init__(self) -> None:
@@ -217,18 +217,29 @@ class LogServer:
 
     async def receive_logline(self, reader) -> None:
         """
-        Receives a log line encoded as UTF-8 from the connected component and adds it to the data queue.
+        Receives one or multiple log lines encoded as UTF-8 separated by and ending with separator '\n' from the
+        connected component and adds it or them to the data queue. Message must end with separator symbol.
 
         Args:
             reader: Responsible for reading incoming data
         """
         while True:
-            data = await reader.read(1024)
-            if not data:
+            try:
+                data = await reader.readuntil(separator=b"\n")
+                if not data:
+                    break
+                received_message = data.decode().strip()
+                logger.info(f"Received message:\n    ⤷  {received_message}")
+                self.data_queue.put(received_message)
+            except asyncio.exceptions.IncompleteReadError as e:
+                logger.warning(f"Ignoring message: No separator symbol found: {e}")
                 break
-            received_message = data.decode()
-            logger.info(f"Received message:\n    ⤷  {received_message}")
-            self.data_queue.put(received_message)
+            except asyncio.LimitOverrunError as e:
+                logger.error(f"Message size exceeded, separator symbol not found")
+                break
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}")
+                raise
 
     def get_next_logline(self) -> str | None:
         """
