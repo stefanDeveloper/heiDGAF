@@ -346,13 +346,15 @@ class TestSendLogline(unittest.IsolatedAsyncioTestCase):
 
 class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.logger")
-    async def test_receive_logline(self, mock_logger):
+    async def test_receive_one_logline(self, mock_logger):
         reader = AsyncMock()
         data_queue = MagicMock()
         server_instance = LogServer()
         server_instance.data_queue = data_queue
 
-        reader.read = AsyncMock(side_effect=[b"Test message 1", b"Test message 2", b""])
+        reader.readuntil = AsyncMock(
+            side_effect=[b"Test message 1\n", b"Test message 2\n", b""]
+        )
 
         receive_task = asyncio.create_task(server_instance.receive_logline(reader))
         await receive_task

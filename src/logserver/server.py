@@ -234,7 +234,7 @@ class LogServer:
             except asyncio.exceptions.IncompleteReadError as e:
                 logger.warning(f"Ignoring message: No separator symbol found: {e}")
                 break
-            except asyncio.LimitOverrunError as e:
+            except asyncio.LimitOverrunError:
                 logger.error(f"Message size exceeded, separator symbol not found")
                 break
             except Exception as e:
