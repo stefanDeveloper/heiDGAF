@@ -17,6 +17,14 @@ If you want to use heiDGAF, just use the provided ``docker-compose.yml`` to quic
 
    $ docker compose -f docker/docker-compose.yml up
 
+Run container individually:
+
+
+.. code-block:: console
+
+   $ docker compose -f docker/docker-compose.kafka.yml up
+   $ docker run ...
+
 Installation
 ------------
 

@@ -1,31 +1,38 @@
-import logging
+import sys
+import os
 import math
 from string import ascii_lowercase as alc
 from typing import List
 
 import polars as pl
 
+sys.path.append(os.getcwd())
+from src.base.log_config import get_logger
 
-class Preprocessor:
+logger = get_logger("train.feature")
+
+
+class Processor:
+    """Processor for data set. Extracts features from data space."""
 
     def __init__(self, features_to_drop: List):
         """Init.
 
         Args:
-            feature_to_drop (list): list of feature to drop
+            feature_to_drop (list): List of feature to drop
         """
         self.features_to_drop = features_to_drop
 
     def transform(self, x: pl.DataFrame) -> pl.DataFrame:
-        """Transform our dataset with new features
+        """Transform our dataset with new features.
 
         Args:
-            x (pl.DataFrame): dataframe with our features
+            x (pl.DataFrame): pl.DataFrame with our features.
 
         Returns:
-            pl.DataFrame: preprocessed dataframe
+            pl.DataFrame: Preprocessed dataframe.
         """
-        logging.debug("Start data transformation")
+        logger.debug("Start data transformation")
         x = x.with_columns(
             [
                 (pl.col("query").str.split(".").list.len().alias("label_length")),
@@ -44,7 +51,7 @@ class Preprocessor:
                 ),
             ]
         )
-        # Get letter frequency
+        logger.debug("Get letter frequency")
         for i in alc:
             x = x.with_columns(
                 [
@@ -56,96 +63,50 @@ class Preprocessor:
                     ).alias(f"freq_{i}"),
                 ]
             )
+        logger.debug("Get full, alpha, special, and numeric count.")
+        for level in ["thirdleveldomain", "secondleveldomain", "fqdn"]:
+            x = x.with_columns(
+                [
+                    (
+                        pl.when(pl.col(level).str.len_chars().eq(0))
+                        .then(pl.lit(0))
+                        .otherwise(
+                            pl.col(level)
+                            .str.len_chars()
+                            .truediv(pl.col(level).str.len_chars())
+                        )
+                    ).alias(f"{level}_full_count"),
+                    (
+                        pl.when(pl.col(level).str.len_chars().eq(0))
+                        .then(pl.lit(0))
+                        .otherwise(
+                            pl.col(level)
+                            .str.count_matches(r"[a-zA-Z]")
+                            .truediv(pl.col(level).str.len_chars())
+                        )
+                    ).alias(f"{level}_alpha_count"),
+                    (
+                        pl.when(pl.col(level).str.len_chars().eq(0))
+                        .then(pl.lit(0))
+                        .otherwise(
+                            pl.col(level)
+                            .str.count_matches(r"[0-9]")
+                            .truediv(pl.col(level).str.len_chars())
+                        )
+                    ).alias(f"{level}_numeric_count"),
+                    (
+                        pl.when(pl.col(level).str.len_chars().eq(0))
+                        .then(pl.lit(0))
+                        .otherwise(
+                            pl.col(level)
+                            .str.count_matches(r"[^\w\s]")
+                            .truediv(pl.col(level).str.len_chars())
+                        )
+                    ).alias(f"{level}_special_count"),
+                ]
+            )
 
-        x = x.with_columns(
-            [
-                # FQDN
-                (pl.col("query").str.len_chars().alias("fqdn_full_count")),
-                (
-                    pl.col("query")
-                    .str.count_matches(r"[a-zA-Z]")
-                    .truediv(pl.col("query").str.len_chars())
-                ).alias("fqdn_alpha_count"),
-                (
-                    pl.col("query")
-                    .str.count_matches(r"[0-9]")
-                    .truediv(pl.col("query").str.len_chars())
-                ).alias("fqdn_numeric_count"),
-                (
-                    pl.col("query")
-                    .str.count_matches(r"[^\w\s]")
-                    .truediv(pl.col("query").str.len_chars())
-                ).alias("fqdn_special_count"),
-            ]
-        )
-
-        x = x.with_columns(
-            [
-                (
-                    pl.col("secondleveldomain")
-                    .str.len_chars()
-                    .truediv(pl.col("secondleveldomain").str.len_chars())
-                    .alias("secondleveldomain_full_count")
-                ),
-                (
-                    pl.col("secondleveldomain")
-                    .str.count_matches(r"[a-zA-Z]")
-                    .truediv(pl.col("secondleveldomain").str.len_chars())
-                ).alias("secondleveldomain_alpha_count"),
-                (
-                    pl.col("secondleveldomain")
-                    .str.count_matches(r"[0-9]")
-                    .truediv(pl.col("secondleveldomain").str.len_chars())
-                ).alias("secondleveldomain_numeric_count"),
-                (
-                    pl.col("secondleveldomain")
-                    .str.count_matches(r"[^\w\s]")
-                    .truediv(pl.col("secondleveldomain").str.len_chars())
-                ).alias("secondleveldomain_special_count"),
-            ]
-        )
-
-        x = x.with_columns(
-            [
-                (
-                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
-                    .then(pl.lit(0))
-                    .otherwise(
-                        pl.col("thirdleveldomain")
-                        .str.len_chars()
-                        .truediv(pl.col("thirdleveldomain").str.len_chars())
-                    )
-                ).alias("thirdleveldomain_full_count"),
-                (
-                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
-                    .then(pl.lit(0))
-                    .otherwise(
-                        pl.col("thirdleveldomain")
-                        .str.count_matches(r"[a-zA-Z]")
-                        .truediv(pl.col("thirdleveldomain").str.len_chars())
-                    )
-                ).alias("thirdleveldomain_alpha_count"),
-                (
-                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
-                    .then(pl.lit(0))
-                    .otherwise(
-                        pl.col("thirdleveldomain")
-                        .str.count_matches(r"[0-9]")
-                        .truediv(pl.col("thirdleveldomain").str.len_chars())
-                    )
-                ).alias("thirdleveldomain_numeric_count"),
-                (
-                    pl.when(pl.col("thirdleveldomain").str.len_chars().eq(0))
-                    .then(pl.lit(0))
-                    .otherwise(
-                        pl.col("thirdleveldomain")
-                        .str.count_matches(r"[^\w\s]")
-                        .truediv(pl.col("thirdleveldomain").str.len_chars())
-                    )
-                ).alias("thirdleveldomain_special_count"),
-            ]
-        )
-
+        logger.debug("Get frequency standard deviation, median, variance, and mean.")
         x = x.with_columns(
             [
                 (
@@ -171,6 +132,9 @@ class Preprocessor:
             ]
         )
 
+        logger.debug(
+            "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
+        )
         for level in ["thirdleveldomain", "secondleveldomain", "fqdn"]:
             x = x.with_columns(
                 [
@@ -225,7 +189,7 @@ class Preprocessor:
                 ]
             )
 
-        logging.debug("Start entropy calculation")
+        logger.debug("Start entropy calculation")
         for ent in ["fqdn", "thirdleveldomain", "secondleveldomain"]:
             x = x.with_columns(
                 [
@@ -234,7 +198,8 @@ class Preprocessor:
                             lambda x: [
                                 float(str(x).count(c)) / len(str(x))
                                 for c in dict.fromkeys(list(str(x)))
-                            ]
+                            ],
+                            return_dtype=pl.List(pl.Float64),
                         )
                     ).alias("prob"),
                 ]
@@ -253,13 +218,14 @@ class Preprocessor:
                 ]
             )
             x = x.drop("prob")
-        logging.debug("Finished entropy calculation")
+        logger.debug("Finished entropy calculation")
 
-        # Fill NaN
+        logger.debug("Fill NaN.")
         x = x.fill_nan(0)
-        # Drop features not useful anymore
+
+        logger.debug("Drop features that are not useful.")
         x = x.drop(self.features_to_drop)
 
-        logging.debug("Finished data transformation")
+        logger.debug("Finished data transformation")
 
         return x

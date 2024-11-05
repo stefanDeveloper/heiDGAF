@@ -1,11 +1,14 @@
 import hashlib
 import json
 import os
+import pickle
 import sys
 import tempfile
 
-import joblib
+import numpy as np
+import math
 import requests
+from numpy import median
 
 sys.path.append(os.getcwd())
 from src.base.utils import setup_config
@@ -40,12 +43,13 @@ class Detector:
     """
 
     def __init__(self) -> None:
-        self.topic = "detector"
         self.messages = []
         self.warnings = []
         self.begin_timestamp = None
         self.end_timestamp = None
-        self.model_path = os.path.join(tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pkl")
+        self.model_path = os.path.join(
+            tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pickle"
+        )
 
         logger.debug(f"Initializing Detector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Detector')...")
@@ -114,12 +118,12 @@ class Detector:
         Downloads model from server. If model already exists, it returns the current model. In addition, it checks the
         sha256 sum in case a model has been updated.
         """
-
+        logger.info(f"Get model: {MODEL} with checksum {CHECKSUM}")
         if not os.path.isfile(self.model_path):
             response = requests.get(
-                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pkl&dl=1"
+                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pickle&dl=1"
             )
-            logger.info(f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pkl&dl=1")
+            logger.info(f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pickle&dl=1")
             response.raise_for_status()
 
             with open(self.model_path, "wb") as f:
@@ -136,7 +140,10 @@ class Detector:
                 f"Checksum {CHECKSUM} SHA256 is not equal with new checksum {local_checksum}!"
             )
 
-        return joblib.load(self.model_path)
+        with open(self.model_path, "rb") as input_file:
+            clf = pickle.load(input_file)
+
+        return clf
 
     def clear_data(self):
         """Clears the data in the internal data structures."""
@@ -145,16 +152,145 @@ class Detector:
         self.end_timestamp = None
         self.warnings = []
 
+    def _get_features(self, query: str):
+        """Transform a dataset with new features using numpy.
+
+        Args:
+            query (str): A string to process.
+
+        Returns:
+            dict: Preprocessed data with computed features.
+        """
+
+        # Splitting by dots to calculate label length and max length
+        label_parts = query.split(".")
+        label_length = len(label_parts)
+        label_max = max(len(part) for part in label_parts)
+        label_average = len(query.strip("."))
+
+        logger.debug("Get letter frequency")
+        alc = "abcdefghijklmnopqrstuvwxyz"
+        freq = np.array(
+            [query.lower().count(i) / len(query) if len(query) > 0 else 0 for i in alc]
+        )
+
+        logger.debug("Get full, alpha, special, and numeric count.")
+
+        def calculate_counts(level: str) -> np.ndarray:
+            if len(level) == 0:
+                return np.array([0, 0, 0, 0])
+
+            full_count = len(level)
+            alpha_count = sum(c.isalpha() for c in level) / full_count
+            numeric_count = sum(c.isdigit() for c in level) / full_count
+            special_count = (
+                sum(not c.isalnum() and not c.isspace() for c in level) / full_count
+            )
+
+            return np.array([full_count, alpha_count, numeric_count, special_count])
+
+        levels = {
+            "fqdn": query,
+            "thirdleveldomain": label_parts[0] if len(label_parts) > 2 else "",
+            "secondleveldomain": label_parts[1] if len(label_parts) > 1 else "",
+        }
+        counts = {
+            level: calculate_counts(level_value)
+            for level, level_value in levels.items()
+        }
+
+        logger.debug("Get frequency standard deviation, median, variance, and mean.")
+        freq_std = np.std(freq)
+        freq_var = np.var(freq)
+        freq_median = np.median(freq)
+        freq_mean = np.mean(freq)
+
+        logger.debug(
+            "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
+        )
+        stats = {}
+        for level, count_array in counts.items():
+            stats[f"{level}_std"] = np.std(count_array)
+            stats[f"{level}_var"] = np.var(count_array)
+            stats[f"{level}_median"] = np.median(count_array)
+            stats[f"{level}_mean"] = np.mean(count_array)
+
+        logger.debug("Start entropy calculation")
+
+        def calculate_entropy(s: str) -> float:
+            if len(s) == 0:
+                return 0
+            probabilities = [float(s.count(c)) / len(s) for c in dict.fromkeys(list(s))]
+            entropy = -sum(p * math.log(p, 2) for p in probabilities)
+            return entropy
+
+        entropy = {level: calculate_entropy(value) for level, value in levels.items()}
+
+        logger.debug("Finished entropy calculation")
+
+        # Final feature aggregation as a NumPy array
+        basic_features = np.array([label_length, label_max, label_average])
+        freq_features = np.array([freq_std, freq_var, freq_median, freq_mean])
+
+        # Flatten counts and stats for each level into arrays
+        level_features = np.hstack([counts[level] for level in levels.keys()])
+        stats_features = np.array(
+            [stats[f"{level}_std"] for level in levels.keys()]
+            + [stats[f"{level}_var"] for level in levels.keys()]
+            + [stats[f"{level}_median"] for level in levels.keys()]
+            + [stats[f"{level}_mean"] for level in levels.keys()]
+        )
+
+        # Entropy features
+        entropy_features = np.array([entropy[level] for level in levels.keys()])
+
+        # Concatenate all features into a single numpy array
+        all_features = np.concatenate(
+            [
+                basic_features,
+                freq,
+                freq_features,
+                level_features,
+                stats_features,
+                entropy_features,
+            ]
+        )
+
+        logger.debug("Finished data transformation")
+
+        return all_features.reshape(1, -1)
+
     def detect(self) -> None:  # pragma: no cover
+        logger.info("Start detecting malicious requests.")
         for message in self.messages:
-            y_pred = self.model.predict(message["host_domain_name"])
-            if y_pred > THRESHOLD:
-                self.warnings.append(message)
+            # TODO predict all messages
+            y_pred = self.model.predict_proba(
+                self._get_features(message["domain_name"])
+            )
+            logger.info(f"Prediction: {y_pred}")
+            if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:
+                logger.info("Append malicious request to warning.")
+                warning = {
+                    "request": message,
+                    "probability": float(y_pred[0][1]),
+                    "model": MODEL,
+                    "sha256": CHECKSUM,
+                }
+                self.warnings.append(warning)
 
     def send_warning(self) -> None:
-        with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a") as f:
-            json.dump(self.messages, f)
-            f.write("\n")
+        logger.info("Store alert to file.")
+        if len(self.warnings) > 0:
+            overall_score = median(
+                [warning["probability"] for warning in self.warnings]
+            )
+            alert = {"overall_score": overall_score, "result": self.warnings}
+            logger.info(f"Add alert: {alert}")
+            with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a+") as f:
+                json.dump(alert, f)
+                f.write("\n")
+        else:
+            logger.info("No warning produced.")
 
 
 def main(one_iteration: bool = False):  # pragma: no cover

@@ -1,5 +1,7 @@
 numpy
-polars
-torch
 xgboost
-scikit-learn
+scikit-learn~=1.5.2
+scipy
+torch
+pyarrow
+polars
