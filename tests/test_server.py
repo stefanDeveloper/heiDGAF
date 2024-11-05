@@ -352,7 +352,9 @@ class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
         server_instance = LogServer()
         server_instance.data_queue = data_queue
 
-        reader.read = AsyncMock(side_effect=[b"Test message 1", b"Test message 2", b""])
+        reader.readuntil = AsyncMock(
+            side_effect=[b"Test message 1\n", b"Test message 2\n", b""]
+        )
 
         receive_task = asyncio.create_task(server_instance.receive_logline(reader))
         await receive_task
@@ -361,6 +363,45 @@ class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
         data_queue.put.assert_any_call("Test message 2")
 
         self.assertEqual(data_queue.put.call_count, 2)
+
+    @patch("src.logserver.server.logger")
+    async def test_receive_without_separator(self, mock_logger):
+        reader = AsyncMock()
+        data_queue = MagicMock()
+        server_instance = LogServer()
+        server_instance.data_queue = data_queue
+
+        reader.readuntil = AsyncMock(
+            side_effect=asyncio.exceptions.IncompleteReadError(b"", 100)
+        )
+
+        # noinspection PyAsyncCall
+        asyncio.create_task(server_instance.receive_logline(reader))
+
+    @patch("src.logserver.server.logger")
+    async def test_receive_too_long(self, mock_logger):
+        reader = AsyncMock()
+        data_queue = MagicMock()
+        server_instance = LogServer()
+        server_instance.data_queue = data_queue
+
+        reader.readuntil = AsyncMock(side_effect=asyncio.LimitOverrunError("", 1))
+
+        # noinspection PyAsyncCall
+        asyncio.create_task(server_instance.receive_logline(reader))
+
+    @patch("src.logserver.server.logger")
+    async def test_receive_raise_other_exception(self, mock_logger):
+        reader = AsyncMock()
+        data_queue = MagicMock()
+        server_instance = LogServer()
+        server_instance.data_queue = data_queue
+
+        reader.readuntil = AsyncMock(side_effect=ValueError("Something went wrong"))
+
+        with self.assertRaises(ValueError):
+            task = asyncio.create_task(server_instance.receive_logline(reader))
+            await task
 
 
 class TestGetNextLogline(unittest.TestCase):

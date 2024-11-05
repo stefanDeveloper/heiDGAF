@@ -13,7 +13,6 @@ from src.train.dataset import Dataset, DatasetLoader
 
 logger = get_logger()
 
-
 if __name__ == "__main__":
     data_base_path: str = "./data"
     datasets = DatasetLoader(base_path=data_base_path, max_rows=10000)

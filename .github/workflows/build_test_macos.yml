@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ "macos-12" ]
+        os: [ "macos-14" ]
         python-version: [ "3.11",
                           "3.10",
         ]
@@ -32,6 +32,7 @@ jobs:
 
       - name: Install requirements
         run: |
+          brew install libomp
           python -m pip install --upgrade pip
           python -m pip install pyyaml
           python -m pip install -r requirements/requirements.dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
