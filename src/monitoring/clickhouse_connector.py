@@ -67,15 +67,12 @@ class ServerLogsConnector(ClickHouseConnector):
     def insert(
         self, message_text: str, timestamp_in: datetime.datetime | None = None
     ) -> uuid.UUID:
-        message_id = uuid.uuid4()
-
         if not timestamp_in:
             timestamp_in = datetime.datetime.now()
-
         timestamp_in = timestamp_in.strftime("%Y-%m-%d %H:%M:%S.%f")
 
+        message_id = uuid.uuid4()
         self._add_to_batch([message_id, timestamp_in, message_text])
-
         return message_id
 
 
@@ -89,30 +86,44 @@ class ServerLogsTimestampsConnector(ClickHouseConnector):
 
         super().__init__("server_logs_timestamps", column_names)
 
-    def insert(self, message_id: uuid.UUID, event: str, event_timestamp) -> uuid.UUID:
-        # TODO: Implement logic
+    def insert(
+        self,
+        message_id: uuid.UUID,
+        event: str,
+        event_timestamp: datetime.datetime | None = None,
+    ) -> uuid.UUID:
+        if not event_timestamp:
+            event_timestamp = datetime.datetime.now()
+        event_timestamp = event_timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
 
+        self._add_to_batch([message_id, event, event_timestamp])
         return message_id
 
 
 class FailedDNSLoglinesConnector(ClickHouseConnector):
     def __init__(self):
-        super().__init__("failed_dns_loglines")
-
-        self.column_names = [
+        column_names = [
             "message_text",
             "timestamp_in",
             "timestamp_failed",
             "reason_for_failure",
         ]
 
+        super().__init__("failed_dns_loglines", column_names)
+
     def insert(
         self,
         message_text: str,
-        timestamp_in,
-        timestamp_failed,
+        timestamp_in: datetime.datetime,
+        timestamp_failed: datetime.datetime | None = None,
         reason_for_failure: str | None = None,
-    ):
-        # TODO: Implement logic
+    ) -> None:
+        if not timestamp_failed:
+            timestamp_failed = datetime.datetime.now()
 
-        pass
+        timestamp_in = timestamp_in.strftime("%Y-%m-%d %H:%M:%S.%f")
+        timestamp_failed = timestamp_failed.strftime("%Y-%m-%d %H:%M:%S.%f")
+
+        self._add_to_batch(
+            [message_text, timestamp_in, timestamp_failed, reason_for_failure]
+        )
