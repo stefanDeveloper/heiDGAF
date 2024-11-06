@@ -91,13 +91,12 @@ class ServerLogsTimestampsConnector(ClickHouseConnector):
         message_id: uuid.UUID,
         event: str,
         event_timestamp: datetime.datetime | None = None,
-    ) -> uuid.UUID:
+    ):
         if not event_timestamp:
             event_timestamp = datetime.datetime.now()
         event_timestamp = event_timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
 
         self._add_to_batch([message_id, event, event_timestamp])
-        return message_id
 
 
 class FailedDNSLoglinesConnector(ClickHouseConnector):
@@ -127,3 +126,58 @@ class FailedDNSLoglinesConnector(ClickHouseConnector):
         self._add_to_batch(
             [message_text, timestamp_in, timestamp_failed, reason_for_failure]
         )
+
+
+class LoglineToBatchesConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "logline_id",
+            "batch_id",
+        ]
+
+        super().__init__("logline_to_batches", column_names)
+
+    def insert(self, logline_id: uuid.UUID, batch_id: uuid.UUID):
+        self._add_to_batch([logline_id, batch_id])
+
+
+class DNSLoglinesConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "logline_id",
+            "subnet_id",
+            "timestamp",
+            "status_code",
+            "client_ip",
+            "record_type",
+            "additional_fields",
+        ]
+
+        super().__init__("dns_loglines", column_names)
+
+    def insert(
+        self,
+        subnet_id: str,
+        timestamp: datetime.datetime,
+        status_code: str,
+        client_ip: str,
+        record_type: str,
+        additional_fields: str | None = None,
+    ) -> uuid.UUID:
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+        timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
+
+        logline_id = uuid.uuid4()
+        self._add_to_batch(
+            [
+                logline_id,
+                subnet_id,
+                timestamp,
+                status_code,
+                client_ip,
+                record_type,
+                additional_fields,
+            ]
+        )
+        return logline_id
