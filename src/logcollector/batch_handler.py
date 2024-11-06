@@ -254,7 +254,7 @@ class BufferedBatch:
         return keys_set.copy()
 
 
-class CollectorKafkaBatchSender:
+class BufferedBatchSender:
     """
     Adds messages to the :class:`BufferedBatch` and sends them after a timer ran out or the respective batch is full.
     """

@@ -7,7 +7,7 @@ import sys
 sys.path.append(os.getcwd())
 from src.base.logline_handler import LoglineHandler
 from src.base import utils
-from src.logcollector.batch_handler import CollectorKafkaBatchSender
+from src.logcollector.batch_handler import BufferedBatchSender
 from src.base.log_config import get_logger
 
 logger = get_logger("log_collection.collector")
@@ -44,7 +44,7 @@ class LogCollector:
         logger.debug(
             f"Calling CollectorKafkaBatchSender(transactional_id='collector')..."
         )
-        self.batch_handler = CollectorKafkaBatchSender()
+        self.batch_handler = BufferedBatchSender()
         logger.debug("Calling LoglineHandler()...")
         self.logline_handler = LoglineHandler()
         logger.debug("Initialized LogCollector.")

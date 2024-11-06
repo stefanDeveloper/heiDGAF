@@ -12,7 +12,7 @@ LOG_SERVER_PORT = 9999
 class TestInit(unittest.TestCase):
     @patch("src.logcollector.collector.LOGSERVER_HOSTNAME", "127.0.0.1")
     @patch("src.logcollector.collector.LOGSERVER_SENDING_PORT", 9999)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_valid_init_ipv4(self, mock_logline_handler, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
@@ -36,7 +36,7 @@ class TestInit(unittest.TestCase):
 
     @patch("src.logcollector.collector.LOGSERVER_HOSTNAME", "fe80::1")
     @patch("src.logcollector.collector.LOGSERVER_SENDING_PORT", 8989)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_valid_init_ipv6(self, mock_logline_handler, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
@@ -73,7 +73,7 @@ class TestInit(unittest.TestCase):
 
 class TestFetchLogline(unittest.TestCase):
     @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("socket.socket")
     def test_fetch_logline_successful(
         self, mock_socket, mock_batch_handler, mock_logger
@@ -94,7 +94,7 @@ class TestFetchLogline(unittest.TestCase):
         self.assertEqual("fake messages", sut.logline)
 
     @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("socket.socket")
     def test_fetch_logline_no_data_on_server(
         self, mock_socket, mock_batch_handler, mock_logger
@@ -115,7 +115,7 @@ class TestFetchLogline(unittest.TestCase):
         self.assertIsNone(sut.logline)
 
     @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("socket.socket")
     def test_fetch_logline_connection_error(
         self, mock_socket, mock_batch_handler, mock_logger
@@ -138,7 +138,7 @@ class TestFetchLogline(unittest.TestCase):
 
 class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv4(self, mock_logline_handler, mock_batch_handler):
         # Arrange
@@ -153,7 +153,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv4_zero(self, mock_logline_handler, mock_batch_handler):
         # Arrange
@@ -168,7 +168,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 23)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv4_max(self, mock_logline_handler, mock_batch_handler):
         # Arrange
@@ -183,7 +183,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 64)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv6(self, mock_logline_handler, mock_batch_handler):
         # Arrange
@@ -198,7 +198,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 64)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv6_zero(self, mock_logline_handler, mock_batch_handler):
         # Arrange
@@ -213,7 +213,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv6_max(self, mock_logline_handler, mock_batch_handler):
         # Arrange
@@ -229,7 +229,7 @@ class TestGetSubnetId(unittest.TestCase):
 
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_unsupported_type(
         self, mock_logline_handler, mock_batch_handler
@@ -245,7 +245,7 @@ class TestGetSubnetId(unittest.TestCase):
 
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_none(self, mock_logline_handler, mock_batch_handler):
         # Arrange
@@ -262,7 +262,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
     @patch("src.logcollector.collector.logger")
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
     @patch("src.base.utils.normalize_ipv4_address")
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_add_to_batch_with_data(
         self, mock_logline_handler, mock_batch_handler, mock_normalize, mock_logger
@@ -301,7 +301,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
             "192.168.0.0_22", expected_message
         )
 
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_add_to_batch_without_data(self, mock_logline_handler, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
@@ -317,7 +317,7 @@ class TestAddLoglineToBatch(unittest.TestCase):
 
 
 class TestClearLogline(unittest.TestCase):
-    @patch("src.logcollector.collector.CollectorKafkaBatchSender")
+    @patch("src.logcollector.collector.BufferedBatchSender")
     def test_clear_logline(self, mock_batch_handler):
         mock_batch_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
