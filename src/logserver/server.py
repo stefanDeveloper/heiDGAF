@@ -6,6 +6,7 @@ import sys
 import aiofiles
 
 sys.path.append(os.getcwd())
+from src.monitoring.clickhouse_connector import ServerLogsConnector
 from src.base.kafka_handler import KafkaConsumeHandler
 from src.base.utils import setup_config
 from src.base import utils
@@ -50,6 +51,16 @@ class LogServer:
         self.number_of_connections = 0
         self.data_queue = queue.Queue()
         self.kafka_consume_handler = KafkaConsumeHandler(topic=LISTEN_ON_TOPIC)
+
+        self.server_logs = ServerLogsConnector()
+        self.server_logs.prepare_table()
+
+    async def store_message(self, message):
+        self.data_queue.put(message)
+
+        self.server_logs.insert(
+            message_text=message,
+        )
 
     async def open(self) -> None:
         """
@@ -146,7 +157,8 @@ class LogServer:
                 None, self.kafka_consume_handler.consume
             )
             logger.info(f"Received message via Kafka:\n    ⤷  {value}")
-            self.data_queue.put(value)
+            task = self.store_message(value)
+            await task
 
     async def async_follow(self, file: str = READ_FROM_FILE) -> None:
         """
@@ -173,7 +185,8 @@ class LogServer:
                         continue
 
                     logger.info(f"Extracted message from file:\n    ⤷  {cleaned_line}")
-                    self.data_queue.put(cleaned_line)
+                    task = self.store_message(cleaned_line)
+                    await task
 
     async def handle_send_logline(self, reader, writer) -> None:
         """
@@ -230,7 +243,8 @@ class LogServer:
                     break
                 received_message = data.decode().strip()
                 logger.info(f"Received message:\n    ⤷  {received_message}")
-                self.data_queue.put(received_message)
+                task = self.store_message(received_message)
+                await task
             except asyncio.exceptions.IncompleteReadError as e:
                 logger.warning(f"Ignoring message: No separator symbol found: {e}")
                 break

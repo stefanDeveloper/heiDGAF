@@ -17,7 +17,7 @@ CONFIG = setup_config()
 CLICKHOUSE_HOSTNAME = CONFIG["environment"]["monitoring"]["clickhouse_server"][
     "hostname"
 ]
-CREATE_TABLES_DIRECTORY = "create_tables"  # TODO: Get from config
+CREATE_TABLES_DIRECTORY = "src/monitoring/create_tables"  # TODO: Get from config
 
 
 class ClickHouseConnector:

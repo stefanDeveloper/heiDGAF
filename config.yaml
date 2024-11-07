@@ -85,4 +85,4 @@ environment:
     port_out: 9999
   monitoring:
     clickhouse_server:
-      hostname: localhost
+      hostname: 172.27.0.11

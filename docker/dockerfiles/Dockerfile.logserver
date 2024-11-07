@@ -5,10 +5,12 @@ ENV PYTHONDONTWRITEBYTECODE=1
 WORKDIR /usr/src/app
 
 COPY requirements/requirements.logserver.txt ./
-RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.logserver.txt
+COPY requirements/requirements.monitoring.txt ./
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile -r requirements.logserver.txt -r requirements.monitoring.txt
 
 COPY src/base ./src/base
 COPY src/logserver ./src/logserver
+COPY src/monitoring ./src/monitoring
 COPY config.yaml .
 
 RUN rm -rf /root/.cache
