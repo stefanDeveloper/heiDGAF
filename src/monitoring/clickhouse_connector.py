@@ -85,7 +85,6 @@ class ServerLogsConnector(ClickHouseConnector):
     ) -> uuid.UUID:
         if not timestamp_in:
             timestamp_in = datetime.datetime.now()
-        timestamp_in = timestamp_in.strftime("%Y-%m-%d %H:%M:%S.%f")
 
         message_id = uuid.uuid4()
         self._add_to_batch([message_id, timestamp_in, message_text])
@@ -110,7 +109,6 @@ class ServerLogsTimestampsConnector(ClickHouseConnector):
     ):
         if not event_timestamp:
             event_timestamp = datetime.datetime.now()
-        event_timestamp = event_timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
 
         self._add_to_batch([message_id, event, event_timestamp])
 
@@ -135,9 +133,6 @@ class FailedDNSLoglinesConnector(ClickHouseConnector):
     ) -> None:
         if not timestamp_failed:
             timestamp_failed = datetime.datetime.now()
-
-        timestamp_in = timestamp_in.strftime("%Y-%m-%d %H:%M:%S.%f")
-        timestamp_failed = timestamp_failed.strftime("%Y-%m-%d %H:%M:%S.%f")
 
         self._add_to_batch(
             [message_text, timestamp_in, timestamp_failed, reason_for_failure]
@@ -185,7 +180,6 @@ class DNSLoglinesConnector(ClickHouseConnector):
         record_type: str,
         additional_fields: str | None = None,
     ) -> uuid.UUID:
-        timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
         logline_id = uuid.uuid4()
 
         self._add_to_batch(
@@ -244,7 +238,6 @@ class LoglineTimestampsConnector(ClickHouseConnector):
     ) -> None:
         if not timestamp:
             timestamp = datetime.datetime.now()
-        timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
 
         self._add_to_batch(
             [
@@ -300,8 +293,6 @@ class BatchTimestampsConnector(ClickHouseConnector):
     ) -> None:
         if not timestamp:
             timestamp = datetime.datetime.now()
-        timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
-
         self._add_to_batch(
             [
                 batch_id,

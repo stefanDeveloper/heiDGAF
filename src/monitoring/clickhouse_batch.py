@@ -2,6 +2,8 @@ import os
 import sys
 from threading import Timer
 
+import clickhouse_connect
+
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
 from src.base.utils import setup_config
@@ -29,9 +31,9 @@ class ClickHouseBatchSender:
 
         self.timer = None
         self.batch = []
-        # self.client = clickhouse_connect.get_client(
-        #     host=CLICKHOUSE_HOSTNAME,
-        # )
+        self._client = clickhouse_connect.get_client(
+            host=CLICKHOUSE_HOSTNAME,
+        )
 
     def __del__(self):
         self.insert_all()
@@ -58,11 +60,11 @@ class ClickHouseBatchSender:
 
     def insert_all(self):
         if self.batch:
-            # self.client.insert(
-            #     self.table_name,
-            #     self.batch,
-            #     self.column_names,
-            # )
+            self._client.insert(
+                self.table_name,
+                self.batch,
+                self.column_names,
+            )
             logger.info(
                 f"""
                 self.client.insert(
