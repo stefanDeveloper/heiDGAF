@@ -138,7 +138,12 @@ class LoglineToBatchesConnector(ClickHouseConnector):
         super().__init__("logline_to_batches", column_names)
 
     def insert(self, logline_id: uuid.UUID, batch_id: uuid.UUID):
-        self._add_to_batch([logline_id, batch_id])
+        self._add_to_batch(
+            [
+                logline_id,
+                batch_id,
+            ]
+        )
 
 
 class DNSLoglinesConnector(ClickHouseConnector):
@@ -181,3 +186,106 @@ class DNSLoglinesConnector(ClickHouseConnector):
             ]
         )
         return logline_id
+
+
+class LoglineStatusConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "logline_id",
+            "status",
+            "exit_at_stage",
+        ]
+
+        super().__init__("logline_status", column_names)
+
+    def insert(
+        self, logline_id: uuid.UUID, status: str, exit_at_stage: str | None = None
+    ):
+        self._add_to_batch(
+            [
+                logline_id,
+                status,
+                exit_at_stage,
+            ]
+        )
+
+
+class LoglineTimestampsConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "logline_id",
+            "stage",
+            "status",
+            "timestamp",
+        ]
+
+        super().__init__("logline_timestamps", column_names)
+
+    def insert(
+        self,
+        logline_id: uuid.UUID,
+        stage: str,
+        status: str,
+        timestamp: datetime.datetime,
+    ) -> None:
+        self._add_to_batch(
+            [
+                logline_id,
+                stage,
+                status,
+                timestamp,
+            ]
+        )
+
+
+class BatchStatusConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "batch_id",
+            "status",
+            "exit_at_stage",
+        ]
+
+        super().__init__("batch_status", column_names)
+
+    def insert(
+        self, batch_id: uuid.UUID, status: str, exit_at_stage: str | None = None
+    ):
+        self._add_to_batch(
+            [
+                batch_id,
+                status,
+                exit_at_stage,
+            ]
+        )
+
+
+class BatchTimestampsConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "batch_id",
+            "stage",
+            "status",
+            "timestamp",
+            "message_count",
+        ]
+
+        super().__init__("batch_timestamps", column_names)
+
+    def insert(
+        self,
+        batch_id: uuid.UUID,
+        stage: str,
+        status: str,
+        timestamp: datetime.datetime,
+        message_count: int,
+    ) -> None:
+        self._add_to_batch(
+            [
+                batch_id,
+                stage,
+                status,
+                timestamp,
+                message_count,
+            ]
+        )
