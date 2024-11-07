@@ -33,7 +33,7 @@ class ClickHouseConnector:
             column_names=self._column_names,
         )
 
-    def prepare_tables(self):
+    def prepare_all_tables(self):
         def _load_contents(file_name: str) -> str:
             with open(file_name, "r") as file:
                 return file.read()
@@ -49,6 +49,22 @@ class ClickHouseConnector:
                     except Exception as e:
                         logger.critical("Error in CREATE TABLE statement")
                         raise e
+
+    def prepare_table(self):
+        def _load_contents(file_name: str) -> str:
+            with open(file_name, "r") as file:
+                return file.read()
+
+        filename = self._table_name + ".sql"
+        file_path = os.path.join(CREATE_TABLES_DIRECTORY, filename)
+        sql_content = _load_contents(file_path)
+
+        with clickhouse_connect.get_client(host=CLICKHOUSE_HOSTNAME) as client:
+            try:
+                client.command(sql_content)
+            except Exception as e:
+                logger.critical("Error in CREATE TABLE statement")
+                raise e
 
     def _add_to_batch(self, data):
         self._batch_sender.add(data)
@@ -169,11 +185,9 @@ class DNSLoglinesConnector(ClickHouseConnector):
         record_type: str,
         additional_fields: str | None = None,
     ) -> uuid.UUID:
-        if not timestamp:
-            timestamp = datetime.datetime.now()
         timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
-
         logline_id = uuid.uuid4()
+
         self._add_to_batch(
             [
                 logline_id,
@@ -226,8 +240,12 @@ class LoglineTimestampsConnector(ClickHouseConnector):
         logline_id: uuid.UUID,
         stage: str,
         status: str,
-        timestamp: datetime.datetime,
+        timestamp: datetime.datetime = None,
     ) -> None:
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+        timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
+
         self._add_to_batch(
             [
                 logline_id,
@@ -277,9 +295,13 @@ class BatchTimestampsConnector(ClickHouseConnector):
         batch_id: uuid.UUID,
         stage: str,
         status: str,
-        timestamp: datetime.datetime,
         message_count: int,
+        timestamp: datetime.datetime = None,
     ) -> None:
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+        timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
+
         self._add_to_batch(
             [
                 batch_id,
