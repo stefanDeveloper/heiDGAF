@@ -34,7 +34,7 @@ class Prefilter:
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='prefilter')...")
         self.kafka_produce_handler = KafkaProduceHandler(transactional_id="prefilter")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Prefilter')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topic="Prefilter")
+        self.kafka_consume_handler = KafkaConsumeHandler(topics="Prefilter")
         logger.debug("Initialized Prefilter.")
 
     def get_and_fill_data(self) -> None:

@@ -21,8 +21,7 @@ BATCH_TIMEOUT = CONFIG["pipeline"]["monitoring"]["clickhouse_connector"][
 
 
 class ClickHouseBatchSender:
-    def __init__(self, kafka_topic: str, table_name: str, column_names: list[str]):
-        self.kafka_topic = kafka_topic
+    def __init__(self, table_name: str, column_names: list[str]):
         self.table_name = table_name
         self.column_names = column_names
 

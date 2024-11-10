@@ -1,12 +1,14 @@
 import asyncio
+import datetime
 import os
 import queue
 import sys
+import uuid
 
 import aiofiles
 
 sys.path.append(os.getcwd())
-from src.monitoring.clickhouse_connector import ServerLogsConnector
+from src.monitoring.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import KafkaConsumeHandler
 from src.base.utils import setup_config
 from src.base import utils
@@ -50,17 +52,14 @@ class LogServer:
         self.socket = None
         self.number_of_connections = 0
         self.data_queue = queue.Queue()
-        self.kafka_consume_handler = KafkaConsumeHandler(topic=LISTEN_ON_TOPIC)
+        self.kafka_consume_handler = KafkaConsumeHandler(topics=LISTEN_ON_TOPIC)
 
-        self.server_logs = ServerLogsConnector()
-        self.server_logs.prepare_table()
+        self.server_logs = ClickHouseKafkaSender(table_name="server_logs")
 
     async def store_message(self, message):
         self.data_queue.put(message)
 
-        self.server_logs.insert(
-            message_text=message,
-        )
+        self.server_logs.insert([uuid.uuid4(), message, datetime.datetime.now()])
 
     async def open(self) -> None:
         """
@@ -153,7 +152,7 @@ class LogServer:
         loop = asyncio.get_running_loop()
 
         while True:
-            key, value = await loop.run_in_executor(
+            key, value, topic = await loop.run_in_executor(
                 None, self.kafka_consume_handler.consume
             )
             logger.info(f"Received message via Kafka:\n    ⤷  {value}")

@@ -20,7 +20,8 @@ class TestInit(unittest.TestCase):
     @patch("src.logserver.server.PORT_OUT", 8888)
     @patch("src.logserver.server.LISTEN_ON_TOPIC", "test_topic")
     @patch("src.logserver.server.KafkaConsumeHandler")
-    def test_valid_init_ipv4(self, mock_kafka_consume_handler):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    def test_valid_init_ipv4(self, mock_kafka_sender, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -31,14 +32,15 @@ class TestInit(unittest.TestCase):
         self.assertTrue(sut.data_queue.empty())
         self.assertEqual(0, sut.number_of_connections)
         self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
-        mock_kafka_consume_handler.assert_called_once_with(topic="test_topic")
+        mock_kafka_consume_handler.assert_called_once_with(topics="test_topic")
 
     @patch("src.logserver.server.HOSTNAME", "fe80::1")
     @patch("src.logserver.server.PORT_IN", 7777)
     @patch("src.logserver.server.PORT_OUT", 8888)
     @patch("src.logserver.server.LISTEN_ON_TOPIC", "test_topic")
     @patch("src.logserver.server.KafkaConsumeHandler")
-    def test_valid_init_ipv6(self, mock_kafka_consume_handler):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    def test_valid_init_ipv6(self, mock_kafka_sender, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -49,7 +51,7 @@ class TestInit(unittest.TestCase):
         self.assertTrue(sut.data_queue.empty())
         self.assertEqual(0, sut.number_of_connections)
         self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
-        mock_kafka_consume_handler.assert_called_once_with(topic="test_topic")
+        mock_kafka_consume_handler.assert_called_once_with(topics="test_topic")
 
     @patch("src.logserver.server.HOSTNAME", "256.256.256.256")
     @patch("src.logserver.server.PORT_IN", 7777)
@@ -74,8 +76,14 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.LogServer.handle_kafka_inputs")
     @patch("src.logserver.server.LogServer.async_follow")
     @patch("src.logserver.server.KafkaConsumeHandler")
+    @patch("src.logserver.server.ClickHouseKafkaSender")
     async def test_open(
-        self, mock_kafka_consume_handler, mock_follow, mock_handle_kafka, mock_logger
+        self,
+        mock_kafka_sender,
+        mock_kafka_consume_handler,
+        mock_follow,
+        mock_handle_kafka,
+        mock_logger,
     ):
         # Arrange
         sut = LogServer()
@@ -114,7 +122,8 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
     @patch("src.logserver.server.PORT_IN", 1234)
     @patch("src.logserver.server.PORT_OUT", 5678)
-    async def test_open_keyboard_interrupt(self, mock_logger):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_open_keyboard_interrupt(self, mock_kafka_sender, mock_logger):
         # Arrange
         sut = LogServer()
 
@@ -140,7 +149,8 @@ class TestOpen(unittest.IsolatedAsyncioTestCase):
 
 
 class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
-    async def test_handle_connection_sending(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_handle_connection_sending(self, mock_kafka_sender):
         server_instance = LogServer()
         server_instance.send_logline = AsyncMock()
         server_instance.get_next_logline = MagicMock(return_value="test logline")
@@ -156,7 +166,8 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         writer.wait_closed.assert_awaited_once()
         self.assertEqual(0, server_instance.number_of_connections)
 
-    async def test_handle_connection_receiving(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_handle_connection_receiving(self, mock_kafka_sender):
         server_instance = LogServer()
         server_instance.receive_logline = AsyncMock()
 
@@ -171,7 +182,8 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         writer.wait_closed.assert_awaited_once()
         self.assertEqual(0, server_instance.number_of_connections)
 
-    async def test_handle_connection_rejected(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_handle_connection_rejected(self, mock_kafka_sender):
         server_instance = LogServer()
         server_instance.number_of_connections = 5
 
@@ -185,7 +197,10 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
         writer.wait_closed.assert_awaited_once()
         self.assertEqual(5, server_instance.number_of_connections)
 
-    async def test_handle_connection_increases_and_decreases_connections(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_handle_connection_increases_and_decreases_connections(
+        self, mock_kafka_sender
+    ):
         server_instance = LogServer()
         server_instance.send_logline = AsyncMock()
         server_instance.get_next_logline = MagicMock(return_value="test logline")
@@ -199,7 +214,8 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(3, server_instance.number_of_connections)
 
-    async def test_handle_connection_cancelled_error(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_handle_connection_cancelled_error(self, mock_kafka_sender):
         server_instance = LogServer()
         server_instance.send_logline = AsyncMock(side_effect=asyncio.CancelledError)
         server_instance.get_next_logline = MagicMock(return_value="test logline")
@@ -217,7 +233,10 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.logserver.server.logger")
     @patch("src.logserver.server.MAX_NUMBER_OF_CONNECTIONS", 7)
-    async def test_handle_connection_rejects_additional_connections(self, mock_logger):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_handle_connection_rejects_additional_connections(
+        self, mock_kafka_sender, mock_logger
+    ):
         server_instance = LogServer()
         server_instance.number_of_connections = 7
 
@@ -233,7 +252,8 @@ class TestHandleConnection(unittest.IsolatedAsyncioTestCase):
 
 
 class TestHandleKafkaInputs(unittest.IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def asyncSetUp(self, mock_kafka_sender):
         self.sut = LogServer()
         self.sut.kafka_consume_handler = AsyncMock()
         self.sut.data_queue = MagicMock()
@@ -243,10 +263,14 @@ class TestHandleKafkaInputs(unittest.IsolatedAsyncioTestCase):
     async def test_handle_kafka_inputs(self, mock_get_running_loop, mock_logger):
         mock_loop = AsyncMock()
         mock_get_running_loop.return_value = mock_loop
-        self.sut.kafka_consume_handler.consume.return_value = ("key1", "value1")
+        self.sut.kafka_consume_handler.consume.return_value = (
+            "key1",
+            "value1",
+            "topic1",
+        )
 
         mock_loop.run_in_executor.side_effect = [
-            ("key1", "value1"),
+            ("key1", "value1", "topic1"),
             asyncio.CancelledError(),
         ]
 
@@ -257,7 +281,8 @@ class TestHandleKafkaInputs(unittest.IsolatedAsyncioTestCase):
 
 
 class TestAsyncFollow(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    def setUp(self, mock_kafka_sender):
         self.sut = LogServer()
         self.sut.kafka_consume_handler = AsyncMock()
         self.sut.data_queue = MagicMock()
@@ -294,7 +319,8 @@ class TestAsyncFollow(unittest.IsolatedAsyncioTestCase):
 
 
 class TestHandleSendLogline(unittest.IsolatedAsyncioTestCase):
-    async def test_handle_send_logline(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_handle_send_logline(self, mock_kafka_sender):
         server_instance = LogServer()
         server_instance.handle_connection = AsyncMock()
 
@@ -307,7 +333,8 @@ class TestHandleSendLogline(unittest.IsolatedAsyncioTestCase):
 
 
 class TestHandleReceiveLogline(unittest.IsolatedAsyncioTestCase):
-    async def test_handle_receive_logline(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_handle_receive_logline(self, mock_kafka_sender):
         server_instance = LogServer()
         server_instance.handle_connection = AsyncMock()
 
@@ -323,7 +350,8 @@ class TestHandleReceiveLogline(unittest.IsolatedAsyncioTestCase):
 
 class TestSendLogline(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.logger")
-    async def test_send_logline_with_logline(self, mock_logger):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_send_logline_with_logline(self, mock_kafka_sender, mock_logger):
         server_instance = LogServer()
         writer = AsyncMock()
         logline = "Test logline"
@@ -333,7 +361,8 @@ class TestSendLogline(unittest.IsolatedAsyncioTestCase):
         writer.write.assert_called_once_with(logline.encode("utf-8"))
         writer.drain.assert_called_once()
 
-    async def test_send_logline_no_logline(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_send_logline_no_logline(self, mock_kafka_sender):
         server_instance = LogServer()
         writer = AsyncMock()
         logline = ""
@@ -346,7 +375,8 @@ class TestSendLogline(unittest.IsolatedAsyncioTestCase):
 
 class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.logger")
-    async def test_receive_logline(self, mock_logger):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_receive_logline(self, mock_kafka_sender, mock_logger):
         reader = AsyncMock()
         data_queue = MagicMock()
         server_instance = LogServer()
@@ -365,7 +395,8 @@ class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data_queue.put.call_count, 2)
 
     @patch("src.logserver.server.logger")
-    async def test_receive_without_separator(self, mock_logger):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_receive_without_separator(self, mock_kafka_sender, mock_logger):
         reader = AsyncMock()
         data_queue = MagicMock()
         server_instance = LogServer()
@@ -379,7 +410,8 @@ class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
         asyncio.create_task(server_instance.receive_logline(reader))
 
     @patch("src.logserver.server.logger")
-    async def test_receive_too_long(self, mock_logger):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_receive_too_long(self, mock_kafka_sender, mock_logger):
         reader = AsyncMock()
         data_queue = MagicMock()
         server_instance = LogServer()
@@ -391,7 +423,8 @@ class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
         asyncio.create_task(server_instance.receive_logline(reader))
 
     @patch("src.logserver.server.logger")
-    async def test_receive_raise_other_exception(self, mock_logger):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    async def test_receive_raise_other_exception(self, mock_kafka_sender, mock_logger):
         reader = AsyncMock()
         data_queue = MagicMock()
         server_instance = LogServer()
@@ -405,7 +438,8 @@ class TestReceiveLogline(unittest.IsolatedAsyncioTestCase):
 
 
 class TestGetNextLogline(unittest.TestCase):
-    def test_valid(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    def test_valid(self, mock_kafka_sender):
         server_instance = LogServer()
         server_instance.data_queue.put("Element 1")
         server_instance.data_queue.put("Element 2")
@@ -413,7 +447,8 @@ class TestGetNextLogline(unittest.TestCase):
         self.assertEqual("Element 1", server_instance.get_next_logline())
         self.assertEqual("Element 2", server_instance.get_next_logline())
 
-    def test_valid_from_empty_queue(self):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    def test_valid_from_empty_queue(self, mock_kafka_sender):
         server_instance = LogServer()
         self.assertIsNone(server_instance.get_next_logline())
 

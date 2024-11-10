@@ -53,7 +53,7 @@ class Detector:
 
         logger.debug(f"Initializing Detector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Detector')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topic="Detector")
+        self.kafka_consume_handler = KafkaConsumeHandler(topics="Detector")
 
         self.model = self._get_model()
 

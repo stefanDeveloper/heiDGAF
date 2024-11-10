@@ -71,7 +71,7 @@ class Inspector:
 
         logger.debug(f"Initializing Inspector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topic="Inspect")
+        self.kafka_consume_handler = KafkaConsumeHandler(topics="Inspect")
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='Inspect')...")
         self.kafka_produce_handler = KafkaProduceHandler(transactional_id="inspect")
         logger.debug(f"Initialized Inspector.")

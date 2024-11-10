@@ -209,15 +209,15 @@ class KafkaConsumeHandler(KafkaHandler):
     Also uses the Write-Exactly-Once-Semantics which requires handling and committing transactions.
     """
 
-    def __init__(self, topic: str) -> None:
+    def __init__(self, topics: str | list[str]) -> None:
         """
         Args:
-            topic (str): Topic name to consume from
+            topics (str | list[str]): Topic name(s) to consume from
 
         Raises:
             KafkaException: During construction of Consumer or assignment of topic.
         """
-        logger.debug(f"Initializing KafkaConsumeHandler ({topic=})...")
+        logger.debug(f"Initializing KafkaConsumeHandler ({topics=})...")
         super().__init__()
 
         conf = {
@@ -229,18 +229,21 @@ class KafkaConsumeHandler(KafkaHandler):
         }
         logger.debug(f"Set {conf=}.")
 
+        if isinstance(topics, str):
+            topics = [topics]
+
         self.batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
         try:
             logger.debug("Calling Consumer(conf)...")
             self.consumer = Consumer(conf)
-            logger.debug(f"Consumer set. Assigning topic {topic}...")
-            self.consumer.assign([TopicPartition(topic, 0)])
+            logger.debug(f"Consumer set. Assigning topics {topics}...")
+            self.consumer.assign([TopicPartition(topic, 0) for topic in topics])
         except KafkaException as e:
             logger.error(f"Consumer initialization failed: {e}")
             raise e
 
-        logger.debug(f"Initialized KafkaConsumeHandler ({topic=}).")
+        logger.debug(f"Initialized KafkaConsumeHandler ({topics=}).")
 
     def __del__(self) -> None:
         """
@@ -251,7 +254,7 @@ class KafkaConsumeHandler(KafkaHandler):
             self.consumer.close()
         logger.debug("KafkaConsumeHandler deleted.")
 
-    def consume(self) -> tuple[str | None, str | None]:
+    def consume(self) -> tuple[str | None, str | None, str | None]:
         """
         Consumes available messages from the Broker(s) in the specified topic. Decodes the data and returns a tuple
         of key and data of the message. Blocks and waits if no data is available.
@@ -288,13 +291,15 @@ class KafkaConsumeHandler(KafkaHandler):
 
                 key = msg.key().decode("utf-8") if msg.key() else None
                 value = msg.value().decode("utf-8") if msg.value() else None
-                logger.debug(f"Received message: {key=}, {value=}")
+                topic = msg.topic() if msg.topic() else None
+
+                logger.debug(f"Received message: {key=}, {value=}, {topic=}")
                 logger.debug("Committing transaction for message on Consumer...")
                 self.consumer.commit(msg)
                 logger.debug(
-                    f"Transaction committed. Successfully consumed messages. Returning [{key=}, {value=}]..."
+                    f"Transaction committed. Successfully consumed messages. Returning [{key=}, {value=}, {topic=}]..."
                 )
-                return key, value
+                return key, value, topic
         except KeyboardInterrupt:
             logger.info("Shutting down KafkaConsumeHandler...")
             raise KeyboardInterrupt
@@ -316,7 +321,7 @@ class KafkaConsumeHandler(KafkaHandler):
             KeyboardInterrupt: Execution interrupted by user
         """
         try:
-            key, value = self.consume()
+            key, value, topic = self.consume()
 
             if not key and not value:
                 logger.debug("No data returned.")
@@ -356,7 +361,7 @@ class KafkaConsumeHandler(KafkaHandler):
             KeyboardInterrupt: Execution interrupted by user
         """
         try:
-            key, value = self.consume()
+            key, value, topic = self.consume()
 
             if not key and not value:
                 logger.debug("No data returned.")

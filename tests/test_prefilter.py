@@ -26,7 +26,7 @@ class TestInit(unittest.TestCase):
         self.assertIsNotNone(sut.logline_handler)
 
         mock_produce_handler.assert_called_once_with(transactional_id="prefilter")
-        mock_consume_handler.assert_called_once_with(topic="Prefilter")
+        mock_consume_handler.assert_called_once_with(topics="Prefilter")
         mock_logline_handler.assert_called_once()
 
 
