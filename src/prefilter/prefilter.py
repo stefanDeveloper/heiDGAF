@@ -6,9 +6,9 @@ import sys
 sys.path.append(os.getcwd())
 from src.base.logline_handler import LoglineHandler
 from src.base.kafka_handler import (
-    KafkaConsumeHandler,
+    ExactlyOnceKafkaConsumeHandler,
+    ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
-    KafkaProduceHandler,
 )
 from src.base.log_config import get_logger
 
@@ -32,9 +32,11 @@ class Prefilter:
         logger.debug(f"Calling LoglineHandler()...")
         self.logline_handler = LoglineHandler()
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='prefilter')...")
-        self.kafka_produce_handler = KafkaProduceHandler(transactional_id="prefilter")
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(
+            transactional_id="prefilter"
+        )
         logger.debug(f"Calling KafkaConsumeHandler(topic='Prefilter')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topics="Prefilter")
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(topics="Prefilter")
         logger.debug("Initialized Prefilter.")
 
     def get_and_fill_data(self) -> None:

@@ -11,7 +11,7 @@ from src.detector.detector import Detector, WrongChecksum
 
 
 class TestSha256Sum(unittest.TestCase):
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_sha256_empty_file(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -21,7 +21,7 @@ class TestSha256Sum(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             sut._sha256sum("")
 
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_sha256_not_existing_file(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -47,7 +47,7 @@ class TestFeatures(unittest.TestCase):
         "src.detector.detector.MODEL_BASE_URL",
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_get_model(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -71,7 +71,7 @@ class TestGetModel(unittest.TestCase):
         "src.detector.detector.MODEL_BASE_URL",
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_get_model(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -87,7 +87,7 @@ class TestGetModel(unittest.TestCase):
         "src.detector.detector.MODEL_BASE_URL",
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_get_model_not_existing(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -104,7 +104,7 @@ class TestGetModel(unittest.TestCase):
         "src.detector.detector.MODEL_BASE_URL",
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_get_model_not_existing(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -121,7 +121,7 @@ class TestGetModel(unittest.TestCase):
         "src.detector.detector.MODEL_BASE_URL",
         "https://heibox.uni-heidelberg.de/d/WRONG/",
     )
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_get_model_not_existing(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -132,7 +132,7 @@ class TestGetModel(unittest.TestCase):
 
 class TestInit(unittest.TestCase):
     @patch("src.detector.detector.logger")
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_init(self, mock_kafka_consume_handler, mock_logger):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -146,7 +146,7 @@ class TestInit(unittest.TestCase):
 
 class TestGetData(unittest.TestCase):
     @patch("src.detector.detector.logger")
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_get_data_without_return_data(
         self, mock_kafka_consume_handler, mock_logger
     ):
@@ -158,7 +158,7 @@ class TestGetData(unittest.TestCase):
 
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
             "test",
             test_batch,
         )
@@ -169,7 +169,7 @@ class TestGetData(unittest.TestCase):
         self.assertEqual([], sut.messages)
 
     @patch("src.detector.detector.logger")
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_get_data_with_return_data(self, mock_kafka_consume_handler, mock_logger):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
@@ -181,7 +181,7 @@ class TestGetData(unittest.TestCase):
 
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_and_return_object.return_value = (
+        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
             "192.168.1.0/24",
             test_batch,
         )
@@ -195,7 +195,7 @@ class TestGetData(unittest.TestCase):
         self.assertEqual([{"test": "test_message_2"}], sut.messages)
 
     @patch("src.detector.detector.logger")
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_get_data_while_busy(self, mock_kafka_consume_handler, mock_logger):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
@@ -234,7 +234,7 @@ class TestSendWarning(unittest.TestCase):
         "src.detector.detector.MODEL_BASE_URL",
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_save_warning(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -271,7 +271,7 @@ class TestSendWarning(unittest.TestCase):
         "src.detector.detector.MODEL_BASE_URL",
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_save_empty_warning(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -293,7 +293,7 @@ class TestSendWarning(unittest.TestCase):
         "src.detector.detector.MODEL_BASE_URL",
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_save_warning_error(self, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -318,7 +318,7 @@ class TestClearData(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     @patch("src.detector.detector.logger")
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_clear_data_without_existing_data(
         self, mock_kafka_consume_handler, mock_logger
     ):
@@ -340,7 +340,7 @@ class TestClearData(unittest.TestCase):
         self.assertEqual([], sut.messages)
 
     @patch("src.detector.detector.logger")
-    @patch("src.detector.detector.KafkaConsumeHandler")
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_clear_data_with_existing_data(
         self, mock_kafka_consume_handler, mock_logger
     ):

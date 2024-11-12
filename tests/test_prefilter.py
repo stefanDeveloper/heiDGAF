@@ -8,8 +8,8 @@ from src.prefilter.prefilter import Prefilter, main
 
 class TestInit(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_valid_init(
         self, mock_produce_handler, mock_consume_handler, mock_logline_handler
     ):
@@ -33,8 +33,8 @@ class TestInit(unittest.TestCase):
 class TestGetAndFillData(unittest.TestCase):
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_get_data_without_new_data(
         self,
         mock_produce_handler,
@@ -62,8 +62,8 @@ class TestGetAndFillData(unittest.TestCase):
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_get_data_with_new_data(
         self,
         mock_produce_handler,
@@ -95,8 +95,8 @@ class TestGetAndFillData(unittest.TestCase):
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_get_data_with_existing_data(
         self,
         mock_batch_handler,
@@ -131,8 +131,8 @@ class TestGetAndFillData(unittest.TestCase):
 class TestFilterByError(unittest.TestCase):
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_filter_by_error_empty_data(
         self,
         mock_produce_handler,
@@ -149,8 +149,8 @@ class TestFilterByError(unittest.TestCase):
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_filter_by_error_with_data_no_error_types(
         self,
         mock_produce_handler,
@@ -205,8 +205,8 @@ class TestFilterByError(unittest.TestCase):
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_filter_by_error_with_data_one_error_type(
         self,
         mock_produce_handler,
@@ -261,8 +261,8 @@ class TestFilterByError(unittest.TestCase):
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_filter_by_error_with_data_two_error_types(
         self,
         mock_produce_handler,
@@ -319,8 +319,8 @@ class TestFilterByError(unittest.TestCase):
 class TestSendFilteredData(unittest.TestCase):
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_send_with_data(
         self,
         mock_produce_handler,
@@ -377,8 +377,8 @@ class TestSendFilteredData(unittest.TestCase):
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_send_without_filtered_data_with_unfiltered_data(
         self,
         mock_produce_handler,
@@ -399,8 +399,8 @@ class TestSendFilteredData(unittest.TestCase):
         mock_produce_handler.add_message.assert_not_called()
 
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_send_without_data(
         self, mock_produce_handler, mock_consume_handler, mock_logline_handler
     ):
@@ -418,8 +418,8 @@ class TestSendFilteredData(unittest.TestCase):
 
 class TestClearData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_clear_data_with_data(
         self, mock_produce_handler, mock_consume_handler, mock_logline_handler
     ):
@@ -453,8 +453,8 @@ class TestClearData(unittest.TestCase):
         self.assertEqual([], sut.filtered_data)
 
     @patch("src.prefilter.prefilter.LoglineHandler")
-    @patch("src.prefilter.prefilter.KafkaConsumeHandler")
-    @patch("src.prefilter.prefilter.KafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
     def test_clear_data_without_data(
         self, mock_produce_handler, mock_consume_handler, mock_logline_handler
     ):

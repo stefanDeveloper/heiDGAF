@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from confluent_kafka import KafkaException
 
-from src.base.kafka_handler import KafkaConsumeHandler
+from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 
 CONSUMER_GROUP_ID = "test_group_id"
 
@@ -40,7 +40,7 @@ class TestInit(unittest.TestCase):
             "enable.partition.eof": True,
         }
 
-        sut = KafkaConsumeHandler(topics="test_topic")
+        sut = ExactlyOnceKafkaConsumeHandler(topics="test_topic")
 
         self.assertEqual(mock_consumer_instance, sut.consumer)
 
@@ -81,7 +81,7 @@ class TestInit(unittest.TestCase):
 
         with patch.object(mock_consumer_instance, "assign", side_effect=KafkaException):
             with self.assertRaises(KafkaException):
-                sut = KafkaConsumeHandler(topics="test_topic")
+                sut = ExactlyOnceKafkaConsumeHandler(topics="test_topic")
 
                 self.assertEqual(mock_consumer_instance, sut.consumer)
 
@@ -114,7 +114,7 @@ class TestDel(unittest.TestCase):
         mock_consumer_instance = MagicMock()
         mock_consumer.return_value = mock_consumer_instance
 
-        sut = KafkaConsumeHandler(topics="test_topic")
+        sut = ExactlyOnceKafkaConsumeHandler(topics="test_topic")
         sut.consumer = mock_consumer_instance
 
         # Act
@@ -147,7 +147,7 @@ class TestDel(unittest.TestCase):
         mock_consumer_instance = MagicMock()
         mock_consumer.return_value = mock_consumer_instance
 
-        sut = KafkaConsumeHandler(topics="test_topic")
+        sut = ExactlyOnceKafkaConsumeHandler(topics="test_topic")
         sut.consumer = None
 
         # Act
@@ -181,7 +181,7 @@ class TestDict(unittest.TestCase):
         mock_consumer_instance = MagicMock()
         mock_consumer.return_value = mock_consumer_instance
 
-        sut = KafkaConsumeHandler(topics="test_topic")
+        sut = ExactlyOnceKafkaConsumeHandler(topics="test_topic")
         self.assertTrue(sut._is_dicts([{}, {}]))
 
 

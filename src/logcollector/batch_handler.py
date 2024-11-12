@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 from threading import Timer
 
-from src.base.kafka_handler import KafkaProduceHandler
+from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
 from src.base.utils import setup_config
 
 sys.path.append(os.getcwd())
@@ -265,7 +265,9 @@ class BufferedBatchSender:
         self.timer = None
 
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='collector')...")
-        self.kafka_produce_handler = KafkaProduceHandler(transactional_id="collector")
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(
+            transactional_id="collector"
+        )
         logger.debug(f"Initialized KafkaBatchSender.")
 
     def __del__(self):
@@ -360,7 +362,7 @@ class BufferedBatchSender:
     def _send_data_packet(self, key: str, data: dict) -> None:
         logger.debug("Sending data to KafkaProduceHandler...")
         logger.debug(f"{data=}")
-        self.kafka_produce_handler.send(
+        self.kafka_produce_handler.produce(
             topic=self.topic,
             data=json.dumps(data),
             key=key,

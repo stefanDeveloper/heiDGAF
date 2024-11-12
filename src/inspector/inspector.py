@@ -11,9 +11,9 @@ from streamad.util import StreamGenerator, CustomDS
 sys.path.append(os.getcwd())
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
-    KafkaConsumeHandler,
+    ExactlyOnceKafkaConsumeHandler,
+    ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
-    KafkaProduceHandler,
 )
 from src.base.log_config import get_logger
 
@@ -71,9 +71,11 @@ class Inspector:
 
         logger.debug(f"Initializing Inspector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topics="Inspect")
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(topics="Inspect")
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='Inspect')...")
-        self.kafka_produce_handler = KafkaProduceHandler(transactional_id="inspect")
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(
+            transactional_id="inspect"
+        )
         logger.debug(f"Initialized Inspector.")
 
     def get_and_fill_data(self) -> None:
@@ -89,7 +91,7 @@ class Inspector:
         logger.debug(
             "Inspector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
         )
-        key, data = self.kafka_consume_handler.consume_and_return_object()
+        key, data = self.kafka_consume_handler.consume_as_object()
 
         if data:
             self.begin_timestamp = data.begin_timestamp

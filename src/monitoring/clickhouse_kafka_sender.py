@@ -3,16 +3,19 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from src.base.kafka_handler import KafkaProduceHandler
+from src.base.kafka_handler import SimpleKafkaProduceHandler
+from src.base.log_config import get_logger
+
+logger = get_logger()
 
 
 class ClickHouseKafkaSender:
     def __init__(self, table_name: str):
         self.table_name = table_name
-        self.kafka_producer = KafkaProduceHandler(transactional_id="clickhouse")
+        self.kafka_producer = SimpleKafkaProduceHandler(transactional_id="clickhouse")
 
     def insert(self, data: list):
-        self.kafka_producer.send(
+        self.kafka_producer.produce(
             topic=f"clickhouse_{self.table_name}",
             data=json.dumps(data),
         )

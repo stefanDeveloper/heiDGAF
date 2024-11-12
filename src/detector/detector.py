@@ -13,7 +13,7 @@ from numpy import median
 sys.path.append(os.getcwd())
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
-    KafkaConsumeHandler,
+    ExactlyOnceKafkaConsumeHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -53,7 +53,7 @@ class Detector:
 
         logger.debug(f"Initializing Detector...")
         logger.debug(f"Calling KafkaConsumeHandler(topic='Detector')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topics="Detector")
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(topics="Detector")
 
         self.model = self._get_model()
 
@@ -70,7 +70,7 @@ class Detector:
         logger.debug(
             "Detector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
         )
-        key, data = self.kafka_consume_handler.consume_and_return_object()
+        key, data = self.kafka_consume_handler.consume_as_object()
 
         if data:
             self.begin_timestamp = data.begin_timestamp
