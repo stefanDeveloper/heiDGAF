@@ -2,12 +2,11 @@ import asyncio
 import ipaddress
 import json
 import os
-import queue
 import sys
-from asyncio import Lock
+from multiprocessing import Lock
 
 sys.path.append(os.getcwd())
-from src.base.kafka_handler import SimpleKafkaConsumeHandler
+from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 from src.base.logline_handler import LoglineHandler
 from src.base import utils
 from src.logcollector.batch_handler import BufferedBatchSender
@@ -34,14 +33,14 @@ class LogCollector:
 
     def __init__(self) -> None:
         self.lock = Lock()
-        self.loglines = queue.Queue()
+        self.loglines = asyncio.Queue()
         self.batch_handler = BufferedBatchSender()
         self.logline_handler = LoglineHandler()
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(topics=LISTEN_ON_TOPIC)
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(LISTEN_ON_TOPIC)
 
     async def start(self) -> None:
         """
-        Starts fetching messages from Kafka and sending them to the Prefilter.
+        Starts fetching messages from Kafka and sending them to the :class:`Prefilter`.
         """
         logger.info(
             "LogCollector started:\n"
@@ -68,8 +67,8 @@ class LogCollector:
             key, value, topic = await loop.run_in_executor(
                 None, self.kafka_consume_handler.consume
             )
-
             logger.debug(f"From Kafka: '{value}'")
+
             await self.store(value)
 
     async def send(self) -> None:
@@ -81,7 +80,7 @@ class LogCollector:
         try:
             while True:
                 if not self.loglines.empty():
-                    logline = self.loglines.get()
+                    logline = await self.loglines.get()
                     fields = (
                         self.logline_handler.validate_logline_and_get_fields_as_json(
                             logline
@@ -92,9 +91,12 @@ class LogCollector:
                     )
 
                     self.batch_handler.add_message(subnet_id, json.dumps(fields))
+                    logger.debug(f"Sent: '{logline}'")
+                else:
+                    await asyncio.sleep(0.1)
         except KeyboardInterrupt:
             while not self.loglines.empty():
-                logline = self.loglines.get()
+                logline = await self.loglines.get()
                 fields = self.logline_handler.validate_logline_and_get_fields_as_json(
                     logline
                 )
@@ -113,8 +115,7 @@ class LogCollector:
         Args:
             message (str): Message to be stored
         """
-        async with self.lock:
-            self.loglines.put(message)
+        await self.loglines.put(message)
 
     @staticmethod
     def get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:

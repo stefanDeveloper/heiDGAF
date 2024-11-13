@@ -1,12 +1,14 @@
 import asyncio
 import os
 import sys
-from asyncio import Lock
 
 import aiofiles
 
 sys.path.append(os.getcwd())
-from src.base.kafka_handler import SimpleKafkaConsumeHandler, SimpleKafkaProduceHandler
+from src.base.kafka_handler import (
+    SimpleKafkaConsumeHandler,
+    ExactlyOnceKafkaProduceHandler,
+)
 from src.base.utils import setup_config
 from src.base import utils
 from src.base.log_config import get_logger
@@ -30,12 +32,8 @@ class LogServer:
         self.host = None
         self.host = utils.validate_host(HOSTNAME)
 
-        self.lock = Lock()
-
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(topics=LISTEN_ON_TOPIC)
-        self.kafka_produce_handler = SimpleKafkaProduceHandler(
-            transactional_id="TODO: Change"
-        )
+        self.kafka_consume_handler = SimpleKafkaConsumeHandler(LISTEN_ON_TOPIC)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler("LogServer")
 
     async def start(self) -> None:
         """
@@ -63,9 +61,8 @@ class LogServer:
         Args:
             message (str): Message to be sent
         """
-        async with self.lock:
-            logger.debug("Sending...")
-            self.kafka_produce_handler.produce(topic=SEND_TO_TOPIC, data=message)
+        self.kafka_produce_handler.produce(topic=SEND_TO_TOPIC, data=message)
+        logger.debug(f"Sent: '{message}'")
 
     async def fetch_from_kafka(self) -> None:
         """
@@ -77,8 +74,8 @@ class LogServer:
             key, value, topic = await loop.run_in_executor(
                 None, self.kafka_consume_handler.consume
             )
-
             logger.debug(f"From Kafka: '{value}'")
+
             await self.send(value)
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:

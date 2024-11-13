@@ -58,9 +58,6 @@ class KafkaHandler:
         Initializes the broker configuration.
         """
         self.consumer = None
-        self.brokers = ",".join(
-            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
-        )
 
 
 class KafkaProduceHandler(KafkaHandler):
@@ -68,14 +65,8 @@ class KafkaProduceHandler(KafkaHandler):
     Base class for Kafka Producer wrappers.
     """
 
-    def __init__(self, transactional_id: str):
+    def __init__(self, conf):
         super().__init__()
-
-        conf = {
-            "bootstrap.servers": self.brokers,
-            "transactional.id": transactional_id,
-        }
-
         self.producer = Producer(conf)
 
     @abstractmethod
@@ -93,6 +84,19 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
     """
     Simple wrapper for the Kafka Producer without Write-Exactly-Once semantics.
     """
+
+    def __init__(self):
+        self.brokers = ",".join(
+            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+        )
+
+        conf = {
+            "bootstrap.servers": self.brokers,
+            "enable.idempotence": False,
+            "acks": "1",
+        }
+
+        super().__init__(conf)
 
     def produce(self, topic: str, data: str, key: None | str = None) -> None:
         """
@@ -113,6 +117,8 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
             callback=kafka_delivery_report,
         )
 
+        self.producer.flush()
+
 
 class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
     """
@@ -120,7 +126,17 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
     """
 
     def __init__(self, transactional_id: str):
-        super().__init__(transactional_id)
+        self.brokers = ",".join(
+            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+        )
+
+        conf = {
+            "bootstrap.servers": self.brokers,
+            "transactional.id": transactional_id,
+            "enable.idempotence": True,
+        }
+
+        super().__init__(conf)
         self.producer.init_transactions()
 
     def produce(self, topic: str, data: str, key: None | str = None) -> None:
@@ -138,6 +154,8 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
         """
         if not data:
             return
+
+        self.producer.flush()
 
         self.producer.begin_transaction()
         try:
@@ -196,6 +214,10 @@ class KafkaConsumeHandler(KafkaHandler):
 
     def __init__(self, topics: str | list[str]) -> None:
         super().__init__()
+
+        self.brokers = ",".join(
+            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+        )
 
         conf = {
             "bootstrap.servers": self.brokers,
@@ -257,6 +279,9 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
     """
     Simple wrapper for the Kafka Consumer without Write-Exactly-Once semantics.
     """
+
+    def __init__(self, topics):
+        super().__init__(topics)
 
     def consume(self) -> tuple[str | None, str | None, str | None]:
         """
@@ -357,7 +382,7 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
         except KeyboardInterrupt:
             logger.info("Shutting down KafkaConsumeHandler...")
             raise KeyboardInterrupt
-        except Exception as e:
+        except Exception:
             raise
 
     @staticmethod
