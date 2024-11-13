@@ -47,9 +47,6 @@ services:
         condition: service_healthy
       clickhouse-server:
         condition: service_healthy
-    ports:
-      - 9998:9998
-      - 9999:9999
     networks:
       heidgaf:
         ipv4_address: 172.27.0.8

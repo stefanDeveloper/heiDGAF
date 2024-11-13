@@ -64,6 +64,7 @@ class LogServer:
             message (str): Message to be sent
         """
         async with self.lock:
+            logger.debug("Sending...")
             self.kafka_produce_handler.produce(topic=SEND_TO_TOPIC, data=message)
 
     async def fetch_from_kafka(self) -> None:

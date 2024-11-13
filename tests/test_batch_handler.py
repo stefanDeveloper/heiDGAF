@@ -310,7 +310,7 @@ class TestSendDataPacket(unittest.TestCase):
         sut._send_data_packet(key, data)
 
         # Assert
-        mock_produce_handler_instance.send.assert_called_once_with(
+        mock_produce_handler_instance.produce.assert_called_once_with(
             topic="Prefilter",
             data='{"begin_timestamp": "test_begin", "end_timestamp": "test_end", "data": "test_data"}',
             key=key,

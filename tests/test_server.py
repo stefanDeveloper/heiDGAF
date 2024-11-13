@@ -10,8 +10,6 @@ import aiofiles
 from src.logserver.server import LogServer, main
 
 LOG_SERVER_IP_ADDR = "192.168.0.1"
-LOG_SERVER_PORT_IN = 9998
-LOG_SERVER_PORT_OUT = 9999
 
 
 class TestInit(unittest.TestCase):
@@ -84,13 +82,13 @@ class TestInit(unittest.TestCase):
         mock_kafka_produce_handler.assert_not_called()
 
 
-class TestOpen(unittest.IsolatedAsyncioTestCase):
+class TestStart(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.HOSTNAME", "127.0.0.1")
     @patch("src.logserver.server.logger")
     @patch("src.logserver.server.LogServer.fetch_from_kafka")
     @patch("src.logserver.server.LogServer.fetch_from_file")
     @patch("src.logserver.server.SimpleKafkaConsumeHandler")
-    async def test_open(
+    async def test_start(
         self,
         mock_kafka_consume_handler,
         mock_fetch_from_file,
@@ -114,10 +112,14 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
         self.sut.kafka_consume_handler = AsyncMock()
         self.sut.kafka_produce_handler = AsyncMock()
 
-    @patch("src.logserver.server.SEND_TO_TOPIC", "test_topic")
+    @patch("src.logserver.server.LogServer.send")
     @patch("src.logserver.server.logger")
     @patch("asyncio.get_running_loop")
-    async def test_handle_kafka_inputs(self, mock_get_running_loop, mock_logger):
+    async def test_handle_kafka_inputs(
+        self, mock_get_running_loop, mock_logger, mock_send
+    ):
+        mock_send_instance = AsyncMock()
+        mock_send.return_value = mock_send_instance
         mock_loop = AsyncMock()
         mock_get_running_loop.return_value = mock_loop
         self.sut.kafka_consume_handler.consume.return_value = (
@@ -134,9 +136,7 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await self.sut.fetch_from_kafka()
 
-        self.sut.kafka_produce_handler.produce.assert_called_once_with(
-            topic="test_topic", data="value1"
-        )
+        mock_send.assert_called_once_with("value1")
 
 
 class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
