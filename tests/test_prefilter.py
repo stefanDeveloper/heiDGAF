@@ -7,6 +7,7 @@ from src.prefilter.prefilter import Prefilter, main
 
 
 class TestInit(unittest.TestCase):
+    @patch("src.prefilter.prefilter.CONSUME_TOPIC", "test_topic")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
@@ -25,8 +26,8 @@ class TestInit(unittest.TestCase):
         self.assertIsNotNone(sut.kafka_consume_handler)
         self.assertIsNotNone(sut.logline_handler)
 
-        mock_produce_handler.assert_called_once_with(transactional_id="prefilter")
-        mock_consume_handler.assert_called_once_with(topics="Prefilter")
+        mock_produce_handler.assert_called_once()
+        mock_consume_handler.assert_called_once_with("test_topic")
         mock_logline_handler.assert_called_once()
 
 
@@ -46,7 +47,7 @@ class TestGetAndFillData(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = (
+        mock_consume_handler_instance.consume_as_json.return_value = (
             None,
             {},
         )
@@ -58,7 +59,7 @@ class TestGetAndFillData(unittest.TestCase):
         self.assertEqual([], sut.filtered_data)
         self.assertEqual(None, sut.subnet_id)
 
-        mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
+        mock_consume_handler_instance.consume_as_json.assert_called_once()
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
@@ -75,7 +76,7 @@ class TestGetAndFillData(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = (
+        mock_consume_handler_instance.consume_as_json.return_value = (
             "127.0.0.0/24",
             {
                 "begin_timestamp": "2024-05-21T08:31:28.119Z",
@@ -91,7 +92,7 @@ class TestGetAndFillData(unittest.TestCase):
         self.assertEqual([], sut.filtered_data)
         self.assertEqual("127.0.0.0/24", sut.subnet_id)
 
-        mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
+        mock_consume_handler_instance.consume_as_json.assert_called_once()
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
@@ -108,7 +109,7 @@ class TestGetAndFillData(unittest.TestCase):
         mock_batch_handler.return_value = mock_batch_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_and_return_json_data.return_value = (
+        mock_consume_handler_instance.consume_as_json.return_value = (
             "127.0.0.0/24",
             {
                 "begin_timestamp": "2024-05-21T08:31:28.119Z",
@@ -125,7 +126,7 @@ class TestGetAndFillData(unittest.TestCase):
         self.assertEqual([], sut.filtered_data)
         self.assertEqual("127.0.0.0/24", sut.subnet_id)
 
-        mock_consume_handler_instance.consume_and_return_json_data.assert_called_once()
+        mock_consume_handler_instance.consume_as_json.assert_called_once()
 
 
 class TestFilterByError(unittest.TestCase):
@@ -317,6 +318,7 @@ class TestFilterByError(unittest.TestCase):
 
 
 class TestSendFilteredData(unittest.TestCase):
+    @patch("src.prefilter.prefilter.PRODUCE_TOPIC", "test_topic")
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
@@ -369,8 +371,8 @@ class TestSendFilteredData(unittest.TestCase):
         )
         sut.send_filtered_data()
 
-        mock_produce_handler_instance.send.assert_called_once_with(
-            topic="Inspect",
+        mock_produce_handler_instance.produce.assert_called_once_with(
+            topic="test_topic",
             data=expected_message,
             key="192.168.1.0_24",
         )

@@ -32,9 +32,10 @@ class TestInit(unittest.TestCase):
         expected_conf = {
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
             "transactional.id": "test_transactional_id",
+            "enable.idempotence": True,
         }
 
-        sut = ExactlyOnceKafkaProduceHandler(transactional_id="test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler("test_transactional_id")
 
         self.assertIsNone(sut.consumer)
         self.assertEqual(mock_producer_instance, sut.producer)
@@ -68,6 +69,7 @@ class TestInit(unittest.TestCase):
         expected_conf = {
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
             "transactional.id": "test_transactional_id",
+            "enable.idempotence": True,
         }
 
         with patch.object(

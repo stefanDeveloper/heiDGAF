@@ -34,6 +34,7 @@ def get_batch(data):
 
 
 class TestInit(unittest.TestCase):
+    @patch("src.inspector.inspector.CONSUME_TOPIC", "test_topic")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     def test_init(self, mock_kafka_consume_handler, mock_produce_handler):
@@ -46,7 +47,7 @@ class TestInit(unittest.TestCase):
 
         self.assertEqual([], sut.messages)
         self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
-        mock_kafka_consume_handler.assert_called_once_with(topics="Inspect")
+        mock_kafka_consume_handler.assert_called_once_with("test_topic")
 
 
 class TestGetData(unittest.TestCase):

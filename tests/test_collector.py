@@ -7,8 +7,8 @@ from src.logcollector.collector import LogCollector
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.logcollector.collector.LISTEN_ON_TOPIC", "test_topic")
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.CONSUME_TOPIC", "test_topic")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_valid_init(
@@ -29,14 +29,14 @@ class TestInit(unittest.TestCase):
 
         mock_batch_handler.assert_called_once()
         mock_logline_handler.assert_called_once()
-        mock_kafka_handler.assert_called_once_with(topics="test_topic")
+        mock_kafka_handler.assert_called_once_with("test_topic")
 
 
 class TestStart(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.logger")
     @patch("src.logcollector.collector.LogCollector.send")
     @patch("src.logcollector.collector.LogCollector.fetch")
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     async def test_start(
@@ -62,7 +62,7 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
 class TestFetch(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.LoglineHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     async def asyncSetUp(
         self, mock_kafka_handler, mock_batch_sender, mock_logline_handler
     ):
@@ -99,7 +99,7 @@ class TestFetch(unittest.IsolatedAsyncioTestCase):
 class TestSend(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.logger")
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     async def test_send_with_one_logline(
@@ -147,7 +147,7 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.logcollector.collector.logger")
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     async def test_send_keyboard_interrupt(
@@ -194,7 +194,7 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
 
 
 class TestStore(unittest.IsolatedAsyncioTestCase):
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     async def test_store(
@@ -208,13 +208,13 @@ class TestStore(unittest.IsolatedAsyncioTestCase):
         await sut.store("test_message")
 
         # Assert
-        self.assertEqual("test_message", sut.loglines.get())
+        self.assertEqual("test_message", await sut.loglines.get())
         self.assertTrue(sut.loglines.empty())
 
 
 class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv4(
@@ -232,7 +232,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv4_zero(
@@ -250,7 +250,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 23)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv4_max(
@@ -268,7 +268,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 64)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv6(
@@ -286,7 +286,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 64)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv6_zero(
@@ -304,7 +304,7 @@ class TestGetSubnetId(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_ipv6_max(
@@ -323,7 +323,7 @@ class TestGetSubnetId(unittest.TestCase):
 
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_unsupported_type(
@@ -340,7 +340,7 @@ class TestGetSubnetId(unittest.TestCase):
 
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
-    @patch("src.logcollector.collector.SimpleKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     def test_get_subnet_id_none(

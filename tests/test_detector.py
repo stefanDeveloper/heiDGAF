@@ -131,6 +131,7 @@ class TestGetModel(unittest.TestCase):
 
 
 class TestInit(unittest.TestCase):
+    @patch("src.detector.detector.CONSUME_TOPIC", "test_topic")
     @patch("src.detector.detector.logger")
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     def test_init(self, mock_kafka_consume_handler, mock_logger):
@@ -141,7 +142,7 @@ class TestInit(unittest.TestCase):
 
         self.assertEqual([], sut.messages)
         self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
-        mock_kafka_consume_handler.assert_called_once_with(topics="Detector")
+        mock_kafka_consume_handler.assert_called_once_with("test_topic")
 
 
 class TestGetData(unittest.TestCase):
