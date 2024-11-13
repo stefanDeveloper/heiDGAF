@@ -5,8 +5,8 @@ import pickle
 import sys
 import tempfile
 
-import numpy as np
 import math
+import numpy as np
 import requests
 from numpy import median
 
@@ -18,7 +18,8 @@ from src.base.kafka_handler import (
 )
 from src.base.log_config import get_logger
 
-logger = get_logger("data_analysis.detector")
+module_name = "data_analysis.detector"
+logger = get_logger(module_name)
 
 BUF_SIZE = 65536  # let's read stuff in 64kb chunks!
 
@@ -27,6 +28,9 @@ MODEL = config["pipeline"]["data_analysis"]["detector"]["model"]
 CHECKSUM = config["pipeline"]["data_analysis"]["detector"]["checksum"]
 MODEL_BASE_URL = config["pipeline"]["data_analysis"]["detector"]["base_url"]
 THRESHOLD = config["pipeline"]["data_analysis"]["detector"]["threshold"]
+CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+    "inspector_to_detector"
+]
 
 
 class WrongChecksum(Exception):  # pragma: no cover
@@ -52,8 +56,7 @@ class Detector:
         )
 
         logger.debug(f"Initializing Detector...")
-        logger.debug(f"Calling KafkaConsumeHandler(topic='Detector')...")
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(topics="Detector")
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
 
         self.model = self._get_model()
 

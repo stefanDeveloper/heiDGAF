@@ -14,15 +14,17 @@ from src.base.log_config import get_logger
 
 logger = get_logger("log_collection.collector")
 
-CONFIG = utils.setup_config()
-IPV4_PREFIX_LENGTH = CONFIG["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
+config = utils.setup_config()
+IPV4_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
     "ipv4_prefix_length"
 ]
-IPV6_PREFIX_LENGTH = CONFIG["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
+IPV6_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
     "ipv6_prefix_length"
 ]
-BATCH_SIZE = CONFIG["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
-LISTEN_ON_TOPIC = "logserver_to_collector"  # TODO: Change
+BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
+CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+    "logserver_to_collector"
+]
 
 
 class LogCollector:
@@ -36,7 +38,7 @@ class LogCollector:
         self.loglines = asyncio.Queue()
         self.batch_handler = BufferedBatchSender()
         self.logline_handler = LoglineHandler()
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(LISTEN_ON_TOPIC)
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
 
     async def start(self) -> None:
         """
@@ -44,8 +46,7 @@ class LogCollector:
         """
         logger.info(
             "LogCollector started:\n"
-            f"    ⤷  receiving on Kafka topic '{LISTEN_ON_TOPIC}'\n"
-            f"    ⤷  sending on Kafka topic 'TODO'"
+            f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'"
         )
 
         try:

@@ -9,17 +9,25 @@ from src.base.kafka_handler import (
     SimpleKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
 )
+from src.base.utils import generate_unique_transactional_id
 from src.base.utils import setup_config
-from src.base import utils
 from src.base.log_config import get_logger
 
-logger = get_logger("log_storage.logserver")
+module_name = "log_storage.logserver"
+logger = get_logger(module_name)
 
-CONFIG = setup_config()
-HOSTNAME = CONFIG["environment"]["logserver"]["hostname"]
-LISTEN_ON_TOPIC = CONFIG["pipeline"]["log_storage"]["logserver"]["input_kafka_topic"]
-SEND_TO_TOPIC = "logserver_to_collector"  # TODO: Change
-READ_FROM_FILE = CONFIG["pipeline"]["log_storage"]["logserver"]["input_file"]
+config = setup_config()
+CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"]["logserver_in"]
+PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+    "logserver_to_collector"
+]
+READ_FROM_FILE = config["pipeline"]["log_storage"]["logserver"]["input_file"]
+KAFKA_BROKERS = ",".join(
+    [
+        f"{broker['hostname']}:{broker['port']}"
+        for broker in config["environment"]["kafka_brokers"]
+    ]
+)
 
 
 class LogServer:
@@ -29,11 +37,9 @@ class LogServer:
     """
 
     def __init__(self) -> None:
-        self.host = None
-        self.host = utils.validate_host(HOSTNAME)
-
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(LISTEN_ON_TOPIC)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler("LogServer")
+        self.kafka_consume_handler = SimpleKafkaConsumeHandler(CONSUME_TOPIC)
+        transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
 
     async def start(self) -> None:
         """
@@ -41,9 +47,9 @@ class LogServer:
         """
         logger.info(
             "LogServer started:\n"
-            f"    ⤷  receiving on Kafka topic '{LISTEN_ON_TOPIC}'\n"
+            f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'\n"
             f"    ⤷  receiving from input file '{READ_FROM_FILE}'\n"
-            f"    ⤷  sending on Kafka topic 'TODO'"
+            f"    ⤷  sending on Kafka topic '{PRODUCE_TOPIC}'"
         )
 
         try:
@@ -61,7 +67,7 @@ class LogServer:
         Args:
             message (str): Message to be sent
         """
-        self.kafka_produce_handler.produce(topic=SEND_TO_TOPIC, data=message)
+        self.kafka_produce_handler.produce(topic=PRODUCE_TOPIC, data=message)
         logger.debug(f"Sent: '{message}'")
 
     async def fetch_from_kafka(self) -> None:
