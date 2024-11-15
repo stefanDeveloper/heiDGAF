@@ -62,21 +62,17 @@ class ClickHouseBatchSender:
             self._client.insert(
                 self.table_name,
                 self.batch,
-                self.column_names,
+                column_names=self.column_names,
             )
-            logger.info(
-                f"""
-                self.client.insert(
-                    {self.table_name=},
-                    {self.batch=},
-                    {self.column_names=},
-                )
-            """
+            logger.debug(
+                f"Inserted {self.table_name=},{self.batch=},{self.column_names=}"
             )
             self.batch = []
 
         if self.timer:
             self.timer.cancel()
+
+        self.timer = None
 
     def _start_timer(self):
         if self.timer:
