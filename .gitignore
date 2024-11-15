@@ -323,6 +323,6 @@ cython_debug/
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks
 
 # Others
-/docs/api/
+docs/api/
 !/docs/api/index.rst
-/docker/default.txt
+docker/default.txt
