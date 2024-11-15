@@ -11,7 +11,7 @@ from src.base.kafka_handler import (
     SimpleKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
 )
-from src.monitoring.clickhouse_kafka_sender import ClickHouseKafkaSender
+from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import generate_unique_transactional_id
 from src.base.utils import setup_config
 from src.base.log_config import get_logger
