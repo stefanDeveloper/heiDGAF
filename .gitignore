@@ -325,4 +325,3 @@ cython_debug/
 # Others
 docs/api/
 !/docs/api/index.rst
-docker/default.txt

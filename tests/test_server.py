@@ -134,22 +134,21 @@ class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
         mock_send.assert_any_call("Test line 4")
 
 
-class TestMainFunction(unittest.TestCase):
+class TestMain(unittest.TestCase):
     @patch("src.logserver.server.logger")
-    @patch("src.logserver.server.asyncio.run")
     @patch("src.logserver.server.LogServer")
-    def test_main(self, mock_log_server_class, mock_asyncio_run, mock_logger):
+    @patch("asyncio.run")
+    def test_main(self, mock_asyncio_run, mock_instance, mock_logger):
         # Arrange
-        mock_server_instance = MagicMock()
-        mock_log_server_class.return_value = mock_server_instance
+        mock_instance_obj = MagicMock()
+        mock_instance.return_value = mock_instance_obj
 
         # Act
         main()
 
         # Assert
-        mock_log_server_class.assert_called_once()
-        mock_server_instance.start.assert_called_once()
-        mock_asyncio_run.assert_called_once_with(mock_server_instance.start())
+        mock_instance.assert_called_once()
+        mock_asyncio_run.assert_called_once_with(mock_instance_obj.start())
 
 
 if __name__ == "__main__":

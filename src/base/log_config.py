@@ -77,10 +77,8 @@ def get_logger(module_name: str = "base") -> logging.Logger:
     if logger.hasHandlers():
         logger.handlers.clear()
 
-    # Prevent multiple handler additions
-    if not logger.handlers:
-        handler = CustomHandler()
-        logger.addHandler(handler)
+    handler = CustomHandler()
+    logger.addHandler(handler)
 
     # Default to base debug setting
     debug_enabled = config["logging"]["base"]["debug"]

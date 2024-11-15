@@ -3,7 +3,7 @@ import ipaddress
 import unittest
 from unittest.mock import MagicMock, patch, AsyncMock
 
-from src.logcollector.collector import LogCollector
+from src.logcollector.collector import LogCollector, main
 
 
 class TestInit(unittest.TestCase):
@@ -354,6 +354,23 @@ class TestGetSubnetId(unittest.TestCase):
         with self.assertRaises(ValueError):
             # noinspection PyTypeChecker
             sut.get_subnet_id(test_address)
+
+
+class TestMain(unittest.TestCase):
+    @patch("src.logcollector.collector.logger")
+    @patch("src.logcollector.collector.LogCollector")
+    @patch("asyncio.run")
+    def test_main(self, mock_asyncio_run, mock_instance, mock_logger):
+        # Arrange
+        mock_instance_obj = MagicMock()
+        mock_instance.return_value = mock_instance_obj
+
+        # Act
+        main()
+
+        # Assert
+        mock_instance.assert_called_once()
+        mock_asyncio_run.assert_called_once_with(mock_instance_obj.start())
 
 
 if __name__ == "__main__":

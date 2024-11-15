@@ -3,7 +3,6 @@ import ipaddress
 import json
 import os
 import sys
-from multiprocessing import Lock
 
 sys.path.append(os.getcwd())
 from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
