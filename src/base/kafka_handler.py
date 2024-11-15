@@ -110,14 +110,13 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
         if not data:
             return
 
+        self.producer.flush()
         self.producer.produce(
             topic=topic,
             key=key,
             value=data.encode("utf-8"),
             callback=kafka_delivery_report,
         )
-
-        self.producer.flush()
 
 
 class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
@@ -156,8 +155,8 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             return
 
         self.producer.flush()
-
         self.producer.begin_transaction()
+
         try:
             self.producer.produce(
                 topic=topic,
@@ -167,7 +166,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             )
 
             self.commit_transaction_with_retry()
-        except Exception as e:
+        except Exception:
             self.producer.abort_transaction()
             logger.error("Transaction aborted.")
             raise

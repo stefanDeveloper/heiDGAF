@@ -34,7 +34,6 @@ class LogCollector:
     """
 
     def __init__(self) -> None:
-        self.lock = Lock()
         self.loglines = asyncio.Queue()
         self.batch_handler = BufferedBatchSender()
         self.logline_handler = LoglineHandler()
@@ -82,11 +81,13 @@ class LogCollector:
             while True:
                 if not self.loglines.empty():
                     logline = await self.loglines.get()
-                    fields = (
-                        self.logline_handler.validate_logline_and_get_fields_as_json(
+                    try:
+                        fields = self.logline_handler.validate_logline_and_get_fields_as_json(
                             logline
                         )
-                    )
+                    except ValueError:
+                        continue
+
                     subnet_id = self.get_subnet_id(
                         ipaddress.ip_address(fields.get("client_ip"))
                     )

@@ -67,14 +67,21 @@ class ServerLogsConnector(ClickHouseConnector):
     def insert(
         self,
         message_text: str,
-        message_id: uuid.UUID = None,
-        timestamp_in: datetime.datetime | None = None,
+        message_id: None | str | uuid.UUID = None,
+        timestamp_in: str | datetime.datetime | None = None,
     ) -> uuid.UUID:
+        # TODO: Switch to Marshmallow
         if not message_id:
             message_id = uuid.uuid4()
 
+        if isinstance(message_id, str):
+            message_id = uuid.UUID(message_id)
+
         if not timestamp_in:
             timestamp_in = datetime.datetime.now()
+
+        if isinstance(timestamp_in, str):
+            timestamp_in = datetime.datetime.fromisoformat(timestamp_in)
 
         self._add_to_batch([message_id, timestamp_in, message_text])
         return message_id
@@ -92,10 +99,13 @@ class ServerLogsTimestampsConnector(ClickHouseConnector):
 
     def insert(
         self,
-        message_id: uuid.UUID,
+        message_id: str | uuid.UUID,
         event: str,
-        event_timestamp: datetime.datetime | None = None,
+        event_timestamp: str | datetime.datetime | None = None,
     ):
+        if isinstance(message_id, str):
+            message_id = uuid.UUID(message_id)
+
         if not event_timestamp:
             event_timestamp = datetime.datetime.now()
 
@@ -116,8 +126,8 @@ class FailedDNSLoglinesConnector(ClickHouseConnector):
     def insert(
         self,
         message_text: str,
-        timestamp_in: datetime.datetime,
-        timestamp_failed: datetime.datetime | None = None,
+        timestamp_in: str | datetime.datetime,
+        timestamp_failed: str | datetime.datetime | None = None,
         reason_for_failure: str | None = None,
     ) -> None:
         if not timestamp_failed:
@@ -137,7 +147,14 @@ class LoglineToBatchesConnector(ClickHouseConnector):
 
         super().__init__("logline_to_batches", column_names)
 
-    def insert(self, logline_id: uuid.UUID, batch_id: uuid.UUID):
+    def insert(
+        self,
+        logline_id: str | uuid.UUID,
+        batch_id: str | uuid.UUID,
+    ):
+        if isinstance(logline_id, str):
+            logline_id = uuid.UUID(logline_id)
+
         self._add_to_batch(
             [
                 logline_id,
@@ -163,7 +180,7 @@ class DNSLoglinesConnector(ClickHouseConnector):
     def insert(
         self,
         subnet_id: str,
-        timestamp: datetime.datetime,
+        timestamp: str | datetime.datetime,
         status_code: str,
         client_ip: str,
         record_type: str,
@@ -196,8 +213,14 @@ class LoglineStatusConnector(ClickHouseConnector):
         super().__init__("logline_status", column_names)
 
     def insert(
-        self, logline_id: uuid.UUID, status: str, exit_at_stage: str | None = None
+        self,
+        logline_id: str | uuid.UUID,
+        status: str,
+        exit_at_stage: str | None = None,
     ):
+        if isinstance(logline_id, str):
+            logline_id = uuid.UUID(logline_id)
+
         self._add_to_batch(
             [
                 logline_id,
@@ -220,11 +243,14 @@ class LoglineTimestampsConnector(ClickHouseConnector):
 
     def insert(
         self,
-        logline_id: uuid.UUID,
+        logline_id: str | uuid.UUID,
         stage: str,
         status: str,
-        timestamp: datetime.datetime = None,
+        timestamp: str | datetime.datetime = None,
     ) -> None:
+        if isinstance(logline_id, str):
+            logline_id = uuid.UUID(logline_id)
+
         if not timestamp:
             timestamp = datetime.datetime.now()
 
@@ -249,8 +275,14 @@ class BatchStatusConnector(ClickHouseConnector):
         super().__init__("batch_status", column_names)
 
     def insert(
-        self, batch_id: uuid.UUID, status: str, exit_at_stage: str | None = None
+        self,
+        batch_id: str | uuid.UUID,
+        status: str,
+        exit_at_stage: str | None = None,
     ):
+        if isinstance(batch_id, str):
+            batch_id = uuid.UUID(batch_id)
+
         self._add_to_batch(
             [
                 batch_id,
@@ -274,14 +306,18 @@ class BatchTimestampsConnector(ClickHouseConnector):
 
     def insert(
         self,
-        batch_id: uuid.UUID,
+        batch_id: str | uuid.UUID,
         stage: str,
         status: str,
         message_count: int,
-        timestamp: datetime.datetime = None,
+        timestamp: str | datetime.datetime = None,
     ) -> None:
+        if isinstance(batch_id, str):
+            batch_id = uuid.UUID(batch_id)
+
         if not timestamp:
             timestamp = datetime.datetime.now()
+
         self._add_to_batch(
             [
                 batch_id,

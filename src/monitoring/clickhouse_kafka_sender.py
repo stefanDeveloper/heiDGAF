@@ -12,10 +12,10 @@ logger = get_logger()
 class ClickHouseKafkaSender:
     def __init__(self, table_name: str):
         self.table_name = table_name
-        self.kafka_producer = SimpleKafkaProduceHandler(transactional_id="clickhouse")
+        self.kafka_producer = SimpleKafkaProduceHandler()
 
-    def insert(self, data: list):
+    def insert(self, data: dict):
         self.kafka_producer.produce(
             topic=f"clickhouse_{self.table_name}",
-            data=json.dumps(data),
+            data=json.dumps(data, default=str),
         )

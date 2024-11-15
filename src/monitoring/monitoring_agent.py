@@ -5,7 +5,7 @@ import sys
 
 sys.path.append(os.getcwd())
 from src.monitoring.clickhouse_connector import *
-from src.base.kafka_handler import KafkaConsumeHandler
+from src.base.kafka_handler import SimpleKafkaConsumeHandler
 from src.base.log_config import get_logger
 from src.base.utils import setup_config
 
@@ -48,10 +48,9 @@ class MonitoringAgent:
         }
 
         self.topics = [f"clickhouse_{table_name}" for table_name in self.connectors]
-        self.kafka_consumer = KafkaConsumeHandler(self.topics)
+        self.kafka_consumer = SimpleKafkaConsumeHandler(self.topics)
 
     async def start(self):
-        prepare_all_tables()
         loop = asyncio.get_running_loop()
 
         try:
@@ -59,16 +58,21 @@ class MonitoringAgent:
                 key, value, topic = await loop.run_in_executor(
                     None, self.kafka_consumer.consume
                 )
-                logger.info(f"Received message via Kafka:\n    ⤷  {value}")
+                logger.debug(f"From Kafka: {value}")
 
                 data = json.loads(value)
-                task = self.connectors[value].insert(**data)
-                await task
+                table_name = topic.replace("clickhouse_", "")
+
+                self.connectors[table_name].insert(**data)
         except KeyboardInterrupt:
-            logger.info("Stop consuming...")
+            logger.info("Stopped MonitoringAgent.")
+
+
+def main():
+    prepare_all_tables()
+    clickhouse_consumer = MonitoringAgent()
+    asyncio.run(clickhouse_consumer.start())
 
 
 if __name__ == "__main__":
-    logger.info("Starting Monitoring Agent...")
-    clickhouse_consumer = MonitoringAgent()
-    asyncio.run(clickhouse_consumer.start())
+    main()

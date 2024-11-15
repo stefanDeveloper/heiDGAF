@@ -1,6 +1,8 @@
 import asyncio
+import datetime
 import os
 import sys
+import uuid
 
 import aiofiles
 
@@ -9,6 +11,7 @@ from src.base.kafka_handler import (
     SimpleKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
 )
+from src.monitoring.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import generate_unique_transactional_id
 from src.base.utils import setup_config
 from src.base.log_config import get_logger
@@ -37,9 +40,11 @@ class LogServer:
     """
 
     def __init__(self) -> None:
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(CONSUME_TOPIC)
         transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
+
+        self.kafka_consume_handler = SimpleKafkaConsumeHandler(CONSUME_TOPIC)
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
+        self.server_logs = ClickHouseKafkaSender("server_logs")
 
     async def start(self) -> None:
         """
@@ -60,7 +65,7 @@ class LogServer:
         except KeyboardInterrupt:
             logger.info("LogServer stopped.")
 
-    async def send(self, message: str) -> None:
+    def send(self, message: str) -> None:
         """
         Sends a received message using Kafka.
 
@@ -68,6 +73,15 @@ class LogServer:
             message (str): Message to be sent
         """
         self.kafka_produce_handler.produce(topic=PRODUCE_TOPIC, data=message)
+
+        self.server_logs.insert(
+            dict(
+                message_id=uuid.uuid4(),
+                timestamp_in=datetime.datetime.now(),
+                message_text=message,
+            )
+        )
+
         logger.debug(f"Sent: '{message}'")
 
     async def fetch_from_kafka(self) -> None:
@@ -82,7 +96,7 @@ class LogServer:
             )
             logger.debug(f"From Kafka: '{value}'")
 
-            await self.send(value)
+            self.send(value)
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
         """
@@ -109,7 +123,7 @@ class LogServer:
                         continue
 
                     logger.debug(f"From file: '{cleaned_line}'")
-                    await self.send(cleaned_line)
+                    self.send(cleaned_line)
 
 
 def main() -> None:
