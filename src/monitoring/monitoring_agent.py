@@ -74,5 +74,5 @@ def main():
     asyncio.run(clickhouse_consumer.start())
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

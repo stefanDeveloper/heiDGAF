@@ -109,6 +109,9 @@ class ServerLogsTimestampsConnector(ClickHouseConnector):
         if not event_timestamp:
             event_timestamp = datetime.datetime.now()
 
+        if isinstance(event_timestamp, str):
+            event_timestamp = datetime.datetime.fromisoformat(event_timestamp)
+
         self._add_to_batch([message_id, event, event_timestamp])
 
 
@@ -133,6 +136,11 @@ class FailedDNSLoglinesConnector(ClickHouseConnector):
         if not timestamp_failed:
             timestamp_failed = datetime.datetime.now()
 
+        if isinstance(timestamp_in, str):
+            timestamp_in = datetime.datetime.fromisoformat(timestamp_in)
+        if isinstance(timestamp_failed, str):
+            timestamp_failed = datetime.datetime.fromisoformat(timestamp_failed)
+
         self._add_to_batch(
             [message_text, timestamp_in, timestamp_failed, reason_for_failure]
         )
@@ -154,6 +162,8 @@ class LoglineToBatchesConnector(ClickHouseConnector):
     ):
         if isinstance(logline_id, str):
             logline_id = uuid.UUID(logline_id)
+        if isinstance(batch_id, str):
+            batch_id = uuid.UUID(batch_id)
 
         self._add_to_batch(
             [
@@ -254,6 +264,9 @@ class LoglineTimestampsConnector(ClickHouseConnector):
         if not timestamp:
             timestamp = datetime.datetime.now()
 
+        if isinstance(timestamp, str):
+            timestamp = datetime.datetime.fromisoformat(timestamp)
+
         self._add_to_batch(
             [
                 logline_id,
@@ -317,6 +330,9 @@ class BatchTimestampsConnector(ClickHouseConnector):
 
         if not timestamp:
             timestamp = datetime.datetime.now()
+
+        if isinstance(timestamp, str):
+            timestamp = datetime.datetime.fromisoformat(timestamp)
 
         self._add_to_batch(
             [

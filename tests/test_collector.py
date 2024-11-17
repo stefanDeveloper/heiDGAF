@@ -34,29 +34,54 @@ class TestInit(unittest.TestCase):
 
 class TestStart(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.LogCollector.send")
-    @patch("src.logcollector.collector.LogCollector.fetch")
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
-    async def test_start(
+    def setUp(
         self,
         mock_logline_handler,
         mock_batch_handler,
         mock_kafka_consume_handler,
-        mock_fetch,
-        mock_send,
         mock_logger,
     ):
+        self.sut = LogCollector()
+
+    async def test_start_successful_execution(self):
         # Arrange
-        sut = LogCollector()
+        self.sut.fetch = AsyncMock()
+        self.sut.send = AsyncMock()
 
-        # Act
-        await sut.start()
+        async def mock_gather(*args, **kwargs):
+            return None
 
-        # Assert
-        mock_send.assert_called_once()
-        mock_fetch.assert_called_once()
+        with patch(
+            "src.logcollector.collector.asyncio.gather", side_effect=mock_gather
+        ) as mock:
+            # Act
+            await self.sut.start()
+
+            # Assert
+            mock.assert_called_once()
+            self.sut.fetch.assert_called_once()
+            self.sut.send.assert_called_once()
+
+    # TODO: Update
+    # async def test_start_handles_keyboard_interrupt(self):
+    #     # Arrange
+    #     self.sut.fetch = AsyncMock()
+    #     self.sut.send = AsyncMock()
+    #
+    #     async def mock_gather(*args, **kwargs):
+    #         raise KeyboardInterrupt
+    #
+    #     with (patch('src.logcollector.collector.asyncio.gather', side_effect=mock_gather) as mock):
+    #         # Act
+    #         await self.sut.start()
+    #
+    #         # Assert
+    #         mock.assert_called_once()
+    #         self.sut.fetch.assert_called_once()
+    #         self.sut.send.assert_called_once()
 
 
 class TestFetch(unittest.IsolatedAsyncioTestCase):
@@ -191,6 +216,87 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
 
         # Assert
         self.assertEqual(4, mock_batch_handler_instance.add_message.call_count)
+
+    @patch("src.logcollector.collector.logger")
+    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.logcollector.collector.BufferedBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.asyncio.Queue")
+    async def test_send_empty(
+        self,
+        mock_queue,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
+        mock_logger,
+    ):
+        # Arrange
+        mock_queue_instance = MagicMock()
+        mock_queue.return_value = mock_queue_instance
+        mock_queue_instance.empty.side_effect = [True, KeyboardInterrupt, True]
+        mock_batch_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+
+        sut = LogCollector()
+        sut.loglines = mock_queue_instance
+
+        # Act
+        await sut.send()
+
+        # Assert
+        mock_queue_instance.add_message.assert_not_called()
+
+    @patch("src.logcollector.collector.logger")
+    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
+    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.logcollector.collector.BufferedBatchSender")
+    @patch("src.logcollector.collector.LoglineHandler")
+    async def test_send_value_error(
+        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler, mock_logger
+    ):
+        # Arrange
+        mock_batch_handler_instance = MagicMock()
+        mock_logline_handler_instance = MagicMock()
+        mock_batch_handler.return_value = mock_batch_handler_instance
+        mock_logline_handler.return_value = mock_logline_handler_instance
+
+        mock_logline_handler_instance.validate_logline_and_get_fields_as_json.side_effect = [
+            ValueError,
+            {
+                "timestamp": "2024-05-21T08:31:28.119Z",
+                "status": "NOERROR",
+                "client_ip": "192.168.0.105",
+                "dns_ip": "8.8.8.8",
+                "host_domain_name": "www.heidelberg-botanik.de",
+                "record_type": "A",
+                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+                "size": "150b",
+            },
+            KeyboardInterrupt,
+        ]
+        expected_message = (
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", '
+            '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
+            '"size": "150b"}'
+        )
+        input_logline = (
+            "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A "
+            "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b"
+        )
+
+        sut = LogCollector()
+        await sut.store(input_logline)
+        await sut.store(input_logline)
+        await sut.store(input_logline)
+
+        # Act
+        await sut.send()
+
+        mock_batch_handler_instance.add_message.assert_called_once_with(
+            "192.168.0.0_22", expected_message
+        )
 
 
 class TestStore(unittest.IsolatedAsyncioTestCase):
