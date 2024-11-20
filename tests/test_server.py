@@ -13,26 +13,19 @@ LOG_SERVER_IP_ADDR = "192.168.0.1"
 
 class TestInit(unittest.TestCase):
     @patch("src.logserver.server.CONSUME_TOPIC", "test_topic")
-    @patch("src.logserver.server.ClickHouseKafkaSender")
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
     @patch("src.logserver.server.SimpleKafkaConsumeHandler")
-    def test_valid_init(
-        self, mock_kafka_consume_handler, mock_kafka_produce_handler, mock_server_logs
-    ):
+    def test_valid_init(self, mock_kafka_consume_handler, mock_kafka_produce_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_produce_handler_instance = MagicMock()
-        mock_server_logs_instance = MagicMock()
 
         mock_kafka_produce_handler.return_value = mock_kafka_produce_handler_instance
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_server_logs.return_value = mock_server_logs_instance
 
         sut = LogServer()
         self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
         self.assertEqual(mock_kafka_produce_handler_instance, sut.kafka_produce_handler)
-        self.assertEqual(mock_server_logs_instance, sut.server_logs)
         mock_kafka_consume_handler.assert_called_once_with("test_topic")
-        mock_server_logs.assert_called_once_with("server_logs")
 
 
 class TestStart(unittest.IsolatedAsyncioTestCase):
@@ -85,16 +78,12 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
 
 class TestSend(unittest.TestCase):
     @patch("src.logserver.server.PRODUCE_TOPIC", "test_topic")
-    @patch("src.logserver.server.ClickHouseKafkaSender")
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
     def test_send(
         self,
         mock_produce_handler,
-        mock_server_logs,
     ):
         # Arrange
-        mock_server_logs_instance = MagicMock()
-        mock_server_logs.return_value = mock_server_logs_instance
         mock_kafka_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_kafka_produce_handler_instance
 
@@ -109,7 +98,6 @@ class TestSend(unittest.TestCase):
             topic="test_topic",
             data=message,
         )
-        mock_server_logs_instance.insert.assert_called_once()
 
 
 class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):

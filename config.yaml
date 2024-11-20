@@ -64,11 +64,6 @@ pipeline:
       base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
       threshold: 0.5
 
-  monitoring:
-    clickhouse_connector:
-      batch_size: 10000
-      batch_timeout: 2.0
-
 environment:
   timestamp_format: "%Y-%m-%dT%H:%M:%S.%fZ"
   kafka_brokers:

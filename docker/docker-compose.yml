@@ -160,13 +160,13 @@ services:
         limits:
           cpus: '2'
           memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
-          devices:
-            - driver: nvidia
-              count: 1 # alternatively, use `count: all` for all GPUs
-              capabilities: [gpu]
+  #        reservations:
+  #          cpus: '1'
+  #          memory: 256m
+  #          devices:
+  #            - driver: nvidia
+  #              count: 1 # alternatively, use `count: all` for all GPUs
+  #              capabilities: [gpu]
 
   clickhouse-server:
     image: clickhouse/clickhouse-server:24.3.12.75-alpine
@@ -183,25 +183,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-
-  monitoring_agent:
-    build:
-      context: ..
-      dockerfile: docker/dockerfiles/Dockerfile.monitoring
-      network: host
-    restart: "unless-stopped"
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-      clickhouse-server:
-        condition: service_healthy
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.12
 
 networks:
   heidgaf:
