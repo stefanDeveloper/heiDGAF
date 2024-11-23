@@ -249,24 +249,20 @@ class KafkaConsumeHandler(KafkaHandler):
 
         Raises:
             ValueError: Invalid data format
-            KafkaMessageFetchException: Error during message fetching/consuming
-            KeyboardInterrupt: Execution interrupted by user
         """
+        key, value, topic = self.consume()
+
+        if not key and not value:
+            return None, {}
+
         try:
-            key, value, topic = self.consume()
+            eval_data = ast.literal_eval(value)
 
-            if not key and not value:
-                return None, {}
-        except KafkaMessageFetchException:
-            raise
-        except KeyboardInterrupt:
-            raise
-
-        eval_data = ast.literal_eval(value)
-
-        if isinstance(eval_data, dict):
-            return key, eval_data
-        else:
+            if isinstance(eval_data, dict):
+                return key, eval_data
+            else:
+                raise
+        except Exception:
             raise ValueError("Unknown data format")
 
     def __del__(self) -> None:
@@ -290,10 +286,6 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
         Returns:
             Either ``[None,None,None]`` if empty data was retrieved or ``[key,value,topic]`` as tuple
             of strings of the consumed data.
-
-        Raises:
-            KeyboardInterrupt: Execution interrupted by user
-            Exception: Error during consuming
         """
         empty_data_retrieved = False
 
@@ -313,7 +305,7 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
                         continue
                     else:
                         logger.error(f"Consumer error: {msg.error()}")
-                        raise
+                        raise ValueError("Message is invalid")
 
                 # unpack message
                 key = msg.key().decode("utf-8") if msg.key() else None
@@ -323,9 +315,6 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
                 return key, value, topic
         except KeyboardInterrupt:
             logger.info("Stopping KafkaConsumeHandler...")
-            raise KeyboardInterrupt
-        except Exception:
-            raise
 
 
 class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
@@ -345,10 +334,6 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
         Returns:
             Either ``[None,None,None]`` if empty data was retrieved or ``[key,value,topic]`` as tuple
             of strings of the consumed data.
-
-        Raises:
-            KeyboardInterrupt: Execution interrupted by user
-            Exception: Error during consuming
         """
         empty_data_retrieved = False
 
@@ -368,7 +353,7 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
                         continue
                     else:
                         logger.error(f"Consumer error: {msg.error()}")
-                        raise
+                        raise ValueError("Message is invalid")
 
                 # unpack message
                 key = msg.key().decode("utf-8") if msg.key() else None
@@ -380,9 +365,6 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
                 return key, value, topic
         except KeyboardInterrupt:
             logger.info("Shutting down KafkaConsumeHandler...")
-            raise KeyboardInterrupt
-        except Exception:
-            raise
 
     @staticmethod
     def _is_dicts(obj):
@@ -398,19 +380,12 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
 
         Raises:
             ValueError: Invalid data format
-            KafkaMessageFetchException: Error during message fetching/consuming
-            KeyboardInterrupt: Execution interrupted by user
         """
-        try:
-            key, value, topic = self.consume()
+        key, value, topic = self.consume()
 
-            if not key and not value:
-                return None, {}
-        except KafkaMessageFetchException as e:
-            logger.warning(e)
-            raise
-        except KeyboardInterrupt:
-            raise
+        if not key and not value:
+            # TODO: Change return value to fit the type, maybe switch to raise
+            return None, {}
 
         eval_data: dict = ast.literal_eval(value)
 
