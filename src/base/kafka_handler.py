@@ -74,7 +74,7 @@ class KafkaProduceHandler(KafkaHandler):
         """
         Encodes the given data for transport and sends it on the specified topic.
         """
-        pass
+        raise NotImplementedError
 
     def __del__(self) -> None:
         self.producer.flush()
@@ -237,7 +237,7 @@ class KafkaConsumeHandler(KafkaHandler):
         """
         Consumes available messages on the specified topic and decodes it.
         """
-        pass
+        raise NotImplementedError
 
     def consume_as_json(self) -> tuple[None | str, dict]:
         """
@@ -324,7 +324,7 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
         except KeyboardInterrupt:
             logger.info("Stopping KafkaConsumeHandler...")
             raise KeyboardInterrupt
-        except Exception as e:
+        except Exception:
             raise
 
 

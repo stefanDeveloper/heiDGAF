@@ -53,12 +53,19 @@ class LogServer:
             f"    ⤷  sending on Kafka topic '{PRODUCE_TOPIC}'"
         )
 
+        task_fetch_kafka = asyncio.Task(self.fetch_from_kafka())
+        task_fetch_file = asyncio.Task(self.fetch_from_file())
+
         try:
-            await asyncio.gather(
-                self.fetch_from_kafka(),
-                self.fetch_from_file(),
+            task = asyncio.gather(
+                task_fetch_kafka,
+                task_fetch_file,
             )
+            await task
         except KeyboardInterrupt:
+            task_fetch_kafka.cancel()
+            task_fetch_file.cancel()
+
             logger.info("LogServer stopped.")
 
     def send(self, message: str) -> None:

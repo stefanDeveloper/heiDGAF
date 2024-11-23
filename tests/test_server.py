@@ -54,26 +54,27 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         mock_fetch_from_kafka.assert_called_once()
         mock_fetch_from_file.assert_called_once()
 
-    # TODO: Update
-    # @patch("src.logserver.server.LogServer.fetch_from_kafka")
-    # @patch("src.logserver.server.LogServer.fetch_from_file")
-    # async def test_start_handles_keyboard_interrupt(
-    #         self,
-    #         mock_fetch_from_file,
-    #         mock_fetch_from_kafka,
-    # ):
-    #     # Arrange
-    #     async def mock_gather(*args, **kwargs):
-    #         raise KeyboardInterrupt
-    #
-    #     with (patch('src.logserver.server.asyncio.gather', side_effect=mock_gather) as mock):
-    #         # Act
-    #         await self.sut.start()
-    #
-    #         # Assert
-    #         mock.assert_called_once()
-    #         mock_fetch_from_kafka.assert_called_once()
-    #         mock_fetch_from_file.assert_called_once()
+    @patch("src.logserver.server.LogServer.fetch_from_kafka")
+    @patch("src.logserver.server.LogServer.fetch_from_file")
+    async def test_start_handles_keyboard_interrupt(
+        self,
+        mock_fetch_from_file,
+        mock_fetch_from_kafka,
+    ):
+        # Arrange
+        async def mock_gather(*args, **kwargs):
+            raise KeyboardInterrupt
+
+        with patch(
+            "src.logserver.server.asyncio.gather", side_effect=mock_gather
+        ) as mock:
+            # Act
+            await self.sut.start()
+
+            # Assert
+            mock.assert_called_once()
+            mock_fetch_from_kafka.assert_called_once()
+            mock_fetch_from_file.assert_called_once()
 
 
 class TestSend(unittest.TestCase):

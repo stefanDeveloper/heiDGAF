@@ -65,23 +65,24 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
             self.sut.fetch.assert_called_once()
             self.sut.send.assert_called_once()
 
-    # TODO: Update
-    # async def test_start_handles_keyboard_interrupt(self):
-    #     # Arrange
-    #     self.sut.fetch = AsyncMock()
-    #     self.sut.send = AsyncMock()
-    #
-    #     async def mock_gather(*args, **kwargs):
-    #         raise KeyboardInterrupt
-    #
-    #     with (patch('src.logcollector.collector.asyncio.gather', side_effect=mock_gather) as mock):
-    #         # Act
-    #         await self.sut.start()
-    #
-    #         # Assert
-    #         mock.assert_called_once()
-    #         self.sut.fetch.assert_called_once()
-    #         self.sut.send.assert_called_once()
+    async def test_start_handles_keyboard_interrupt(self):
+        # Arrange
+        self.sut.fetch = AsyncMock()
+        self.sut.send = AsyncMock()
+
+        async def mock_gather(*args, **kwargs):
+            raise KeyboardInterrupt
+
+        with patch(
+            "src.logcollector.collector.asyncio.gather", side_effect=mock_gather
+        ) as mock:
+            # Act
+            await self.sut.start()
+
+            # Assert
+            mock.assert_called_once()
+            self.sut.fetch.assert_called_once()
+            self.sut.send.assert_called_once()
 
 
 class TestFetch(unittest.IsolatedAsyncioTestCase):

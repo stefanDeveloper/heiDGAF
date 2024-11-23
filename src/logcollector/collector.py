@@ -47,12 +47,18 @@ class LogCollector:
             f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'"
         )
 
+        task_fetch = asyncio.Task(self.fetch())
+        task_send = asyncio.Task(self.send())
+
         try:
             await asyncio.gather(
-                self.fetch(),
-                self.send(),
+                task_fetch,
+                task_send,
             )
         except KeyboardInterrupt:
+            task_fetch.cancel()
+            task_send.cancel()
+
             logger.info("LogCollector stopped.")
 
     async def fetch(self) -> None:
