@@ -5,6 +5,7 @@ from src.logcollector.batch_handler import BufferedBatchSender
 
 
 class TestInit(unittest.TestCase):
+    @patch("src.logcollector.batch_handler.PRODUCE_TOPIC", "test_topic")
     @patch("src.logcollector.batch_handler.BufferedBatch")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     def test_init_with_buffer(self, mock_kafka_produce_handler, mock_buffered_batch):
@@ -18,7 +19,7 @@ class TestInit(unittest.TestCase):
         sut = BufferedBatchSender()
 
         # Assert
-        self.assertEqual("Prefilter", sut.topic)
+        self.assertEqual("test_topic", sut.topic)
         self.assertEqual(mock_batch_instance, sut.batch)
         self.assertIsNone(sut.timer)
         self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
@@ -290,6 +291,7 @@ class TestSendBatchForKey(unittest.TestCase):
 
 
 class TestSendDataPacket(unittest.TestCase):
+    @patch("src.logcollector.batch_handler.PRODUCE_TOPIC", "test_topic")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     def test_send_data_packet(self, mock_produce_handler):
         # Arrange
@@ -311,7 +313,7 @@ class TestSendDataPacket(unittest.TestCase):
 
         # Assert
         mock_produce_handler_instance.produce.assert_called_once_with(
-            topic="Prefilter",
+            topic="test_topic",
             data='{"begin_timestamp": "test_begin", "end_timestamp": "test_end", "data": "test_data"}',
             key=key,
         )

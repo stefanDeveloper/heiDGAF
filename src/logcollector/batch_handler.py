@@ -15,6 +15,9 @@ logger = get_logger("log_collection.batch_handler")
 config = setup_config()
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
+PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+    "batch_sender_to_prefilter"
+]
 
 
 class BufferedBatch:
@@ -260,7 +263,7 @@ class BufferedBatchSender:
     """
 
     def __init__(self):
-        self.topic = "Prefilter"
+        self.topic = PRODUCE_TOPIC
         self.batch = BufferedBatch()
         self.timer = None
 
