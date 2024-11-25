@@ -18,7 +18,6 @@ logging:
 pipeline:
   log_storage:
     logserver:
-      input_kafka_topic: "LogServer"
       input_file: "/opt/file.txt"
       max_number_of_connections: 1000
 
@@ -74,7 +73,10 @@ environment:
       port: 8098
     - hostname: 172.27.0.5
       port: 8099
-  logserver:
-    hostname: 172.27.0.8
-    port_in: 9998
-    port_out: 9999
+  kafka_topics:
+    pipeline:
+      logserver_in: "pipeline.logserver_in"
+      logserver_to_collector: "pipeline.logserver_to_collector"
+      batch_sender_to_prefilter: "pipeline.batch_sender_to_prefilter"
+      prefilter_to_inspector: "pipeline.prefilter_to_inspector"
+      inspector_to_detector: "pipeline.inspector_to_detector"

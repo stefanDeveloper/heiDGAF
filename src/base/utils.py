@@ -141,3 +141,32 @@ def normalize_ipv6_address(
 
     net = ipaddress.IPv6Network((address, prefix_length), strict=False)
     return net.network_address, prefix_length
+
+
+def generate_unique_transactional_id(base_name: str, bootstrap_servers: str) -> str:
+    """
+    Checks if the given name is already a transactional ID. If so, it a number is added to make it unique.
+
+    Args:
+        base_name (str): Name of the transactional ID to be checked
+        bootstrap_servers (str): Kafka brokers as string in the form `'host1:port1,host2:port2'`
+
+    Returns:
+        Unique transactional ID using the base_name
+    """
+    # TODO: Test and activate
+    # admin_client = AdminClient({"bootstrap.servers": bootstrap_servers})
+    # existing_ids = set()
+    #
+    # consumer_groups = admin_client.list_consumer_groups()
+    #
+    # for group in consumer_groups:
+    #     existing_ids.add(group.id)
+    #
+    # transactional_id = base_name
+    # counter = 1
+    # while transactional_id in existing_ids:
+    #     transactional_id = f"{base_name}-{counter}"
+    #     counter += 1
+
+    return base_name
