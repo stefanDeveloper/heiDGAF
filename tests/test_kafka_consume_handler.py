@@ -1,11 +1,8 @@
+import json
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 
-from confluent_kafka import KafkaException
-
-from src.base.kafka_handler import KafkaConsumeHandler
-
-CONSUMER_GROUP_ID = "test_group_id"
+from src.base.kafka_handler import KafkaConsumeHandler, KafkaMessageFetchException
 
 
 class TestInit(unittest.TestCase):
@@ -28,26 +25,28 @@ class TestInit(unittest.TestCase):
         ],
     )
     @patch("src.base.kafka_handler.Consumer")
-    def test_init(self, mock_consumer):
+    def test_init_successful(self, mock_consumer):
+        # Arrange
         mock_consumer_instance = MagicMock()
         mock_consumer.return_value = mock_consumer_instance
 
         expected_conf = {
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
-            "group.id": CONSUMER_GROUP_ID,
+            "group.id": "test_group_id",
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,
         }
 
-        sut = KafkaConsumeHandler(topic="test_topic")
+        # Act
+        sut = KafkaConsumeHandler(topics="test_topic")
 
+        # Assert
         self.assertEqual(mock_consumer_instance, sut.consumer)
 
         mock_consumer.assert_called_once_with(expected_conf)
         mock_consumer_instance.assign.assert_called_once()
 
-    @patch("src.base.kafka_handler.logger")
     @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
     @patch(
         "src.base.kafka_handler.KAFKA_BROKERS",
@@ -67,62 +66,30 @@ class TestInit(unittest.TestCase):
         ],
     )
     @patch("src.base.kafka_handler.Consumer")
-    def test_init_fail(self, mock_consumer, mock_logger):
+    def test_init_successful_with_list(self, mock_consumer):
+        # Arrange
         mock_consumer_instance = MagicMock()
         mock_consumer.return_value = mock_consumer_instance
 
         expected_conf = {
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
-            "group.id": CONSUMER_GROUP_ID,
+            "group.id": "test_group_id",
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,
         }
 
-        with patch.object(mock_consumer_instance, "assign", side_effect=KafkaException):
-            with self.assertRaises(KafkaException):
-                sut = KafkaConsumeHandler(topic="test_topic")
-
-                self.assertEqual(mock_consumer_instance, sut.consumer)
-
-                mock_consumer.assert_called_once_with(expected_conf)
-                mock_consumer_instance.assign.assert_called_once()
-
-
-class TestDel(unittest.TestCase):
-    @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
-    @patch(
-        "src.base.kafka_handler.KAFKA_BROKERS",
-        [
-            {
-                "hostname": "127.0.0.1",
-                "port": 9999,
-            },
-            {
-                "hostname": "127.0.0.2",
-                "port": 9998,
-            },
-            {
-                "hostname": "127.0.0.3",
-                "port": 9997,
-            },
-        ],
-    )
-    @patch("src.base.kafka_handler.Consumer")
-    def test_del_with_existing_consumer(self, mock_consumer):
-        # Arrange
-        mock_consumer_instance = MagicMock()
-        mock_consumer.return_value = mock_consumer_instance
-
-        sut = KafkaConsumeHandler(topic="test_topic")
-        sut.consumer = mock_consumer_instance
-
         # Act
-        del sut
+        sut = KafkaConsumeHandler(topics=["test_topic_1", "test_topic_2"])
 
         # Assert
-        mock_consumer_instance.close.assert_called_once()
+        self.assertEqual(mock_consumer_instance, sut.consumer)
 
+        mock_consumer.assert_called_once_with(expected_conf)
+        mock_consumer_instance.assign.assert_called_once()
+
+
+class TestConsume(unittest.TestCase):
     @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
     @patch(
         "src.base.kafka_handler.KAFKA_BROKERS",
@@ -142,47 +109,111 @@ class TestDel(unittest.TestCase):
         ],
     )
     @patch("src.base.kafka_handler.Consumer")
-    def test_del_with_existing_consumer(self, mock_consumer):
+    def test_not_implemented(self, mock_consumer):
         # Arrange
-        mock_consumer_instance = MagicMock()
-        mock_consumer.return_value = mock_consumer_instance
+        sut = KafkaConsumeHandler(topics="test_topic")
 
-        sut = KafkaConsumeHandler(topic="test_topic")
-        sut.consumer = None
+        # Act and Assert
+        with self.assertRaises(NotImplementedError):
+            sut.consume()
 
-        # Act
-        del sut
+
+class TestConsumeAsJSON(unittest.TestCase):
+    @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
+    @patch("src.base.kafka_handler.Consumer")
+    def setUp(self, mock_consumer):
+        self.sut = KafkaConsumeHandler(topics="test_topic")
+
+    def test_successful(self):
+        with patch(
+            "src.base.kafka_handler.KafkaConsumeHandler.consume"
+        ) as mock_consume:
+            # Arrange
+            mock_consume.return_value = [
+                "test_key",
+                json.dumps(dict(test_value=123)),
+                "test_topic",
+            ]
+
+            # Act
+            returned_values = self.sut.consume_as_json()
 
         # Assert
-        mock_consumer_instance.close.assert_not_called()
+        self.assertEqual(("test_key", dict(test_value=123)), returned_values)
 
+    def test_wrong_data_format(self):
+        with patch(
+            "src.base.kafka_handler.KafkaConsumeHandler.consume"
+        ) as mock_consume:
+            # Arrange
+            mock_consume.return_value = ["test_key", "wrong_format", "test_topic"]
 
-class TestDict(unittest.TestCase):
-    @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
-    @patch(
-        "src.base.kafka_handler.KAFKA_BROKERS",
-        [
-            {
-                "hostname": "127.0.0.1",
-                "port": 9999,
-            },
-            {
-                "hostname": "127.0.0.2",
-                "port": 9998,
-            },
-            {
-                "hostname": "127.0.0.3",
-                "port": 9997,
-            },
-        ],
-    )
-    @patch("src.base.kafka_handler.Consumer")
-    def test_dict(self, mock_consumer):
-        mock_consumer_instance = MagicMock()
-        mock_consumer.return_value = mock_consumer_instance
+            # Act and Assert
+            with self.assertRaises(ValueError):
+                self.sut.consume_as_json()
 
-        sut = KafkaConsumeHandler(topic="test_topic")
-        self.assertTrue(sut._is_dicts([{}, {}]))
+    def test_wrong_data_format_list(self):
+        with patch(
+            "src.base.kafka_handler.KafkaConsumeHandler.consume"
+        ) as mock_consume:
+            # Arrange
+            mock_consume.return_value = [
+                "test_key",
+                json.dumps([1, 2, 3]),
+                "test_topic",
+            ]
+
+            # Act and Assert
+            with self.assertRaises(ValueError):
+                self.sut.consume_as_json()
+
+    def test_kafka_message_fetch_exception(self):
+        with patch(
+            "src.base.kafka_handler.KafkaConsumeHandler.consume",
+            side_effect=KafkaMessageFetchException,
+        ):
+            # Act and Assert
+            with self.assertRaises(KafkaMessageFetchException):
+                self.sut.consume_as_json()
+
+    def test_keyboard_interrupt(self):
+        with patch(
+            "src.base.kafka_handler.KafkaConsumeHandler.consume",
+            side_effect=KeyboardInterrupt,
+        ):
+            # Act and Assert
+            with self.assertRaises(KeyboardInterrupt):
+                self.sut.consume_as_json()
+
+    def test_kafka_message_else(self):
+        with patch(
+            "src.base.kafka_handler.KafkaConsumeHandler.consume"
+        ) as mock_consume:
+            # Arrange
+            mock_consume.return_value = [None, None, "test_topic"]
+
+            # Act
+            returned_values = self.sut.consume_as_json()
+
+        # Assert
+        self.assertEqual((None, {}), returned_values)
 
 
 if __name__ == "__main__":

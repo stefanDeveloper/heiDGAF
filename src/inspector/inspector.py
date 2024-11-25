@@ -11,13 +11,15 @@ from streamad.util import StreamGenerator, CustomDS
 sys.path.append(os.getcwd())
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
-    KafkaConsumeHandler,
+    ExactlyOnceKafkaConsumeHandler,
+    ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
-    KafkaProduceHandler,
 )
+from src.base.utils import generate_unique_transactional_id
 from src.base.log_config import get_logger
 
-logger = get_logger("data_inspection.inspector")
+module_name = "data_inspection.inspector"
+logger = get_logger(module_name)
 
 config = setup_config()
 MODE = config["pipeline"]["data_inspection"]["inspector"]["mode"]
@@ -30,7 +32,18 @@ SCORE_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["score_thre
 TIME_TYPE = config["pipeline"]["data_inspection"]["inspector"]["time_type"]
 TIME_RANGE = config["pipeline"]["data_inspection"]["inspector"]["time_range"]
 TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
-
+CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+    "prefilter_to_inspector"
+]
+PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+    "inspector_to_detector"
+]
+KAFKA_BROKERS = ",".join(
+    [
+        f"{broker['hostname']}:{broker['port']}"
+        for broker in config["environment"]["kafka_brokers"]
+    ]
+)
 
 VALID_UNIVARIATE_MODELS = [
     "KNNDetector",
@@ -41,7 +54,7 @@ VALID_UNIVARIATE_MODELS = [
     "MadDetector",
     "SArimaDetector",
 ]
-VALID_MULTIVARIATE_MODLS = [
+VALID_MULTIVARIATE_MODELS = [
     "xStreamDetector",
     "RShashDetector",
     "HSTreeDetector",
@@ -70,10 +83,9 @@ class Inspector:
         self.anomalies = []
 
         logger.debug(f"Initializing Inspector...")
-        logger.debug(f"Calling KafkaConsumeHandler(topic='Inspect')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topic="Inspect")
-        logger.debug(f"Calling KafkaProduceHandler(transactional_id='Inspect')...")
-        self.kafka_produce_handler = KafkaProduceHandler(transactional_id="inspect")
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
+        transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
         logger.debug(f"Initialized Inspector.")
 
     def get_and_fill_data(self) -> None:
@@ -89,7 +101,7 @@ class Inspector:
         logger.debug(
             "Inspector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
         )
-        key, data = self.kafka_consume_handler.consume_and_return_object()
+        key, data = self.kafka_consume_handler.consume_as_object()
 
         if data:
             self.begin_timestamp = data.begin_timestamp
@@ -289,7 +301,7 @@ class Inspector:
 
     def _inspect_multivariate(self, model: str):
         logger.debug(f"Load Model: {model['model']} from {model['module']}.")
-        if not model["model"] in VALID_MULTIVARIATE_MODLS:
+        if not model["model"] in VALID_MULTIVARIATE_MODELS:
             logger.error(f"Model {model} is not a valid univariate model.")
             raise NotImplementedError(f"Model {model} is not a valid univariate model.")
 

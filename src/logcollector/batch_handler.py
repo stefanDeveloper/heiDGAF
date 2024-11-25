@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 from threading import Timer
 
-from src.base.kafka_handler import KafkaProduceHandler
+from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
 from src.base.utils import setup_config
 
 sys.path.append(os.getcwd())
@@ -15,6 +15,9 @@ logger = get_logger("log_collection.batch_handler")
 config = setup_config()
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
+PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+    "batch_sender_to_prefilter"
+]
 
 
 class BufferedBatch:
@@ -254,18 +257,20 @@ class BufferedBatch:
         return keys_set.copy()
 
 
-class CollectorKafkaBatchSender:
+class BufferedBatchSender:
     """
     Adds messages to the :class:`BufferedBatch` and sends them after a timer ran out or the respective batch is full.
     """
 
     def __init__(self):
-        self.topic = "Prefilter"
+        self.topic = PRODUCE_TOPIC
         self.batch = BufferedBatch()
         self.timer = None
 
         logger.debug(f"Calling KafkaProduceHandler(transactional_id='collector')...")
-        self.kafka_produce_handler = KafkaProduceHandler(transactional_id="collector")
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(
+            transactional_id="collector"
+        )
         logger.debug(f"Initialized KafkaBatchSender.")
 
     def __del__(self):
@@ -360,7 +365,7 @@ class CollectorKafkaBatchSender:
     def _send_data_packet(self, key: str, data: dict) -> None:
         logger.debug("Sending data to KafkaProduceHandler...")
         logger.debug(f"{data=}")
-        self.kafka_produce_handler.send(
+        self.kafka_produce_handler.produce(
             topic=self.topic,
             data=json.dumps(data),
             key=key,

@@ -6,13 +6,30 @@ import sys
 sys.path.append(os.getcwd())
 from src.base.logline_handler import LoglineHandler
 from src.base.kafka_handler import (
-    KafkaConsumeHandler,
+    ExactlyOnceKafkaConsumeHandler,
+    ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
-    KafkaProduceHandler,
 )
+from src.base.utils import generate_unique_transactional_id
 from src.base.log_config import get_logger
+from src.base.utils import setup_config
 
-logger = get_logger("log_filtering.prefilter")
+module_name = "log_filtering.prefilter"
+logger = get_logger(module_name)
+
+config = setup_config()
+CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+    "batch_sender_to_prefilter"
+]
+PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+    "prefilter_to_inspector"
+]
+KAFKA_BROKERS = ",".join(
+    [
+        f"{broker['hostname']}:{broker['port']}"
+        for broker in config["environment"]["kafka_brokers"]
+    ]
+)
 
 
 class Prefilter:
@@ -22,20 +39,17 @@ class Prefilter:
     """
 
     def __init__(self):
-        logger.debug(f"Initializing Prefilter...")
         self.begin_timestamp = None
         self.end_timestamp = None
-        self.unfiltered_data = []
-        self.filtered_data = []
         self.subnet_id = None
 
-        logger.debug(f"Calling LoglineHandler()...")
+        self.unfiltered_data = []
+        self.filtered_data = []
+
         self.logline_handler = LoglineHandler()
-        logger.debug(f"Calling KafkaProduceHandler(transactional_id='prefilter')...")
-        self.kafka_produce_handler = KafkaProduceHandler(transactional_id="prefilter")
-        logger.debug(f"Calling KafkaConsumeHandler(topic='Prefilter')...")
-        self.kafka_consume_handler = KafkaConsumeHandler(topic="Prefilter")
-        logger.debug("Initialized Prefilter.")
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
+        transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
 
     def get_and_fill_data(self) -> None:
         """
@@ -49,7 +63,7 @@ class Prefilter:
         logger.debug("Cleared existing data.")
 
         logger.debug("Calling KafkaConsumeHandler for consuming JSON data...")
-        key, data = self.kafka_consume_handler.consume_and_return_json_data()
+        key, data = self.kafka_consume_handler.consume_as_json()
 
         self.subnet_id = key
         if data:
@@ -107,8 +121,8 @@ class Prefilter:
         }
         logger.debug("Calling KafkaProduceHandler...")
         logger.debug(f"{data_to_send=}")
-        self.kafka_produce_handler.send(
-            topic="Inspect",
+        self.kafka_produce_handler.produce(
+            topic=PRODUCE_TOPIC,
             data=json.dumps(data_to_send),
             key=self.subnet_id,
         )

@@ -5,10 +5,10 @@ parts of which are similar to the code in this module.
 """
 
 import ast
-import json
 import os
 import sys
 import time
+from abc import abstractmethod
 
 import marshmallow_dataclass
 from confluent_kafka import (
@@ -50,71 +50,95 @@ class KafkaMessageFetchException(Exception):
 
 class KafkaHandler:
     """
-    Wraps and adds up on the Kafka functionality. :class:`KafkaHandler` serves as base class for further implementation
-    in its inheriting classes. Base class only specifies the initialization.
+    Base class for all Kafka wrappers. Only specifies the initialization.
     """
 
     def __init__(self) -> None:
         """
-        Initializes the brokers used in further tasks.
+        Initializes the broker configuration.
         """
-        logger.debug(f"Initializing KafkaHandler...")
         self.consumer = None
-
-        self.brokers = ",".join(
-            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
-        )
-        logger.debug(f"Retrieved {self.brokers=}.")
-        logger.debug(f"Initialized KafkaHandler.")
 
 
 class KafkaProduceHandler(KafkaHandler):
     """
-    Wraps the Kafka Producer functionality of producing data into the Broker(s) using a topic and a
-    ``transactional_id`` specified in initialization. Also uses the Write-Exactly-Once-Semantics which requires
-    handling and committing transactions. The topic and data are specified in the method call of :meth:`send()`.
+    Base class for Kafka Producer wrappers.
+    """
+
+    def __init__(self, conf):
+        super().__init__()
+        self.producer = Producer(conf)
+
+    @abstractmethod
+    def produce(self, *args, **kwargs):
+        """
+        Encodes the given data for transport and sends it on the specified topic.
+        """
+        raise NotImplementedError
+
+    def __del__(self) -> None:
+        self.producer.flush()
+
+
+class SimpleKafkaProduceHandler(KafkaProduceHandler):
+    """
+    Simple wrapper for the Kafka Producer without Write-Exactly-Once semantics.
+    """
+
+    def __init__(self):
+        self.brokers = ",".join(
+            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+        )
+
+        conf = {
+            "bootstrap.servers": self.brokers,
+            "enable.idempotence": False,
+            "acks": "1",
+        }
+
+        super().__init__(conf)
+
+    def produce(self, topic: str, data: str, key: None | str = None) -> None:
+        """
+        Encodes the given data for transport and sends it on the specified topic.
+
+        Args:
+            topic (str): Topic to send the data with
+            data (str): Data to be sent
+            key (str): Key to send the data with
+        """
+        if not data:
+            return
+
+        self.producer.flush()
+        self.producer.produce(
+            topic=topic,
+            key=key,
+            value=data.encode("utf-8"),
+            callback=kafka_delivery_report,
+        )
+
+
+class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
+    """
+    Wrapper for the Kafka Producer with Write-Exactly-Once semantics.
     """
 
     def __init__(self, transactional_id: str):
-        """
-        Args:
-            transactional_id (str): ID of the transaction
-
-        Raises:
-            KafkaException: During initialization of Producer or its transactions
-        """
-        logger.debug(f"Initializing KafkaProduceHandler ({transactional_id=})...")
-        super().__init__()
-
-        self.batch_schema = marshmallow_dataclass.class_schema(Batch)()
+        self.brokers = ",".join(
+            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+        )
 
         conf = {
             "bootstrap.servers": self.brokers,
             "transactional.id": transactional_id,
+            "enable.idempotence": True,
         }
-        logger.debug(f"Set {conf=}.")
 
-        try:
-            logger.debug("Calling Producer(conf)...")
-            self.producer = Producer(conf)
-            logger.debug("Producer set. Initializing transactions...")
-            self.producer.init_transactions()
-            logger.debug("Transactions initialized.")
-        except KafkaException as e:
-            logger.error(f"Producer initialization failed: {e}")
-            raise
+        super().__init__(conf)
+        self.producer.init_transactions()
 
-        logger.debug(f"Initialized KafkaProduceHandler ({transactional_id=}).")
-
-    def __del__(self) -> None:
-        """
-        Flushes the producer to securely delete the instance.
-        """
-        logger.debug("Closing KafkaProduceHandler...")
-        self.producer.flush()
-        logger.debug("Closed KafkaProduceHandler.")
-
-    def send(self, topic: str, data: str, key: None | str = None) -> None:
+    def produce(self, topic: str, data: str, key: None | str = None) -> None:
         """
         Encodes the given data for transport and sends it with the specified topic.
 
@@ -127,38 +151,25 @@ class KafkaProduceHandler(KafkaHandler):
             Exception: During :meth:`commit_transaction_with_retry()` or Producer's ``produce()``. Aborts
                        transaction then.
         """
-        logger.debug(f"Starting to send data to Producer...")
-        logger.debug(f"({topic=}, {data=})")
         if not data:
-            logger.debug("No data. Nothing to send. Returning...")
             return
 
-        logger.debug("Beginning transaction...")
+        self.producer.flush()
         self.producer.begin_transaction()
-        logger.debug("Successfully began transaction.")
+
         try:
-            logger.debug(f"Calling Producer for producing {topic=}, key=None...")
             self.producer.produce(
                 topic=topic,
                 key=key,
                 value=data.encode("utf-8"),
                 callback=kafka_delivery_report,
             )
-            logger.debug(
-                "Producer.produce() successfully called. Committing transaction..."
-            )
+
             self.commit_transaction_with_retry()
-            logger.debug(f"Transaction committed.")
-            logger.debug(f"({data=})")
-        except Exception as e:
-            logger.error(f"Transaction failed: {e}")
-            logger.error(f"({data=})")
+        except Exception:
             self.producer.abort_transaction()
             logger.error("Transaction aborted.")
             raise
-
-        logger.debug("Data sent to Producer.")
-        logger.debug(f"({data=})")
 
     def commit_transaction_with_retry(
         self, max_retries: int = 3, retry_interval_ms: int = 1000
@@ -171,9 +182,6 @@ class KafkaProduceHandler(KafkaHandler):
             max_retries (int): Maximum number of retries
             retry_interval_ms (int): Interval between retries in ms
         """
-        logger.debug(
-            f"Committing transaction with up to {max_retries} retries ({retry_interval_ms=})..."
-        )
         committed = False
         retry_count = 0
 
@@ -195,30 +203,20 @@ class KafkaProduceHandler(KafkaHandler):
                     raise e
 
         if not committed:
-            logger.error("Transaction could not be committed.")
             raise RuntimeError("Failed to commit transaction after retries.")
-
-        logger.debug(
-            f"Successfully committed transaction after {retry_count} retry/retries."
-        )
 
 
 class KafkaConsumeHandler(KafkaHandler):
     """
-    Wraps and adds up on the Kafka Consumer functionality of consuming data from the Broker(s) in a specified topic.
-    Also uses the Write-Exactly-Once-Semantics which requires handling and committing transactions.
+    Base class for Kafka Consumer wrappers.
     """
 
-    def __init__(self, topic: str) -> None:
-        """
-        Args:
-            topic (str): Topic name to consume from
-
-        Raises:
-            KafkaException: During construction of Consumer or assignment of topic.
-        """
-        logger.debug(f"Initializing KafkaConsumeHandler ({topic=})...")
+    def __init__(self, topics: str | list[str]) -> None:
         super().__init__()
+
+        self.brokers = ",".join(
+            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+        )
 
         conf = {
             "bootstrap.servers": self.brokers,
@@ -227,54 +225,77 @@ class KafkaConsumeHandler(KafkaHandler):
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,
         }
-        logger.debug(f"Set {conf=}.")
 
-        self.batch_schema = marshmallow_dataclass.class_schema(Batch)()
+        if isinstance(topics, str):
+            topics = [topics]
 
-        try:
-            logger.debug("Calling Consumer(conf)...")
-            self.consumer = Consumer(conf)
-            logger.debug(f"Consumer set. Assigning topic {topic}...")
-            self.consumer.assign([TopicPartition(topic, 0)])
-        except KafkaException as e:
-            logger.error(f"Consumer initialization failed: {e}")
-            raise e
+        self.consumer = Consumer(conf)
+        self.consumer.assign([TopicPartition(topic, 0) for topic in topics])
 
-        logger.debug(f"Initialized KafkaConsumeHandler ({topic=}).")
-
-    def __del__(self) -> None:
+    @abstractmethod
+    def consume(self, *args, **kwargs):
         """
-        Deletes the instance. Closes the running Kafka Consumer if it exists.
+        Consumes available messages on the specified topic and decodes it.
         """
-        logger.debug("Deleting KafkaConsumeHandler...")
-        if self.consumer:
-            self.consumer.close()
-        logger.debug("KafkaConsumeHandler deleted.")
+        raise NotImplementedError
 
-    def consume(self) -> tuple[str | None, str | None]:
+    def consume_as_json(self) -> tuple[None | str, dict]:
         """
-        Consumes available messages from the Broker(s) in the specified topic. Decodes the data and returns a tuple
-        of key and data of the message. Blocks and waits if no data is available.
+        Consumes available messages on the specified topic. Decodes the data and returns the contents in JSON format.
+        Blocks and waits if no data is available.
 
         Returns:
-            Either ``[None,None]`` if empty data was retrieved from the Broker(s) or ``[key,value]`` as tuple
-            of strings of the consumed data.
+            Consumed data in JSON format
 
         Raises:
-            KeyboardInterrupt: Execution interrupted by user
-            Exception: Error during consuming
+            ValueError: Invalid data format
         """
-        logger.debug("Starting to consume messages...")
+        key, value, topic = self.consume()
 
+        if not key and not value:
+            return None, {}
+
+        try:
+            eval_data = ast.literal_eval(value)
+
+            if isinstance(eval_data, dict):
+                return key, eval_data
+            else:
+                raise
+        except Exception:
+            raise ValueError("Unknown data format")
+
+    def __del__(self) -> None:
+        if self.consumer:
+            self.consumer.close()
+
+
+class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
+    """
+    Simple wrapper for the Kafka Consumer without Write-Exactly-Once semantics.
+    """
+
+    def __init__(self, topics):
+        super().__init__(topics)
+
+    def consume(self) -> tuple[str | None, str | None, str | None]:
+        """
+        Consumes available messages on the specified topic. Decodes the data and returns a tuple
+        of key, data and topic of the message. Blocks and waits if no data is available.
+
+        Returns:
+            Either ``[None,None,None]`` if empty data was retrieved or ``[key,value,topic]`` as tuple
+            of strings of the consumed data.
+        """
         empty_data_retrieved = False
+
         try:
             while True:
-                logger.debug("Polling available messages...")
                 msg = self.consumer.poll(timeout=1.0)
 
                 if msg is None:
                     if not empty_data_retrieved:
-                        logger.info("Waiting for messages to be produced...")
+                        logger.info("Waiting for messages...")
 
                     empty_data_retrieved = True
                     continue
@@ -284,95 +305,89 @@ class KafkaConsumeHandler(KafkaHandler):
                         continue
                     else:
                         logger.error(f"Consumer error: {msg.error()}")
-                        raise
+                        raise ValueError("Message is invalid")
 
+                # unpack message
                 key = msg.key().decode("utf-8") if msg.key() else None
                 value = msg.value().decode("utf-8") if msg.value() else None
-                logger.debug(f"Received message: {key=}, {value=}")
-                logger.debug("Committing transaction for message on Consumer...")
-                self.consumer.commit(msg)
-                logger.debug(
-                    f"Transaction committed. Successfully consumed messages. Returning [{key=}, {value=}]..."
-                )
-                return key, value
-        except KeyboardInterrupt:
-            logger.info("Shutting down KafkaConsumeHandler...")
-            raise KeyboardInterrupt
-        except Exception as e:
-            logger.error(f"Error in KafkaConsumeHandler: {e}")
-            raise
+                topic = msg.topic() if msg.topic() else None
 
-    def consume_and_return_json_data(self) -> tuple[None | str, dict]:
+                return key, value, topic
+        except KeyboardInterrupt:
+            logger.info("Stopping KafkaConsumeHandler...")
+
+
+class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
+    """
+    Wrapper for the Kafka Consumer with Write-Exactly-Once semantics.
+    """
+
+    def __init__(self, topics: str | list[str]) -> None:
+        self.batch_schema = marshmallow_dataclass.class_schema(Batch)()
+        super().__init__(topics)
+
+    def consume(self) -> tuple[str | None, str | None, str | None]:
         """
-        Calls the :meth:`consume()` method and waits for it to return data. Loads the data and converts it to a JSON
-        object. Returns the JSON data.
+        Consumes available messages on the specified topic. Decodes the data and returns a tuple
+        of key, data and topic of the message. Blocks and waits if no data is available.
 
         Returns:
-            Consumed data in JSON format
-
-        Raises:
-            ValueError: Invalid data format
-            KafkaMessageFetchException: Error during message fetching/consuming
-            KeyboardInterrupt: Execution interrupted by user
+            Either ``[None,None,None]`` if empty data was retrieved or ``[key,value,topic]`` as tuple
+            of strings of the consumed data.
         """
+        empty_data_retrieved = False
+
         try:
-            key, value = self.consume()
+            while True:
+                msg = self.consumer.poll(timeout=1.0)
 
-            if not key and not value:
-                logger.debug("No data returned.")
-                return None, {}
-        except KafkaMessageFetchException as e:
-            logger.debug(e)
-            raise
+                if msg is None:
+                    if not empty_data_retrieved:
+                        logger.info("Waiting for messages...")
+
+                    empty_data_retrieved = True
+                    continue
+
+                if msg.error():
+                    if msg.error().code() == KafkaError._PARTITION_EOF:
+                        continue
+                    else:
+                        logger.error(f"Consumer error: {msg.error()}")
+                        raise ValueError("Message is invalid")
+
+                # unpack message
+                key = msg.key().decode("utf-8") if msg.key() else None
+                value = msg.value().decode("utf-8") if msg.value() else None
+                topic = msg.topic() if msg.topic() else None
+
+                self.consumer.commit(msg)
+
+                return key, value, topic
         except KeyboardInterrupt:
-            raise
+            logger.info("Shutting down KafkaConsumeHandler...")
 
-        logger.debug("Loading JSON values from received data...")
-        json_from_message = json.loads(value)
-        logger.debug(f"{json_from_message=}")
-        eval_data = ast.literal_eval(value)
-
-        if isinstance(eval_data, dict):
-            logger.debug("Loaded available data. Returning it...")
-            return key, eval_data
-        else:
-            logger.error("Unknown data format.")
-            raise ValueError
-
-    def _is_dicts(self, obj):
+    @staticmethod
+    def _is_dicts(obj):
         return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
 
-    def consume_and_return_object(self) -> tuple[None | str, Batch]:
+    def consume_as_object(self) -> tuple[None | str, Batch]:
         """
-        Calls the :meth:`consume()` method and waits for it to return data. Loads the data and converts it to a Batch
+        Consumes available messages on the specified topic. Decodes the data and converts it to a Batch
         object. Returns the Batch object.
 
         Returns:
-            Consumed data in Batch object
+            Consumed data as Batch object
 
         Raises:
             ValueError: Invalid data format
-            KafkaMessageFetchException: Error during message fetching/consuming
-            KeyboardInterrupt: Execution interrupted by user
         """
-        try:
-            key, value = self.consume()
+        key, value, topic = self.consume()
 
-            if not key and not value:
-                logger.debug("No data returned.")
-                return None, {}
-        except KafkaMessageFetchException as e:
-            logger.warning(e)
-            raise
-        except KeyboardInterrupt:
-            raise
-
-        logger.debug("Loading JSON values from received data...")
-        json_from_message = json.loads(value)
-        logger.debug(f"{json_from_message=}")
+        if not key and not value:
+            # TODO: Change return value to fit the type, maybe switch to raise
+            return None, {}
 
         eval_data: dict = ast.literal_eval(value)
-        logger.debug("Check if data is a list of dicts")
 
         if self._is_dicts(eval_data.get("data")):
             eval_data["data"] = eval_data.get("data")
@@ -384,8 +399,6 @@ class KafkaConsumeHandler(KafkaHandler):
         eval_data: Batch = self.batch_schema.load(eval_data)
 
         if isinstance(eval_data, Batch):
-            logger.debug("Loaded available data. Returning it...")
             return key, eval_data
         else:
-            logger.error("Unknown data format.")
-            raise ValueError
+            raise ValueError("Unknown data format.")

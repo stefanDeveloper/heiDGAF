@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.pkl
+
 # C extensions
 *.so
 *.html
@@ -320,6 +321,7 @@ dmypy.json
 cython_debug/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks
-/docs/api/
+
+# Others
+docs/api/
 !/docs/api/index.rst
-/pipeline_prototype/
