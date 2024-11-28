@@ -1,6 +1,8 @@
 import asyncio
+import datetime
 import os
 import sys
+import uuid
 
 import aiofiles
 
@@ -9,6 +11,7 @@ from src.base.kafka_handler import (
     SimpleKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
 )
+from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import generate_unique_transactional_id
 from src.base.utils import setup_config
 from src.base.log_config import get_logger
@@ -42,6 +45,10 @@ class LogServer:
         self.kafka_consume_handler = SimpleKafkaConsumeHandler(CONSUME_TOPIC)
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
 
+        # databases
+        self.server_logs = ClickHouseKafkaSender("server_logs")
+        self.server_logs_timestamps = ClickHouseKafkaSender("server_logs_timestamps")
+
     async def start(self) -> None:
         """
         Starts fetching messages from Kafka and from the input file.
@@ -68,15 +75,24 @@ class LogServer:
 
             logger.info("LogServer stopped.")
 
-    def send(self, message: str) -> None:
+    def send(self, message_id: uuid.UUID, message: str) -> None:
         """
         Sends a received message using Kafka.
 
         Args:
+            message_id (uuid.UUID): UUID of the message
             message (str): Message to be sent
         """
         self.kafka_produce_handler.produce(topic=PRODUCE_TOPIC, data=message)
         logger.debug(f"Sent: '{message}'")
+
+        self.server_logs_timestamps.insert(
+            dict(
+                message_id=message_id,
+                event="timestamp_out",
+                event_timestamp=datetime.datetime.now(),
+            )
+        )
 
     async def fetch_from_kafka(self) -> None:
         """
@@ -90,7 +106,16 @@ class LogServer:
             )
             logger.debug(f"From Kafka: '{value}'")
 
-            self.send(value)
+            message_id = uuid.uuid4()
+            self.server_logs.insert(
+                dict(
+                    message_id=message_id,
+                    timestamp_in=datetime.datetime.now(),
+                    message_text=value,
+                )
+            )
+
+            self.send(message_id, value)
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
         """
@@ -117,7 +142,17 @@ class LogServer:
                         continue
 
                     logger.debug(f"From file: '{cleaned_line}'")
-                    self.send(cleaned_line)
+
+                    message_id = uuid.uuid4()
+                    self.server_logs.insert(
+                        dict(
+                            message_id=message_id,
+                            timestamp_in=datetime.datetime.now(),
+                            message_text=cleaned_line,
+                        )
+                    )
+
+                    self.send(message_id, cleaned_line)
 
 
 def main() -> None:
