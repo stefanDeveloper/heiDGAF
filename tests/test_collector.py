@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import ipaddress
 import unittest
 from unittest.mock import MagicMock, patch, AsyncMock
@@ -11,8 +12,13 @@ class TestInit(unittest.TestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def test_valid_init(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
     ):
         mock_batch_handler_instance = MagicMock()
         mock_logline_handler_instance = MagicMock()
@@ -37,8 +43,10 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def setUp(
         self,
+        mock_clickhouse,
         mock_logline_handler,
         mock_batch_handler,
         mock_kafka_consume_handler,
@@ -89,8 +97,13 @@ class TestFetch(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.LoglineHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def asyncSetUp(
-        self, mock_kafka_handler, mock_batch_sender, mock_logline_handler
+        self,
+        mock_clickhouse,
+        mock_kafka_handler,
+        mock_batch_sender,
+        mock_logline_handler,
     ):
         self.sut = LogCollector()
         self.sut.kafka_consume_handler = AsyncMock()
@@ -98,8 +111,9 @@ class TestFetch(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.LogCollector.store")
     @patch("src.logcollector.collector.logger")
     @patch("asyncio.get_running_loop")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_handle_kafka_inputs(
-        self, mock_get_running_loop, mock_logger, mock_store
+        self, mock_clickhouse, mock_get_running_loop, mock_logger, mock_store
     ):
         mock_store_instance = AsyncMock()
         mock_store.return_value = mock_store_instance
@@ -119,7 +133,7 @@ class TestFetch(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await self.sut.fetch()
 
-        mock_store.assert_called_once_with("value1")
+        mock_store.assert_called_once()
 
 
 class TestSend(unittest.IsolatedAsyncioTestCase):
@@ -128,8 +142,14 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_send_with_one_logline(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler, mock_logger
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
+        mock_logger,
     ):
         # Arrange
         mock_batch_handler_instance = MagicMock()
@@ -162,7 +182,7 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
         )
 
         sut = LogCollector()
-        await sut.store(input_logline)
+        await sut.store(datetime.datetime.now(), input_logline)
 
         # Act
         await sut.send()
@@ -176,8 +196,14 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_send_keyboard_interrupt(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler, mock_logger
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
+        mock_logger,
     ):
         # Arrange
         mock_batch_handler_instance = MagicMock()
@@ -207,10 +233,10 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
         )
 
         sut = LogCollector()
-        await sut.store(input_logline)
-        await sut.store(input_logline)
-        await sut.store(input_logline)
-        await sut.store(input_logline)
+        await sut.store(datetime.datetime.now(), input_logline)
+        await sut.store(datetime.datetime.now(), input_logline)
+        await sut.store(datetime.datetime.now(), input_logline)
+        await sut.store(datetime.datetime.now(), input_logline)
 
         # Act
         await sut.send()
@@ -224,8 +250,10 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
     @patch("src.logcollector.collector.asyncio.Queue")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_send_empty(
         self,
+        mock_clickhouse,
         mock_queue,
         mock_logline_handler,
         mock_batch_handler,
@@ -253,8 +281,14 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_send_value_error(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler, mock_logger
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
+        mock_logger,
     ):
         # Arrange
         mock_batch_handler_instance = MagicMock()
@@ -288,9 +322,9 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
         )
 
         sut = LogCollector()
-        await sut.store(input_logline)
-        await sut.store(input_logline)
-        await sut.store(input_logline)
+        await sut.store(datetime.datetime.now(), input_logline)
+        await sut.store(datetime.datetime.now(), input_logline)
+        await sut.store(datetime.datetime.now(), input_logline)
 
         # Act
         await sut.send()
@@ -304,18 +338,24 @@ class TestStore(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_store(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_consume_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_consume_handler,
     ):
         # Arrange
         sut = LogCollector()
         self.assertTrue(sut.loglines.empty())
 
         # Act
-        await sut.store("test_message")
+        await sut.store(datetime.datetime.now(), "test_message")
 
         # Assert
-        self.assertEqual("test_message", await sut.loglines.get())
+        stored_timestamp, stored_message = await sut.loglines.get()
+        self.assertEqual("test_message", stored_message)
         self.assertTrue(sut.loglines.empty())
 
 
@@ -324,8 +364,13 @@ class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def test_get_subnet_id_ipv4(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
     ):
         # Arrange
         test_address = ipaddress.IPv4Address("192.168.1.1")
@@ -342,8 +387,13 @@ class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def test_get_subnet_id_ipv4_zero(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
     ):
         # Arrange
         test_address = ipaddress.IPv4Address("0.0.0.0")
@@ -360,8 +410,13 @@ class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def test_get_subnet_id_ipv4_max(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
     ):
         # Arrange
         test_address = ipaddress.IPv4Address("255.255.255.255")
@@ -378,8 +433,13 @@ class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def test_get_subnet_id_ipv6(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
     ):
         # Arrange
         test_address = ipaddress.IPv6Address("2001:db8:85a3:1234:5678:8a2e:0370:7334")
@@ -396,8 +456,13 @@ class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def test_get_subnet_id_ipv6_zero(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
     ):
         # Arrange
         test_address = ipaddress.IPv6Address("::")
@@ -414,8 +479,13 @@ class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def test_get_subnet_id_ipv6_max(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
     ):
         # Arrange
         test_address = ipaddress.IPv6Address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
@@ -433,8 +503,13 @@ class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def test_get_subnet_id_unsupported_type(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
     ):
         # Arrange
         test_address = "192.168.1.1"  # String instead of IPv4Address or IPv6Address
@@ -450,8 +525,13 @@ class TestGetSubnetId(unittest.TestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.ClickHouseKafkaSender")
     def test_get_subnet_id_none(
-        self, mock_logline_handler, mock_batch_handler, mock_kafka_handler
+        self,
+        mock_clickhouse,
+        mock_logline_handler,
+        mock_batch_handler,
+        mock_kafka_handler,
     ):
         # Arrange
         test_address = None

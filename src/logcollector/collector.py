@@ -1,10 +1,12 @@
 import asyncio
+import datetime
 import ipaddress
 import json
 import os
 import sys
 
 sys.path.append(os.getcwd())
+from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 from src.base.logline_handler import LoglineHandler
 from src.base import utils
@@ -37,6 +39,9 @@ class LogCollector:
         self.batch_handler = BufferedBatchSender()
         self.logline_handler = LoglineHandler()
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
+
+        # databases
+        self.failed_dns_loglines = ClickHouseKafkaSender("failed_dns_loglines")
 
     async def start(self) -> None:
         """
@@ -74,7 +79,7 @@ class LogCollector:
             )
             logger.debug(f"From Kafka: '{value}'")
 
-            await self.store(value)
+            await self.store(datetime.datetime.now(), value)
 
     async def send(self) -> None:
         """
@@ -85,12 +90,20 @@ class LogCollector:
         try:
             while True:
                 if not self.loglines.empty():
-                    logline = await self.loglines.get()
+                    timestamp_in, logline = await self.loglines.get()
                     try:
                         fields = self.logline_handler.validate_logline_and_get_fields_as_json(
                             logline
                         )
                     except ValueError:
+                        self.failed_dns_loglines.insert(
+                            dict(
+                                message_text=logline,
+                                timestamp_in=timestamp_in,
+                                timestamp_failed=datetime.datetime.now(),
+                            )
+                        )
+
                         continue
 
                     subnet_id = self.get_subnet_id(
@@ -115,14 +128,15 @@ class LogCollector:
 
             logger.info("Stopped LogCollector.")
 
-    async def store(self, message: str):
+    async def store(self, timestamp_in: datetime.datetime, message: str):
         """
         Stores the given message temporarily.
 
         Args:
+            timestamp_in (datetime.datetime): Timestamp of entering the pipeline
             message (str): Message to be stored
         """
-        await self.loglines.put(message)
+        await self.loglines.put((timestamp_in, message))
 
     @staticmethod
     def get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
