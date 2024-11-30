@@ -4,6 +4,7 @@ import ipaddress
 import json
 import os
 import sys
+import uuid
 
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
@@ -13,7 +14,8 @@ from src.base import utils
 from src.logcollector.batch_handler import BufferedBatchSender
 from src.base.log_config import get_logger
 
-logger = get_logger("log_collection.collector")
+module_name = "log_collection.collector"
+logger = get_logger(module_name)
 
 config = utils.setup_config()
 IPV4_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
@@ -22,6 +24,7 @@ IPV4_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subn
 IPV6_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
     "ipv6_prefix_length"
 ]
+REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "logserver_to_collector"
@@ -42,6 +45,7 @@ class LogCollector:
 
         # databases
         self.failed_dns_loglines = ClickHouseKafkaSender("failed_dns_loglines")
+        self.dns_loglines = ClickHouseKafkaSender("dns_loglines")
 
     async def start(self) -> None:
         """
@@ -91,6 +95,7 @@ class LogCollector:
             while True:
                 if not self.loglines.empty():
                     timestamp_in, logline = await self.loglines.get()
+
                     try:
                         fields = self.logline_handler.validate_logline_and_get_fields_as_json(
                             logline
@@ -103,7 +108,6 @@ class LogCollector:
                                 timestamp_failed=datetime.datetime.now(),
                             )
                         )
-
                         continue
 
                     subnet_id = self.get_subnet_id(
@@ -111,6 +115,30 @@ class LogCollector:
                     )
 
                     self.batch_handler.add_message(subnet_id, json.dumps(fields))
+                    additional_fields = fields.copy()
+                    for field in REQUIRED_FIELDS:
+                        additional_fields.pop(field)
+
+                    logline_id = uuid.uuid4()
+
+                    self.dns_loglines.insert(
+                        dict(
+                            logline_id=logline_id,
+                            subnet_id=subnet_id,
+                            timestamp=fields.get("timestamp"),
+                            status_code=fields.get("status_code"),
+                            client_ip=fields.get("client_ip"),
+                            record_type=fields.get("record_type"),
+                            additional_fields=additional_fields,
+                        )
+                    )
+
+                    message_fields = fields.copy()
+                    message_fields["logline_id"] = logline_id
+
+                    self.batch_handler.add_message(
+                        subnet_id, json.dumps(message_fields)
+                    )
                     logger.debug(f"Sent: '{logline}'")
                 else:
                     await asyncio.sleep(0.1)
