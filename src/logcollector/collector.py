@@ -156,6 +156,15 @@ class LogCollector:
                     self.batch_handler.add_message(
                         subnet_id, json.dumps(message_fields)
                     )
+
+                    self.logline_timestamps.insert(
+                        dict(
+                            logline_id=logline_id,
+                            stage=module_name,
+                            status="completed",
+                            timestamp=datetime.datetime.now(),
+                        )
+                    )
                     logger.debug(f"Sent: '{logline}'")
                 else:
                     await asyncio.sleep(0.1)
