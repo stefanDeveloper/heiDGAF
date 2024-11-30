@@ -189,6 +189,7 @@ class DNSLoglinesConnector(ClickHouseConnector):
 
     def insert(
         self,
+        logline_id: str | uuid.UUID,
         subnet_id: str,
         timestamp: str | datetime.datetime,
         status_code: str,
@@ -196,7 +197,8 @@ class DNSLoglinesConnector(ClickHouseConnector):
         record_type: str,
         additional_fields: str | None = None,
     ) -> uuid.UUID:
-        logline_id = uuid.uuid4()
+        if isinstance(logline_id, str):
+            logline_id = uuid.UUID(logline_id)
 
         self._add_to_batch(
             [
