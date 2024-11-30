@@ -1,0 +1,40 @@
+include:
+  - "docker-compose.kafka.yml"
+
+services:
+  sandbox:
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.dev-query
+      network: host
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.100
+    memswap_limit: 768m
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+    volumes:
+      - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
+
+
+networks:
+  heidgaf:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.27.0.0/16
+          gateway: 172.27.0.1
