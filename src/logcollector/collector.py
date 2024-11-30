@@ -46,6 +46,7 @@ class LogCollector:
         # databases
         self.failed_dns_loglines = ClickHouseKafkaSender("failed_dns_loglines")
         self.dns_loglines = ClickHouseKafkaSender("dns_loglines")
+        self.logline_status = ClickHouseKafkaSender("logline_status")
 
     async def start(self) -> None:
         """
@@ -114,7 +115,6 @@ class LogCollector:
                         ipaddress.ip_address(fields.get("client_ip"))
                     )
 
-                    self.batch_handler.add_message(subnet_id, json.dumps(fields))
                     additional_fields = fields.copy()
                     for field in REQUIRED_FIELDS:
                         additional_fields.pop(field)
@@ -130,6 +130,13 @@ class LogCollector:
                             client_ip=fields.get("client_ip"),
                             record_type=fields.get("record_type"),
                             additional_fields=additional_fields,
+                        )
+                    )
+
+                    self.logline_status.insert(
+                        dict(
+                            logline_id=logline_id,
+                            status="active",
                         )
                     )
 
