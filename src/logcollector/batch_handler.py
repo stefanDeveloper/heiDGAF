@@ -372,11 +372,11 @@ class BufferedBatchSender:
         self._send_data_packet(key, data)
 
     def _send_data_packet(self, key: str, data: dict) -> None:
-        logger.debug("Sending data to KafkaProduceHandler...")
-        logger.debug(f"{data=}")
+        batch_schema = marshmallow_dataclass.class_schema(Batch)()
+
         self.kafka_produce_handler.produce(
             topic=self.topic,
-            data=json.dumps(data),
+            data=batch_schema.dumps(data),
             key=key,
         )
 

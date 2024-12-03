@@ -1,9 +1,10 @@
-import ast
-import json
 import os
 import sys
 
+import marshmallow_dataclass
+
 sys.path.append(os.getcwd())
+from src.base import Batch
 from src.base.logline_handler import LoglineHandler
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
@@ -39,6 +40,7 @@ class Prefilter:
     """
 
     def __init__(self):
+        self.batch_id = None
         self.begin_timestamp = None
         self.end_timestamp = None
         self.subnet_id = None
@@ -63,13 +65,14 @@ class Prefilter:
         logger.debug("Cleared existing data.")
 
         logger.debug("Calling KafkaConsumeHandler for consuming JSON data...")
-        key, data = self.kafka_consume_handler.consume_as_json()
+        key, data = self.kafka_consume_handler.consume_as_object()
 
         self.subnet_id = key
         if data:
-            self.begin_timestamp = data.get("begin_timestamp")
-            self.end_timestamp = data.get("end_timestamp")
-            self.unfiltered_data = data.get("data")
+            self.batch_id = data.batch_id
+            self.begin_timestamp = data.begin_timestamp
+            self.end_timestamp = data.end_timestamp
+            self.unfiltered_data = data.data
 
         if not self.unfiltered_data:
             logger.info(
@@ -94,8 +97,7 @@ class Prefilter:
         logger.debug("Filtering data...")
 
         for e in self.unfiltered_data:
-            e_as_json = ast.literal_eval(e)
-            if self.logline_handler.check_relevance(e_as_json):
+            if self.logline_handler.check_relevance(e):
                 self.filtered_data.append(e)
 
         logger.debug("Data filtered and now available in filtered_data.")
@@ -115,15 +117,19 @@ class Prefilter:
             raise ValueError("Failed to send data: No filtered data.")
 
         data_to_send = {
+            "batch_id": self.batch_id,
             "begin_timestamp": self.begin_timestamp,
             "end_timestamp": self.end_timestamp,
             "data": self.filtered_data,
         }
+
+        batch_schema = marshmallow_dataclass.class_schema(Batch)()
+
         logger.debug("Calling KafkaProduceHandler...")
         logger.debug(f"{data_to_send=}")
         self.kafka_produce_handler.produce(
             topic=PRODUCE_TOPIC,
-            data=json.dumps(data_to_send),
+            data=batch_schema.dumps(data_to_send),
             key=self.subnet_id,
         )
         logger.debug(
