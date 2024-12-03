@@ -151,7 +151,7 @@ class LogCollector:
                     )
 
                     message_fields = fields.copy()
-                    message_fields["logline_id"] = logline_id
+                    message_fields["logline_id"] = str(logline_id)
 
                     self.batch_handler.add_message(
                         subnet_id, json.dumps(message_fields)

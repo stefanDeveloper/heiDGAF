@@ -430,7 +430,7 @@ class Inspector:
                     "end_timestamp": self.end_timestamp.strftime(TIMESTAMP_FORMAT),
                     "data": value,
                 }
-                self.kafka_produce_handler.send(
+                self.kafka_produce_handler.produce(
                     topic="Detector",
                     data=json.dumps(data_to_send),
                     key=key,

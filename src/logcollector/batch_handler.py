@@ -1,16 +1,21 @@
+import datetime
 import json
 import os
 import sys
-from datetime import datetime
+import uuid
 from threading import Timer
 
-from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
-from src.base.utils import setup_config
+import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
+from src.base import Batch
+from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
+from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
+from src.base.utils import setup_config
 from src.base.log_config import get_logger
 
-logger = get_logger("log_collection.batch_handler")
+module_name = "log_collection.batch_handler"
+logger = get_logger(module_name)
 
 config = setup_config()
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
@@ -93,7 +98,7 @@ class BufferedBatch:
             List of log lines as strings sorted by timestamps (ascending)
         """
         sorted_data = sorted(
-            data, key=lambda x: datetime.strptime(x[0], timestamp_format)
+            data, key=lambda x: datetime.datetime.strptime(x[0], timestamp_format)
         )
         loglines = [message for _, message in sorted_data]
 
@@ -217,8 +222,15 @@ class BufferedBatch:
                 begin_timestamp = self.get_first_timestamp_of_buffer(key)
 
             data = {
-                "begin_timestamp": begin_timestamp,
-                "end_timestamp": self.get_last_timestamp_of_batch(key),
+                "batch_id": uuid.uuid4(),
+                "begin_timestamp": datetime.datetime.strptime(
+                    begin_timestamp,
+                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                ),
+                "end_timestamp": datetime.datetime.strptime(
+                    self.get_last_timestamp_of_batch(key),
+                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                ),
                 "data": buffer_data + self.batch[key],
             }
 
@@ -310,7 +322,6 @@ class BufferedBatchSender:
                 f"    ⤷  {number_of_messages_for_key} messages sent."
             )
         elif not self.timer:  # First time setting the timer
-            logger.debug("Timer not set yet. Calling _reset_timer()...")
             self._reset_timer()
 
         logger.debug(f"Message '{message}' successfully added to batch for {key=}.")
@@ -352,15 +363,13 @@ class BufferedBatchSender:
             )
 
     def _send_batch_for_key(self, key: str) -> None:
-        logger.debug(f"Starting to send the batch for {key=}...")
-
         try:
-            data_packet = self.batch.complete_batch(key)
+            data = self.batch.complete_batch(key)
         except ValueError as e:
             logger.debug(e)
             return
 
-        self._send_data_packet(key, data_packet)
+        self._send_data_packet(key, data)
 
     def _send_data_packet(self, key: str, data: dict) -> None:
         logger.debug("Sending data to KafkaProduceHandler...")
@@ -370,7 +379,6 @@ class BufferedBatchSender:
             data=json.dumps(data),
             key=key,
         )
-        logger.debug(f"{data=}")
 
     def _reset_timer(self) -> None:
         """

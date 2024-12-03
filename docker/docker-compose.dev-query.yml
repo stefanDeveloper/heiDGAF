@@ -5,7 +5,7 @@ services:
   sandbox:
     build:
       context: ..
-      dockerfile: dockerfiles/Dockerfile.dev-query
+      dockerfile: docker/dockerfiles/Dockerfile.dev-query
       network: host
     depends_on:
       kafka1:

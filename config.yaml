@@ -19,7 +19,6 @@ pipeline:
   log_storage:
     logserver:
       input_file: "/opt/file.txt"
-      max_number_of_connections: 1000
 
   log_collection:
     collector:
