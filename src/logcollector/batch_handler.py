@@ -283,7 +283,9 @@ class BufferedBatchSender:
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(
             transactional_id="collector"
         )
-        logger.debug(f"Initialized KafkaBatchSender.")
+
+        # databases
+        self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
 
     def __del__(self):
         logger.debug(f"Closing KafkaBatchSender ({self.topic=})...")
@@ -307,7 +309,27 @@ class BufferedBatchSender:
         """
         logger.debug(f"Adding message '{message}' to batch.")
 
+        logline_id = json.loads(message).get("logline_id")
+
+        self.logline_timestamps.insert(
+            dict(
+                logline_id=logline_id,
+                stage=module_name,
+                status="in_process",
+                timestamp=datetime.datetime.now(),
+            )
+        )
+
         self.batch.add_message(key, message)
+
+        self.logline_timestamps.insert(
+            dict(
+                logline_id=logline_id,
+                stage=module_name,
+                status="batched",
+                timestamp=datetime.datetime.now(),
+            )
+        )
 
         logger.debug(f"Batch: {self.batch.batch}")
         number_of_messages_for_key = self.batch.get_number_of_messages(key)
