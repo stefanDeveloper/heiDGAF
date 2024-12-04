@@ -8,7 +8,7 @@ from threading import Timer
 import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
-from src.base import Batch
+from src.base.data_classes.batch import Batch
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
 from src.base.utils import setup_config

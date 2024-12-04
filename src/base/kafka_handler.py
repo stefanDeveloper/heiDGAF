@@ -20,7 +20,7 @@ from confluent_kafka import (
 )
 
 sys.path.append(os.getcwd())
-from src.base import Batch
+from src.base.data_classes.batch import Batch
 from src.base.log_config import get_logger
 from src.base.utils import kafka_delivery_report, setup_config
 
