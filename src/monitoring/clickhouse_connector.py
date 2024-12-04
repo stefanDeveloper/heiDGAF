@@ -3,11 +3,12 @@ import os
 import sys
 import uuid
 from abc import abstractmethod
+from typing import Optional
 
 import clickhouse_connect
 
 sys.path.append(os.getcwd())
-from src.monitoring.clickhouse_batch import ClickHouseBatchSender
+from src.monitoring.clickhouse_batch_sender import ClickHouseBatchSender
 from src.base.log_config import get_logger
 from src.base.utils import setup_config
 
@@ -67,24 +68,10 @@ class ServerLogsConnector(ClickHouseConnector):
     def insert(
         self,
         message_text: str,
-        message_id: None | str | uuid.UUID = None,
-        timestamp_in: str | datetime.datetime | None = None,
-    ) -> uuid.UUID:
-        # TODO: Switch to Marshmallow
-        if not message_id:
-            message_id = uuid.uuid4()
-
-        if isinstance(message_id, str):
-            message_id = uuid.UUID(message_id)
-
-        if not timestamp_in:
-            timestamp_in = datetime.datetime.now()
-
-        if isinstance(timestamp_in, str):
-            timestamp_in = datetime.datetime.fromisoformat(timestamp_in)
-
+        message_id: uuid.UUID,
+        timestamp_in: datetime.datetime,
+    ):
         self._add_to_batch([message_id, timestamp_in, message_text])
-        return message_id
 
 
 class ServerLogsTimestampsConnector(ClickHouseConnector):
@@ -99,19 +86,10 @@ class ServerLogsTimestampsConnector(ClickHouseConnector):
 
     def insert(
         self,
-        message_id: str | uuid.UUID,
+        message_id: uuid.UUID,
         event: str,
-        event_timestamp: str | datetime.datetime | None = None,
+        event_timestamp: datetime.datetime,
     ):
-        if isinstance(message_id, str):
-            message_id = uuid.UUID(message_id)
-
-        if not event_timestamp:
-            event_timestamp = datetime.datetime.now()
-
-        if isinstance(event_timestamp, str):
-            event_timestamp = datetime.datetime.fromisoformat(event_timestamp)
-
         self._add_to_batch([message_id, event, event_timestamp])
 
 
@@ -129,18 +107,10 @@ class FailedDNSLoglinesConnector(ClickHouseConnector):
     def insert(
         self,
         message_text: str,
-        timestamp_in: str | datetime.datetime,
-        timestamp_failed: str | datetime.datetime | None = None,
-        reason_for_failure: str | None = None,
+        timestamp_in: datetime.datetime,
+        timestamp_failed: datetime.datetime,
+        reason_for_failure: Optional[str] = None,
     ) -> None:
-        if not timestamp_failed:
-            timestamp_failed = datetime.datetime.now()
-
-        if isinstance(timestamp_in, str):
-            timestamp_in = datetime.datetime.fromisoformat(timestamp_in)
-        if isinstance(timestamp_failed, str):
-            timestamp_failed = datetime.datetime.fromisoformat(timestamp_failed)
-
         self._add_to_batch(
             [message_text, timestamp_in, timestamp_failed, reason_for_failure]
         )
@@ -157,20 +127,10 @@ class LoglineToBatchesConnector(ClickHouseConnector):
 
     def insert(
         self,
-        logline_id: str | uuid.UUID,
-        batch_id: str | uuid.UUID,
+        logline_id: uuid.UUID,
+        batch_id: uuid.UUID,
     ):
-        if isinstance(logline_id, str):
-            logline_id = uuid.UUID(logline_id)
-        if isinstance(batch_id, str):
-            batch_id = uuid.UUID(batch_id)
-
-        self._add_to_batch(
-            [
-                logline_id,
-                batch_id,
-            ]
-        )
+        self._add_to_batch([logline_id, batch_id])
 
 
 class DNSLoglinesConnector(ClickHouseConnector):
@@ -195,11 +155,8 @@ class DNSLoglinesConnector(ClickHouseConnector):
         status_code: str,
         client_ip: str,
         record_type: str,
-        additional_fields: str | None = None,
-    ) -> uuid.UUID:
-        if isinstance(logline_id, str):
-            logline_id = uuid.UUID(logline_id)
-
+        additional_fields: Optional[str] = None,
+    ):
         self._add_to_batch(
             [
                 logline_id,
@@ -211,7 +168,6 @@ class DNSLoglinesConnector(ClickHouseConnector):
                 additional_fields,
             ]
         )
-        return logline_id
 
 
 class LoglineStatusConnector(ClickHouseConnector):
@@ -226,13 +182,10 @@ class LoglineStatusConnector(ClickHouseConnector):
 
     def insert(
         self,
-        logline_id: str | uuid.UUID,
+        logline_id: uuid.UUID,
         status: str,
-        exit_at_stage: str | None = None,
+        exit_at_stage: Optional[str] = None,
     ):
-        if isinstance(logline_id, str):
-            logline_id = uuid.UUID(logline_id)
-
         self._add_to_batch(
             [
                 logline_id,
@@ -255,20 +208,11 @@ class LoglineTimestampsConnector(ClickHouseConnector):
 
     def insert(
         self,
-        logline_id: str | uuid.UUID,
+        logline_id: uuid.UUID,
         stage: str,
         status: str,
-        timestamp: str | datetime.datetime = None,
+        timestamp: datetime.datetime,
     ) -> None:
-        if isinstance(logline_id, str):
-            logline_id = uuid.UUID(logline_id)
-
-        if not timestamp:
-            timestamp = datetime.datetime.now()
-
-        if isinstance(timestamp, str):
-            timestamp = datetime.datetime.fromisoformat(timestamp)
-
         self._add_to_batch(
             [
                 logline_id,
@@ -291,13 +235,10 @@ class BatchStatusConnector(ClickHouseConnector):
 
     def insert(
         self,
-        batch_id: str | uuid.UUID,
+        batch_id: uuid.UUID,
         status: str,
-        exit_at_stage: str | None = None,
+        exit_at_stage: Optional[str] = None,
     ):
-        if isinstance(batch_id, str):
-            batch_id = uuid.UUID(batch_id)
-
         self._add_to_batch(
             [
                 batch_id,
@@ -321,21 +262,12 @@ class BatchTimestampsConnector(ClickHouseConnector):
 
     def insert(
         self,
-        batch_id: str | uuid.UUID,
+        batch_id: uuid.UUID,
         stage: str,
         status: str,
         message_count: int,
-        timestamp: str | datetime.datetime = None,
+        timestamp: datetime.datetime,
     ) -> None:
-        if isinstance(batch_id, str):
-            batch_id = uuid.UUID(batch_id)
-
-        if not timestamp:
-            timestamp = datetime.datetime.now()
-
-        if isinstance(timestamp, str):
-            timestamp = datetime.datetime.fromisoformat(timestamp)
-
         self._add_to_batch(
             [
                 batch_id,

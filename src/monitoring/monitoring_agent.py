@@ -1,11 +1,14 @@
 import asyncio
-import json
 import os
 import sys
+from dataclasses import asdict
+
+import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
 from src.monitoring.clickhouse_connector import *
 from src.base.kafka_handler import SimpleKafkaConsumeHandler
+from src.base.data_classes.clickhouse_connectors import TABLE_NAME_TO_TYPE
 from src.base.log_config import get_logger
 from src.base.utils import setup_config
 
@@ -60,10 +63,13 @@ class MonitoringAgent:
                 )
                 logger.debug(f"From Kafka: {value}")
 
-                data = json.loads(value)
                 table_name = topic.replace("clickhouse_", "")
+                data_schema = marshmallow_dataclass.class_schema(
+                    TABLE_NAME_TO_TYPE.get(table_name)
+                )()
+                data = data_schema.loads(value)
 
-                self.connectors[table_name].insert(**data)
+                self.connectors[table_name].insert(**asdict(data))
         except KeyboardInterrupt:
             logger.info("Stopped MonitoringAgent.")
 
