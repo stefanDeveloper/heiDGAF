@@ -34,22 +34,40 @@ class BufferedBatch:
     def __init__(self):
         self.batch = {}  # Batch for the latest messages coming in
         self.buffer = {}  # Former batch with previous messages
+        self.batch_id = {}  # Batch ID per key
 
     def add_message(self, key: str, message: str) -> None:
+    def add_message(self, key: str, logline_id: uuid.UUID, message: str) -> None:
         """
         Adds a given message to the messages list of the given key. If the key already exists, the message is simply
         added, otherwise, the key is created.
 
         Args:
+            logline_id (uuid.UUID): Logline ID of the added message
             key (str): Key to which the message is added
             message (str): Message to be added
         """
         if key in self.batch:  # key already has messages associated
             self.batch[key].append(message)
-            logger.debug(f"Message '{message}' added to {key}'s batch.")
+
+            batch_id = self.batch_id.get(key)
+            self.logline_to_batches.insert(
+                dict(
+                    logline_id=logline_id,
+                    batch_id=batch_id,
+                )
+            )
+
+            self.batch_status.insert(
+                dict(
+                    batch_id=batch_id,
+                    status=1,
+                    exit_at_stage=None,
+                )
+            )
         else:  # key has no messages associated yet
             self.batch[key] = [message]
-            logger.debug(f"Message '{message}' added to newly created {key}'s batch.")
+            self.batch_id[key] = [uuid.uuid4()]
 
     def get_number_of_messages(self, key: str) -> int:
         """
@@ -203,7 +221,8 @@ class BufferedBatch:
             key (str): Key for which to complete the current batch and return data packet
 
         Returns:
-            Dictionary of begin_timestamp, end_timestamp and messages (including buffered data) associated with a key
+            Set of new Logline IDs and dictionary of begin_timestamp, end_timestamp and messages (including buffered
+            data) associated with a key
 
         Raises:
             ValueError: No data is available for sending.
@@ -222,7 +241,7 @@ class BufferedBatch:
                 begin_timestamp = self.get_first_timestamp_of_buffer(key)
 
             data = {
-                "batch_id": uuid.uuid4(),
+                "batch_id": self.batch_id.get(key),
                 "begin_timestamp": datetime.datetime.strptime(
                     begin_timestamp,
                     "%Y-%m-%dT%H:%M:%S.%fZ",
@@ -237,6 +256,9 @@ class BufferedBatch:
             # Move data from batch to buffer
             self.buffer[key] = self.batch[key]
             del self.batch[key]
+
+            # Batch ID is not needed anymore
+            del self.batch_id[key]
 
             return data
 
@@ -320,7 +342,7 @@ class BufferedBatchSender:
             )
         )
 
-        self.batch.add_message(key, message)
+        self.batch.add_message(key, logline_id, message)
 
         self.logline_timestamps.insert(
             dict(
