@@ -137,7 +137,7 @@ class LogCollector:
                     self.logline_status.insert(
                         dict(
                             logline_id=logline_id,
-                            status="active",
+                            is_active=1,
                         )
                     )
 

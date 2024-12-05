@@ -92,7 +92,9 @@ class LoglineStatus:
     logline_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
-    status: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    is_active: bool = field(
+        metadata={"marshmallow_field": marshmallow.fields.Boolean()}
+    )
     exit_at_stage: Optional[str] = field(
         metadata={"marshmallow_field": marshmallow.fields.String(allow_none=True)}
     )
@@ -117,7 +119,9 @@ class BatchStatus:
     batch_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
-    status: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    is_active: bool = field(
+        metadata={"marshmallow_field": marshmallow.fields.Boolean()}
+    )
     exit_at_stage: Optional[str] = field(
         metadata={"marshmallow_field": marshmallow.fields.String(allow_none=True)}
     )

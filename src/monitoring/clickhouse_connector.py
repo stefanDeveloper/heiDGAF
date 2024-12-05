@@ -174,7 +174,7 @@ class LoglineStatusConnector(ClickHouseConnector):
     def __init__(self):
         column_names = [
             "logline_id",
-            "status",
+            "is_active",
             "exit_at_stage",
         ]
 
@@ -183,13 +183,13 @@ class LoglineStatusConnector(ClickHouseConnector):
     def insert(
         self,
         logline_id: uuid.UUID,
-        status: str,
+        is_active: bool,
         exit_at_stage: Optional[str] = None,
     ):
         self._add_to_batch(
             [
                 logline_id,
-                status,
+                is_active,
                 exit_at_stage,
             ]
         )
@@ -227,7 +227,7 @@ class BatchStatusConnector(ClickHouseConnector):
     def __init__(self):
         column_names = [
             "batch_id",
-            "status",
+            "is_active",
             "exit_at_stage",
         ]
 
@@ -236,13 +236,13 @@ class BatchStatusConnector(ClickHouseConnector):
     def insert(
         self,
         batch_id: uuid.UUID,
-        status: str,
+        is_active: bool,
         exit_at_stage: Optional[str] = None,
     ):
         self._add_to_batch(
             [
                 batch_id,
-                status,
+                is_active,
                 exit_at_stage,
             ]
         )
