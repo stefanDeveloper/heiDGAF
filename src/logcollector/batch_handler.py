@@ -11,7 +11,7 @@ sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
-from src.base.utils import setup_config
+from src.base.utils import setup_config, generate_unique_transactional_id
 from src.base.log_config import get_logger
 
 module_name = "log_collection.batch_handler"
@@ -23,6 +23,12 @@ BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_tim
 PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "batch_sender_to_prefilter"
 ]
+KAFKA_BROKERS = ",".join(
+    [
+        f"{broker['hostname']}:{broker['port']}"
+        for broker in config["environment"]["kafka_brokers"]
+    ]
+)
 
 
 class BufferedBatch:
@@ -304,10 +310,8 @@ class BufferedBatchSender:
         self.batch = BufferedBatch()
         self.timer = None
 
-        logger.debug(f"Calling KafkaProduceHandler(transactional_id='collector')...")
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(
-            transactional_id="collector"
-        )
+        transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
 
         # databases
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
