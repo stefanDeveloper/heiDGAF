@@ -36,7 +36,10 @@ class BufferedBatch:
         self.buffer = {}  # Former batch with previous messages
         self.batch_id = {}  # Batch ID per key
 
-    def add_message(self, key: str, message: str) -> None:
+        # databases
+        self.logline_to_batches = ClickHouseKafkaSender("logline_to_batches")
+        self.batch_status = ClickHouseKafkaSender("batch_status")
+
     def add_message(self, key: str, logline_id: uuid.UUID, message: str) -> None:
         """
         Adds a given message to the messages list of the given key. If the key already exists, the message is simply
