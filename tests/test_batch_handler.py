@@ -1,4 +1,6 @@
+import json
 import unittest
+import uuid
 from unittest.mock import patch, MagicMock
 
 from src.logcollector.batch_handler import BufferedBatchSender
@@ -8,7 +10,10 @@ class TestInit(unittest.TestCase):
     @patch("src.logcollector.batch_handler.PRODUCE_TOPIC", "test_topic")
     @patch("src.logcollector.batch_handler.BufferedBatch")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
-    def test_init_with_buffer(self, mock_kafka_produce_handler, mock_buffered_batch):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_init_with_buffer(
+        self, mock_clickhouse, mock_kafka_produce_handler, mock_buffered_batch
+    ):
         # Arrange
         mock_handler_instance = MagicMock()
         mock_kafka_produce_handler.return_value = mock_handler_instance
@@ -25,7 +30,9 @@ class TestInit(unittest.TestCase):
         self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
 
         mock_buffered_batch.assert_called_once()
-        mock_kafka_produce_handler.assert_called_once_with(transactional_id="collector")
+        mock_kafka_produce_handler.assert_called_once_with(
+            "log_collection.batch_handler"
+        )
 
 
 class TestDel(unittest.TestCase):
@@ -40,8 +47,10 @@ class TestAddMessage(unittest.TestCase):
     @patch("src.logcollector.batch_handler.BufferedBatchSender._reset_timer")
     @patch("src.logcollector.batch_handler.BufferedBatch.get_number_of_messages")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_add_message_normal(
         self,
+        mock_clickhouse,
         mock_send_batch,
         mock_get_nr_messages,
         mock_reset_timer,
@@ -54,7 +63,12 @@ class TestAddMessage(unittest.TestCase):
         mock_get_nr_messages.return_value = 1
 
         key = "test_key"
-        message = "test_message"
+        message = json.dumps(
+            dict(
+                logline_id=str(uuid.uuid4()),
+                data=f"test_message",
+            )
+        )
 
         sut = BufferedBatchSender()
         sut.timer = MagicMock()
@@ -71,8 +85,9 @@ class TestAddMessage(unittest.TestCase):
     @patch("src.logcollector.batch_handler.BATCH_SIZE", 100)
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_add_message_full_messages(
-        self, mock_send_batch, mock_produce_handler, mock_logger
+        self, mock_clickhouse, mock_send_batch, mock_produce_handler, mock_logger
     ):
         # Arrange
         mock_produce_handler_instance = MagicMock()
@@ -85,19 +100,34 @@ class TestAddMessage(unittest.TestCase):
 
         # Act
         for i in range(99):
-            sut.add_message(key, f"message_{i}")
+            test_message = json.dumps(
+                dict(
+                    logline_id=str(uuid.uuid4()),
+                    data=f"message_{i}",
+                )
+            )
+            sut.add_message(key, test_message)
 
         # Assert
         mock_send_batch.assert_not_called()
-        sut.add_message(key, f"message_100")
+        sut.add_message(
+            key,
+            json.dumps(
+                dict(
+                    logline_id=str(uuid.uuid4()),
+                    data="message_100",
+                )
+            ),
+        )
         mock_send_batch.assert_called_once()
 
     @patch("src.logcollector.batch_handler.logger")
     @patch("src.logcollector.batch_handler.BATCH_SIZE", 100)
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_add_message_full_messages_with_different_keys(
-        self, mock_send_batch, mock_produce_handler, mock_logger
+        self, mock_clickhouse, mock_send_batch, mock_produce_handler, mock_logger
     ):
         # Arrange
         mock_produce_handler_instance = MagicMock()
@@ -111,23 +141,56 @@ class TestAddMessage(unittest.TestCase):
 
         # Act
         for i in range(79):
-            sut.add_message(key, f"message_{i}")
+            sut.add_message(
+                key,
+                json.dumps(
+                    dict(
+                        logline_id=str(uuid.uuid4()),
+                        data=f"message_{i}",
+                    )
+                ),
+            )
         for i in range(15):
-            sut.add_message(other_key, f"message_{i}")
+            sut.add_message(
+                other_key,
+                json.dumps(
+                    dict(
+                        logline_id=str(uuid.uuid4()),
+                        data=f"message_{i}",
+                    )
+                ),
+            )
         for i in range(20):
-            sut.add_message(key, f"message_{i}")
+            sut.add_message(
+                key,
+                json.dumps(
+                    dict(
+                        logline_id=str(uuid.uuid4()),
+                        data=f"message_{i}",
+                    )
+                ),
+            )
 
         # Assert
         mock_send_batch.assert_not_called()
-        sut.add_message(key, f"message_100")
+        sut.add_message(
+            key,
+            json.dumps(
+                dict(
+                    logline_id=str(uuid.uuid4()),
+                    data="message_100",
+                )
+            ),
+        )
         mock_send_batch.assert_called_once()
 
     @patch("src.logcollector.batch_handler.logger")
     @patch("src.logcollector.batch_handler.BATCH_SIZE", 100)
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._reset_timer")
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_add_message_no_timer(
-        self, mock_reset_timer, mock_produce_handler, mock_logger
+        self, mock_clickhouse, mock_reset_timer, mock_produce_handler, mock_logger
     ):
         # Arrange
         mock_produce_handler_instance = MagicMock()
@@ -137,7 +200,15 @@ class TestAddMessage(unittest.TestCase):
         sut.timer = None
 
         # Act
-        sut.add_message("test_key", "test_message")
+        sut.add_message(
+            "test_key",
+            json.dumps(
+                dict(
+                    logline_id=str(uuid.uuid4()),
+                    data="test_message",
+                )
+            ),
+        )
 
         # Assert
         mock_reset_timer.assert_called_once()
