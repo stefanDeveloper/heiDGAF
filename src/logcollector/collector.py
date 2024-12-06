@@ -161,7 +161,7 @@ class LogCollector:
                         dict(
                             logline_id=logline_id,
                             stage=module_name,
-                            status="completed",
+                            status="finished",
                             timestamp=datetime.datetime.now(),
                         )
                     )
