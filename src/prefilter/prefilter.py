@@ -1,9 +1,11 @@
+import datetime
 import os
 import sys
 
 import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
+from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
 from src.base.logline_handler import LoglineHandler
 from src.base.kafka_handler import (
@@ -53,18 +55,18 @@ class Prefilter:
         transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
 
+        # databases
+        self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
+        self.logline_status = ClickHouseKafkaSender("logline_status")
+        self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
+
     def get_and_fill_data(self) -> None:
         """
-        Clears data already stored and consumes new data. Unpacks the data and checks if it is empty. If that is the
-        case, an info message is shown, otherwise the data is stored internally, including timestamps.
+        Clears data already stored and consumes new data. Unpacks the data and checks if it is empty. Data is stored
+        internally, including timestamps.
         """
-        logger.debug("Checking for existing data...")
-        if self.unfiltered_data:
-            logger.warning("Overwriting existing data by new message...")
-        self.clear_data()
-        logger.debug("Cleared existing data.")
+        self.clear_data()  # clear in case we already have data stored
 
-        logger.debug("Calling KafkaConsumeHandler for consuming JSON data...")
         key, data = self.kafka_consume_handler.consume_as_object()
 
         self.subnet_id = key
@@ -73,6 +75,16 @@ class Prefilter:
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.unfiltered_data = data.data
+
+        self.batch_timestamps.insert(
+            dict(
+                batch_id=self.batch_id,
+                stage=module_name,
+                status="in_process",
+                timestamp=datetime.datetime.now(),
+                message_count=len(self.unfiltered_data),
+            )
+        )
 
         if not self.unfiltered_data:
             logger.info(
@@ -86,34 +98,39 @@ class Prefilter:
                 f"subnet_id: '{self.subnet_id}'."
             )
 
-        logger.debug("Received consumer message as JSON data.")
-        logger.debug(f"{data=}")
-
     def filter_by_error(self) -> None:
         """
         Applies the filter to the data in ``unfiltered_data``, i.e. all loglines whose error status is in
         the given error types are kept and added to ``filtered_data``, all other ones are discarded.
         """
-        logger.debug("Filtering data...")
-
         for e in self.unfiltered_data:
             if self.logline_handler.check_relevance(e):
                 self.filtered_data.append(e)
+            else:  # not relevant, filtered out
+                logline_id = e.get("logline_id")  # TODO: Check
 
-        logger.debug("Data filtered and now available in filtered_data.")
-        logger.info("Data successfully filtered.")
+                self.logline_timestamps.insert(
+                    dict(
+                        logline_id=logline_id,
+                        stage=module_name,
+                        status="filtered_out",
+                        timestamp=datetime.datetime.now(),
+                    )
+                )
+
+                self.logline_status.insert(
+                    dict(
+                        logline_id=logline_id,
+                        is_active=False,
+                        exit_at_stage=module_name,
+                    )
+                )
 
     def send_filtered_data(self):
         """
         Sends the filtered data if available via the :class:`KafkaProduceHandler`.
         """
-        if not self.unfiltered_data:
-            logger.debug("No unfiltered or filtered data is available.")
-            return
-
         if not self.filtered_data:
-            logger.info("No errors in filtered data.")
-            logger.debug("No data sent. No filtered or unfiltered data exists.")
             raise ValueError("Failed to send data: No filtered data.")
 
         data_to_send = {
@@ -123,9 +140,18 @@ class Prefilter:
             "data": self.filtered_data,
         }
 
+        self.batch_timestamps.insert(
+            dict(
+                batch_id=self.batch_id,
+                stage=module_name,
+                status="finished",
+                timestamp=datetime.datetime.now(),
+                message_count=len(self.filtered_data),
+            )
+        )
+
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
-        logger.debug("Calling KafkaProduceHandler...")
         logger.debug(f"{data_to_send=}")
         self.kafka_produce_handler.produce(
             topic=PRODUCE_TOPIC,
@@ -143,17 +169,14 @@ class Prefilter:
         )
 
     def clear_data(self):
-        """
-        Clears the data in the internal data structures.
-        """
+        """Clears the data in the internal data structures."""
         self.unfiltered_data = []
         self.filtered_data = []
-        logger.debug("Cleared data.")
 
 
 def main(one_iteration: bool = False) -> None:
     """
-    Runs the main loop with by
+    Runs the main loop by
 
     1. Retrieving new data,
     2. Filtering the data and
@@ -164,29 +187,18 @@ def main(one_iteration: bool = False) -> None:
     Args:
         one_iteration (bool): Only one iteration is done if True (for testing purposes). False by default.
     """
-    logger.info("Starting Prefilter...")
     prefilter = Prefilter()
-    logger.info(f"Prefilter started.")
 
     iterations = 0
-
     while True:
         if one_iteration and iterations > 0:
             break
         iterations += 1
 
         try:
-            logger.debug("Before getting and filling data")
             prefilter.get_and_fill_data()
-            logger.debug("After getting and filling data")
-
-            logger.debug("Before filtering by error")
             prefilter.filter_by_error()
-            logger.debug("After filtering by error")
-
-            logger.debug("Before adding filtered data to batch")
             prefilter.send_filtered_data()
-            logger.debug("After adding filtered data to batch")
         except IOError as e:
             logger.error(e)
             raise
