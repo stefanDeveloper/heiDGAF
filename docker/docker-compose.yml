@@ -184,6 +184,25 @@ services:
       timeout: 5s
       retries: 3
 
+  monitoring_agent:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.monitoring
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.12
+
 networks:
   heidgaf:
     driver: bridge

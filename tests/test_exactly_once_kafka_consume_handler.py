@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock
 
 from confluent_kafka import KafkaException, KafkaError
 
-from src.base import Batch
+from src.base.data_classes.batch import Batch
 from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 
 CONSUMER_GROUP_ID = "test_group_id"

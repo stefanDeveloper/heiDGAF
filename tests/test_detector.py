@@ -1,12 +1,13 @@
 import os
 import tempfile
 import unittest
+import uuid
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch, mock_open
 
 from requests import HTTPError
 
-from src.base import Batch
+from src.base.data_classes.batch import Batch
 from src.detector.detector import Detector, WrongChecksum
 
 
@@ -152,6 +153,7 @@ class TestGetData(unittest.TestCase):
         self, mock_kafka_consume_handler, mock_logger
     ):
         test_batch = Batch(
+            batch_id=uuid.uuid4(),
             begin_timestamp=datetime.now(),
             end_timestamp=datetime.now() + timedelta(0, 3),
             data=[],
@@ -175,6 +177,7 @@ class TestGetData(unittest.TestCase):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(
+            batch_id=uuid.uuid4(),
             begin_timestamp=begin,
             end_timestamp=end,
             data=[{"test": "test_message_2"}],
@@ -201,6 +204,7 @@ class TestGetData(unittest.TestCase):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(
+            batch_id=uuid.uuid4(),
             begin_timestamp=begin,
             end_timestamp=end,
             data=[{"test": "test_message_2"}],
@@ -325,7 +329,9 @@ class TestClearData(unittest.TestCase):
     ):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
-        test_batch = Batch(begin_timestamp=begin, end_timestamp=end, data=[])
+        test_batch = Batch(
+            batch_id=uuid.uuid4(), begin_timestamp=begin, end_timestamp=end, data=[]
+        )
 
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -347,7 +353,9 @@ class TestClearData(unittest.TestCase):
     ):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
-        test_batch = Batch(begin_timestamp=begin, end_timestamp=end, data=[])
+        test_batch = Batch(
+            batch_id=uuid.uuid4(), begin_timestamp=begin, end_timestamp=end, data=[]
+        )
 
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance

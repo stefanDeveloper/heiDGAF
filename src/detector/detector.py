@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import json
 import os
@@ -10,7 +11,9 @@ import numpy as np
 import requests
 from numpy import median
 
+
 sys.path.append(os.getcwd())
+from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
@@ -47,6 +50,8 @@ class Detector:
     """
 
     def __init__(self) -> None:
+        self.batch_id = None
+        self.key = None
         self.messages = []
         self.warnings = []
         self.begin_timestamp = None
@@ -55,14 +60,16 @@ class Detector:
             tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pickle"
         )
 
-        logger.debug(f"Initializing Detector...")
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
 
         self.model = self._get_model()
 
+        # databases
+        self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
+        self.batch_status = ClickHouseKafkaSender("batch_status")
+
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
-        logger.debug("Getting and filling data...")
         if self.messages:
             logger.warning(
                 "Detector is busy: Not consuming new messages. Wait for the Detector to finish the "
@@ -70,16 +77,24 @@ class Detector:
             )
             return
 
-        logger.debug(
-            "Detector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
-        )
         key, data = self.kafka_consume_handler.consume_as_object()
 
         if data:
+            self.batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
+
+        self.batch_timestamps.insert(
+            dict(
+                batch_id=self.batch_id,
+                stage=module_name,
+                status="in_process",
+                timestamp=datetime.datetime.now(),
+                message_count=len(self.messages),
+            )
+        )
 
         if not self.messages:
             logger.info(
@@ -91,9 +106,6 @@ class Detector:
                 "Received message:\n"
                 f"    ⤷  Contains data field of {len(self.messages)} message(s). Belongs to subnet_id {key}."
             )
-
-        logger.debug("Received consumer message as json data.")
-        logger.debug(f"(data={self.messages})")
 
     def _sha256sum(self, file_path: str) -> str:
         """Return a SHA265 sum check to validate the model.
