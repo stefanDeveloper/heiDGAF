@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import ipaddress
 import unittest
+import uuid
 from unittest.mock import MagicMock, patch, AsyncMock
 
 from src.logcollector.collector import LogCollector, main
@@ -142,10 +143,12 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.uuid")
     @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_send_with_one_logline(
         self,
         mock_clickhouse,
+        mock_uuid,
         mock_logline_handler,
         mock_batch_handler,
         mock_kafka_handler,
@@ -159,10 +162,11 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
             KeyboardInterrupt,
         ]
         mock_logline_handler.return_value = mock_logline_handler_instance
+        mock_uuid.uuid4.return_value = uuid.UUID("8ac2e82b-9252-4e67-a691-4924f98bc605")
 
         mock_logline_handler_instance.validate_logline_and_get_fields_as_json.return_value = {
             "timestamp": "2024-05-21T08:31:28.119Z",
-            "status": "NOERROR",
+            "status_code": "NOERROR",
             "client_ip": "192.168.0.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
@@ -171,10 +175,10 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
             "size": "150b",
         }
         expected_message = (
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status_code": "NOERROR", "client_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", '
             '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
-            '"size": "150b"}'
+            '"size": "150b", "logline_id": "8ac2e82b-9252-4e67-a691-4924f98bc605"}'
         )
         input_logline = (
             "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A "
@@ -219,7 +223,7 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
 
         mock_logline_handler_instance.validate_logline_and_get_fields_as_json.return_value = {
             "timestamp": "2024-05-21T08:31:28.119Z",
-            "status": "NOERROR",
+            "status_code": "NOERROR",
             "client_ip": "192.168.0.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
@@ -281,10 +285,12 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
     @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logcollector.collector.BufferedBatchSender")
     @patch("src.logcollector.collector.LoglineHandler")
+    @patch("src.logcollector.collector.uuid")
     @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_send_value_error(
         self,
         mock_clickhouse,
+        mock_uuid,
         mock_logline_handler,
         mock_batch_handler,
         mock_kafka_handler,
@@ -295,12 +301,13 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
         mock_logline_handler_instance = MagicMock()
         mock_batch_handler.return_value = mock_batch_handler_instance
         mock_logline_handler.return_value = mock_logline_handler_instance
+        mock_uuid.uuid4.return_value = uuid.UUID("8ac2e82b-9252-4e67-a691-4924f98bc605")
 
         mock_logline_handler_instance.validate_logline_and_get_fields_as_json.side_effect = [
             ValueError,
             {
                 "timestamp": "2024-05-21T08:31:28.119Z",
-                "status": "NOERROR",
+                "status_code": "NOERROR",
                 "client_ip": "192.168.0.105",
                 "dns_ip": "8.8.8.8",
                 "host_domain_name": "www.heidelberg-botanik.de",
@@ -311,10 +318,10 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
             KeyboardInterrupt,
         ]
         expected_message = (
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status_code": "NOERROR", "client_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", '
             '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
-            '"size": "150b"}'
+            '"size": "150b", "logline_id": "8ac2e82b-9252-4e67-a691-4924f98bc605"}'
         )
         input_logline = (
             "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A "

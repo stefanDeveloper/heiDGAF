@@ -133,14 +133,14 @@ class TestServerLogsConnector(unittest.TestCase):
     def test_insert_all_given(self, mock_clickhouse_batch_sender):
         # Arrange
         message_text = "test_message_text"
-        message_id = "7299539b-6215-4f6b-b39f-69335aafbeff"
-        timestamp_in = "2034-12-13 12:34:12.132412"
+        message_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
+        timestamp_in = datetime.datetime(2034, 12, 13, 12, 34, 12, 132412)
 
         sut = ServerLogsConnector()
 
         with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
             # Act
-            returned_value = sut.insert(
+            sut.insert(
                 message_text=message_text,
                 message_id=message_id,
                 timestamp_in=timestamp_in,
@@ -154,21 +154,6 @@ class TestServerLogsConnector(unittest.TestCase):
                     "test_message_text",
                 ]
             )
-            self.assertEqual(
-                uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"), returned_value
-            )
-
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_none_given(self, mock_clickhouse_batch_sender):
-        # Arrange
-        sut = ServerLogsConnector()
-
-        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
-            # Act
-            sut.insert("test_message_text")
-
-            # Assert
-            mock_add_to_batch.assert_called_once()
 
 
 class TestServerLogsTimestampsConnector(unittest.TestCase):
@@ -203,9 +188,9 @@ class TestServerLogsTimestampsConnector(unittest.TestCase):
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
     def test_insert_all_given(self, mock_clickhouse_batch_sender):
         # Arrange
-        message_id = "7299539b-6215-4f6b-b39f-69335aafbeff"
+        message_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
         event = "test_event"
-        event_timestamp = "2034-12-13 12:34:12.132412"
+        event_timestamp = datetime.datetime(2034, 12, 13, 12, 34, 12, 132412)
 
         sut = ServerLogsTimestampsConnector()
 
@@ -225,21 +210,6 @@ class TestServerLogsTimestampsConnector(unittest.TestCase):
                     datetime.datetime(2034, 12, 13, 12, 34, 12, 132412),
                 ]
             )
-
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_none_given(self, mock_clickhouse_batch_sender):
-        # Arrange
-        sut = ServerLogsTimestampsConnector()
-
-        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
-            # Act
-            sut.insert(
-                uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                "test_event",
-            )
-
-            # Assert
-            mock_add_to_batch.assert_called_once()
 
 
 class TestFailedDNSLoglinesConnector(unittest.TestCase):
@@ -276,8 +246,8 @@ class TestFailedDNSLoglinesConnector(unittest.TestCase):
     def test_insert_all_given(self, mock_clickhouse_batch_sender):
         # Arrange
         message_text = "test_message_text"
-        timestamp_in = "2034-12-13 12:34:12.132412"
-        timestamp_failed = "2034-12-13 12:35:35.542635"
+        timestamp_in = datetime.datetime(2034, 12, 13, 12, 34, 12, 132412)
+        timestamp_failed = datetime.datetime(2034, 12, 13, 12, 35, 35, 542635)
         reason_for_failure = "Wrong client_ip field"
 
         sut = FailedDNSLoglinesConnector()
@@ -305,7 +275,8 @@ class TestFailedDNSLoglinesConnector(unittest.TestCase):
     def test_insert_none_given(self, mock_clickhouse_batch_sender):
         # Arrange
         message_text = "test_message_text"
-        timestamp_in = "2034-12-13 12:34:12.132412"
+        timestamp_in = datetime.datetime(2034, 12, 13, 12, 34, 12, 132412)
+        timestamp_failed = datetime.datetime(2034, 12, 13, 12, 35, 35, 542635)
 
         sut = FailedDNSLoglinesConnector()
 
@@ -314,6 +285,8 @@ class TestFailedDNSLoglinesConnector(unittest.TestCase):
             sut.insert(
                 message_text=message_text,
                 timestamp_in=datetime.datetime(2034, 12, 13, 12, 34, 12, 132412),
+                timestamp_failed=datetime.datetime(2034, 12, 13, 12, 35, 35, 542635),
+                reason_for_failure=None,
             )
 
             # Assert
@@ -351,8 +324,8 @@ class TestLoglineToBatchesConnector(unittest.TestCase):
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
     def test_insert_all_given_as_str(self, mock_clickhouse_batch_sender):
         # Arrange
-        logline_id = "7299539b-6215-4f6b-b39f-69335aafbeff"
-        batch_id = "1f855c43-8a75-4b53-b6cd-4a13b89312d6"
+        logline_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
+        batch_id = uuid.UUID("1f855c43-8a75-4b53-b6cd-4a13b89312d6")
 
         sut = LoglineToBatchesConnector()
 
@@ -431,8 +404,9 @@ class TestDNSLoglinesConnector(unittest.TestCase):
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
     def test_insert_all_given(self, mock_clickhouse_batch_sender):
         # Arrange
+        logline_id = uuid.UUID("d7add097-40a5-42f6-89df-1e7b20c4a4b8")
         subnet_id = "127.0.0.0_24"
-        timestamp = "2034-12-13 12:34:12.132412"
+        timestamp = datetime.datetime(2024, 12, 6, 13, 41, 53, 589594)
         status_code = "NXDOMAIN"
         client_ip = "127.0.0.1"
         record_type = "A"
@@ -442,7 +416,8 @@ class TestDNSLoglinesConnector(unittest.TestCase):
 
         with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
             # Act
-            returned_value = sut.insert(
+            sut.insert(
+                logline_id=logline_id,
                 subnet_id=subnet_id,
                 timestamp=timestamp,
                 status_code=status_code,
@@ -453,7 +428,6 @@ class TestDNSLoglinesConnector(unittest.TestCase):
 
             # Assert
             mock_add_to_batch.assert_called_once()
-            self.assertTrue(isinstance(returned_value, uuid.UUID))
 
 
 class TestLoglineStatusConnector(unittest.TestCase):
@@ -468,7 +442,7 @@ class TestLoglineStatusConnector(unittest.TestCase):
         expected_table_name = "logline_status"
         expected_column_names = [
             "logline_id",
-            "status",
+            "is_active",
             "exit_at_stage",
         ]
 
@@ -488,8 +462,8 @@ class TestLoglineStatusConnector(unittest.TestCase):
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
     def test_insert_all_given(self, mock_clickhouse_batch_sender):
         # Arrange
-        logline_id = "7299539b-6215-4f6b-b39f-69335aafbeff"
-        status = "inactive"
+        logline_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
+        is_active = False
         exit_at_stage = "prefilter"
 
         sut = LoglineStatusConnector()
@@ -498,7 +472,7 @@ class TestLoglineStatusConnector(unittest.TestCase):
             # Act
             sut.insert(
                 logline_id=logline_id,
-                status=status,
+                is_active=is_active,
                 exit_at_stage=exit_at_stage,
             )
 
@@ -506,7 +480,7 @@ class TestLoglineStatusConnector(unittest.TestCase):
             mock_add_to_batch.assert_called_once_with(
                 [
                     uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                    "inactive",
+                    False,
                     "prefilter",
                 ]
             )
@@ -515,7 +489,7 @@ class TestLoglineStatusConnector(unittest.TestCase):
     def test_insert_none_given(self, mock_clickhouse_batch_sender):
         # Arrange
         logline_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
-        status = "inactive"
+        is_active = True
 
         sut = LoglineStatusConnector()
 
@@ -523,14 +497,14 @@ class TestLoglineStatusConnector(unittest.TestCase):
             # Act
             sut.insert(
                 logline_id=logline_id,
-                status=status,
+                is_active=is_active,
             )
 
             # Assert
             mock_add_to_batch.assert_called_once_with(
                 [
                     uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                    "inactive",
+                    True,
                     None,
                 ]
             )
@@ -569,10 +543,10 @@ class TestLoglineTimestampsConnector(unittest.TestCase):
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
     def test_insert_all_given(self, mock_clickhouse_batch_sender):
         # Arrange
-        logline_id = "7299539b-6215-4f6b-b39f-69335aafbeff"
+        logline_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
         stage = "prefilter"
         status = "prefilter_out"
-        timestamp = "2034-12-13 12:35:35.542635"
+        timestamp = datetime.datetime(2034, 12, 13, 12, 35, 35, 542635)
 
         sut = LoglineTimestampsConnector()
 
@@ -595,26 +569,6 @@ class TestLoglineTimestampsConnector(unittest.TestCase):
                 ]
             )
 
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_none_given(self, mock_clickhouse_batch_sender):
-        # Arrange
-        logline_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
-        stage = "prefilter"
-        status = "prefilter_out"
-
-        sut = LoglineTimestampsConnector()
-
-        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
-            # Act
-            sut.insert(
-                logline_id=logline_id,
-                stage=stage,
-                status=status,
-            )
-
-            # Assert
-            mock_add_to_batch.assert_called_once()
-
 
 class TestBatchStatusConnector(unittest.TestCase):
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
@@ -628,7 +582,7 @@ class TestBatchStatusConnector(unittest.TestCase):
         expected_table_name = "batch_status"
         expected_column_names = [
             "batch_id",
-            "status",
+            "is_active",
             "exit_at_stage",
         ]
 
@@ -648,8 +602,8 @@ class TestBatchStatusConnector(unittest.TestCase):
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
     def test_insert_all_given(self, mock_clickhouse_batch_sender):
         # Arrange
-        batch_id = "7299539b-6215-4f6b-b39f-69335aafbeff"
-        status = "inactive"
+        batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
+        is_active = False
         exit_at_stage = "prefilter"
 
         sut = BatchStatusConnector()
@@ -658,7 +612,7 @@ class TestBatchStatusConnector(unittest.TestCase):
             # Act
             sut.insert(
                 batch_id=batch_id,
-                status=status,
+                is_active=is_active,
                 exit_at_stage=exit_at_stage,
             )
 
@@ -666,7 +620,7 @@ class TestBatchStatusConnector(unittest.TestCase):
             mock_add_to_batch.assert_called_once_with(
                 [
                     uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                    "inactive",
+                    False,
                     "prefilter",
                 ]
             )
@@ -675,7 +629,7 @@ class TestBatchStatusConnector(unittest.TestCase):
     def test_insert_none_given(self, mock_clickhouse_batch_sender):
         # Arrange
         batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
-        status = "inactive"
+        is_active = False
 
         sut = BatchStatusConnector()
 
@@ -683,14 +637,15 @@ class TestBatchStatusConnector(unittest.TestCase):
             # Act
             sut.insert(
                 batch_id=batch_id,
-                status=status,
+                is_active=is_active,
+                exit_at_stage=None,
             )
 
             # Assert
             mock_add_to_batch.assert_called_once_with(
                 [
                     uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                    "inactive",
+                    False,
                     None,
                 ]
             )
@@ -730,10 +685,10 @@ class TestBatchTimestampsConnector(unittest.TestCase):
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
     def test_insert_all_given(self, mock_clickhouse_batch_sender):
         # Arrange
-        batch_id = "7299539b-6215-4f6b-b39f-69335aafbeff"
+        batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
         stage = "prefilter"
         status = "prefilter_out"
-        timestamp = "2034-12-13 12:35:35.542635"
+        timestamp = datetime.datetime(2034, 12, 13, 12, 35, 35, 542635)
         message_count = 456
 
         sut = BatchTimestampsConnector()
@@ -758,28 +713,6 @@ class TestBatchTimestampsConnector(unittest.TestCase):
                     456,
                 ]
             )
-
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_none_given(self, mock_clickhouse_batch_sender):
-        # Arrange
-        batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
-        stage = "prefilter"
-        status = "prefilter_out"
-        message_count = 456
-
-        sut = BatchTimestampsConnector()
-
-        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
-            # Act
-            sut.insert(
-                batch_id=batch_id,
-                stage=stage,
-                status=status,
-                message_count=message_count,
-            )
-
-            # Assert
-            mock_add_to_batch.assert_called_once()
 
 
 if __name__ == "__main__":

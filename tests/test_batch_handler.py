@@ -1,3 +1,4 @@
+import datetime
 import json
 import unittest
 import uuid
@@ -364,7 +365,8 @@ class TestSendBatchForKey(unittest.TestCase):
 class TestSendDataPacket(unittest.TestCase):
     @patch("src.logcollector.batch_handler.PRODUCE_TOPIC", "test_topic")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
-    def test_send_data_packet(self, mock_produce_handler):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_send_data_packet(self, mock_clickhouse, mock_produce_handler):
         # Arrange
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -372,9 +374,10 @@ class TestSendDataPacket(unittest.TestCase):
 
         key = "test_key"
         data = {
-            "begin_timestamp": "test_begin",
-            "end_timestamp": "test_end",
-            "data": "test_data",
+            "batch_id": uuid.UUID("b4b6f13e-d064-4ab7-94ed-d02b46063308"),
+            "begin_timestamp": datetime.datetime(2024, 12, 6, 13, 12, 30, 324015),
+            "end_timestamp": datetime.datetime(2024, 12, 6, 13, 12, 31, 832173),
+            "data": ["test_data"],
         }
 
         sut = BufferedBatchSender()
@@ -385,7 +388,9 @@ class TestSendDataPacket(unittest.TestCase):
         # Assert
         mock_produce_handler_instance.produce.assert_called_once_with(
             topic="test_topic",
-            data='{"begin_timestamp": "test_begin", "end_timestamp": "test_end", "data": "test_data"}',
+            data='{"batch_id": "b4b6f13e-d064-4ab7-94ed-d02b46063308", "begin_timestamp": '
+            '"2024-12-06T13:12:30.324015Z", "end_timestamp": "2024-12-06T13:12:31.832173Z", '
+            '"data": ["test_data"]}',
             key=key,
         )
 

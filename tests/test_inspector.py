@@ -1,11 +1,12 @@
 import unittest
+import uuid
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 import numpy as np
 import json
 
 from streamad.model import ZScoreDetector, RShashDetector
-from src.base import Batch
+from src.base.data_classes.batch import Batch
 from src.inspector.inspector import Inspector, main
 
 DEFAULT_DATA = {
@@ -26,6 +27,7 @@ def get_batch(data):
     begin = datetime.now()
     end = begin + timedelta(0, 3)
     test_batch = Batch(
+        batch_id=uuid.uuid4(),
         begin_timestamp=begin,
         end_timestamp=end,
         data=data if data != None else [],

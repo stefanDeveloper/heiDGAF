@@ -1,13 +1,15 @@
 import unittest
+import uuid
 
 import marshmallow_dataclass
 
-from src.base import Batch
+from src.base.data_classes.batch import Batch
 
 
 class TestClearData(unittest.TestCase):
     def test_clear_data_with_existing_data(self):
         json_data = {
+            "batch_id": str(uuid.uuid4()),
             "begin_timestamp": "2024-05-21T08:31:27.000000Z",
             "end_timestamp": "2024-05-21T08:31:29.000000Z",
             "data": [

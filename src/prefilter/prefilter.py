@@ -4,7 +4,7 @@ import sys
 import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
-from src.base import Batch
+from src.base.data_classes.batch import Batch
 from src.base.logline_handler import LoglineHandler
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,

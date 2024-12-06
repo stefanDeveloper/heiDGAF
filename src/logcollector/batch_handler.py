@@ -67,16 +67,26 @@ class BufferedBatch:
                 )
             )
 
+        else:  # key has no messages associated yet
+            # create new batch
+            self.batch[key] = [message]
+            new_batch_id = uuid.uuid4()
+            self.batch_id[key] = [new_batch_id]
+
             self.batch_status.insert(
                 dict(
-                    batch_id=batch_id,
+                    batch_id=new_batch_id,
                     status=1,
                     exit_at_stage=None,
                 )
             )
-        else:  # key has no messages associated yet
-            self.batch[key] = [message]
-            self.batch_id[key] = [uuid.uuid4()]
+
+            self.logline_to_batches.insert(
+                dict(
+                    logline_id=logline_id,
+                    batch_id=new_batch_id,
+                )
+            )
 
     def get_number_of_messages(self, key: str) -> int:
         """
