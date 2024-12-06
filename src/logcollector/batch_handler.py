@@ -45,6 +45,7 @@ class BufferedBatch:
         # databases
         self.logline_to_batches = ClickHouseKafkaSender("logline_to_batches")
         self.batch_status = ClickHouseKafkaSender("batch_status")
+        self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
 
     def add_message(self, key: str, logline_id: uuid.UUID, message: str) -> None:
         """
@@ -67,6 +68,16 @@ class BufferedBatch:
                 )
             )
 
+            self.batch_timestamps.insert(
+                dict(
+                    batch_id=batch_id,
+                    stage=module_name,
+                    status="waiting",
+                    timestamp=datetime.datetime.now(),
+                    message_count=self.get_number_of_messages(key),
+                )
+            )
+
         else:  # key has no messages associated yet
             # create new batch
             self.batch[key] = [message]
@@ -85,6 +96,16 @@ class BufferedBatch:
                 dict(
                     logline_id=logline_id,
                     batch_id=new_batch_id,
+                )
+            )
+
+            self.batch_timestamps.insert(
+                dict(
+                    batch_id=new_batch_id,
+                    stage=module_name,
+                    status="waiting",
+                    timestamp=datetime.datetime.now(),
+                    message_count=1,
                 )
             )
 
@@ -259,8 +280,10 @@ class BufferedBatch:
                 buffer_data = self.buffer[key]
                 begin_timestamp = self.get_first_timestamp_of_buffer(key)
 
+            batch_id = self.batch_id.get(key)
+
             data = {
-                "batch_id": self.batch_id.get(key),
+                "batch_id": batch_id,
                 "begin_timestamp": datetime.datetime.strptime(
                     begin_timestamp,
                     "%Y-%m-%dT%H:%M:%S.%fZ",
@@ -271,6 +294,16 @@ class BufferedBatch:
                 ),
                 "data": buffer_data + self.batch[key],
             }
+
+            self.batch_timestamps.insert(
+                dict(
+                    batch_id=batch_id,
+                    stage=module_name,
+                    status="completed",
+                    timestamp=datetime.datetime.now(),
+                    message_count=self.get_number_of_messages(key),
+                )
+            )
 
             # Move data from batch to buffer
             self.buffer[key] = self.batch[key]
