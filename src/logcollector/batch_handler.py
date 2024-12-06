@@ -87,7 +87,7 @@ class BufferedBatch:
             self.batch_status.insert(
                 dict(
                     batch_id=new_batch_id,
-                    status=1,
+                    status=True,
                     exit_at_stage=None,
                 )
             )
