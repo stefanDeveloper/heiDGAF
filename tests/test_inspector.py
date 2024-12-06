@@ -794,7 +794,7 @@ class TestSend(unittest.TestCase):
         sut.messages = [data]
         sut.send_data()
 
-        mock_produce_handler_instance.send.assert_called_once_with(
+        mock_produce_handler_instance.produce.assert_called_once_with(
             topic="Detector",
             data=json.dumps(
                 {
