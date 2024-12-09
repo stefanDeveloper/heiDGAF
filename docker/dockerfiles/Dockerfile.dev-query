@@ -4,11 +4,12 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /usr/src/app
 
-RUN pip --disable-pip-version-check install --no-cache-dir --no-compile clickhouse_connect
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile clickhouse_connect marshmallow_dataclass colorlog pyYAML confluent_kafka
 
 COPY src/base ./src/base
 COPY config.yaml .
+COPY docker/dev-query.py .
 
 RUN rm -rf /root/.cache
 
-CMD [ "python", "docker/dev-query.py"]
+CMD [ "python", "dev-query.py"]
