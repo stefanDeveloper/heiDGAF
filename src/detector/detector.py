@@ -128,7 +128,7 @@ class Detector:
 
         return h.hexdigest()
 
-    def _get_model(self) -> None:
+    def _get_model(self):
         """
         Downloads model from server. If model already exists, it returns the current model. In addition, it checks the
         sha256 sum in case a model has been updated.

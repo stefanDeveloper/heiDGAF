@@ -135,7 +135,8 @@ class TestInit(unittest.TestCase):
     @patch("src.detector.detector.CONSUME_TOPIC", "test_topic")
     @patch("src.detector.detector.logger")
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_init(self, mock_kafka_consume_handler, mock_logger):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_init(self, mock_clickhouse, mock_kafka_consume_handler, mock_logger):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -149,8 +150,9 @@ class TestInit(unittest.TestCase):
 class TestGetData(unittest.TestCase):
     @patch("src.detector.detector.logger")
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.detector.detector.ClickHouseKafkaSender")
     def test_get_data_without_return_data(
-        self, mock_kafka_consume_handler, mock_logger
+        self, mock_clickhouse, mock_kafka_consume_handler, mock_logger
     ):
         test_batch = Batch(
             batch_id=uuid.uuid4(),
@@ -173,7 +175,10 @@ class TestGetData(unittest.TestCase):
 
     @patch("src.detector.detector.logger")
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_get_data_with_return_data(self, mock_kafka_consume_handler, mock_logger):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_get_data_with_return_data(
+        self, mock_clickhouse, mock_kafka_consume_handler, mock_logger
+    ):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(

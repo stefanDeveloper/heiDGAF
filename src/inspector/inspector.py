@@ -413,7 +413,7 @@ class Inspector:
 
         for x in stream.iter_item():
             score = self.model.fit_score(x)
-            if score != None:
+            if score is not None:
                 self.anomalies.append(score)
             else:
                 self.anomalies.append(0)
