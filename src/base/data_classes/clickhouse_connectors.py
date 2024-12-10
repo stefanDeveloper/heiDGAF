@@ -112,18 +112,8 @@ class LoglineTimestamps:
             "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
         }
     )
-
-
-@dataclass
-class BatchStatus:
-    batch_id: uuid.UUID = field(
-        metadata={"marshmallow_field": marshmallow.fields.UUID()}
-    )
     is_active: bool = field(
         metadata={"marshmallow_field": marshmallow.fields.Boolean()}
-    )
-    exit_at_stage: Optional[str] = field(
-        metadata={"marshmallow_field": marshmallow.fields.String(allow_none=True)}
     )
 
 
@@ -139,6 +129,9 @@ class BatchTimestamps:
             "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
         }
     )
+    is_active: bool = field(
+        metadata={"marshmallow_field": marshmallow.fields.Boolean()}
+    )
     message_count: int = field(
         metadata={"marshmallow_field": marshmallow.fields.Integer()}
     )
@@ -152,6 +145,5 @@ TABLE_NAME_TO_TYPE = {
     "dns_loglines": DNSLoglines,
     "logline_status": LoglineStatus,
     "logline_timestamps": LoglineTimestamps,
-    "batch_status": BatchStatus,
     "batch_timestamps": BatchTimestamps,
 }

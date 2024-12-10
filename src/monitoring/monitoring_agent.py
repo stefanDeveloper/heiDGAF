@@ -46,7 +46,6 @@ class MonitoringAgent:
             "dns_loglines": DNSLoglinesConnector(),
             "logline_status": LoglineStatusConnector(),
             "logline_timestamps": LoglineTimestampsConnector(),
-            "batch_status": BatchStatusConnector(),
             "batch_timestamps": BatchTimestampsConnector(),
         }
 

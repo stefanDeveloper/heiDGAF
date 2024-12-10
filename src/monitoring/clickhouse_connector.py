@@ -223,31 +223,6 @@ class LoglineTimestampsConnector(ClickHouseConnector):
         )
 
 
-class BatchStatusConnector(ClickHouseConnector):
-    def __init__(self):
-        column_names = [
-            "batch_id",
-            "is_active",
-            "exit_at_stage",
-        ]
-
-        super().__init__("batch_status", column_names)
-
-    def insert(
-        self,
-        batch_id: uuid.UUID,
-        is_active: bool,
-        exit_at_stage: Optional[str] = None,
-    ):
-        self._add_to_batch(
-            [
-                batch_id,
-                is_active,
-                exit_at_stage,
-            ]
-        )
-
-
 class BatchTimestampsConnector(ClickHouseConnector):
     def __init__(self):
         column_names = [
@@ -255,6 +230,7 @@ class BatchTimestampsConnector(ClickHouseConnector):
             "stage",
             "status",
             "timestamp",
+            "is_active",
             "message_count",
         ]
 
@@ -265,6 +241,7 @@ class BatchTimestampsConnector(ClickHouseConnector):
         batch_id: uuid.UUID,
         stage: str,
         status: str,
+        is_active: bool,
         message_count: int,
         timestamp: datetime.datetime,
     ) -> None:
@@ -274,6 +251,7 @@ class BatchTimestampsConnector(ClickHouseConnector):
                 stage,
                 status,
                 timestamp,
+                is_active,
                 message_count,
             ]
         )

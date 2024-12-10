@@ -430,86 +430,6 @@ class TestDNSLoglinesConnector(unittest.TestCase):
             mock_add_to_batch.assert_called_once()
 
 
-class TestLoglineStatusConnector(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_init(self, mock_clickhouse_batch_sender):
-        # Arrange
-        mock_clickhouse_batch_sender_instance = MagicMock()
-        mock_clickhouse_batch_sender.return_value = (
-            mock_clickhouse_batch_sender_instance
-        )
-
-        expected_table_name = "logline_status"
-        expected_column_names = [
-            "logline_id",
-            "is_active",
-            "exit_at_stage",
-        ]
-
-        # Act
-        sut = LoglineStatusConnector()
-
-        # Assert
-        self.assertEqual(expected_table_name, sut._table_name)
-        self.assertEqual(expected_column_names, sut._column_names)
-        self.assertEqual(mock_clickhouse_batch_sender_instance, sut._batch_sender)
-
-        mock_clickhouse_batch_sender.assert_called_once_with(
-            table_name=expected_table_name,
-            column_names=expected_column_names,
-        )
-
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_all_given(self, mock_clickhouse_batch_sender):
-        # Arrange
-        logline_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
-        is_active = False
-        exit_at_stage = "prefilter"
-
-        sut = LoglineStatusConnector()
-
-        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
-            # Act
-            sut.insert(
-                logline_id=logline_id,
-                is_active=is_active,
-                exit_at_stage=exit_at_stage,
-            )
-
-            # Assert
-            mock_add_to_batch.assert_called_once_with(
-                [
-                    uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                    False,
-                    "prefilter",
-                ]
-            )
-
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_none_given(self, mock_clickhouse_batch_sender):
-        # Arrange
-        logline_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
-        is_active = True
-
-        sut = LoglineStatusConnector()
-
-        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
-            # Act
-            sut.insert(
-                logline_id=logline_id,
-                is_active=is_active,
-            )
-
-            # Assert
-            mock_add_to_batch.assert_called_once_with(
-                [
-                    uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                    True,
-                    None,
-                ]
-            )
-
-
 class TestLoglineTimestampsConnector(unittest.TestCase):
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
     def test_init(self, mock_clickhouse_batch_sender):
@@ -525,6 +445,7 @@ class TestLoglineTimestampsConnector(unittest.TestCase):
             "stage",
             "status",
             "timestamp",
+            "is_active",
         ]
 
         # Act
@@ -557,6 +478,7 @@ class TestLoglineTimestampsConnector(unittest.TestCase):
                 stage=stage,
                 status=status,
                 timestamp=timestamp,
+                is_active=True,
             )
 
             # Assert
@@ -566,87 +488,7 @@ class TestLoglineTimestampsConnector(unittest.TestCase):
                     "prefilter",
                     "prefilter_out",
                     datetime.datetime(2034, 12, 13, 12, 35, 35, 542635),
-                ]
-            )
-
-
-class TestBatchStatusConnector(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_init(self, mock_clickhouse_batch_sender):
-        # Arrange
-        mock_clickhouse_batch_sender_instance = MagicMock()
-        mock_clickhouse_batch_sender.return_value = (
-            mock_clickhouse_batch_sender_instance
-        )
-
-        expected_table_name = "batch_status"
-        expected_column_names = [
-            "batch_id",
-            "is_active",
-            "exit_at_stage",
-        ]
-
-        # Act
-        sut = BatchStatusConnector()
-
-        # Assert
-        self.assertEqual(expected_table_name, sut._table_name)
-        self.assertEqual(expected_column_names, sut._column_names)
-        self.assertEqual(mock_clickhouse_batch_sender_instance, sut._batch_sender)
-
-        mock_clickhouse_batch_sender.assert_called_once_with(
-            table_name=expected_table_name,
-            column_names=expected_column_names,
-        )
-
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_all_given(self, mock_clickhouse_batch_sender):
-        # Arrange
-        batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
-        is_active = False
-        exit_at_stage = "prefilter"
-
-        sut = BatchStatusConnector()
-
-        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
-            # Act
-            sut.insert(
-                batch_id=batch_id,
-                is_active=is_active,
-                exit_at_stage=exit_at_stage,
-            )
-
-            # Assert
-            mock_add_to_batch.assert_called_once_with(
-                [
-                    uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                    False,
-                    "prefilter",
-                ]
-            )
-
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_none_given(self, mock_clickhouse_batch_sender):
-        # Arrange
-        batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
-        is_active = False
-
-        sut = BatchStatusConnector()
-
-        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
-            # Act
-            sut.insert(
-                batch_id=batch_id,
-                is_active=is_active,
-                exit_at_stage=None,
-            )
-
-            # Assert
-            mock_add_to_batch.assert_called_once_with(
-                [
-                    uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                    False,
-                    None,
+                    True,
                 ]
             )
 
@@ -666,6 +508,7 @@ class TestBatchTimestampsConnector(unittest.TestCase):
             "stage",
             "status",
             "timestamp",
+            "is_active",
             "message_count",
         ]
 
@@ -700,6 +543,7 @@ class TestBatchTimestampsConnector(unittest.TestCase):
                 stage=stage,
                 status=status,
                 timestamp=timestamp,
+                is_active=True,
                 message_count=message_count,
             )
 
@@ -710,6 +554,7 @@ class TestBatchTimestampsConnector(unittest.TestCase):
                     "prefilter",
                     "prefilter_out",
                     datetime.datetime(2034, 12, 13, 12, 35, 35, 542635),
+                    True,
                     456,
                 ]
             )

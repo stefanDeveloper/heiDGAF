@@ -66,7 +66,6 @@ class Detector:
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
-        self.batch_status = ClickHouseKafkaSender("batch_status")
 
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
@@ -92,6 +91,7 @@ class Detector:
                 stage=module_name,
                 status="in_process",
                 timestamp=datetime.datetime.now(),
+                is_active=True,
                 message_count=len(self.messages),
             )
         )

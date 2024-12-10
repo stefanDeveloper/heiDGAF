@@ -382,9 +382,9 @@ class TestInspectFunction(unittest.TestCase):
     #     mock_produce_handler_instance = MagicMock()
     #     mock_produce_handler.return_value = mock_produce_handler_instance
     #
-    #     with patch("src.inspector.inspector.ClickHouseKafkaSender") as mock_clickhouse:
-    #         sut = Inspector()
-    #         sut.get_and_fill_data()
+    #     # with patch("src.inspector.inspector.ClickHouseKafkaSender") as mock_clickhouse:
+    #     sut = Inspector()
+    #     sut.get_and_fill_data()
     #     sut.inspect()
     #     self.assertEqual([0, 0], sut.anomalies)
 

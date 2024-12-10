@@ -44,7 +44,6 @@ class BufferedBatch:
 
         # databases
         self.logline_to_batches = ClickHouseKafkaSender("logline_to_batches")
-        self.batch_status = ClickHouseKafkaSender("batch_status")
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
 
     def add_message(self, key: str, logline_id: uuid.UUID, message: str) -> None:
@@ -74,6 +73,7 @@ class BufferedBatch:
                     stage=module_name,
                     status="waiting",
                     timestamp=datetime.datetime.now(),
+                    is_active=True,
                     message_count=self.get_number_of_messages(key),
                 )
             )
@@ -83,14 +83,6 @@ class BufferedBatch:
             self.batch[key] = [message]
             new_batch_id = uuid.uuid4()
             self.batch_id[key] = [new_batch_id]
-
-            self.batch_status.insert(
-                dict(
-                    batch_id=new_batch_id,
-                    status=True,
-                    exit_at_stage=None,
-                )
-            )
 
             self.logline_to_batches.insert(
                 dict(
@@ -105,6 +97,7 @@ class BufferedBatch:
                     stage=module_name,
                     status="waiting",
                     timestamp=datetime.datetime.now(),
+                    is_active=True,
                     message_count=1,
                 )
             )
@@ -301,6 +294,7 @@ class BufferedBatch:
                     stage=module_name,
                     status="completed",
                     timestamp=datetime.datetime.now(),
+                    is_active=True,
                     message_count=self.get_number_of_messages(key),
                 )
             )
@@ -389,6 +383,7 @@ class BufferedBatchSender:
                 stage=module_name,
                 status="in_process",
                 timestamp=datetime.datetime.now(),
+                is_active=True,
             )
         )
 
@@ -400,6 +395,7 @@ class BufferedBatchSender:
                 stage=module_name,
                 status="batched",
                 timestamp=datetime.datetime.now(),
+                is_active=True,
             )
         )
 

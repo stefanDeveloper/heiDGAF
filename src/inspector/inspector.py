@@ -92,7 +92,6 @@ class Inspector:
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
-        self.batch_status = ClickHouseKafkaSender("batch_status")
 
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
@@ -118,6 +117,7 @@ class Inspector:
                 stage=module_name,
                 status="in_process",
                 timestamp=datetime.now(),
+                is_active=True,
                 message_count=len(self.messages),
             )
         )
@@ -452,15 +452,8 @@ class Inspector:
                     stage=module_name,
                     status="filtered_out",
                     timestamp=datetime.now(),
-                    message_count=len(self.messages),
-                )
-            )
-
-            self.batch_status.insert(
-                dict(
-                    batch_id=self.batch_id,
                     is_active=False,
-                    exit_at_stage=module_name,
+                    message_count=len(self.messages),
                 )
             )
 
