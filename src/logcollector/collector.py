@@ -46,7 +46,6 @@ class LogCollector:
         # databases
         self.failed_dns_loglines = ClickHouseKafkaSender("failed_dns_loglines")
         self.dns_loglines = ClickHouseKafkaSender("dns_loglines")
-        self.logline_status = ClickHouseKafkaSender("logline_status")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
 
     async def start(self) -> None:
@@ -134,19 +133,13 @@ class LogCollector:
                         )
                     )
 
-                    self.logline_status.insert(
-                        dict(
-                            logline_id=logline_id,
-                            is_active=1,
-                        )
-                    )
-
                     self.logline_timestamps.insert(
                         dict(
                             logline_id=logline_id,
                             stage=module_name,
                             status="in_process",
                             timestamp=timestamp_in,
+                            is_active=True,
                         )
                     )
 
@@ -163,6 +156,7 @@ class LogCollector:
                             stage=module_name,
                             status="finished",
                             timestamp=datetime.datetime.now(),
+                            is_active=True,
                         )
                     )
                     logger.debug(f"Sent: '{logline}'")

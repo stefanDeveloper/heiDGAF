@@ -88,19 +88,6 @@ class DNSLoglines:
 
 
 @dataclass
-class LoglineStatus:
-    logline_id: uuid.UUID = field(
-        metadata={"marshmallow_field": marshmallow.fields.UUID()}
-    )
-    is_active: bool = field(
-        metadata={"marshmallow_field": marshmallow.fields.Boolean()}
-    )
-    exit_at_stage: Optional[str] = field(
-        metadata={"marshmallow_field": marshmallow.fields.String(allow_none=True)}
-    )
-
-
-@dataclass
 class LoglineTimestamps:
     logline_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
@@ -143,7 +130,6 @@ TABLE_NAME_TO_TYPE = {
     "failed_dns_loglines": FailedDNSLoglines,
     "logline_to_batches": LoglineToBatches,
     "dns_loglines": DNSLoglines,
-    "logline_status": LoglineStatus,
     "logline_timestamps": LoglineTimestamps,
     "batch_timestamps": BatchTimestamps,
 }

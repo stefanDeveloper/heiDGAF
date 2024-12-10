@@ -57,7 +57,6 @@ class Prefilter:
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
-        self.logline_status = ClickHouseKafkaSender("logline_status")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
 
     def get_and_fill_data(self) -> None:
@@ -82,6 +81,7 @@ class Prefilter:
                 stage=module_name,
                 status="in_process",
                 timestamp=datetime.datetime.now(),
+                is_active=True,
                 message_count=len(self.unfiltered_data),
             )
         )
@@ -115,14 +115,7 @@ class Prefilter:
                         stage=module_name,
                         status="filtered_out",
                         timestamp=datetime.datetime.now(),
-                    )
-                )
-
-                self.logline_status.insert(
-                    dict(
-                        logline_id=logline_id,
                         is_active=False,
-                        exit_at_stage=module_name,
                     )
                 )
 
@@ -146,6 +139,7 @@ class Prefilter:
                 stage=module_name,
                 status="finished",
                 timestamp=datetime.datetime.now(),
+                is_active=True,
                 message_count=len(self.filtered_data),
             )
         )

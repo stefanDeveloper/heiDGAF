@@ -44,7 +44,6 @@ class MonitoringAgent:
             "failed_dns_loglines": FailedDNSLoglinesConnector(),
             "logline_to_batches": LoglineToBatchesConnector(),
             "dns_loglines": DNSLoglinesConnector(),
-            "logline_status": LoglineStatusConnector(),
             "logline_timestamps": LoglineTimestampsConnector(),
             "batch_timestamps": BatchTimestampsConnector(),
         }

@@ -170,31 +170,6 @@ class DNSLoglinesConnector(ClickHouseConnector):
         )
 
 
-class LoglineStatusConnector(ClickHouseConnector):
-    def __init__(self):
-        column_names = [
-            "logline_id",
-            "is_active",
-            "exit_at_stage",
-        ]
-
-        super().__init__("logline_status", column_names)
-
-    def insert(
-        self,
-        logline_id: uuid.UUID,
-        is_active: bool,
-        exit_at_stage: Optional[str] = None,
-    ):
-        self._add_to_batch(
-            [
-                logline_id,
-                is_active,
-                exit_at_stage,
-            ]
-        )
-
-
 class LoglineTimestampsConnector(ClickHouseConnector):
     def __init__(self):
         column_names = [
@@ -202,6 +177,7 @@ class LoglineTimestampsConnector(ClickHouseConnector):
             "stage",
             "status",
             "timestamp",
+            "is_active",
         ]
 
         super().__init__("logline_timestamps", column_names)
@@ -212,6 +188,7 @@ class LoglineTimestampsConnector(ClickHouseConnector):
         stage: str,
         status: str,
         timestamp: datetime.datetime,
+        is_active: bool,
     ) -> None:
         self._add_to_batch(
             [
