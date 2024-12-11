@@ -1,15 +1,17 @@
 import importlib
-import json
 import os
 import sys
+import uuid
 from datetime import datetime
 from enum import Enum, unique
 
+import marshmallow_dataclass
 import numpy as np
 from streamad.util import StreamGenerator, CustomDS
 
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
+from src.base.data_classes.batch import Batch
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
@@ -92,6 +94,12 @@ class Inspector:
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
+        self.suspicious_batch_timestamps = ClickHouseKafkaSender(
+            "suspicious_batch_timestamps"
+        )
+        self.suspicious_batches_to_batch = ClickHouseKafkaSender(
+            "suspicious_batches_to_batch"
+        )
 
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
@@ -423,27 +431,54 @@ class Inspector:
             np.greater_equal(np.array(self.anomalies), SCORE_THRESHOLD)
         )
         if total_anomalies / len(self.X) > ANOMALY_THRESHOLD:  # subnet is suspicious
-            logger.debug("Sending data to KafkaProduceHandler...")
-            logger.info("Sending anomalies to detector for further analysation.")
+            logger.info("Sending anomalies to detector for further analysis.")
             buckets = {}
+
             for message in self.messages:
                 if message["client_ip"] in buckets.keys():
                     buckets[message["client_ip"]].append(message)
                 else:
                     buckets[message["client_ip"]] = []
                     buckets.get(message["client_ip"]).append(message)
+
             for key, value in buckets.items():
                 logger.info(f"Sending anomalies to detector for {key}.")
                 logger.info(f"Sending anomalies to detector for {value}.")
+
+                suspicious_batch_id = uuid.uuid4()  # generate new suspicious_batch_id
+
+                self.suspicious_batches_to_batch.insert(
+                    dict(
+                        suspicious_batch_id=suspicious_batch_id,
+                        batch_id=self.batch_id,
+                    )
+                )
+
                 data_to_send = {
-                    "begin_timestamp": self.begin_timestamp.strftime(TIMESTAMP_FORMAT),
-                    "end_timestamp": self.end_timestamp.strftime(TIMESTAMP_FORMAT),
+                    "batch_id": suspicious_batch_id,
+                    "begin_timestamp": self.begin_timestamp,
+                    "end_timestamp": self.end_timestamp,
                     "data": value,
                 }
+
+                batch_schema = marshmallow_dataclass.class_schema(Batch)()
+
                 self.kafka_produce_handler.produce(
-                    topic="Detector",
-                    data=json.dumps(data_to_send),
+                    topic=PRODUCE_TOPIC,
+                    data=batch_schema.dumps(data_to_send),
                     key=key,
+                )
+
+                self.suspicious_batch_timestamps.insert(
+                    dict(
+                        suspicious_batch_id=suspicious_batch_id,
+                        client_ip=key,
+                        stage=module_name,
+                        status="finished",
+                        timestamp=datetime.now(),
+                        is_active=True,
+                        message_count=len(value),
+                    )
                 )
         else:  # subnet is not suspicious
             self.batch_timestamps.insert(
