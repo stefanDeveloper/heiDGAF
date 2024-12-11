@@ -1,6 +1,5 @@
-CREATE TABLE IF NOT EXISTS batch_timestamps (
+CREATE TABLE IF NOT EXISTS suspicious_batch_timestamps (
     suspicious_batch_id UUID NOT NULL,
-    batch_id UUID NOT NULL,
     client_ip String NOT NULL,
     stage String NOT NULL,
     status String NOT NULL,

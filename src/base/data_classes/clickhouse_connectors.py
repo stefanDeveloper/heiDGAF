@@ -120,6 +120,10 @@ class BatchTimestamps:
         metadata={"marshmallow_field": marshmallow.fields.Boolean()}
     )
     message_count: int = field(
+        metadata={"marshmallow_field": marshmallow.fields.Integer()}
+    )
+
+
 @dataclass
 class SuspiciousBatchesToBatch:
     suspicious_batch_id: uuid.UUID = field(
@@ -130,6 +134,23 @@ class SuspiciousBatchesToBatch:
     )
 
 
+@dataclass
+class SuspiciousBatchTimestamps:
+    suspicious_batch_id: uuid.UUID = field(
+        metadata={"marshmallow_field": marshmallow.fields.UUID()}
+    )
+    client_ip: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    stage: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    status: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    timestamp: datetime.datetime = field(
+        metadata={
+            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
+        }
+    )
+    is_active: bool = field(
+        metadata={"marshmallow_field": marshmallow.fields.Boolean()}
+    )
+    message_count: int = field(
         metadata={"marshmallow_field": marshmallow.fields.Integer()}
     )
 
@@ -156,5 +177,6 @@ TABLE_NAME_TO_TYPE = {
     "logline_timestamps": LoglineTimestamps,
     "batch_timestamps": BatchTimestamps,
     "suspicious_batches_to_batch": SuspiciousBatchesToBatch,
+    "suspicious_batch_timestamps": SuspiciousBatchTimestamps,
     "alerts": Alerts,
 }
