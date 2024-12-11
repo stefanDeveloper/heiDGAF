@@ -146,15 +146,10 @@ class Prefilter:
 
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
-        logger.debug(f"{data_to_send=}")
         self.kafka_produce_handler.produce(
             topic=PRODUCE_TOPIC,
             data=batch_schema.dumps(data_to_send),
             key=self.subnet_id,
-        )
-        logger.debug(
-            f"Sent filtered data with time frame from {self.begin_timestamp} to {self.end_timestamp} and data"
-            f" ({len(self.filtered_data)} message(s))."
         )
         logger.info(
             f"Filtered data was successfully sent:\n"
