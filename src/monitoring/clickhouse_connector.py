@@ -232,3 +232,28 @@ class BatchTimestampsConnector(ClickHouseConnector):
                 message_count,
             ]
         )
+
+
+class AlertsConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "client_ip",
+            "alert_timestamp",
+            "suspicious_batch_id",
+        ]
+
+        super().__init__("alerts", column_names)
+
+    def insert(
+        self,
+        client_ip: str,
+        alert_timestamp: datetime.datetime,
+        suspicious_batch_id: uuid.UUID,
+    ) -> None:
+        self._add_to_batch(
+            [
+                client_ip,
+                alert_timestamp,
+                suspicious_batch_id,
+            ]
+        )

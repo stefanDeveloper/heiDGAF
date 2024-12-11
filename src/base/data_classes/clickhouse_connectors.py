@@ -124,6 +124,19 @@ class BatchTimestamps:
     )
 
 
+@dataclass
+class Alerts:
+    client_ip: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    suspicious_batch_id: uuid.UUID = field(
+        metadata={"marshmallow_field": marshmallow.fields.UUID()}
+    )
+    alert_timestamp: datetime.datetime = field(
+        metadata={
+            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
+        }
+    )
+
+
 TABLE_NAME_TO_TYPE = {
     "server_logs": ServerLogs,
     "server_logs_timestamps": ServerLogsTimestamps,
@@ -132,4 +145,5 @@ TABLE_NAME_TO_TYPE = {
     "dns_loglines": DNSLoglines,
     "logline_timestamps": LoglineTimestamps,
     "batch_timestamps": BatchTimestamps,
+    "alerts": Alerts,
 }
