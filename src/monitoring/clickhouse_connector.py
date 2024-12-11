@@ -234,6 +234,65 @@ class BatchTimestampsConnector(ClickHouseConnector):
         )
 
 
+class SuspiciousBatchesToBatchConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "suspicious_batch_id",
+            "batch_id",
+        ]
+
+        super().__init__("suspicious_batches_to_batch", column_names)
+
+    def insert(
+        self,
+        suspicious_batch_id: uuid.UUID,
+        batch_id: uuid.UUID,
+    ) -> None:
+        self._add_to_batch(
+            [
+                suspicious_batch_id,
+                batch_id,
+            ]
+        )
+
+
+class SuspiciousBatchTimestampsConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "suspicious_batch_id",
+            "client_ip",
+            "stage",
+            "status",
+            "timestamp",
+            "is_active",
+            "message_count",
+        ]
+
+        super().__init__("suspicious_batch_timestamps", column_names)
+
+    def insert(
+        self,
+        suspicious_batch_id: uuid.UUID,
+        client_ip: str,
+        stage: str,
+        status: str,
+        is_active: bool,
+        message_count: int,
+        timestamp: datetime.datetime,
+    ) -> None:
+        self._add_to_batch(
+            [
+                suspicious_batch_id,
+                client_ip,
+                stage,
+                status,
+                timestamp,
+                is_active,
+                message_count,
+            ]
+        )
+
+
 class AlertsConnector(ClickHouseConnector):
     def __init__(self):
         column_names = [

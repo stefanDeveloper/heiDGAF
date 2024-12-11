@@ -120,6 +120,16 @@ class BatchTimestamps:
         metadata={"marshmallow_field": marshmallow.fields.Boolean()}
     )
     message_count: int = field(
+@dataclass
+class SuspiciousBatchesToBatch:
+    suspicious_batch_id: uuid.UUID = field(
+        metadata={"marshmallow_field": marshmallow.fields.UUID()}
+    )
+    batch_id: uuid.UUID = field(
+        metadata={"marshmallow_field": marshmallow.fields.UUID()}
+    )
+
+
         metadata={"marshmallow_field": marshmallow.fields.Integer()}
     )
 
@@ -145,5 +155,6 @@ TABLE_NAME_TO_TYPE = {
     "dns_loglines": DNSLoglines,
     "logline_timestamps": LoglineTimestamps,
     "batch_timestamps": BatchTimestamps,
+    "suspicious_batches_to_batch": SuspiciousBatchesToBatch,
     "alerts": Alerts,
 }
