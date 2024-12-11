@@ -299,6 +299,8 @@ class AlertsConnector(ClickHouseConnector):
             "client_ip",
             "alert_timestamp",
             "suspicious_batch_id",
+            "overall_score",
+            "result",
         ]
 
         super().__init__("alerts", column_names)
@@ -308,11 +310,15 @@ class AlertsConnector(ClickHouseConnector):
         client_ip: str,
         alert_timestamp: datetime.datetime,
         suspicious_batch_id: uuid.UUID,
+        overall_score: float,
+        result: str,
     ) -> None:
         self._add_to_batch(
             [
                 client_ip,
                 alert_timestamp,
                 suspicious_batch_id,
+                overall_score,
+                result,
             ]
         )

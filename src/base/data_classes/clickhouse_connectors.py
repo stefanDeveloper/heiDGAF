@@ -166,6 +166,10 @@ class Alerts:
             "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
         }
     )
+    overall_score: float = field(
+        metadata={"marshmallow_field": marshmallow.fields.Float()}
+    )
+    result: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
 
 
 TABLE_NAME_TO_TYPE = {
