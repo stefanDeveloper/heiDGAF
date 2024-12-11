@@ -11,7 +11,6 @@ import numpy as np
 import requests
 from numpy import median
 
-
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import setup_config
@@ -50,7 +49,7 @@ class Detector:
     """
 
     def __init__(self) -> None:
-        self.batch_id = None
+        self.suspicious_batch_id = None
         self.key = None
         self.messages = []
         self.warnings = []
@@ -65,7 +64,10 @@ class Detector:
         self.model = self._get_model()
 
         # databases
-        self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
+        self.suspicious_batch_timestamps = ClickHouseKafkaSender(
+            "suspicious_batch_timestamps"
+        )
+        self.alerts = ClickHouseKafkaSender("alerts")
 
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
@@ -79,15 +81,16 @@ class Detector:
         key, data = self.kafka_consume_handler.consume_as_object()
 
         if data:
-            self.batch_id = data.batch_id
+            self.suspicious_batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
 
-        self.batch_timestamps.insert(
+        self.suspicious_batch_timestamps.insert(
             dict(
-                batch_id=self.batch_id,
+                suspicious_batch_id=self.suspicious_batch_id,
+                client_ip=key,
                 stage=module_name,
                 status="in_process",
                 timestamp=datetime.datetime.now(),
@@ -294,18 +297,41 @@ class Detector:
                 self.warnings.append(warning)
 
     def send_warning(self) -> None:
-        logger.info("Store alert to file.")
+        logger.info("Store alert.")
         if len(self.warnings) > 0:
             overall_score = median(
                 [warning["probability"] for warning in self.warnings]
             )
             alert = {"overall_score": overall_score, "result": self.warnings}
+
             logger.info(f"Add alert: {alert}")
             with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a+") as f:
                 json.dump(alert, f)
                 f.write("\n")
+
+            self.alerts.insert(
+                dict(
+                    client_ip=self.key,
+                    alert_timestamp=datetime.datetime.now(),
+                    suspicious_batch_id=self.suspicious_batch_id,
+                    overall_score=overall_score,
+                    result=json.dumps(self.warnings),
+                )
+            )
         else:
             logger.info("No warning produced.")
+
+        self.suspicious_batch_timestamps.insert(
+            dict(
+                suspicious_batch_id=self.suspicious_batch_id,
+                client_ip=self.key,
+                stage=module_name,
+                status="finished",
+                timestamp=datetime.datetime.now(),
+                is_active=False,
+                message_count=len(self.messages),
+            )
+        )
 
 
 def main(one_iteration: bool = False):  # pragma: no cover
