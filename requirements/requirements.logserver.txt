@@ -3,3 +3,4 @@ colorlog~=6.8.2
 confluent-kafka~=2.4.0
 marshmallow_dataclass~=8.7.1
 aiofiles~=24.1.0
+clickhouse_connect~=0.8.3
