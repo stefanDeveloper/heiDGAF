@@ -245,7 +245,8 @@ class TestSendWarning(unittest.TestCase):
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_save_warning(self, mock_kafka_consume_handler):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_save_warning(self, mock_clickhouse, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -282,7 +283,8 @@ class TestSendWarning(unittest.TestCase):
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_save_empty_warning(self, mock_kafka_consume_handler):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_save_empty_warning(self, mock_clickhouse, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 

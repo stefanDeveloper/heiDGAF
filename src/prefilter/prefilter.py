@@ -1,6 +1,8 @@
 import datetime
+import json
 import os
 import sys
+import uuid
 
 import marshmallow_dataclass
 
@@ -107,7 +109,7 @@ class Prefilter:
             if self.logline_handler.check_relevance(e):
                 self.filtered_data.append(e)
             else:  # not relevant, filtered out
-                logline_id = e.get("logline_id")  # TODO: Check
+                logline_id = uuid.UUID(json.loads(e).get("logline_id"))
 
                 self.logline_timestamps.insert(
                     dict(
@@ -145,7 +147,6 @@ class Prefilter:
         )
 
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
-
         self.kafka_produce_handler.produce(
             topic=PRODUCE_TOPIC,
             data=batch_schema.dumps(data_to_send),

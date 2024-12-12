@@ -196,6 +196,7 @@ class LoglineTimestampsConnector(ClickHouseConnector):
                 stage,
                 status,
                 timestamp,
+                is_active,
             ]
         )
 
