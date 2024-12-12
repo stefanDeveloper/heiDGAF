@@ -1,7 +1,10 @@
+import datetime
 import json
 import unittest
+import uuid
 from unittest.mock import MagicMock, patch
 
+from src.base.data_classes.batch import Batch
 from src.base.kafka_handler import KafkaMessageFetchException
 from src.prefilter.prefilter import Prefilter, main
 
@@ -36,8 +39,10 @@ class TestGetAndFillData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_get_data_without_new_data(
         self,
+        mock_clickhouse,
         mock_produce_handler,
         mock_consume_handler,
         mock_logline_handler,
@@ -47,9 +52,14 @@ class TestGetAndFillData(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_as_json.return_value = (
+        mock_consume_handler_instance.consume_as_object.return_value = (
             None,
-            {},
+            Batch(
+                batch_id=uuid.uuid4(),
+                begin_timestamp=datetime.datetime.now(),
+                end_timestamp=datetime.datetime.now(),
+                data=[],
+            ),
         )
 
         sut = Prefilter()
@@ -59,14 +69,16 @@ class TestGetAndFillData(unittest.TestCase):
         self.assertEqual([], sut.filtered_data)
         self.assertEqual(None, sut.subnet_id)
 
-        mock_consume_handler_instance.consume_as_json.assert_called_once()
+        mock_consume_handler_instance.consume_as_object.assert_called_once()
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_get_data_with_new_data(
         self,
+        mock_clickhouse,
         mock_produce_handler,
         mock_consume_handler,
         mock_logline_handler,
@@ -76,13 +88,14 @@ class TestGetAndFillData(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_as_json.return_value = (
-            "127.0.0.0/24",
-            {
-                "begin_timestamp": "2024-05-21T08:31:28.119Z",
-                "end_timestamp": "2024-05-21T08:31:29.432Z",
-                "data": ["test_data_1", "test_data_2"],
-            },
+        mock_consume_handler_instance.consume_as_object.return_value = (
+            "127.0.0.0_24",
+            Batch(
+                batch_id=uuid.uuid4(),
+                begin_timestamp=datetime.datetime.now(),
+                end_timestamp=datetime.datetime.now(),
+                data=["test_data_1", "test_data_2"],
+            ),
         )
 
         sut = Prefilter()
@@ -90,16 +103,18 @@ class TestGetAndFillData(unittest.TestCase):
 
         self.assertEqual(["test_data_1", "test_data_2"], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
-        self.assertEqual("127.0.0.0/24", sut.subnet_id)
+        self.assertEqual("127.0.0.0_24", sut.subnet_id)
 
-        mock_consume_handler_instance.consume_as_json.assert_called_once()
+        mock_consume_handler_instance.consume_as_object.assert_called_once()
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_get_data_with_existing_data(
         self,
+        mock_clickhouse,
         mock_batch_handler,
         mock_consume_handler,
         mock_logline_handler,
@@ -109,13 +124,14 @@ class TestGetAndFillData(unittest.TestCase):
         mock_batch_handler.return_value = mock_batch_handler_instance
         mock_consume_handler_instance = MagicMock()
         mock_consume_handler.return_value = mock_consume_handler_instance
-        mock_consume_handler_instance.consume_as_json.return_value = (
-            "127.0.0.0/24",
-            {
-                "begin_timestamp": "2024-05-21T08:31:28.119Z",
-                "end_timestamp": "2024-05-21T08:31:29.432Z",
-                "data": ["test_data_1", "test_data_2"],
-            },
+        mock_consume_handler_instance.consume_as_object.return_value = (
+            "127.0.0.0_24",
+            Batch(
+                batch_id=uuid.uuid4(),
+                begin_timestamp=datetime.datetime.now(),
+                end_timestamp=datetime.datetime.now(),
+                data=["test_data_1", "test_data_2"],
+            ),
         )
 
         sut = Prefilter()
@@ -124,9 +140,9 @@ class TestGetAndFillData(unittest.TestCase):
 
         self.assertEqual(["test_data_1", "test_data_2"], sut.unfiltered_data)
         self.assertEqual([], sut.filtered_data)
-        self.assertEqual("127.0.0.0/24", sut.subnet_id)
+        self.assertEqual("127.0.0.0_24", sut.subnet_id)
 
-        mock_consume_handler_instance.consume_as_json.assert_called_once()
+        mock_consume_handler_instance.consume_as_object.assert_called_once()
 
 
 class TestFilterByError(unittest.TestCase):
@@ -152,8 +168,10 @@ class TestFilterByError(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_filter_by_error_with_data_no_error_types(
         self,
+        mock_clickhouse,
         mock_produce_handler,
         mock_consume_handler,
         mock_logline_handler,
@@ -161,6 +179,7 @@ class TestFilterByError(unittest.TestCase):
     ):
         first_entry = json.dumps(
             {
+                "logline_id": str(uuid.uuid4()),
                 "timestamp": "2024-05-21T08:31:28.119Z",
                 "status_code": "NOERROR",
                 "client_ip": "192.168.0.105",
@@ -173,6 +192,7 @@ class TestFilterByError(unittest.TestCase):
         )
         second_entry = json.dumps(
             {
+                "logline_id": str(uuid.uuid4()),
                 "timestamp": "2024-06-01T02:31:07.943Z",
                 "status_code": "NXDOMAIN",
                 "client_ip": "192.168.1.206",
@@ -185,6 +205,7 @@ class TestFilterByError(unittest.TestCase):
         )
         third_entry = json.dumps(
             {
+                "logline_id": str(uuid.uuid4()),
                 "timestamp": "2024-06-01T01:37:41.796Z",
                 "status_code": "NXDOMAIN",
                 "client_ip": "192.168.1.206",
@@ -208,8 +229,10 @@ class TestFilterByError(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_filter_by_error_with_data_one_error_type(
         self,
+        mock_clickhouse,
         mock_produce_handler,
         mock_consume_handler,
         mock_logline_handler,
@@ -217,6 +240,7 @@ class TestFilterByError(unittest.TestCase):
     ):
         first_entry = json.dumps(
             {
+                "logline_id": str(uuid.uuid4()),
                 "timestamp": "2024-05-21T08:31:28.119Z",
                 "status_code": "NOERROR",
                 "client_ip": "192.168.0.105",
@@ -229,6 +253,7 @@ class TestFilterByError(unittest.TestCase):
         )
         second_entry = json.dumps(
             {
+                "logline_id": str(uuid.uuid4()),
                 "timestamp": "2024-06-01T02:31:07.943Z",
                 "status_code": "NXDOMAIN",
                 "client_ip": "192.168.1.206",
@@ -241,6 +266,7 @@ class TestFilterByError(unittest.TestCase):
         )
         third_entry = json.dumps(
             {
+                "logline_id": str(uuid.uuid4()),
                 "timestamp": "2024-06-01T01:37:41.796Z",
                 "status_code": "NXDOMAIN",
                 "client_ip": "192.168.1.206",
@@ -264,8 +290,10 @@ class TestFilterByError(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_filter_by_error_with_data_two_error_types(
         self,
+        mock_clickhouse,
         mock_produce_handler,
         mock_consume_handler,
         mock_logline_handler,
@@ -273,6 +301,7 @@ class TestFilterByError(unittest.TestCase):
     ):
         first_entry = json.dumps(
             {
+                "logline_id": str(uuid.uuid4()),
                 "timestamp": "2024-05-21T08:31:28.119Z",
                 "status_code": "NOERROR",
                 "client_ip": "192.168.0.105",
@@ -285,6 +314,7 @@ class TestFilterByError(unittest.TestCase):
         )
         second_entry = json.dumps(
             {
+                "logline_id": str(uuid.uuid4()),
                 "timestamp": "2024-06-01T02:31:07.943Z",
                 "status_code": "NXDOMAIN",
                 "client_ip": "192.168.1.206",
@@ -297,6 +327,7 @@ class TestFilterByError(unittest.TestCase):
         )
         third_entry = json.dumps(
             {
+                "logline_id": str(uuid.uuid4()),
                 "timestamp": "2024-06-01T01:37:41.796Z",
                 "status_code": "OTHER_TYPE",
                 "client_ip": "192.168.1.206",
@@ -323,8 +354,10 @@ class TestSendFilteredData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_send_with_data(
         self,
+        mock_clickhouse,
         mock_produce_handler,
         mock_consume_handler,
         mock_logline_handler,
@@ -358,10 +391,12 @@ class TestSendFilteredData(unittest.TestCase):
         sut.unfiltered_data = [first_entry, second_entry]
         sut.filtered_data = [first_entry, second_entry]
         sut.subnet_id = "192.168.1.0_24"
-        sut.begin_timestamp = "2024-05-21T08:31:27.000Z"
-        sut.end_timestamp = "2024-05-21T08:31:29.000Z"
+        sut.batch_id = uuid.UUID("5236b147-5b0d-44a8-981f-bd7da8c54733")
+        sut.begin_timestamp = datetime.datetime(2024, 5, 21, 8, 31, 27, 000000)
+        sut.end_timestamp = datetime.datetime(2024, 5, 21, 8, 31, 29, 000000)
         expected_message = (
-            '{"begin_timestamp": "2024-05-21T08:31:27.000Z", "end_timestamp": "2024-05-21T08:31:29.000Z", "data": [{'
+            '{"batch_id": "5236b147-5b0d-44a8-981f-bd7da8c54733", "begin_timestamp": "2024-05-21T08:31:27.000000Z", '
+            '"end_timestamp": "2024-05-21T08:31:29.000000Z", "data": [{'
             '"timestamp": "2024-05-21T08:31:28.119Z", "status": "NXDOMAIN", "client_ip": "192.168.1.105", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}, {"timestamp": "2024-06-01T02:31:07.943Z", '
@@ -413,7 +448,8 @@ class TestSendFilteredData(unittest.TestCase):
         sut.unfiltered_data = []
         sut.filtered_data = []
 
-        self.assertIsNone(sut.send_filtered_data())
+        with self.assertRaises(ValueError):
+            sut.send_filtered_data()
 
         mock_produce_handler.add_message.assert_not_called()
 

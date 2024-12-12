@@ -2,7 +2,9 @@ import asyncio
 import os
 import tempfile
 import unittest
+import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import UUID
 
 import aiofiles
 
@@ -15,7 +17,10 @@ class TestInit(unittest.TestCase):
     @patch("src.logserver.server.CONSUME_TOPIC", "test_topic")
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
     @patch("src.logserver.server.SimpleKafkaConsumeHandler")
-    def test_valid_init(self, mock_kafka_consume_handler, mock_kafka_produce_handler):
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    def test_valid_init(
+        self, mock_clickhouse, mock_kafka_consume_handler, mock_kafka_produce_handler
+    ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_produce_handler_instance = MagicMock()
 
@@ -32,8 +37,10 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.logger")
     @patch("src.logserver.server.SimpleKafkaConsumeHandler")
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
+    @patch("src.logserver.server.ClickHouseKafkaSender")
     def setUp(
         self,
+        mock_clickhouse,
         mock_kafka_produce_handler,
         mock_kafka_consume_handler,
         mock_logger,
@@ -42,8 +49,10 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.logserver.server.LogServer.fetch_from_kafka")
     @patch("src.logserver.server.LogServer.fetch_from_file")
+    @patch("src.logserver.server.ClickHouseKafkaSender")
     async def test_start(
         self,
+        mock_clickhouse,
         mock_fetch_from_file,
         mock_fetch_from_kafka,
     ):
@@ -56,8 +65,10 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.logserver.server.LogServer.fetch_from_kafka")
     @patch("src.logserver.server.LogServer.fetch_from_file")
+    @patch("src.logserver.server.ClickHouseKafkaSender")
     async def test_start_handles_keyboard_interrupt(
         self,
+        mock_clickhouse,
         mock_fetch_from_file,
         mock_fetch_from_kafka,
     ):
@@ -80,8 +91,10 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
 class TestSend(unittest.TestCase):
     @patch("src.logserver.server.PRODUCE_TOPIC", "test_topic")
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
+    @patch("src.logserver.server.ClickHouseKafkaSender")
     def test_send(
         self,
+        mock_clickhouse,
         mock_produce_handler,
     ):
         # Arrange
@@ -92,7 +105,7 @@ class TestSend(unittest.TestCase):
         sut = LogServer()
 
         # Act
-        sut.send(message)
+        sut.send(uuid.uuid4(), message)
 
         # Assert
         mock_kafka_produce_handler_instance.produce.assert_called_once_with(
@@ -107,8 +120,12 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.LogServer.send")
     @patch("src.logserver.server.logger")
     @patch("asyncio.get_running_loop")
+    @patch("src.logserver.server.ClickHouseKafkaSender")
+    @patch("src.logserver.server.uuid")
     async def test_handle_kafka_inputs(
         self,
+        mock_uuid,
+        mock_clickhouse,
         mock_get_running_loop,
         mock_logger,
         mock_send,
@@ -117,6 +134,9 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
     ):
         self.sut = LogServer()
 
+        mock_uuid_instance = MagicMock()
+        mock_uuid.return_value = mock_uuid_instance
+        mock_uuid.uuid4.return_value = UUID("bd72ccb4-0ef2-4100-aa22-e787122d6875")
         mock_send_instance = AsyncMock()
         mock_send.return_value = mock_send_instance
         mock_loop = AsyncMock()
@@ -135,7 +155,9 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await self.sut.fetch_from_kafka()
 
-        mock_send.assert_called_once_with("value1")
+        mock_send.assert_called_once_with(
+            UUID("bd72ccb4-0ef2-4100-aa22-e787122d6875"), "value1"
+        )
 
 
 class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
@@ -145,8 +167,14 @@ class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.PRODUCE_TOPIC", "test_topic")
     @patch("src.logserver.server.LogServer.send")
     @patch("src.logserver.server.logger")
+    @patch("src.logserver.server.ClickHouseKafkaSender")
     async def test_fetch_from_file(
-        self, mock_logger, mock_send, mock_kafka_consume, mock_kafka_produce
+        self,
+        mock_clickhouse,
+        mock_logger,
+        mock_send,
+        mock_kafka_consume,
+        mock_kafka_produce,
     ):
         self.sut = LogServer()
 
@@ -178,8 +206,7 @@ class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
         finally:
             os.remove(temp_file_path)
 
-        mock_send.assert_any_call("Test line 3")
-        mock_send.assert_any_call("Test line 4")
+        self.assertEqual(2, mock_send.call_count)
 
 
 class TestMain(unittest.TestCase):

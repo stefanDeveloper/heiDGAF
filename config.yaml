@@ -19,7 +19,6 @@ pipeline:
   log_storage:
     logserver:
       input_file: "/opt/file.txt"
-      max_number_of_connections: 1000
 
   log_collection:
     collector:
@@ -64,6 +63,11 @@ pipeline:
       base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
       threshold: 0.5
 
+  monitoring:
+    clickhouse_connector:
+      batch_size: 10000
+      batch_timeout: 2.0
+
 environment:
   timestamp_format: "%Y-%m-%dT%H:%M:%S.%fZ"
   kafka_brokers:
@@ -80,3 +84,6 @@ environment:
       batch_sender_to_prefilter: "pipeline.batch_sender_to_prefilter"
       prefilter_to_inspector: "pipeline.prefilter_to_inspector"
       inspector_to_detector: "pipeline.inspector_to_detector"
+  monitoring:
+    clickhouse_server:
+      hostname: 172.27.0.11
