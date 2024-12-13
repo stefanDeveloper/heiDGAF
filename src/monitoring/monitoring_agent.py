@@ -73,6 +73,8 @@ class MonitoringAgent:
                 self.connectors[table_name].insert(**asdict(data))
         except KeyboardInterrupt:
             logger.info("Stopped MonitoringAgent.")
+        except Exception as e:
+            logger.warning(e)
 
 
 def main():

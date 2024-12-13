@@ -1,7 +1,5 @@
-import datetime
 import os
 import sys
-import uuid
 
 import clickhouse_connect
 
@@ -25,15 +23,14 @@ def query_once(client, tables):
     return tables
 
 
+def reset_tables(client, tables):
+    for table_name in tables.keys():
+        tables[table_name] = client.command(f"DROP TABLE {table_name};")
+
+
 def main():
     client = clickhouse_connect.get_client(host="172.27.0.11", port=8123)
     tables = get_tables()
-
-    client.insert(
-        "server_logs",
-        [[uuid.uuid4(), datetime.datetime.now(), "This is a logline"]],
-        ["message_id", "timestamp_in", "message_text"],
-    )
 
     results = query_once(client, tables)
 

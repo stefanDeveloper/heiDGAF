@@ -2,7 +2,7 @@ include:
   - "docker-compose.kafka.yml"
 
 services:
-  sandbox:
+  dev-query:
     build:
       context: ..
       dockerfile: docker/dockerfiles/Dockerfile.dev-query

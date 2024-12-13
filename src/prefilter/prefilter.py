@@ -109,7 +109,7 @@ class Prefilter:
             if self.logline_handler.check_relevance(e):
                 self.filtered_data.append(e)
             else:  # not relevant, filtered out
-                logline_id = uuid.UUID(json.loads(e).get("logline_id"))
+                logline_id = uuid.UUID(e.get("logline_id"))
 
                 self.logline_timestamps.insert(
                     dict(

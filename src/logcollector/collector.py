@@ -24,6 +24,7 @@ IPV4_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subn
 IPV6_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
     "ipv6_prefix_length"
 ]
+TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
@@ -107,6 +108,7 @@ class LogCollector:
                                 message_text=logline,
                                 timestamp_in=timestamp_in,
                                 timestamp_failed=datetime.datetime.now(),
+                                reason_for_failure=None,  # TODO: Add actual reason
                             )
                         )
                         continue
@@ -125,11 +127,13 @@ class LogCollector:
                         dict(
                             logline_id=logline_id,
                             subnet_id=subnet_id,
-                            timestamp=fields.get("timestamp"),
+                            timestamp=datetime.datetime.strptime(
+                                fields.get("timestamp"), TIMESTAMP_FORMAT
+                            ),
                             status_code=fields.get("status_code"),
                             client_ip=fields.get("client_ip"),
                             record_type=fields.get("record_type"),
-                            additional_fields=additional_fields,
+                            additional_fields=json.dumps(additional_fields),
                         )
                     )
 

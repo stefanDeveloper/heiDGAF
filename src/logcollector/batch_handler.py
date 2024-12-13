@@ -82,7 +82,7 @@ class BufferedBatch:
             # create new batch
             self.batch[key] = [message]
             new_batch_id = uuid.uuid4()
-            self.batch_id[key] = [new_batch_id]
+            self.batch_id[key] = new_batch_id
 
             self.logline_to_batches.insert(
                 dict(

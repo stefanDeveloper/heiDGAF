@@ -15,10 +15,6 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
-      logserver:
-        condition: service_started
-      clickhouse-server:
-        condition: service_healthy
     networks:
       heidgaf:
         ipv4_address: 172.27.0.7
@@ -44,8 +40,6 @@ services:
       kafka2:
         condition: service_healthy
       kafka3:
-        condition: service_healthy
-      clickhouse-server:
         condition: service_healthy
     networks:
       heidgaf:
@@ -76,14 +70,6 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
-      logserver:
-        condition: service_started
-      prefilter:
-        condition: service_started
-      logcollector:
-        condition: service_started
-      clickhouse-server:
-        condition: service_healthy
     networks:
       heidgaf:
         ipv4_address: 172.27.0.6
@@ -111,12 +97,6 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
-      logcollector:
-        condition: service_started
-      logserver:
-        condition: service_started
-      clickhouse-server:
-        condition: service_healthy
     networks:
       heidgaf:
         ipv4_address: 172.27.0.9
@@ -143,12 +123,6 @@ services:
       kafka2:
         condition: service_healthy
       kafka3:
-        condition: service_healthy
-      logcollector:
-        condition: service_started
-      logserver:
-        condition: service_started
-      clickhouse-server:
         condition: service_healthy
     networks:
       heidgaf:
