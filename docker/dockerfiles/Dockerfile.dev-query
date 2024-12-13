@@ -12,4 +12,4 @@ COPY docker/dev-query.py .
 
 RUN rm -rf /root/.cache
 
-CMD [ "python", "dev-query.py"]
+CMD [ "python", "query.dev.py"]
