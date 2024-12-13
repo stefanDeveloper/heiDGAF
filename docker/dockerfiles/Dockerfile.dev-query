@@ -8,7 +8,7 @@ RUN pip --disable-pip-version-check install --no-cache-dir --no-compile clickhou
 
 COPY src/base ./src/base
 COPY config.yaml .
-COPY docker/dev-query.py .
+COPY docker/query.dev.py .
 
 RUN rm -rf /root/.cache
 
