@@ -8,9 +8,6 @@ import marshmallow.validate
 
 @dataclass
 class ServerLogs:
-    message_text: str = field(
-        metadata={"marshmallow_field": marshmallow.fields.String()}
-    )
     message_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
@@ -18,6 +15,9 @@ class ServerLogs:
         metadata={
             "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
         }
+    )
+    message_text: str = field(
+        metadata={"marshmallow_field": marshmallow.fields.String()}
     )
 
 

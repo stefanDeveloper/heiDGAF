@@ -67,9 +67,9 @@ class ServerLogsConnector(ClickHouseConnector):
 
     def insert(
         self,
-        message_text: str,
         message_id: uuid.UUID,
         timestamp_in: datetime.datetime,
+        message_text: str,
     ):
         self._add_to_batch([message_id, timestamp_in, message_text])
 
