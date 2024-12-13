@@ -1,5 +1,4 @@
 import datetime
-import json
 import unittest
 import uuid
 from unittest.mock import MagicMock, patch
@@ -177,45 +176,41 @@ class TestFilterByError(unittest.TestCase):
         mock_logline_handler,
         mock_logger,
     ):
-        first_entry = json.dumps(
-            {
-                "logline_id": str(uuid.uuid4()),
-                "timestamp": "2024-05-21T08:31:28.119Z",
-                "status_code": "NOERROR",
-                "client_ip": "192.168.0.105",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.heidelberg-botanik.de",
-                "record_type": "A",
-                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-                "size": "150b",
-            }
-        )
-        second_entry = json.dumps(
-            {
-                "logline_id": str(uuid.uuid4()),
-                "timestamp": "2024-06-01T02:31:07.943Z",
-                "status_code": "NXDOMAIN",
-                "client_ip": "192.168.1.206",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.biotech-hei.com",
-                "record_type": "AAAA",
-                "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
-                "size": "117b",
-            }
-        )
-        third_entry = json.dumps(
-            {
-                "logline_id": str(uuid.uuid4()),
-                "timestamp": "2024-06-01T01:37:41.796Z",
-                "status_code": "NXDOMAIN",
-                "client_ip": "192.168.1.206",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.heidelberg-stadtbibliothek.de",
-                "record_type": "A",
-                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-                "size": "150b",
-            }
-        )
+        first_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "timestamp": "2024-05-21T08:31:28.119Z",
+            "status_code": "NOERROR",
+            "client_ip": "192.168.0.105",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.heidelberg-botanik.de",
+            "record_type": "A",
+            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+            "size": "150b",
+        }
+
+        second_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "timestamp": "2024-06-01T02:31:07.943Z",
+            "status_code": "NXDOMAIN",
+            "client_ip": "192.168.1.206",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.biotech-hei.com",
+            "record_type": "AAAA",
+            "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
+            "size": "117b",
+        }
+
+        third_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "timestamp": "2024-06-01T01:37:41.796Z",
+            "status_code": "NXDOMAIN",
+            "client_ip": "192.168.1.206",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.heidelberg-stadtbibliothek.de",
+            "record_type": "A",
+            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+            "size": "150b",
+        }
 
         sut = Prefilter()
         sut.unfiltered_data = [first_entry, second_entry, third_entry]
@@ -238,45 +233,41 @@ class TestFilterByError(unittest.TestCase):
         mock_logline_handler,
         mock_logger,
     ):
-        first_entry = json.dumps(
-            {
-                "logline_id": str(uuid.uuid4()),
-                "timestamp": "2024-05-21T08:31:28.119Z",
-                "status_code": "NOERROR",
-                "client_ip": "192.168.0.105",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.heidelberg-botanik.de",
-                "record_type": "A",
-                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-                "size": "150b",
-            }
-        )
-        second_entry = json.dumps(
-            {
-                "logline_id": str(uuid.uuid4()),
-                "timestamp": "2024-06-01T02:31:07.943Z",
-                "status_code": "NXDOMAIN",
-                "client_ip": "192.168.1.206",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.biotech-hei.com",
-                "record_type": "AAAA",
-                "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
-                "size": "117b",
-            }
-        )
-        third_entry = json.dumps(
-            {
-                "logline_id": str(uuid.uuid4()),
-                "timestamp": "2024-06-01T01:37:41.796Z",
-                "status_code": "NXDOMAIN",
-                "client_ip": "192.168.1.206",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.heidelberg-stadtbibliothek.de",
-                "record_type": "A",
-                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-                "size": "150b",
-            }
-        )
+        first_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "timestamp": "2024-05-21T08:31:28.119Z",
+            "status_code": "NOERROR",
+            "client_ip": "192.168.0.105",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.heidelberg-botanik.de",
+            "record_type": "A",
+            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+            "size": "150b",
+        }
+
+        second_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "timestamp": "2024-06-01T02:31:07.943Z",
+            "status_code": "NXDOMAIN",
+            "client_ip": "192.168.1.206",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.biotech-hei.com",
+            "record_type": "AAAA",
+            "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
+            "size": "117b",
+        }
+
+        third_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "timestamp": "2024-06-01T01:37:41.796Z",
+            "status_code": "NXDOMAIN",
+            "client_ip": "192.168.1.206",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.heidelberg-stadtbibliothek.de",
+            "record_type": "A",
+            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+            "size": "150b",
+        }
 
         sut = Prefilter()
         sut.unfiltered_data = [first_entry, second_entry, third_entry]
@@ -299,45 +290,41 @@ class TestFilterByError(unittest.TestCase):
         mock_logline_handler,
         mock_logger,
     ):
-        first_entry = json.dumps(
-            {
-                "logline_id": str(uuid.uuid4()),
-                "timestamp": "2024-05-21T08:31:28.119Z",
-                "status_code": "NOERROR",
-                "client_ip": "192.168.0.105",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.heidelberg-botanik.de",
-                "record_type": "A",
-                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-                "size": "150b",
-            }
-        )
-        second_entry = json.dumps(
-            {
-                "logline_id": str(uuid.uuid4()),
-                "timestamp": "2024-06-01T02:31:07.943Z",
-                "status_code": "NXDOMAIN",
-                "client_ip": "192.168.1.206",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.biotech-hei.com",
-                "record_type": "AAAA",
-                "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
-                "size": "117b",
-            }
-        )
-        third_entry = json.dumps(
-            {
-                "logline_id": str(uuid.uuid4()),
-                "timestamp": "2024-06-01T01:37:41.796Z",
-                "status_code": "OTHER_TYPE",
-                "client_ip": "192.168.1.206",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.heidelberg-stadtbibliothek.de",
-                "record_type": "A",
-                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-                "size": "150b",
-            }
-        )
+        first_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "timestamp": "2024-05-21T08:31:28.119Z",
+            "status_code": "NOERROR",
+            "client_ip": "192.168.0.105",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.heidelberg-botanik.de",
+            "record_type": "A",
+            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+            "size": "150b",
+        }
+
+        second_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "timestamp": "2024-06-01T02:31:07.943Z",
+            "status_code": "NXDOMAIN",
+            "client_ip": "192.168.1.206",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.biotech-hei.com",
+            "record_type": "AAAA",
+            "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b",
+            "size": "117b",
+        }
+
+        third_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "timestamp": "2024-06-01T01:37:41.796Z",
+            "status_code": "OTHER_TYPE",
+            "client_ip": "192.168.1.206",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.heidelberg-stadtbibliothek.de",
+            "record_type": "A",
+            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+            "size": "150b",
+        }
 
         sut = Prefilter()
         sut.unfiltered_data = [first_entry, second_entry, third_entry]
