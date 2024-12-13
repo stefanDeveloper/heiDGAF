@@ -113,10 +113,32 @@ class TestInit(unittest.TestCase):
             str(context.exception), "Not all needed fields are set in the configuration"
         )
 
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", [])
-    @patch("src.base.logline_handler.LOGLINE_FIELDS", [])
+    @patch("src.base.logline_handler.REQUIRED_FIELDS", ["field_1"])
+    @patch("src.base.logline_handler.LOGLINE_FIELDS", ["field_1", "field_2"])
+    @patch("src.base.logline_handler.FORBIDDEN_FIELD_NAMES", ["field_2"])
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
     def test_init_no_fields(self, mock_create):
+        # Arrange
+        ip_address_instance = MagicMock()
+        ip_address_instance.name = "field_2"
+        mock_create.side_effect = [ip_address_instance]
+
+        # Act and Assert
+        with self.assertRaises(ValueError) as context:
+            LoglineHandler()
+
+        self.assertEqual(
+            str(context.exception),
+            "Forbidden field name included. "
+            "These fields are used internally and cannot be used as names: "
+            "['field_2']",
+        )
+
+    @patch("src.base.logline_handler.REQUIRED_FIELDS", [])
+    @patch("src.base.logline_handler.LOGLINE_FIELDS", [])
+    @patch("src.base.logline_handler.LOGLINE_FIELDS", [])
+    @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
+    def test_init_forbidden_fields(self, mock_create):
         # Arrange
         mock_create.side_effect = []
 

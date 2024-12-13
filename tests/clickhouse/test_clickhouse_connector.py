@@ -322,30 +322,7 @@ class TestLoglineToBatchesConnector(unittest.TestCase):
         )
 
     @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_all_given_as_str(self, mock_clickhouse_batch_sender):
-        # Arrange
-        logline_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
-        batch_id = uuid.UUID("1f855c43-8a75-4b53-b6cd-4a13b89312d6")
-
-        sut = LoglineToBatchesConnector()
-
-        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
-            # Act
-            sut.insert(
-                logline_id=logline_id,
-                batch_id=batch_id,
-            )
-
-            # Assert
-            mock_add_to_batch.assert_called_once_with(
-                [
-                    uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
-                    uuid.UUID("1f855c43-8a75-4b53-b6cd-4a13b89312d6"),
-                ]
-            )
-
-    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
-    def test_insert_all_given_as_uuid(self, mock_clickhouse_batch_sender):
+    def test_insert_all_given(self, mock_clickhouse_batch_sender):
         # Arrange
         logline_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
         batch_id = uuid.UUID("1f855c43-8a75-4b53-b6cd-4a13b89312d6")
@@ -556,6 +533,193 @@ class TestBatchTimestampsConnector(unittest.TestCase):
                     datetime.datetime(2034, 12, 13, 12, 35, 35, 542635),
                     True,
                     456,
+                ]
+            )
+
+
+class TestSuspiciousBatchesToBatchConnector(unittest.TestCase):
+    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
+    def test_init(self, mock_clickhouse_batch_sender):
+        # Arrange
+        mock_clickhouse_batch_sender_instance = MagicMock()
+        mock_clickhouse_batch_sender.return_value = (
+            mock_clickhouse_batch_sender_instance
+        )
+
+        expected_table_name = "suspicious_batches_to_batch"
+        expected_column_names = [
+            "suspicious_batch_id",
+            "batch_id",
+        ]
+
+        # Act
+        sut = SuspiciousBatchesToBatchConnector()
+
+        # Assert
+        self.assertEqual(expected_table_name, sut._table_name)
+        self.assertEqual(expected_column_names, sut._column_names)
+        self.assertEqual(mock_clickhouse_batch_sender_instance, sut._batch_sender)
+
+        mock_clickhouse_batch_sender.assert_called_once_with(
+            table_name=expected_table_name,
+            column_names=expected_column_names,
+        )
+
+    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
+    def test_insert_all_given(self, mock_clickhouse_batch_sender):
+        # Arrange
+        suspicious_batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
+        batch_id = uuid.UUID("1f855c43-8a75-4b53-b6cd-4a13b89312d6")
+
+        sut = SuspiciousBatchesToBatchConnector()
+
+        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
+            # Act
+            sut.insert(
+                suspicious_batch_id=suspicious_batch_id,
+                batch_id=batch_id,
+            )
+
+            # Assert
+            mock_add_to_batch.assert_called_once_with(
+                [
+                    uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
+                    uuid.UUID("1f855c43-8a75-4b53-b6cd-4a13b89312d6"),
+                ]
+            )
+
+
+class TestSuspiciousBatchTimestampsConnector(unittest.TestCase):
+    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
+    def test_init(self, mock_clickhouse_batch_sender):
+        # Arrange
+        mock_clickhouse_batch_sender_instance = MagicMock()
+        mock_clickhouse_batch_sender.return_value = (
+            mock_clickhouse_batch_sender_instance
+        )
+
+        expected_table_name = "suspicious_batch_timestamps"
+        expected_column_names = [
+            "suspicious_batch_id",
+            "client_ip",
+            "stage",
+            "status",
+            "timestamp",
+            "is_active",
+            "message_count",
+        ]
+
+        # Act
+        sut = SuspiciousBatchTimestampsConnector()
+
+        # Assert
+        self.assertEqual(expected_table_name, sut._table_name)
+        self.assertEqual(expected_column_names, sut._column_names)
+        self.assertEqual(mock_clickhouse_batch_sender_instance, sut._batch_sender)
+
+        mock_clickhouse_batch_sender.assert_called_once_with(
+            table_name=expected_table_name,
+            column_names=expected_column_names,
+        )
+
+    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
+    def test_insert_all_given(self, mock_clickhouse_batch_sender):
+        # Arrange
+        suspicious_batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
+        client_ip = "127.0.0.1"
+        stage = "prefilter"
+        status = "prefilter_out"
+        timestamp = datetime.datetime(2034, 12, 13, 12, 35, 35, 542635)
+        message_count = 456
+
+        sut = SuspiciousBatchTimestampsConnector()
+
+        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
+            # Act
+            sut.insert(
+                suspicious_batch_id=suspicious_batch_id,
+                client_ip=client_ip,
+                stage=stage,
+                status=status,
+                timestamp=timestamp,
+                is_active=True,
+                message_count=message_count,
+            )
+
+            # Assert
+            mock_add_to_batch.assert_called_once_with(
+                [
+                    uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
+                    "127.0.0.1",
+                    "prefilter",
+                    "prefilter_out",
+                    datetime.datetime(2034, 12, 13, 12, 35, 35, 542635),
+                    True,
+                    456,
+                ]
+            )
+
+
+class TestAlertsConnector(unittest.TestCase):
+    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
+    def test_init(self, mock_clickhouse_batch_sender):
+        # Arrange
+        mock_clickhouse_batch_sender_instance = MagicMock()
+        mock_clickhouse_batch_sender.return_value = (
+            mock_clickhouse_batch_sender_instance
+        )
+
+        expected_table_name = "alerts"
+        expected_column_names = [
+            "client_ip",
+            "alert_timestamp",
+            "suspicious_batch_id",
+            "overall_score",
+            "result",
+        ]
+
+        # Act
+        sut = AlertsConnector()
+
+        # Assert
+        self.assertEqual(expected_table_name, sut._table_name)
+        self.assertEqual(expected_column_names, sut._column_names)
+        self.assertEqual(mock_clickhouse_batch_sender_instance, sut._batch_sender)
+
+        mock_clickhouse_batch_sender.assert_called_once_with(
+            table_name=expected_table_name,
+            column_names=expected_column_names,
+        )
+
+    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
+    def test_insert_all_given(self, mock_clickhouse_batch_sender):
+        # Arrange
+        client_ip = "127.0.0.1"
+        alert_timestamp = datetime.datetime(2034, 12, 13, 12, 35, 35, 542635)
+        suspicious_batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
+        overall_score = 15.4
+        result = "test"
+
+        sut = AlertsConnector()
+
+        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
+            # Act
+            sut.insert(
+                client_ip=client_ip,
+                alert_timestamp=alert_timestamp,
+                suspicious_batch_id=suspicious_batch_id,
+                overall_score=overall_score,
+                result=result,
+            )
+
+            # Assert
+            mock_add_to_batch.assert_called_once_with(
+                [
+                    "127.0.0.1",
+                    datetime.datetime(2034, 12, 13, 12, 35, 35, 542635),
+                    uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
+                    15.4,
+                    "test",
                 ]
             )
 
