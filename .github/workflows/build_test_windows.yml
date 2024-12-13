@@ -32,7 +32,7 @@ jobs:
             requirements/requirements.*.txt
 
       - name: Setup msys2
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@v2.26.0
         with:
           msystem: MINGW64
           update: true
