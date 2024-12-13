@@ -71,7 +71,7 @@ class Prefilter:
         key, data = self.kafka_consume_handler.consume_as_object()
 
         self.subnet_id = key
-        if data:
+        if data.data:
             self.batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp

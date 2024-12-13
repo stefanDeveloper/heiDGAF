@@ -46,6 +46,9 @@ class MonitoringAgent:
             "dns_loglines": DNSLoglinesConnector(),
             "logline_timestamps": LoglineTimestampsConnector(),
             "batch_timestamps": BatchTimestampsConnector(),
+            "suspicious_batches_to_batch": SuspiciousBatchesToBatchConnector(),
+            "suspicious_batch_timestamps": SuspiciousBatchTimestampsConnector(),
+            "alerts": AlertsConnector(),
         }
 
         self.topics = [f"clickhouse_{table_name}" for table_name in self.connectors]

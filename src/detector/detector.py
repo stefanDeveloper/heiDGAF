@@ -80,7 +80,7 @@ class Detector:
 
         key, data = self.kafka_consume_handler.consume_as_object()
 
-        if data:
+        if data.data:
             self.suspicious_batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
