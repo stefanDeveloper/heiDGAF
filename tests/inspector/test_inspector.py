@@ -880,6 +880,42 @@ class TestSend(unittest.TestCase):
             key="192.168.0.167",
         )
 
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.inspector.inspector.SCORE_THRESHOLD", 0.1)
+    @patch("src.inspector.inspector.ANOMALY_THRESHOLD", 0.01)
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    def test_send_not_suspicious(
+        self,
+        mock_clickhouse,
+        mock_kafka_consume_handler,
+        mock_produce_handler,
+        mock_logger,
+    ):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+        batch_schema = marshmallow_dataclass.class_schema(Batch)()
+
+        sut = Inspector()
+        sut.anomalies = [0.0, 0.0]
+        sut.X = np.array([[0.0], [0.0]])
+        sut.begin_timestamp = datetime.now()
+        sut.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            sut.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        sut.messages = [data]
+        mock_batch_id = uuid.UUID("5ae0872e-5bb9-472c-8c37-8c173213a51f")
+        with patch("src.inspector.inspector.uuid") as mock_uuid:
+            mock_uuid.uuid4.return_value = mock_batch_id
+            sut.send_data()
+
+        mock_produce_handler_instance.produce.assert_not_called()
+
 
 class TestMainFunction(unittest.TestCase):
     @patch("src.inspector.inspector.logger")
