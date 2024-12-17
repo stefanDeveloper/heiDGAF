@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import json
 import os
@@ -11,6 +12,7 @@ import requests
 from numpy import median
 
 sys.path.append(os.getcwd())
+from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
@@ -47,6 +49,8 @@ class Detector:
     """
 
     def __init__(self) -> None:
+        self.suspicious_batch_id = None
+        self.key = None
         self.messages = []
         self.warnings = []
         self.begin_timestamp = None
@@ -55,14 +59,18 @@ class Detector:
             tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pickle"
         )
 
-        logger.debug(f"Initializing Detector...")
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
 
         self.model = self._get_model()
 
+        # databases
+        self.suspicious_batch_timestamps = ClickHouseKafkaSender(
+            "suspicious_batch_timestamps"
+        )
+        self.alerts = ClickHouseKafkaSender("alerts")
+
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
-        logger.debug("Getting and filling data...")
         if self.messages:
             logger.warning(
                 "Detector is busy: Not consuming new messages. Wait for the Detector to finish the "
@@ -70,16 +78,26 @@ class Detector:
             )
             return
 
-        logger.debug(
-            "Detector is not busy: Calling KafkaConsumeHandler to consume new JSON messages..."
-        )
         key, data = self.kafka_consume_handler.consume_as_object()
 
-        if data:
+        if data.data:
+            self.suspicious_batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
+
+        self.suspicious_batch_timestamps.insert(
+            dict(
+                suspicious_batch_id=self.suspicious_batch_id,
+                client_ip=key,
+                stage=module_name,
+                status="in_process",
+                timestamp=datetime.datetime.now(),
+                is_active=True,
+                message_count=len(self.messages),
+            )
+        )
 
         if not self.messages:
             logger.info(
@@ -91,9 +109,6 @@ class Detector:
                 "Received message:\n"
                 f"    ⤷  Contains data field of {len(self.messages)} message(s). Belongs to subnet_id {key}."
             )
-
-        logger.debug("Received consumer message as json data.")
-        logger.debug(f"(data={self.messages})")
 
     def _sha256sum(self, file_path: str) -> str:
         """Return a SHA265 sum check to validate the model.
@@ -116,7 +131,7 @@ class Detector:
 
         return h.hexdigest()
 
-    def _get_model(self) -> None:
+    def _get_model(self):
         """
         Downloads model from server. If model already exists, it returns the current model. In addition, it checks the
         sha256 sum in case a model has been updated.
@@ -282,18 +297,41 @@ class Detector:
                 self.warnings.append(warning)
 
     def send_warning(self) -> None:
-        logger.info("Store alert to file.")
+        logger.info("Store alert.")
         if len(self.warnings) > 0:
             overall_score = median(
                 [warning["probability"] for warning in self.warnings]
             )
             alert = {"overall_score": overall_score, "result": self.warnings}
+
             logger.info(f"Add alert: {alert}")
             with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a+") as f:
                 json.dump(alert, f)
                 f.write("\n")
+
+            self.alerts.insert(
+                dict(
+                    client_ip=self.key,
+                    alert_timestamp=datetime.datetime.now(),
+                    suspicious_batch_id=self.suspicious_batch_id,
+                    overall_score=overall_score,
+                    result=json.dumps(self.warnings),
+                )
+            )
         else:
             logger.info("No warning produced.")
+
+        self.suspicious_batch_timestamps.insert(
+            dict(
+                suspicious_batch_id=self.suspicious_batch_id,
+                client_ip=self.key,
+                stage=module_name,
+                status="finished",
+                timestamp=datetime.datetime.now(),
+                is_active=False,
+                message_count=len(self.messages),
+            )
+        )
 
 
 def main(one_iteration: bool = False):  # pragma: no cover

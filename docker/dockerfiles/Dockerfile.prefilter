@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 WORKDIR /usr/src/app
 
 COPY requirements/requirements.prefilter.txt ./
-RUN pip --disable-pip-version-check install --no-cache-dir --no-compile  -r requirements.prefilter.txt
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile -r requirements.prefilter.txt
 
 COPY src/base ./src/base
 COPY src/prefilter ./src/prefilter

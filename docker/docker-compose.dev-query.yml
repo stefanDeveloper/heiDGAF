@@ -1,0 +1,56 @@
+include:
+  - "docker-compose.kafka.yml"
+
+services:
+  dev-query:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.dev-query
+      network: host
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.100
+    memswap_limit: 768m
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+    volumes:
+      - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
+
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:24.3.12.75-alpine
+    container_name: clickhouse-server
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.11
+    restart: "unless-stopped"
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z 127.0.0.1 8123" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+
+networks:
+  heidgaf:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.27.0.0/16
+          gateway: 172.27.0.1

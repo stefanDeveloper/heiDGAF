@@ -1,16 +1,21 @@
+import datetime
 import json
 import os
 import sys
-from datetime import datetime
+import uuid
 from threading import Timer
 
-from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
-from src.base.utils import setup_config
+import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
+from src.base.data_classes.batch import Batch
+from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
+from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
+from src.base.utils import setup_config, generate_unique_transactional_id
 from src.base.log_config import get_logger
 
-logger = get_logger("log_collection.batch_handler")
+module_name = "log_collection.batch_handler"
+logger = get_logger(module_name)
 
 config = setup_config()
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
@@ -18,6 +23,12 @@ BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_tim
 PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "batch_sender_to_prefilter"
 ]
+KAFKA_BROKERS = ",".join(
+    [
+        f"{broker['hostname']}:{broker['port']}"
+        for broker in config["environment"]["kafka_brokers"]
+    ]
+)
 
 
 class BufferedBatch:
@@ -29,22 +40,67 @@ class BufferedBatch:
     def __init__(self):
         self.batch = {}  # Batch for the latest messages coming in
         self.buffer = {}  # Former batch with previous messages
+        self.batch_id = {}  # Batch ID per key
 
-    def add_message(self, key: str, message: str) -> None:
+        # databases
+        self.logline_to_batches = ClickHouseKafkaSender("logline_to_batches")
+        self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
+
+    def add_message(self, key: str, logline_id: uuid.UUID, message: str) -> None:
         """
         Adds a given message to the messages list of the given key. If the key already exists, the message is simply
         added, otherwise, the key is created.
 
         Args:
+            logline_id (uuid.UUID): Logline ID of the added message
             key (str): Key to which the message is added
             message (str): Message to be added
         """
         if key in self.batch:  # key already has messages associated
             self.batch[key].append(message)
-            logger.debug(f"Message '{message}' added to {key}'s batch.")
+
+            batch_id = self.batch_id.get(key)
+            self.logline_to_batches.insert(
+                dict(
+                    logline_id=logline_id,
+                    batch_id=batch_id,
+                )
+            )
+
+            self.batch_timestamps.insert(
+                dict(
+                    batch_id=batch_id,
+                    stage=module_name,
+                    status="waiting",
+                    timestamp=datetime.datetime.now(),
+                    is_active=True,
+                    message_count=self.get_number_of_messages(key),
+                )
+            )
+
         else:  # key has no messages associated yet
+            # create new batch
             self.batch[key] = [message]
-            logger.debug(f"Message '{message}' added to newly created {key}'s batch.")
+            new_batch_id = uuid.uuid4()
+            self.batch_id[key] = new_batch_id
+
+            self.logline_to_batches.insert(
+                dict(
+                    logline_id=logline_id,
+                    batch_id=new_batch_id,
+                )
+            )
+
+            self.batch_timestamps.insert(
+                dict(
+                    batch_id=new_batch_id,
+                    stage=module_name,
+                    status="waiting",
+                    timestamp=datetime.datetime.now(),
+                    is_active=True,
+                    message_count=1,
+                )
+            )
 
     def get_number_of_messages(self, key: str) -> int:
         """
@@ -93,7 +149,7 @@ class BufferedBatch:
             List of log lines as strings sorted by timestamps (ascending)
         """
         sorted_data = sorted(
-            data, key=lambda x: datetime.strptime(x[0], timestamp_format)
+            data, key=lambda x: datetime.datetime.strptime(x[0], timestamp_format)
         )
         loglines = [message for _, message in sorted_data]
 
@@ -198,7 +254,8 @@ class BufferedBatch:
             key (str): Key for which to complete the current batch and return data packet
 
         Returns:
-            Dictionary of begin_timestamp, end_timestamp and messages (including buffered data) associated with a key
+            Set of new Logline IDs and dictionary of begin_timestamp, end_timestamp and messages (including buffered
+            data) associated with a key
 
         Raises:
             ValueError: No data is available for sending.
@@ -216,15 +273,38 @@ class BufferedBatch:
                 buffer_data = self.buffer[key]
                 begin_timestamp = self.get_first_timestamp_of_buffer(key)
 
+            batch_id = self.batch_id.get(key)
+
             data = {
-                "begin_timestamp": begin_timestamp,
-                "end_timestamp": self.get_last_timestamp_of_batch(key),
+                "batch_id": batch_id,
+                "begin_timestamp": datetime.datetime.strptime(
+                    begin_timestamp,
+                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                ),
+                "end_timestamp": datetime.datetime.strptime(
+                    self.get_last_timestamp_of_batch(key),
+                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                ),
                 "data": buffer_data + self.batch[key],
             }
+
+            self.batch_timestamps.insert(
+                dict(
+                    batch_id=batch_id,
+                    stage=module_name,
+                    status="completed",
+                    timestamp=datetime.datetime.now(),
+                    is_active=True,
+                    message_count=self.get_number_of_messages(key),
+                )
+            )
 
             # Move data from batch to buffer
             self.buffer[key] = self.batch[key]
             del self.batch[key]
+
+            # Batch ID is not needed anymore
+            del self.batch_id[key]
 
             return data
 
@@ -267,11 +347,11 @@ class BufferedBatchSender:
         self.batch = BufferedBatch()
         self.timer = None
 
-        logger.debug(f"Calling KafkaProduceHandler(transactional_id='collector')...")
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(
-            transactional_id="collector"
-        )
-        logger.debug(f"Initialized KafkaBatchSender.")
+        transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
+
+        # databases
+        self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
 
     def __del__(self):
         logger.debug(f"Closing KafkaBatchSender ({self.topic=})...")
@@ -295,7 +375,29 @@ class BufferedBatchSender:
         """
         logger.debug(f"Adding message '{message}' to batch.")
 
-        self.batch.add_message(key, message)
+        logline_id = json.loads(message).get("logline_id")
+
+        self.logline_timestamps.insert(
+            dict(
+                logline_id=logline_id,
+                stage=module_name,
+                status="in_process",
+                timestamp=datetime.datetime.now(),
+                is_active=True,
+            )
+        )
+
+        self.batch.add_message(key, logline_id, message)
+
+        self.logline_timestamps.insert(
+            dict(
+                logline_id=logline_id,
+                stage=module_name,
+                status="batched",
+                timestamp=datetime.datetime.now(),
+                is_active=True,
+            )
+        )
 
         logger.debug(f"Batch: {self.batch.batch}")
         number_of_messages_for_key = self.batch.get_number_of_messages(key)
@@ -310,7 +412,6 @@ class BufferedBatchSender:
                 f"    ⤷  {number_of_messages_for_key} messages sent."
             )
         elif not self.timer:  # First time setting the timer
-            logger.debug("Timer not set yet. Calling _reset_timer()...")
             self._reset_timer()
 
         logger.debug(f"Message '{message}' successfully added to batch for {key=}.")
@@ -352,25 +453,22 @@ class BufferedBatchSender:
             )
 
     def _send_batch_for_key(self, key: str) -> None:
-        logger.debug(f"Starting to send the batch for {key=}...")
-
         try:
-            data_packet = self.batch.complete_batch(key)
+            data = self.batch.complete_batch(key)
         except ValueError as e:
             logger.debug(e)
             return
 
-        self._send_data_packet(key, data_packet)
+        self._send_data_packet(key, data)
 
     def _send_data_packet(self, key: str, data: dict) -> None:
-        logger.debug("Sending data to KafkaProduceHandler...")
-        logger.debug(f"{data=}")
+        batch_schema = marshmallow_dataclass.class_schema(Batch)()
+
         self.kafka_produce_handler.produce(
             topic=self.topic,
-            data=json.dumps(data),
+            data=batch_schema.dumps(data),
             key=key,
         )
-        logger.debug(f"{data=}")
 
     def _reset_timer(self) -> None:
         """
