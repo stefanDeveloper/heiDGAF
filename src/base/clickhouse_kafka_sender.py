@@ -1,3 +1,8 @@
+"""
+The ClickHouseKafkaSender serves as the sender for all inserts into ClickHouse. Whenever a class wants to insert
+into a ClickHouse table, the ClickHouseKafkaSender is used to send the respective insert via Kafka.
+"""
+
 import os
 import sys
 
@@ -12,6 +17,8 @@ logger = get_logger()
 
 
 class ClickHouseKafkaSender:
+    """Sends insert operations for the specified table via Kafka to the MonitoringAgent."""
+
     def __init__(self, table_name: str):
         self.table_name = table_name
         self.kafka_producer = SimpleKafkaProduceHandler()
@@ -20,6 +27,7 @@ class ClickHouseKafkaSender:
         )()
 
     def insert(self, data: dict):
+        """Produces the insert operation to Kafka."""
         self.kafka_producer.produce(
             topic=f"clickhouse_{self.table_name}",
             data=self.data_schema.dumps(data),
