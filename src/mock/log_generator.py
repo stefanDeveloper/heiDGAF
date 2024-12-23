@@ -16,7 +16,7 @@ STATUSES = ["NOERROR", "NXDOMAIN"]
 MAX_IPV4 = ipaddress.IPv4Address._ALL_ONES  # 2 ** 32 - 1
 MAX_IPV6 = ipaddress.IPv6Address._ALL_ONES  # 2 ** 128 - 1
 IP = [random_ipv4, random_ipv6]
-RECORD_TYPES = ["AAAA", "A", "PR", "CNAME"]
+RECORD_TYPES = ["AAAA", "A", "AAAA", "A", "AAAA", "A", "AAAA", "A", "PR", "CNAME"]
 
 
 def generate_dns_log_line(domain: str):
