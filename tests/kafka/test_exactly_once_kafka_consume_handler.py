@@ -1,11 +1,13 @@
 import datetime
 import json
 import unittest
+import uuid
 from unittest.mock import patch, Mock
 
+import marshmallow_dataclass
 from confluent_kafka import KafkaException, KafkaError
 
-from src.base import Batch
+from src.base.data_classes.batch import Batch
 from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 
 CONSUMER_GROUP_ID = "test_group_id"
@@ -305,10 +307,6 @@ class TestConsumeAsObject(unittest.TestCase):
     @patch("src.base.kafka_handler.Consumer")
     def setUp(self, mock_consumer):
         self.sut = ExactlyOnceKafkaConsumeHandler(topics="test_topic")
-        self.sut.batch_schema = Mock()
-        self.sut.batch_schema.load = Mock(
-            return_value=Batch(datetime.datetime.now(), datetime.datetime.now())
-        )
 
     def test_consume_as_object_no_key_no_value(self):
         with patch(
@@ -322,14 +320,16 @@ class TestConsumeAsObject(unittest.TestCase):
 
     def test_consume_as_object_valid_data(self):
         key = "valid_key"
-        value = json.dumps({"data": [{"field1": "value1", "field2": "value2"}]})
-        topic = "test_topic"
-        batch_data = [{"field1": "value1", "field2": "value2"}]
-        self.sut.batch_schema.load.return_value = Batch(
-            datetime.datetime.now(),
-            datetime.datetime.now(),
-            batch_data,
+        batch_schema = marshmallow_dataclass.class_schema(Batch)()
+        value = batch_schema.dumps(
+            {
+                "batch_id": uuid.uuid4(),
+                "begin_timestamp": datetime.datetime.now(),
+                "end_timestamp": datetime.datetime.now(),
+                "data": [{"field1": "value1", "field2": "value2"}],
+            }
         )
+        topic = "test_topic"
 
         with patch(
             "src.base.kafka_handler.ExactlyOnceKafkaConsumeHandler.consume"
@@ -343,21 +343,19 @@ class TestConsumeAsObject(unittest.TestCase):
 
     def test_consume_as_object_valid_data_with_inner_strings(self):
         key = "valid_key"
-        value = json.dumps(
+        batch_schema = marshmallow_dataclass.class_schema(Batch)()
+        value = batch_schema.dumps(
             {
+                "batch_id": uuid.uuid4(),
+                "begin_timestamp": datetime.datetime.now(),
+                "end_timestamp": datetime.datetime.now(),
                 "data": [
                     '{"field1": "value1", "field2": "value2"}',
                     '{"field3": "value3", "field4": "value4"}',
-                ]
+                ],
             }
         )
         topic = "test_topic"
-        batch_data = [{"field1": "value1", "field2": "value2"}]
-        self.sut.batch_schema.load.return_value = Batch(
-            datetime.datetime.now(),
-            datetime.datetime.now(),
-            batch_data,
-        )
 
         with patch(
             "src.base.kafka_handler.ExactlyOnceKafkaConsumeHandler.consume"
@@ -384,12 +382,16 @@ class TestConsumeAsObject(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.sut.consume_as_object()
 
-    def test_consume_as_object_invalid_batch(self):
+    @patch("src.base.kafka_handler.marshmallow_dataclass.class_schema")
+    def test_consume_as_object_invalid_batch(self, mock_schema):
         key = "valid_key"
         value = json.dumps({"data": [{"field1": "value1", "field2": "value2"}]})
         topic = "test_topic"
 
-        self.sut.batch_schema.load.return_value = None
+        mock_schema_instance = Mock()
+        mock_schema.return_value = mock_schema_instance
+
+        mock_schema_instance.load.return_value = None
 
         with patch(
             "src.base.kafka_handler.ExactlyOnceKafkaConsumeHandler.consume"

@@ -20,7 +20,7 @@ from confluent_kafka import (
 )
 
 sys.path.append(os.getcwd())
-from src.base import Batch
+from src.base.data_classes.batch import Batch
 from src.base.log_config import get_logger
 from src.base.utils import kafka_delivery_report, setup_config
 
@@ -323,7 +323,6 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
     """
 
     def __init__(self, topics: str | list[str]) -> None:
-        self.batch_schema = marshmallow_dataclass.class_schema(Batch)()
         super().__init__(topics)
 
     def consume(self) -> tuple[str | None, str | None, str | None]:
@@ -396,7 +395,8 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
                 ast.literal_eval(item) for item in eval_data.get("data")
             ]
 
-        eval_data: Batch = self.batch_schema.load(eval_data)
+        batch_schema = marshmallow_dataclass.class_schema(Batch)()
+        eval_data: Batch = batch_schema.load(eval_data)
 
         if isinstance(eval_data, Batch):
             return key, eval_data

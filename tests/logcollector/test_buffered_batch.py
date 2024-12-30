@@ -1,4 +1,7 @@
+import datetime
 import unittest
+import uuid
+from unittest.mock import patch
 
 from src.logcollector.batch_handler import BufferedBatch
 
@@ -14,7 +17,8 @@ class TestInit(unittest.TestCase):
 
 
 class TestAddMessage(unittest.TestCase):
-    def test_add_message_empty_batch_and_empty_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_add_message_empty_batch_and_empty_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         message = "test_message"
@@ -22,7 +26,7 @@ class TestAddMessage(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act
-        sut.add_message(key, message)
+        sut.add_message(key, uuid.uuid4(), message)
 
         # Assert
         self.assertEqual(
@@ -30,7 +34,8 @@ class TestAddMessage(unittest.TestCase):
         )
         self.assertEqual({}, sut.buffer, "Buffer should remain empty")
 
-    def test_add_message_empty_batch_and_used_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_add_message_empty_batch_and_used_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         message = "test_message"
@@ -40,7 +45,7 @@ class TestAddMessage(unittest.TestCase):
         sut.buffer = {key: [old_message]}
 
         # Act
-        sut.add_message(key, message)
+        sut.add_message(key, uuid.uuid4(), message)
 
         # Assert
         self.assertEqual(
@@ -52,7 +57,8 @@ class TestAddMessage(unittest.TestCase):
             "Buffer should still contain key with old message",
         )
 
-    def test_add_message_used_batch_and_empty_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_add_message_used_batch_and_empty_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         message = "test_message"
@@ -62,7 +68,7 @@ class TestAddMessage(unittest.TestCase):
         sut.batch = {key: [old_message]}
 
         # Act
-        sut.add_message(key, message)
+        sut.add_message(key, uuid.uuid4(), message)
 
         # Assert
         self.assertEqual(
@@ -72,7 +78,8 @@ class TestAddMessage(unittest.TestCase):
         )
         self.assertEqual({}, sut.buffer, "Buffer should remain empty")
 
-    def test_add_message_used_batch_and_used_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_add_message_used_batch_and_used_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         message = "test_message"
@@ -84,7 +91,7 @@ class TestAddMessage(unittest.TestCase):
         sut.buffer = {key: [old_message_1]}
 
         # Act
-        sut.add_message(key, message)
+        sut.add_message(key, uuid.uuid4(), message)
 
         # Assert
         self.assertEqual(
@@ -98,7 +105,8 @@ class TestAddMessage(unittest.TestCase):
             "Buffer should still contain key with old message",
         )
 
-    def test_add_message_with_existing_other_key(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_add_message_with_existing_other_key(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         message = "test_message"
@@ -111,7 +119,7 @@ class TestAddMessage(unittest.TestCase):
         sut.buffer = {old_key: [old_message_1]}
 
         # Act
-        sut.add_message(key, message)
+        sut.add_message(key, uuid.uuid4(), message)
 
         # Assert
         self.assertEqual(
@@ -755,50 +763,88 @@ class TestSortBatch(unittest.TestCase):
 
 
 class TestCompleteBatch(unittest.TestCase):
-    def test_complete_batch_variant_1(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_complete_batch_variant_1(self, mock_clickhouse):
         # Arrange
         key = "test_key"
-        message_1 = '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
-        message_2 = '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+        message_1 = (
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", '
+            '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", '
+            '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
+        )
+        message_2 = (
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", '
+            '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", '
+            '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+        )
 
         expected_messages = [message_1, message_2]
 
         sut = BufferedBatch()
 
         # Act
-        sut.add_message(key, message_2)
-        sut.add_message(key, message_1)
+        sut.add_message(key, uuid.uuid4(), message_2)
+        sut.add_message(key, uuid.uuid4(), message_1)
         data = sut.complete_batch(key)
 
         # Assert
-        self.assertEqual("2024-05-21T08:31:28.119Z", data["begin_timestamp"])
-        self.assertEqual("2024-05-21T08:31:28.249Z", data["end_timestamp"])
+        self.assertEqual(
+            datetime.datetime(2024, 5, 21, 8, 31, 28, 119000), data["begin_timestamp"]
+        )
+        self.assertEqual(
+            datetime.datetime(2024, 5, 21, 8, 31, 28, 249000), data["end_timestamp"]
+        )
         self.assertEqual(expected_messages, data["data"])
 
-    def test_complete_batch_variant_2(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_complete_batch_variant_2(self, mock_clickhouse):
         # Arrange
         key = "test_key"
-        message_1 = '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
-        message_2 = '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
-        message_3 = '{"timestamp": "2024-05-21T08:31:28.319Z", "status": "NOERROR", "client_ip": "192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
-        message_4 = '{"timestamp": "2024-05-21T08:31:28.749Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+        message_1 = (
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", '
+            '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", '
+            '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
+        )
+        message_2 = (
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", '
+            '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", '
+            '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+        )
+        message_3 = (
+            '{"timestamp": "2024-05-21T08:31:28.319Z", "status": "NOERROR", "client_ip": "192.168.0.105", '
+            '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", '
+            '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
+        )
+        message_4 = (
+            '{"timestamp": "2024-05-21T08:31:28.749Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", '
+            '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", '
+            '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
+        )
 
         sut = BufferedBatch()
 
         # Act
-        sut.add_message(key, message_1)
-        sut.add_message(key, message_2)
+        sut.add_message(key, uuid.uuid4(), message_1)
+        sut.add_message(key, uuid.uuid4(), message_2)
         data_1 = sut.complete_batch(key)
 
-        sut.add_message(key, message_3)
-        sut.add_message(key, message_4)
+        sut.add_message(key, uuid.uuid4(), message_3)
+        sut.add_message(key, uuid.uuid4(), message_4)
         data_2 = sut.complete_batch(key)
 
         # Assert
-        self.assertEqual("2024-05-21T08:31:28.119Z", data_1["begin_timestamp"])
-        self.assertEqual("2024-05-21T08:31:28.249Z", data_1["end_timestamp"])
-        self.assertEqual("2024-05-21T08:31:28.119Z", data_2["begin_timestamp"])
-        self.assertEqual("2024-05-21T08:31:28.749Z", data_2["end_timestamp"])
+        self.assertEqual(
+            datetime.datetime(2024, 5, 21, 8, 31, 28, 119000), data_1["begin_timestamp"]
+        )
+        self.assertEqual(
+            datetime.datetime(2024, 5, 21, 8, 31, 28, 249000), data_1["end_timestamp"]
+        )
+        self.assertEqual(
+            datetime.datetime(2024, 5, 21, 8, 31, 28, 119000), data_2["begin_timestamp"]
+        )
+        self.assertEqual(
+            datetime.datetime(2024, 5, 21, 8, 31, 28, 749000), data_2["end_timestamp"]
+        )
         self.assertEqual({key: [message_3, message_4]}, sut.buffer)
         self.assertEqual({}, sut.batch)
 

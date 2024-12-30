@@ -8,6 +8,10 @@ logger = get_logger()
 CONFIG = setup_config()
 LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["logline_format"]
 REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
+FORBIDDEN_FIELD_NAMES = [
+    "logline_id",
+    "batch_id",
+]  # field names that are used internally
 
 
 class FieldType:
@@ -138,6 +142,12 @@ class LoglineHandler:
 
         for field in LOGLINE_FIELDS:
             instance = self._create_instance_from_list_entry(field)
+
+            if instance.name in FORBIDDEN_FIELD_NAMES:
+                raise ValueError(
+                    f"Forbidden field name included. These fields are used internally "
+                    f"and cannot be used as names: {FORBIDDEN_FIELD_NAMES}"
+                )
 
             if self.instances_by_name.get(instance.name):
                 raise ValueError("Multiple fields with same name")
