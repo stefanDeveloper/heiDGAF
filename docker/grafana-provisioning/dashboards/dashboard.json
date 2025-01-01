@@ -43,6 +43,237 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "fixedColor": "blue",
+            "mode": "continuous-GrYlRd"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 62,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "µs"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sort_order"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "id": 42,
+      "options": {
+        "barRadius": 0.05,
+        "barWidth": 0.35,
+        "fullHighlight": false,
+        "groupWidth": 0.67,
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": false
+        },
+        "orientation": "vertical",
+        "showValue": "never",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "name",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT *\nFROM (\n      SELECT 'LogServer' AS name, median(value) as median, 1 as sort_order\n      FROM (\n            SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n            FROM server_logs sl\n            INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n            WHERE slt.event = 'timestamp_out' AND\n                  sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'LogCollection' AS name, median(value) as median, 2 as sort_order\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                  lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'BatchHandler' AS name, median(value) as median, 3 as sort_order\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                  lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Prefilter' AS name, median(value) as median, 4 as sort_order\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) as value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                  bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Inspector' AS name, median(value) as median, 5 as sort_order\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n            UNION ALL\n\n            SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n            FROM batch_timestamps bt\n            INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n            INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n            WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                  sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                  bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Detector' AS name, median(value) as median, 6 as sort_order\n      FROM (\n            SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n            FROM suspicious_batch_timestamps sbt1\n            INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n            WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                  sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                  sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n      )\n)\n\nORDER BY sort_order ASC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Median Latency Comparison",
+      "transparent": true,
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "hidden",
+            "fillOpacity": 62,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "µs"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 41,
+      "options": {
+        "barRadius": 0.2,
+        "barWidth": 0.61,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "never",
+        "stacking": "percent",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "value",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT\n      'Median Latency' AS value,\n      (\n            SELECT median(value) FROM (\n                  SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n                  FROM server_logs sl\n                  INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n                  WHERE slt.event = 'timestamp_out' AND\n                        sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n            )\n      ) AS \"LogServer\",\n      (\n            SELECT median(value) FROM (\n                  SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                        lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n      ) AS \"LogCollector\",\n      (\n            SELECT median(value) FROM (\n                  SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                        lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n      ) AS \"BatchHandler\",\n      (\n            SELECT median(value) FROM (\n                  SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) as value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n            )\n      ) AS \"Prefilter\",\n      (\n            SELECT median(value) FROM (\n                  SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                        bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n                  UNION ALL\n\n                  SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n                  FROM batch_timestamps bt\n                  INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n                  INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n                  WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                        sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                        bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n            )\n      ) AS \"Inspector\",\n      (\n            SELECT median(value) FROM (\n                  SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n                  FROM suspicious_batch_timestamps sbt1\n                  INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n                  WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                        sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                        sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n            )\n      ) AS \"Detector\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Median Latency per Module (relative)",
+      "transparent": true,
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "continuous-GrYlRd",
             "seriesBy": "last"
           },
@@ -153,7 +384,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 1
+        "y": 14
       },
       "id": 22,
       "options": {
@@ -253,7 +484,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 1
+        "y": 14
       },
       "id": 29,
       "options": {
@@ -420,7 +651,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 1
+        "y": 14
       },
       "id": 25,
       "options": {
@@ -520,7 +751,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 1
+        "y": 14
       },
       "id": 35,
       "options": {
@@ -600,7 +831,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 4
+        "y": 17
       },
       "id": 28,
       "options": {
@@ -679,7 +910,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 4
+        "y": 17
       },
       "id": 36,
       "options": {
@@ -846,7 +1077,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 7
+        "y": 20
       },
       "id": 23,
       "options": {
@@ -946,7 +1177,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 7
+        "y": 20
       },
       "id": 30,
       "options": {
@@ -1113,7 +1344,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 7
+        "y": 20
       },
       "id": 26,
       "options": {
@@ -1213,7 +1444,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 7
+        "y": 20
       },
       "id": 37,
       "options": {
@@ -1292,7 +1523,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 10
+        "y": 23
       },
       "id": 31,
       "options": {
@@ -1371,7 +1602,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 10
+        "y": 23
       },
       "id": 38,
       "options": {
@@ -1537,7 +1768,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 13
+        "y": 26
       },
       "id": 24,
       "options": {
@@ -1637,7 +1868,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 13
+        "y": 26
       },
       "id": 32,
       "options": {
@@ -1804,7 +2035,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 13
+        "y": 26
       },
       "id": 27,
       "options": {
@@ -1904,7 +2135,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 13
+        "y": 26
       },
       "id": 39,
       "options": {
@@ -1983,7 +2214,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 16
+        "y": 29
       },
       "id": 34,
       "options": {
@@ -2062,7 +2293,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 16
+        "y": 29
       },
       "id": 40,
       "options": {
@@ -2116,7 +2347,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 32
       },
       "id": 8,
       "panels": [
@@ -2154,7 +2385,7 @@
             "h": 6,
             "w": 14,
             "x": 0,
-            "y": 19
+            "y": 22
           },
           "id": 16,
           "options": {
@@ -2382,7 +2613,7 @@
             "h": 4,
             "w": 4,
             "x": 14,
-            "y": 19
+            "y": 22
           },
           "id": 21,
           "options": {
@@ -2459,7 +2690,7 @@
             "h": 6,
             "w": 14,
             "x": 0,
-            "y": 25
+            "y": 28
           },
           "id": 18,
           "options": {
@@ -2736,7 +2967,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 31
+            "y": 34
           },
           "id": 20,
           "options": {
@@ -2913,7 +3144,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 31
+            "y": 34
           },
           "id": 17,
           "options": {
@@ -3004,7 +3235,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 33
       },
       "id": 10,
       "panels": [
@@ -3073,7 +3304,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 20
+            "y": 28
           },
           "id": 5,
           "options": {
@@ -3178,7 +3409,7 @@
             "h": 8,
             "w": 10,
             "x": 12,
-            "y": 20
+            "y": 28
           },
           "id": 3,
           "options": {
@@ -3391,7 +3622,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 28
+            "y": 36
           },
           "id": 4,
           "options": {
@@ -3465,7 +3696,7 @@
             "h": 4,
             "w": 6,
             "x": 12,
-            "y": 28
+            "y": 36
           },
           "id": 2,
           "options": {
@@ -3544,7 +3775,7 @@
             "h": 4,
             "w": 4,
             "x": 18,
-            "y": 28
+            "y": 36
           },
           "id": 7,
           "options": {
@@ -3623,7 +3854,7 @@
             "h": 4,
             "w": 4,
             "x": 12,
-            "y": 32
+            "y": 40
           },
           "id": 6,
           "options": {
@@ -3703,7 +3934,7 @@
             "h": 4,
             "w": 4,
             "x": 16,
-            "y": 32
+            "y": 40
           },
           "id": 9,
           "options": {
@@ -3838,7 +4069,7 @@
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 36
+            "y": 44
           },
           "id": 1,
           "options": {
@@ -3912,7 +4143,7 @@
             "h": 4,
             "w": 4,
             "x": 12,
-            "y": 36
+            "y": 44
           },
           "id": 11,
           "options": {
@@ -3966,7 +4197,6 @@
       "type": "row"
     }
   ],
-  "refresh": "",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -4046,6 +4276,6 @@
   "timezone": "browser",
   "title": "General",
   "uid": "de77jeq5qjocgd",
-  "version": 1,
+  "version": 9,
   "weekStart": ""
 }
