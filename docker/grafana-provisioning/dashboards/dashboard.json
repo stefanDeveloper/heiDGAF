@@ -31,7 +31,7 @@
       },
       "id": 33,
       "panels": [],
-      "title": "Latency",
+      "title": "Latency Overview",
       "type": "row"
     },
     {
@@ -100,7 +100,7 @@
         ]
       },
       "gridPos": {
-        "h": 11,
+        "h": 9,
         "w": 6,
         "x": 0,
         "y": 1
@@ -155,7 +155,6 @@
         }
       ],
       "title": "Median Latency Comparison",
-      "transparent": true,
       "type": "barchart"
     },
     {
@@ -208,9 +207,9 @@
       },
       "gridPos": {
         "h": 2,
-        "w": 24,
-        "x": 0,
-        "y": 12
+        "w": 18,
+        "x": 6,
+        "y": 1
       },
       "id": 41,
       "options": {
@@ -271,48 +270,32 @@
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd",
-            "seriesBy": "last"
+            "fixedColor": "text",
+            "mode": "continuous-GrYlRd"
           },
           "custom": {
-            "axisBorderShow": true,
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "points",
-            "fillOpacity": 0,
+            "axisPlacement": "auto",
+            "fillOpacity": 53,
             "gradientMode": "scheme",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
+            "lineWidth": 3,
             "scaleDistribution": {
-              "linearThreshold": 1,
-              "log": 10,
-              "type": "log"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
+              "type": "linear"
             },
             "thresholdsStyle": {
-              "mode": "line"
+              "mode": "off"
             }
           },
           "fieldMinMax": false,
@@ -332,72 +315,49 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "latency"
+              "options": "sort_order"
             },
             "properties": [
               {
-                "id": "custom.gradientMode",
-                "value": "scheme"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Median value"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
-                "id": "custom.lineInterpolation",
-                "value": "smooth"
-              },
-              {
-                "id": "color",
+                "id": "custom.hideFrom",
                 "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": true
                 }
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "dash": [
-                    10,
-                    10
-                  ],
-                  "fill": "dash"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
               }
             ]
           }
         ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 0,
-        "y": 14
+        "h": 7,
+        "w": 7,
+        "x": 6,
+        "y": 3
       },
-      "id": 22,
+      "id": 44,
       "options": {
+        "barRadius": 0.05,
+        "barWidth": 0.7,
+        "fullHighlight": false,
+        "groupWidth": 0.33,
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
         },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
         "tooltip": {
-          "mode": "multi",
+          "mode": "none",
           "sort": "none"
-        }
+        },
+        "xField": "name",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
       "pluginVersion": "11.2.2+security-01",
       "targets": [
@@ -407,31 +367,7 @@
             "uid": "PDEE91DDB90597936"
           },
           "editorType": "sql",
-          "format": 0,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "timeseries",
-          "rawSql": "SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\nFROM server_logs sl\nINNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\nWHERE slt.event = 'timestamp_out' AND\n      sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\nORDER BY time ASC;",
-          "refId": "Latency"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
           "format": 1,
-          "hide": false,
           "meta": {
             "builderOptions": {
               "columns": [],
@@ -444,12 +380,12 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n      SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS latency\n      FROM server_logs sl\n      INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n      WHERE slt.event = 'timestamp_out'\n        AND sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
-          "refId": "Median"
+          "rawSql": "SELECT *\nFROM (\n      SELECT 'Data Preparation Phase' AS name, sum(Median), 1 AS sort_order\n      FROM (\n            SELECT 'LogServer' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n                  FROM server_logs sl\n                  INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n                  WHERE slt.event = 'timestamp_out' AND\n                        sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'LogCollector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                        lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'BatchHandler' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                        lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Prefilter' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n            )\n      )\n\n      UNION ALL\n\n      SELECT 'Analysis Phase' AS name, sum(Median), 2 AS sort_order\n      FROM (\n            SELECT 'Inspector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                        bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n                  UNION ALL\n\n                  SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n                  FROM batch_timestamps bt\n                  INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n                  INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n                  WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                        sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                        bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Detector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n                  FROM suspicious_batch_timestamps sbt1\n                  INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n                  WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                        sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                        sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n            )\n      )\n)\n\nORDER BY sort_order ASC;",
+          "refId": "Data Preparation Phase"
         }
       ],
-      "title": "Latency LogServer",
-      "type": "timeseries"
+      "title": "Median Duration of Data Preparation Phase",
+      "type": "barchart"
     },
     {
       "datasource": {
@@ -462,126 +398,9 @@
         "defaults": {
           "color": {
             "fixedColor": "blue",
-            "mode": "shades"
+            "mode": "fixed"
           },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 6,
-        "y": 14
-      },
-      "id": 29,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n      FROM server_logs sl\n      INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n      WHERE slt.event = 'timestamp_out' AND\n            sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "title": "Median",
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd",
-            "seriesBy": "last"
-          },
-          "custom": {
-            "axisBorderShow": true,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "points",
-            "fillOpacity": 0,
-            "gradientMode": "scheme",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "log": 10,
-              "type": "log"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
+          "displayName": "${__field.column}",
           "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
@@ -599,177 +418,35 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Latency value"
+              "options": ""
             },
-            "properties": [
-              {
-                "id": "custom.gradientMode",
-                "value": "scheme"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Median value"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
-                "id": "custom.lineInterpolation",
-                "value": "smooth"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "dash": [
-                    10,
-                    10
-                  ],
-                  "fill": "dash"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              }
-            ]
+            "properties": []
           }
         ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 12,
-        "y": 14
+        "h": 4,
+        "w": 3,
+        "x": 13,
+        "y": 3
       },
-      "id": 25,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 0,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "timeseries",
-          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_timestamps bt1\nINNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\nWHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n      bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;",
-          "refId": "Latency"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS latency\n    FROM batch_timestamps bt1\n    INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n    WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
-          "refId": "Median"
-        }
-      ],
-      "title": "Latency Prefilter",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "blue",
-            "mode": "shades"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 18,
-        "y": 14
-      },
-      "id": 35,
+      "id": 43,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
-        "percentChangeColorMode": "inverted",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "sum"
           ],
           "fields": "",
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "textMode": "value_and_name",
+        "wideLayout": false
       },
       "pluginVersion": "11.2.2+security-01",
       "targets": [
@@ -792,330 +469,8 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "title": "Median",
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 6,
-        "y": 17
-      },
-      "id": 28,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n      FROM server_logs sl\n      INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n      WHERE slt.event = 'timestamp_out' AND\n            sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 18,
-        "y": 17
-      },
-      "id": 36,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd",
-            "seriesBy": "last"
-          },
-          "custom": {
-            "axisBorderShow": true,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisGridShow": true,
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "points",
-            "fillOpacity": 0,
-            "gradientMode": "scheme",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "log": 10,
-              "type": "log"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average value"
-            },
-            "properties": [
-              {
-                "id": "custom.gradientMode",
-                "value": "scheme"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Median value"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
-                "id": "custom.lineInterpolation",
-                "value": "smooth"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "dash": [
-                    10,
-                    10
-                  ],
-                  "fill": "dash"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 0,
-        "y": 20
-      },
-      "id": 23,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 0,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "timeseries",
-          "rawSql": "SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\nFROM logline_timestamps lt1\nINNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\nWHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n      lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n      lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\nORDER BY time ASC;",
-          "refId": "Latency"
+          "rawSql": "SELECT 'LogServer' AS name, median(value) AS \" \"\nFROM (\n      SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n      FROM server_logs sl\n      INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n      WHERE slt.event = 'timestamp_out' AND\n            sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n)\n\nUNION ALL\n\nSELECT 'LogCollector' AS name, median(value) AS \" \"\nFROM (\n      SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n            lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)\n\nUNION ALL\n\nSELECT 'BatchHandler' AS name, median(value) AS \" \"\nFROM (\n      SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n            lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)\n\nUNION ALL\n\nSELECT 'Prefilter' AS name, median(value) AS \" \"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "refId": "Data Preparation"
         },
         {
           "datasource": {
@@ -1137,1207 +492,11 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n      SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS latency\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n            lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
-          "refId": "Median"
+          "rawSql": "SELECT 'Inspector' AS name, median(value) AS \" \"\nFROM (\n      SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n      FROM batch_timestamps bt\n      INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n      INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n      WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n            sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n            bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n      )\n\nUNION ALL\n\nSELECT 'Detector' AS name, median(value) AS \" \"\nFROM (\n      SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n      FROM suspicious_batch_timestamps sbt1\n      INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n      WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n            sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n            sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)",
+          "refId": "Analysis"
         }
       ],
-      "title": "Latency LogCollector",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "blue",
-            "mode": "shades"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 6,
-        "y": 20
-      },
-      "id": 30,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n            lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "title": "Median",
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd",
-            "seriesBy": "last"
-          },
-          "custom": {
-            "axisBorderShow": true,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "points",
-            "fillOpacity": 0,
-            "gradientMode": "scheme",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "log": 10,
-              "type": "log"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "latency"
-            },
-            "properties": [
-              {
-                "id": "custom.gradientMode",
-                "value": "scheme"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Median value"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
-                "id": "custom.lineInterpolation",
-                "value": "smooth"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "dash": [
-                    10,
-                    10
-                  ],
-                  "fill": "dash"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 12,
-        "y": 20
-      },
-      "id": 26,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 0,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "timeseries",
-          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_timestamps bt1\nINNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\nWHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n      bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC\n\nUNION ALL\n\nSELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\nFROM batch_timestamps bt\nINNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\nINNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\nWHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n      sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n      bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\nORDER BY time ASC;",
-          "refId": "Latency"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) as value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS latency\n    FROM batch_timestamps bt1\n    INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n    WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n        bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n    ORDER BY time ASC\n\n    UNION ALL\n\n    SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS latency\n    FROM batch_timestamps bt\n    INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n    INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n    WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n        sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n        bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
-          "refId": "Median"
-        }
-      ],
-      "title": "Latency Inspector",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "blue",
-            "mode": "shades"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 18,
-        "y": 20
-      },
-      "id": 37,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n      FROM batch_timestamps bt\n      INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n      INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n      WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n            sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n            bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "title": "Median",
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 6,
-        "y": 23
-      },
-      "id": 31,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n            lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 18,
-        "y": 23
-      },
-      "id": 38,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n      FROM batch_timestamps bt\n      INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n      INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n      WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n            sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n            bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd",
-            "seriesBy": "last"
-          },
-          "custom": {
-            "axisBorderShow": true,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "points",
-            "fillOpacity": 0,
-            "gradientMode": "scheme",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "log": 10,
-              "type": "log"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "latency"
-            },
-            "properties": [
-              {
-                "id": "custom.gradientMode",
-                "value": "scheme"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Median value"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
-                "id": "custom.lineInterpolation",
-                "value": "smooth"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "dash": [
-                    10,
-                    10
-                  ],
-                  "fill": "dash"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 0,
-        "y": 26
-      },
-      "id": 24,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 0,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "timeseries",
-          "rawSql": "SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\nFROM logline_timestamps lt1\nINNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\nWHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n      lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n      lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\nORDER BY time ASC;",
-          "refId": "Latency"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) as value\nFROM (\n    SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS latency\n    FROM logline_timestamps lt1\n    INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n    WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n        lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
-          "refId": "Median"
-        }
-      ],
-      "title": "Latency BatchHandler",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "blue",
-            "mode": "shades"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 6,
-        "y": 26
-      },
-      "id": 32,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n            lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "title": "Median",
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd",
-            "seriesBy": "last"
-          },
-          "custom": {
-            "axisBorderShow": true,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "points",
-            "fillOpacity": 0,
-            "gradientMode": "scheme",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "log": 10,
-              "type": "log"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "latency"
-            },
-            "properties": [
-              {
-                "id": "custom.gradientMode",
-                "value": "scheme"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Median value"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
-                "id": "custom.lineInterpolation",
-                "value": "smooth"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "dash": [
-                    10,
-                    10
-                  ],
-                  "fill": "dash"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 12,
-        "y": 26
-      },
-      "id": 27,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 0,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "timeseries",
-          "rawSql": "SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\nFROM suspicious_batch_timestamps sbt1\nINNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\nWHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n      sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n      sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\nORDER BY time ASC;",
-          "refId": "Latency"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n    SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS latency\n    FROM suspicious_batch_timestamps sbt1\n    INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n    WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n        sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n        sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
-          "refId": "Median"
-        }
-      ],
-      "title": "Latency Detector",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "blue",
-            "mode": "shades"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 18,
-        "y": 26
-      },
-      "id": 39,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n      FROM suspicious_batch_timestamps sbt1\n      INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n      WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n            sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n            sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "title": "Median",
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 6,
-        "y": 29
-      },
-      "id": 34,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n            lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "-",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 5,
-        "x": 18,
-        "y": 29
-      },
-      "id": 40,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "inverted",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n      FROM suspicious_batch_timestamps sbt1\n      INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n      WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n            sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n            sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)",
-          "refId": "A"
-        }
-      ],
+      "title": "Median Duration per Phase",
       "transparent": true,
       "type": "stat"
     },
@@ -2347,7 +506,2097 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 10
+      },
+      "id": 45,
+      "panels": [
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd",
+                "seriesBy": "last"
+              },
+              "custom": {
+                "axisBorderShow": true,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "points",
+                "fillOpacity": 0,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "linearThreshold": 1,
+                  "log": 10,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "latency"
+                },
+                "properties": [
+                  {
+                    "id": "custom.gradientMode",
+                    "value": "scheme"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Median value"
+                },
+                "properties": [
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineInterpolation",
+                    "value": "smooth"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "blue",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 11
+          },
+          "id": 22,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 0,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "timeseries",
+              "rawSql": "SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\nFROM server_logs sl\nINNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\nWHERE slt.event = 'timestamp_out' AND\n      sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\nORDER BY time ASC;",
+              "refId": "Latency"
+            },
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n      SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS latency\n      FROM server_logs sl\n      INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n      WHERE slt.event = 'timestamp_out'\n        AND sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+              "refId": "Median"
+            }
+          ],
+          "title": "Latency LogServer",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "shades"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 6,
+            "y": 11
+          },
+          "id": 29,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n      FROM server_logs sl\n      INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n      WHERE slt.event = 'timestamp_out' AND\n            sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "title": "Median",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd",
+                "seriesBy": "last"
+              },
+              "custom": {
+                "axisBorderShow": true,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "points",
+                "fillOpacity": 0,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "log": 10,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Latency value"
+                },
+                "properties": [
+                  {
+                    "id": "custom.gradientMode",
+                    "value": "scheme"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Median value"
+                },
+                "properties": [
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineInterpolation",
+                    "value": "smooth"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "blue",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 12,
+            "y": 11
+          },
+          "id": 25,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 0,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "timeseries",
+              "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_timestamps bt1\nINNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\nWHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n      bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;",
+              "refId": "Latency"
+            },
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS latency\n    FROM batch_timestamps bt1\n    INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n    WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+              "refId": "Median"
+            }
+          ],
+          "title": "Latency Prefilter",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "shades"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 18,
+            "y": 11
+          },
+          "id": 35,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "title": "Median",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 6,
+            "y": 14
+          },
+          "id": 28,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n      FROM server_logs sl\n      INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n      WHERE slt.event = 'timestamp_out' AND\n            sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 18,
+            "y": 14
+          },
+          "id": 36,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd",
+                "seriesBy": "last"
+              },
+              "custom": {
+                "axisBorderShow": true,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisGridShow": true,
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "points",
+                "fillOpacity": 0,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "log": 10,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Average value"
+                },
+                "properties": [
+                  {
+                    "id": "custom.gradientMode",
+                    "value": "scheme"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Median value"
+                },
+                "properties": [
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineInterpolation",
+                    "value": "smooth"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "blue",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 17
+          },
+          "id": 23,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 0,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "timeseries",
+              "rawSql": "SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\nFROM logline_timestamps lt1\nINNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\nWHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n      lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n      lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\nORDER BY time ASC;",
+              "refId": "Latency"
+            },
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n      SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS latency\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n            lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+              "refId": "Median"
+            }
+          ],
+          "title": "Latency LogCollector",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "shades"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 6,
+            "y": 17
+          },
+          "id": 30,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n            lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "title": "Median",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd",
+                "seriesBy": "last"
+              },
+              "custom": {
+                "axisBorderShow": true,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "points",
+                "fillOpacity": 0,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "log": 10,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "latency"
+                },
+                "properties": [
+                  {
+                    "id": "custom.gradientMode",
+                    "value": "scheme"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Median value"
+                },
+                "properties": [
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineInterpolation",
+                    "value": "smooth"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "blue",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 12,
+            "y": 17
+          },
+          "id": 26,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 0,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "timeseries",
+              "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_timestamps bt1\nINNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\nWHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n      bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC\n\nUNION ALL\n\nSELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\nFROM batch_timestamps bt\nINNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\nINNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\nWHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n      sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n      bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\nORDER BY time ASC;",
+              "refId": "Latency"
+            },
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) as value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS latency\n    FROM batch_timestamps bt1\n    INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n    WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n        bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n    ORDER BY time ASC\n\n    UNION ALL\n\n    SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS latency\n    FROM batch_timestamps bt\n    INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n    INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n    WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n        sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n        bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+              "refId": "Median"
+            }
+          ],
+          "title": "Latency Inspector",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "shades"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 18,
+            "y": 17
+          },
+          "id": 37,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n      FROM batch_timestamps bt\n      INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n      INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n      WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n            sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n            bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "title": "Median",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 6,
+            "y": 20
+          },
+          "id": 31,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "last"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n            lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 18,
+            "y": 20
+          },
+          "id": 38,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n      FROM batch_timestamps bt\n      INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n      INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n      WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n            sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n            bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd",
+                "seriesBy": "last"
+              },
+              "custom": {
+                "axisBorderShow": true,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "points",
+                "fillOpacity": 0,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "log": 10,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "latency"
+                },
+                "properties": [
+                  {
+                    "id": "custom.gradientMode",
+                    "value": "scheme"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Median value"
+                },
+                "properties": [
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineInterpolation",
+                    "value": "smooth"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "blue",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 23
+          },
+          "id": 24,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 0,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "timeseries",
+              "rawSql": "SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\nFROM logline_timestamps lt1\nINNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\nWHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n      lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n      lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\nORDER BY time ASC;",
+              "refId": "Latency"
+            },
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) as value\nFROM (\n    SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS latency\n    FROM logline_timestamps lt1\n    INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n    WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n        lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+              "refId": "Median"
+            }
+          ],
+          "title": "Latency BatchHandler",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "shades"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 6,
+            "y": 23
+          },
+          "id": 32,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n            lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "title": "Median",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd",
+                "seriesBy": "last"
+              },
+              "custom": {
+                "axisBorderShow": true,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "points",
+                "fillOpacity": 0,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "log": 10,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "latency"
+                },
+                "properties": [
+                  {
+                    "id": "custom.gradientMode",
+                    "value": "scheme"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Median value"
+                },
+                "properties": [
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineInterpolation",
+                    "value": "smooth"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "blue",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 12,
+            "y": 23
+          },
+          "id": 27,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 0,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "timeseries",
+              "rawSql": "SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\nFROM suspicious_batch_timestamps sbt1\nINNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\nWHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n      sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n      sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\nORDER BY time ASC;",
+              "refId": "Latency"
+            },
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "hide": false,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n    SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS latency\n    FROM suspicious_batch_timestamps sbt1\n    INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n    WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n        sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n        sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+              "refId": "Median"
+            }
+          ],
+          "title": "Latency Detector",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "shades"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 18,
+            "y": 23
+          },
+          "id": 39,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n      FROM suspicious_batch_timestamps sbt1\n      INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n      WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n            sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n            sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "title": "Median",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 6,
+            "y": 26
+          },
+          "id": 34,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "last"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n      FROM logline_timestamps lt1\n      INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n      WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n            lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n            lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd"
+              },
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "µs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 18,
+            "y": 26
+          },
+          "id": 40,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "inverted",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.2.2+security-01",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "PDEE91DDB90597936"
+              },
+              "editorType": "sql",
+              "format": 1,
+              "meta": {
+                "builderOptions": {
+                  "columns": [],
+                  "database": "",
+                  "limit": 1000,
+                  "mode": "list",
+                  "queryType": "table",
+                  "table": ""
+                }
+              },
+              "pluginVersion": "4.5.1",
+              "queryType": "table",
+              "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n      FROM suspicious_batch_timestamps sbt1\n      INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n      WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n            sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n            sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)",
+              "refId": "A"
+            }
+          ],
+          "transparent": true,
+          "type": "stat"
+        }
+      ],
+      "title": "Detailed Latency",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
       },
       "id": 8,
       "panels": [
@@ -2385,7 +2634,7 @@
             "h": 6,
             "w": 14,
             "x": 0,
-            "y": 22
+            "y": 30
           },
           "id": 16,
           "options": {
@@ -2613,7 +2862,7 @@
             "h": 4,
             "w": 4,
             "x": 14,
-            "y": 22
+            "y": 30
           },
           "id": 21,
           "options": {
@@ -2690,7 +2939,7 @@
             "h": 6,
             "w": 14,
             "x": 0,
-            "y": 28
+            "y": 36
           },
           "id": 18,
           "options": {
@@ -2967,7 +3216,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 34
+            "y": 42
           },
           "id": 20,
           "options": {
@@ -3144,7 +3393,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 34
+            "y": 42
           },
           "id": 17,
           "options": {
@@ -3235,7 +3484,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 12
       },
       "id": 10,
       "panels": [
@@ -3304,7 +3553,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 28
+            "y": 36
           },
           "id": 5,
           "options": {
@@ -3409,7 +3658,7 @@
             "h": 8,
             "w": 10,
             "x": 12,
-            "y": 28
+            "y": 36
           },
           "id": 3,
           "options": {
@@ -3622,7 +3871,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 36
+            "y": 44
           },
           "id": 4,
           "options": {
@@ -3696,7 +3945,7 @@
             "h": 4,
             "w": 6,
             "x": 12,
-            "y": 36
+            "y": 44
           },
           "id": 2,
           "options": {
@@ -3775,7 +4024,7 @@
             "h": 4,
             "w": 4,
             "x": 18,
-            "y": 36
+            "y": 44
           },
           "id": 7,
           "options": {
@@ -3854,7 +4103,7 @@
             "h": 4,
             "w": 4,
             "x": 12,
-            "y": 40
+            "y": 48
           },
           "id": 6,
           "options": {
@@ -3934,7 +4183,7 @@
             "h": 4,
             "w": 4,
             "x": 16,
-            "y": 40
+            "y": 48
           },
           "id": 9,
           "options": {
@@ -4069,7 +4318,7 @@
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 44
+            "y": 52
           },
           "id": 1,
           "options": {
@@ -4143,7 +4392,7 @@
             "h": 4,
             "w": 4,
             "x": 12,
-            "y": 44
+            "y": 52
           },
           "id": 11,
           "options": {
@@ -4276,6 +4525,6 @@
   "timezone": "browser",
   "title": "General",
   "uid": "de77jeq5qjocgd",
-  "version": 9,
+  "version": 12,
   "weekStart": ""
 }
