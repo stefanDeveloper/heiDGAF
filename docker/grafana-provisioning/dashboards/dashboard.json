@@ -30,6 +30,288 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "mappings": [],
+          "noValue": "-",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "µs"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Median"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 7,
+        "x": 0,
+        "y": 0
+      },
+      "id": 47,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_timestamps bt1\n  INNER JOIN batch_timestamps bt2\n          ON bt1.batch_id = bt2.batch_id\n  WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n    AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "refId": "A"
+        }
+      ],
+      "title": "Time between BatchHandler and Prefilter",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "mappings": [],
+          "noValue": "-",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "µs"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Median"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 7,
+        "x": 7,
+        "y": 0
+      },
+      "id": 48,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_timestamps bt1\n  INNER JOIN batch_timestamps bt2\n          ON bt1.batch_id = bt2.batch_id\n  WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "refId": "A"
+        }
+      ],
+      "title": "Time between Prefilter and Inspector",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "mappings": [],
+          "noValue": "-",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "µs"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Median"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 7,
+        "x": 14,
+        "y": 0
+      },
+      "id": 49,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM suspicious_batch_timestamps bt1\n  INNER JOIN suspicious_batch_timestamps bt2\n          ON bt1.suspicious_batch_id = bt2.suspicious_batch_id\n  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "refId": "A"
+        }
+      ],
+      "title": "Time between Inspector and Detector",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "fixed"
           },
           "mappings": [],
@@ -50,7 +332,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "id": 46,
       "options": {
@@ -104,7 +386,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 3
+        "y": 7
       },
       "id": 33,
       "panels": [],
@@ -180,7 +462,7 @@
         "h": 9,
         "w": 6,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "id": 42,
       "options": {
@@ -286,7 +568,7 @@
         "h": 3,
         "w": 10,
         "x": 6,
-        "y": 4
+        "y": 8
       },
       "id": 41,
       "options": {
@@ -411,7 +693,7 @@
         "h": 6,
         "w": 7,
         "x": 6,
-        "y": 7
+        "y": 11
       },
       "id": 44,
       "options": {
@@ -503,7 +785,7 @@
         "h": 6,
         "w": 3,
         "x": 13,
-        "y": 7
+        "y": 11
       },
       "id": 43,
       "options": {
@@ -586,7 +868,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 13
+        "y": 17
       },
       "id": 45,
       "panels": [],
@@ -712,7 +994,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 14
+        "y": 18
       },
       "id": 22,
       "options": {
@@ -812,7 +1094,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 14
+        "y": 18
       },
       "id": 29,
       "options": {
@@ -979,7 +1261,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 14
+        "y": 18
       },
       "id": 25,
       "options": {
@@ -1079,7 +1361,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 14
+        "y": 18
       },
       "id": 35,
       "options": {
@@ -1159,7 +1441,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 17
+        "y": 21
       },
       "id": 28,
       "options": {
@@ -1238,7 +1520,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 17
+        "y": 21
       },
       "id": 36,
       "options": {
@@ -1405,7 +1687,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 20
+        "y": 24
       },
       "id": 23,
       "options": {
@@ -1505,7 +1787,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 20
+        "y": 24
       },
       "id": 30,
       "options": {
@@ -1672,7 +1954,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 20
+        "y": 24
       },
       "id": 26,
       "options": {
@@ -1772,7 +2054,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 20
+        "y": 24
       },
       "id": 37,
       "options": {
@@ -1852,7 +2134,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 23
+        "y": 27
       },
       "id": 31,
       "options": {
@@ -1931,7 +2213,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 23
+        "y": 27
       },
       "id": 38,
       "options": {
@@ -2097,7 +2379,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 26
+        "y": 30
       },
       "id": 24,
       "options": {
@@ -2197,7 +2479,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 26
+        "y": 30
       },
       "id": 32,
       "options": {
@@ -2364,7 +2646,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 26
+        "y": 30
       },
       "id": 27,
       "options": {
@@ -2464,7 +2746,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 26
+        "y": 30
       },
       "id": 39,
       "options": {
@@ -2544,7 +2826,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 29
+        "y": 33
       },
       "id": 34,
       "options": {
@@ -2623,7 +2905,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 29
+        "y": 33
       },
       "id": 40,
       "options": {
@@ -2677,7 +2959,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 36
       },
       "id": 8,
       "panels": [
@@ -2715,7 +2997,7 @@
             "h": 6,
             "w": 14,
             "x": 0,
-            "y": 38
+            "y": 46
           },
           "id": 16,
           "options": {
@@ -2943,7 +3225,7 @@
             "h": 4,
             "w": 4,
             "x": 14,
-            "y": 38
+            "y": 46
           },
           "id": 21,
           "options": {
@@ -3020,7 +3302,7 @@
             "h": 6,
             "w": 14,
             "x": 0,
-            "y": 44
+            "y": 52
           },
           "id": 18,
           "options": {
@@ -3297,7 +3579,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 50
+            "y": 58
           },
           "id": 20,
           "options": {
@@ -3474,7 +3756,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 50
+            "y": 58
           },
           "id": 17,
           "options": {
@@ -3565,7 +3847,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 37
       },
       "id": 10,
       "panels": [
@@ -3618,7 +3900,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3634,7 +3917,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 39
+            "y": 38
           },
           "id": 5,
           "options": {
@@ -3728,7 +4011,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               }
@@ -3739,7 +4023,7 @@
             "h": 8,
             "w": 10,
             "x": 12,
-            "y": 39
+            "y": 38
           },
           "id": 3,
           "options": {
@@ -3905,7 +4189,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "#EAB839",
@@ -3952,7 +4237,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 47
+            "y": 46
           },
           "id": 4,
           "options": {
@@ -4010,7 +4295,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4026,7 +4312,7 @@
             "h": 4,
             "w": 6,
             "x": 12,
-            "y": 47
+            "y": 46
           },
           "id": 2,
           "options": {
@@ -4093,7 +4379,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -4105,7 +4392,7 @@
             "h": 4,
             "w": 4,
             "x": 18,
-            "y": 47
+            "y": 46
           },
           "id": 7,
           "options": {
@@ -4172,7 +4459,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -4184,7 +4472,7 @@
             "h": 4,
             "w": 4,
             "x": 12,
-            "y": 51
+            "y": 50
           },
           "id": 6,
           "options": {
@@ -4252,7 +4540,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -4264,7 +4553,7 @@
             "h": 4,
             "w": 4,
             "x": 16,
-            "y": 51
+            "y": 50
           },
           "id": 9,
           "options": {
@@ -4363,7 +4652,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -4399,7 +4689,7 @@
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 55
+            "y": 54
           },
           "id": 1,
           "options": {
@@ -4461,7 +4751,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -4473,7 +4764,7 @@
             "h": 4,
             "w": 4,
             "x": 12,
-            "y": 55
+            "y": 54
           },
           "id": 11,
           "options": {
@@ -4527,7 +4818,7 @@
       "type": "row"
     }
   ],
-  "refresh": "5s",
+  "refresh": "",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -4587,8 +4878,8 @@
     ]
   },
   "time": {
-    "from": "now-5m",
-    "to": "now"
+    "from": "2025-01-01T18:44:15.000Z",
+    "to": "2025-01-01T18:47:46.000Z"
   },
   "timepicker": {
     "refresh_intervals": [
@@ -4607,6 +4898,6 @@
   "timezone": "browser",
   "title": "General",
   "uid": "de77jeq5qjocgd",
-  "version": 22,
+  "version": 1,
   "weekStart": ""
 }
