@@ -206,7 +206,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 2,
+        "h": 3,
         "w": 18,
         "x": 6,
         "y": 1
@@ -221,7 +221,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "orientation": "horizontal",
         "showValue": "never",
@@ -331,17 +331,17 @@
         ]
       },
       "gridPos": {
-        "h": 7,
+        "h": 6,
         "w": 7,
         "x": 6,
-        "y": 3
+        "y": 4
       },
       "id": 44,
       "options": {
         "barRadius": 0.05,
-        "barWidth": 0.7,
+        "barWidth": 0.52,
         "fullHighlight": false,
-        "groupWidth": 0.33,
+        "groupWidth": 0.32,
         "legend": {
           "calcs": [],
           "displayMode": "list",
@@ -349,7 +349,7 @@
           "showLegend": false
         },
         "orientation": "horizontal",
-        "showValue": "auto",
+        "showValue": "never",
         "stacking": "none",
         "tooltip": {
           "mode": "none",
@@ -357,7 +357,7 @@
         },
         "xField": "name",
         "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
+        "xTickLabelSpacing": 200
       },
       "pluginVersion": "11.2.2+security-01",
       "targets": [
@@ -384,7 +384,7 @@
           "refId": "Data Preparation Phase"
         }
       ],
-      "title": "Median Duration of Data Preparation Phase",
+      "title": "Median Duration Comparison",
       "type": "barchart"
     },
     {
@@ -423,10 +423,10 @@
         ]
       },
       "gridPos": {
-        "h": 7,
+        "h": 6,
         "w": 3,
         "x": 13,
-        "y": 3
+        "y": 4
       },
       "id": 43,
       "options": {
@@ -4510,6 +4510,6 @@
   "timezone": "browser",
   "title": "General",
   "uid": "de77jeq5qjocgd",
-  "version": 14,
+  "version": 19,
   "weekStart": ""
 }
