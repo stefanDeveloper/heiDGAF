@@ -68,6 +68,7 @@ class Detector:
             "suspicious_batch_timestamps"
         )
         self.alerts = ClickHouseKafkaSender("alerts")
+        self.fill_levels = ClickHouseKafkaSender("fill_levels")
 
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
@@ -96,6 +97,15 @@ class Detector:
                 timestamp=datetime.datetime.now(),
                 is_active=True,
                 message_count=len(self.messages),
+            )
+        )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=len(self.messages),
             )
         )
 
@@ -329,7 +339,16 @@ class Detector:
                 status="finished",
                 timestamp=datetime.datetime.now(),
                 is_active=False,
-                message_count=len(self.messages),
+                message_count=len(self.messages),  # TODO: Remove
+            )
+        )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
             )
         )
 

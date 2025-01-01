@@ -48,6 +48,16 @@ class LogCollector:
         self.failed_dns_loglines = ClickHouseKafkaSender("failed_dns_loglines")
         self.dns_loglines = ClickHouseKafkaSender("dns_loglines")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
+        self.fill_levels = ClickHouseKafkaSender("fill_levels")
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
+            )
+        )
 
     async def start(self) -> None:
         """
@@ -97,6 +107,15 @@ class LogCollector:
             while True:
                 if not self.loglines.empty():
                     timestamp_in, logline = await self.loglines.get()
+
+                    self.fill_levels.insert(
+                        dict(
+                            timestamp=datetime.datetime.now(),
+                            stage=module_name,
+                            entry_type="total_loglines",
+                            entry_count=self.loglines.qsize(),
+                        )
+                    )
 
                     try:
                         fields = self.logline_handler.validate_logline_and_get_fields_as_json(
@@ -169,6 +188,16 @@ class LogCollector:
         except KeyboardInterrupt:
             while not self.loglines.empty():
                 logline = await self.loglines.get()
+
+                self.fill_levels.insert(
+                    dict(
+                        timestamp=datetime.datetime.now(),
+                        stage=module_name,
+                        entry_type="total_loglines",
+                        entry_count=self.loglines.qsize(),
+                    )
+                )
+
                 fields = self.logline_handler.validate_logline_and_get_fields_as_json(
                     logline
                 )
@@ -189,6 +218,15 @@ class LogCollector:
             message (str): Message to be stored
         """
         await self.loglines.put((timestamp_in, message))
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=self.loglines.qsize(),
+            )
+        )
 
     @staticmethod
     def get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:

@@ -41,10 +41,31 @@ class BufferedBatch:
         self.batch = {}  # Batch for the latest messages coming in
         self.buffer = {}  # Former batch with previous messages
         self.batch_id = {}  # Batch ID per key
+        self.batch_logline_count = 0  # Number of loglines in batch
+        self.buffer_logline_count = 0  # Number of loglines in buffer
 
         # databases
         self.logline_to_batches = ClickHouseKafkaSender("logline_to_batches")
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
+        self.fill_levels = ClickHouseKafkaSender("fill_levels")
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines_in_batches",
+                entry_count=0,
+            )
+        )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines_in_buffer",
+                entry_count=0,
+            )
+        )
 
     def add_message(self, key: str, logline_id: uuid.UUID, message: str) -> None:
         """
@@ -56,6 +77,8 @@ class BufferedBatch:
             key (str): Key to which the message is added
             message (str): Message to be added
         """
+        self.batch_logline_count += 1
+
         if key in self.batch:  # key already has messages associated
             self.batch[key].append(message)
 
@@ -101,6 +124,15 @@ class BufferedBatch:
                     message_count=1,
                 )
             )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines_in_batches",
+                entry_count=self.batch_logline_count,
+            )
+        )
 
     def get_number_of_messages(self, key: str) -> int:
         """
@@ -288,6 +320,8 @@ class BufferedBatch:
                 "data": buffer_data + self.batch[key],
             }
 
+            batch_size = self.get_number_of_messages(key)
+
             self.batch_timestamps.insert(
                 dict(
                     batch_id=batch_id,
@@ -295,16 +329,27 @@ class BufferedBatch:
                     status="completed",
                     timestamp=datetime.datetime.now(),
                     is_active=True,
-                    message_count=self.get_number_of_messages(key),
+                    message_count=batch_size,
                 )
             )
 
             # Move data from batch to buffer
             self.buffer[key] = self.batch[key]
+            self.buffer_logline_count += batch_size
             del self.batch[key]
+            self.batch_logline_count -= batch_size
 
             # Batch ID is not needed anymore
             del self.batch_id[key]
+
+            self.fill_levels.insert(
+                dict(
+                    timestamp=datetime.datetime.now(),
+                    stage=module_name,
+                    entry_type="total_loglines_in_batches",
+                    entry_count=self.batch_logline_count,
+                )
+            )
 
             return data
 
@@ -313,7 +358,18 @@ class BufferedBatch:
             logger.debug(
                 "Deleting buffer data (has no influence on analysis since it was too long ago)..."
             )
+
+            self.buffer_logline_count -= len(self.buffer[key])
             del self.buffer[key]
+
+            self.fill_levels.insert(
+                dict(
+                    timestamp=datetime.datetime.now(),
+                    stage=module_name,
+                    entry_type="total_loglines_in_buffer",
+                    entry_count=self.buffer_logline_count,
+                )
+            )
         else:  # Variant 4: No data exists
             logger.debug("Variant 4: No data exists. Nothing to send.")
 

@@ -100,6 +100,16 @@ class Inspector:
         self.suspicious_batches_to_batch = ClickHouseKafkaSender(
             "suspicious_batches_to_batch"
         )
+        self.fill_levels = ClickHouseKafkaSender("fill_levels")
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
+            )
+        )
 
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
@@ -127,6 +137,15 @@ class Inspector:
                 timestamp=datetime.now(),
                 is_active=True,
                 message_count=len(self.messages),
+            )
+        )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=len(self.messages),
             )
         )
 
@@ -491,6 +510,15 @@ class Inspector:
                     message_count=len(self.messages),
                 )
             )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
+            )
+        )
 
 
 def main(one_iteration: bool = False):

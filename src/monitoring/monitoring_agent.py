@@ -49,6 +49,7 @@ class MonitoringAgent:
             "suspicious_batches_to_batch": SuspiciousBatchesToBatchConnector(),
             "suspicious_batch_timestamps": SuspiciousBatchTimestampsConnector(),
             "alerts": AlertsConnector(),
+            "fill_levels": FillLevelsConnector(),
         }
 
         self.topics = [f"clickhouse_{table_name}" for table_name in self.connectors]
