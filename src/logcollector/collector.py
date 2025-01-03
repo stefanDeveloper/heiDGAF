@@ -33,9 +33,8 @@ CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
 
 
 class LogCollector:
-    """
-    Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
-    value, invalid loglines are discarded. All valid loglines are sent to the Batch Sender.
+    """Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
+    value, invalid loglines are discarded. All valid loglines are sent to the batch sender.
     """
 
     def __init__(self) -> None:
@@ -60,9 +59,7 @@ class LogCollector:
         )
 
     async def start(self) -> None:
-        """
-        Starts fetching messages from Kafka and sending them to the :class:`Prefilter`.
-        """
+        """Starts fetching messages from Kafka and sending them to the :class:`Prefilter`."""
         logger.info(
             "LogCollector started:\n"
             f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'"
@@ -83,10 +80,8 @@ class LogCollector:
             logger.info("LogCollector stopped.")
 
     async def fetch(self) -> None:
-        """
-        Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is
-        decoded and stored.
-        """
+        """Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is
+        decoded and stored."""
         loop = asyncio.get_running_loop()
 
         while True:
@@ -98,10 +93,8 @@ class LogCollector:
             await self.store(datetime.datetime.now(), value)
 
     async def send(self) -> None:
-        """
-        Continuously sends the next logline in JSON format to the BatchSender, where it is stored in
-        a temporary batch before being sent to the Prefilter. Adds a subnet ID to the message, that it retrieves
-        from the client's IP address.
+        """Continuously sends the next logline in JSON format to the BatchSender, where it is stored in
+        a temporary batch before being sent to the :class:`Prefilter`. Adds the subnet ID to the message.
         """
         try:
             while True:
@@ -132,7 +125,7 @@ class LogCollector:
                         )
                         continue
 
-                    subnet_id = self.get_subnet_id(
+                    subnet_id = self._get_subnet_id(
                         ipaddress.ip_address(fields.get("client_ip"))
                     )
 
@@ -201,7 +194,7 @@ class LogCollector:
                 fields = self.logline_handler.validate_logline_and_get_fields_as_json(
                     logline
                 )
-                subnet_id = self.get_subnet_id(
+                subnet_id = self._get_subnet_id(
                     ipaddress.ip_address(fields.get("client_ip"))
                 )
 
@@ -210,8 +203,7 @@ class LogCollector:
             logger.info("Stopped LogCollector.")
 
     async def store(self, timestamp_in: datetime.datetime, message: str):
-        """
-        Stores the given message temporarily.
+        """Stores the message temporarily.
 
         Args:
             timestamp_in (datetime.datetime): Timestamp of entering the pipeline
@@ -229,7 +221,7 @@ class LogCollector:
         )
 
     @staticmethod
-    def get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+    def _get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
         """
         Returns the subnet ID of an IP address.
 
