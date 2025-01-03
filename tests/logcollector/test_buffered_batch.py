@@ -433,7 +433,7 @@ class TestGetFirstTimestampOfBuffer(unittest.TestCase):
         ]
 
         # Act
-        result = sut.get_first_timestamp_of_buffer(key)
+        result = sut._get_first_timestamp_of_buffer(key)
 
         # Assert
         self.assertEqual("2024-05-21T08:31:28.119Z", result)
@@ -446,7 +446,7 @@ class TestGetFirstTimestampOfBuffer(unittest.TestCase):
         sut.batch[key] = []
 
         # Act
-        result = sut.get_first_timestamp_of_buffer(key)
+        result = sut._get_first_timestamp_of_buffer(key)
 
         # Assert
         self.assertIsNone(result)
@@ -457,7 +457,7 @@ class TestGetFirstTimestampOfBuffer(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act
-        result = sut.get_first_timestamp_of_buffer(key)
+        result = sut._get_first_timestamp_of_buffer(key)
 
         # Assert
         self.assertIsNone(result)
@@ -480,7 +480,7 @@ class TestGetFirstTimestampOfBatch(unittest.TestCase):
         ]
 
         # Act
-        result = sut.get_first_timestamp_of_batch(key)
+        result = sut._get_first_timestamp_of_batch(key)
 
         # Assert
         self.assertEqual("2025-05-21T08:31:28.119Z", result)
@@ -493,7 +493,7 @@ class TestGetFirstTimestampOfBatch(unittest.TestCase):
         sut.batch[key] = []
 
         # Act
-        result = sut.get_first_timestamp_of_batch(key)
+        result = sut._get_first_timestamp_of_batch(key)
 
         # Assert
         self.assertIsNone(result)
@@ -504,7 +504,7 @@ class TestGetFirstTimestampOfBatch(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act
-        result = sut.get_first_timestamp_of_batch(key)
+        result = sut._get_first_timestamp_of_batch(key)
 
         # Assert
         self.assertIsNone(result)
@@ -527,7 +527,7 @@ class TestGetLastTimestampOfBatch(unittest.TestCase):
         ]
 
         # Act
-        result = sut.get_last_timestamp_of_batch(key)
+        result = sut._get_last_timestamp_of_batch(key)
 
         # Assert
         self.assertEqual("2025-12-21T08:31:28.119Z", result)
@@ -540,7 +540,7 @@ class TestGetLastTimestampOfBatch(unittest.TestCase):
         sut.batch[key] = []
 
         # Act
-        result = sut.get_last_timestamp_of_batch(key)
+        result = sut._get_last_timestamp_of_batch(key)
 
         # Assert
         self.assertIsNone(result)
@@ -551,7 +551,7 @@ class TestGetLastTimestampOfBatch(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act
-        result = sut.get_last_timestamp_of_batch(key)
+        result = sut._get_last_timestamp_of_batch(key)
 
         # Assert
         self.assertIsNone(result)
@@ -574,7 +574,7 @@ class TestGetLastTimestampOfBuffer(unittest.TestCase):
         ]
 
         # Act
-        result = sut.get_last_timestamp_of_buffer(key)
+        result = sut._get_last_timestamp_of_buffer(key)
 
         # Assert
         self.assertEqual("2024-12-21T08:31:28.119Z", result)
@@ -587,7 +587,7 @@ class TestGetLastTimestampOfBuffer(unittest.TestCase):
         sut.batch[key] = []
 
         # Act
-        result = sut.get_last_timestamp_of_buffer(key)
+        result = sut._get_last_timestamp_of_buffer(key)
 
         # Assert
         self.assertIsNone(result)
@@ -598,7 +598,7 @@ class TestGetLastTimestampOfBuffer(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act
-        result = sut.get_last_timestamp_of_buffer(key)
+        result = sut._get_last_timestamp_of_buffer(key)
 
         # Assert
         self.assertIsNone(result)
