@@ -345,9 +345,7 @@ class BufferedBatch:
 
 
 class BufferedBatchSender:
-    """
-    Adds messages to the :class:`BufferedBatch` and sends them after a timer ran out or the respective batch is full.
-    """
+    """Adds messages to the :class:`BufferedBatch` and sends them after a timer ran out or a key's batch is full."""
 
     def __init__(self):
         self.topic = PRODUCE_TOPIC
@@ -367,16 +365,14 @@ class BufferedBatchSender:
         self._send_all_batches(reset_timer=False)
 
     def add_message(self, key: str, message: str) -> None:
-        """
-        Adds the given message to the key specific batch. Checks if the batch is full. If so, it is sent. In the first
-        execution, the timer starts. The same timer is used for all keys.
+        """Adds the message to the key's batch and sends it if it is full. In the first execution, a timer starts
+        whose timeout triggers sending for all batches.
 
         Args:
             message (str): Message to be added to the batch
             key (str): Key of the message (e.g. subnet of client IP address in a log message)
         """
         logline_id = json.loads(message).get("logline_id")
-
         self.logline_timestamps.insert(
             dict(
                 logline_id=logline_id,
@@ -388,7 +384,6 @@ class BufferedBatchSender:
         )
 
         self.batch.add_message(key, logline_id, message)
-
         self.logline_timestamps.insert(
             dict(
                 logline_id=logline_id,
@@ -413,13 +408,11 @@ class BufferedBatchSender:
 
     def _send_all_batches(self, reset_timer: bool = True) -> None:
         number_of_keys = 0
-        total_number_of_batch_messages = 0
-        total_number_of_buffer_messages = 0
+        total_number_of_batch_messages = self.batch.get_message_count_for_batch()
+        total_number_of_buffer_messages = self.batch.get_message_count_for_buffer()
 
         for key in self.batch.get_stored_keys():
             number_of_keys += 1
-            total_number_of_batch_messages = self.batch.get_message_count_for_batch()
-            total_number_of_buffer_messages = self.batch.get_message_count_for_buffer()
             self._send_batch_for_key(key)
 
         if reset_timer:
@@ -464,11 +457,6 @@ class BufferedBatchSender:
         )
 
     def _reset_timer(self) -> None:
-        """
-        Resets an existing or starts a new timer with the globally set batch timeout. In the case of a timeout,
-        all batches are sent. The timer serves as a backup so that all batches are cleared sometimes (prevents subnets
-        with few messages from never being analyzed).
-        """
         if self.timer:
             self.timer.cancel()
 
