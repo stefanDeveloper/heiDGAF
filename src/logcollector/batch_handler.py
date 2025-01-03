@@ -33,9 +33,8 @@ KAFKA_BROKERS = ",".join(
 
 
 class BufferedBatch:
-    """
-    Data structure for managing the batch, buffer, and timestamps. The batch contains the latest messages and a
-    buffer that stores the previous batch messages. Also sorts the batches and can return timestamps.
+    """Data structure for managing the batch, buffer, and timestamps. The batch contains the latest messages and a
+    buffer that stores the previous batch messages. Sorts the batches and can return timestamps.
     """
 
     def __init__(self):
