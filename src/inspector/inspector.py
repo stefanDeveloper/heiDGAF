@@ -482,12 +482,6 @@ class Inspector:
 
                 batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
-                self.kafka_produce_handler.produce(
-                    topic=PRODUCE_TOPIC,
-                    data=batch_schema.dumps(data_to_send),
-                    key=key,
-                )
-
                 self.suspicious_batch_timestamps.insert(
                     dict(
                         suspicious_batch_id=suspicious_batch_id,
@@ -498,6 +492,12 @@ class Inspector:
                         is_active=True,
                         message_count=len(value),
                     )
+                )
+
+                self.kafka_produce_handler.produce(
+                    topic=PRODUCE_TOPIC,
+                    data=batch_schema.dumps(data_to_send),
+                    key=key,
                 )
         else:  # subnet is not suspicious
             self.batch_timestamps.insert(
