@@ -142,7 +142,7 @@ class TestGetNumberOfMessages(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act and Assert
-        self.assertEqual(0, sut.get_number_of_messages(key))
+        self.assertEqual(0, sut.get_message_count_for_batch_key(key))
 
     def test_get_number_of_messages_with_used_batch_for_key(self):
         # Arrange
@@ -153,7 +153,7 @@ class TestGetNumberOfMessages(unittest.TestCase):
         sut.batch = {key: [message]}
 
         # Act and Assert
-        self.assertEqual(1, sut.get_number_of_messages(key))
+        self.assertEqual(1, sut.get_message_count_for_batch_key(key))
 
     def test_get_number_of_messages_with_used_batch_for_other_key(self):
         # Arrange
@@ -165,8 +165,8 @@ class TestGetNumberOfMessages(unittest.TestCase):
         sut.batch = {other_key: [message]}
 
         # Act and Assert
-        self.assertEqual(0, sut.get_number_of_messages(key))
-        self.assertEqual(1, sut.get_number_of_messages(other_key))
+        self.assertEqual(0, sut.get_message_count_for_batch_key(key))
+        self.assertEqual(1, sut.get_message_count_for_batch_key(other_key))
 
     def test_get_number_of_messages_with_empty_batch_and_used_buffer(self):
         # Arrange
@@ -178,8 +178,8 @@ class TestGetNumberOfMessages(unittest.TestCase):
         sut.buffer = {other_key: [message]}
 
         # Act and Assert
-        self.assertEqual(0, sut.get_number_of_messages(key))
-        self.assertEqual(0, sut.get_number_of_messages(other_key))
+        self.assertEqual(0, sut.get_message_count_for_batch_key(key))
+        self.assertEqual(0, sut.get_message_count_for_batch_key(other_key))
 
     def test_get_number_of_messages_with_multiple_keys_and_messages(self):
         # Arrange
@@ -202,10 +202,10 @@ class TestGetNumberOfMessages(unittest.TestCase):
         sut.buffer = {key_2: [message_4]}
 
         # Act and Assert
-        self.assertEqual(1, sut.get_number_of_messages(key_1))
-        self.assertEqual(1, sut.get_number_of_messages(key_2))
-        self.assertEqual(2, sut.get_number_of_messages(key_3))
-        self.assertEqual(0, sut.get_number_of_messages(key_4))
+        self.assertEqual(1, sut.get_message_count_for_batch_key(key_1))
+        self.assertEqual(1, sut.get_message_count_for_batch_key(key_2))
+        self.assertEqual(2, sut.get_message_count_for_batch_key(key_3))
+        self.assertEqual(0, sut.get_message_count_for_batch_key(key_4))
 
 
 class TestGetNumberOfBufferedMessages(unittest.TestCase):
@@ -216,7 +216,7 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act and Assert
-        self.assertEqual(0, sut.get_number_of_buffered_messages(key))
+        self.assertEqual(0, sut.get_message_count_for_buffer_key(key))
 
     def test_get_number_of_buffered_messages_with_used_buffer_for_key(self):
         # Arrange
@@ -227,7 +227,7 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         sut.buffer = {key: [message]}
 
         # Act and Assert
-        self.assertEqual(1, sut.get_number_of_buffered_messages(key))
+        self.assertEqual(1, sut.get_message_count_for_buffer_key(key))
 
     def test_get_number_of_buffered_messages_with_used_buffer_for_other_key(self):
         # Arrange
@@ -239,8 +239,8 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         sut.buffer = {other_key: [message]}
 
         # Act and Assert
-        self.assertEqual(0, sut.get_number_of_buffered_messages(key))
-        self.assertEqual(1, sut.get_number_of_buffered_messages(other_key))
+        self.assertEqual(0, sut.get_message_count_for_buffer_key(key))
+        self.assertEqual(1, sut.get_message_count_for_buffer_key(other_key))
 
     def test_get_number_of_buffered_messages_with_empty_buffer_and_used_batch(self):
         # Arrange
@@ -252,8 +252,8 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         sut.batch = {other_key: [message]}
 
         # Act and Assert
-        self.assertEqual(0, sut.get_number_of_buffered_messages(key))
-        self.assertEqual(0, sut.get_number_of_buffered_messages(other_key))
+        self.assertEqual(0, sut.get_message_count_for_buffer_key(key))
+        self.assertEqual(0, sut.get_message_count_for_buffer_key(other_key))
 
     def test_get_number_of_buffered_messages_with_multiple_keys_and_messages(self):
         # Arrange
@@ -276,10 +276,10 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         sut.batch = {key_2: [message_4]}
 
         # Act and Assert
-        self.assertEqual(1, sut.get_number_of_buffered_messages(key_1))
-        self.assertEqual(1, sut.get_number_of_buffered_messages(key_2))
-        self.assertEqual(2, sut.get_number_of_buffered_messages(key_3))
-        self.assertEqual(0, sut.get_number_of_buffered_messages(key_4))
+        self.assertEqual(1, sut.get_message_count_for_buffer_key(key_1))
+        self.assertEqual(1, sut.get_message_count_for_buffer_key(key_2))
+        self.assertEqual(2, sut.get_message_count_for_buffer_key(key_3))
+        self.assertEqual(0, sut.get_message_count_for_buffer_key(key_4))
 
 
 class TestSortMessages(unittest.TestCase):
@@ -289,7 +289,7 @@ class TestSortMessages(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act
-        result = sut.sort_messages(list_of_timestamps_and_loglines)
+        result = sut._sort_by_timestamp(list_of_timestamps_and_loglines)
 
         # Assert
         self.assertEqual([], result)
@@ -325,7 +325,7 @@ class TestSortMessages(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act
-        result = sut.sort_messages(list_of_timestamps_and_loglines)
+        result = sut._sort_by_timestamp(list_of_timestamps_and_loglines)
 
         # Assert
         self.assertEqual(expected_list, result)
@@ -361,7 +361,7 @@ class TestSortMessages(unittest.TestCase):
         sut = BufferedBatch()
 
         # Act
-        result = sut.sort_messages(list_of_timestamps_and_loglines)
+        result = sut._sort_by_timestamp(list_of_timestamps_and_loglines)
 
         # Assert
         self.assertEqual(expected_list, result)
@@ -374,7 +374,7 @@ class TestExtractTuplesFromJson(unittest.TestCase):
         data = []
 
         # Act
-        result = sut.extract_tuples_from_json_formatted_strings(data)
+        result = sut._extract_tuples_from_json_formatted_strings(data)
 
         # Assert
         self.assertEqual([], result)
@@ -410,7 +410,7 @@ class TestExtractTuplesFromJson(unittest.TestCase):
         ]
 
         # Act
-        result = sut.extract_tuples_from_json_formatted_strings(data)
+        result = sut._extract_tuples_from_json_formatted_strings(data)
 
         # Assert
         self.assertEqual(expected_result, result)
@@ -612,7 +612,7 @@ class TestSortBuffer(unittest.TestCase):
         sut.buffer = []
 
         # Act
-        sut.sort_buffer(key)
+        sut._sort_buffer(key)
 
         # Assert
         self.assertEqual([], sut.buffer)
@@ -638,7 +638,7 @@ class TestSortBuffer(unittest.TestCase):
         expected_buffer = sut.buffer[key].copy()
 
         # Act
-        sut.sort_buffer(key)
+        sut._sort_buffer(key)
 
         # Assert
         self.assertEqual(expected_buffer, sut.buffer[key])
@@ -677,7 +677,7 @@ class TestSortBuffer(unittest.TestCase):
         ]
 
         # Act
-        sut.sort_buffer(key)
+        sut._sort_buffer(key)
 
         # Assert
         self.assertEqual(expected_buffer, sut.buffer[key])
@@ -691,7 +691,7 @@ class TestSortBatch(unittest.TestCase):
         sut.batch = []
 
         # Act
-        sut.sort_batch(key)
+        sut._sort_batch(key)
 
         # Assert
         self.assertEqual([], sut.batch)
@@ -717,7 +717,7 @@ class TestSortBatch(unittest.TestCase):
         expected_batch = sut.batch[key].copy()
 
         # Act
-        sut.sort_batch(key)
+        sut._sort_batch(key)
 
         # Assert
         self.assertEqual(expected_batch, sut.batch[key])
@@ -756,7 +756,7 @@ class TestSortBatch(unittest.TestCase):
         ]
 
         # Act
-        sut.sort_batch(key)
+        sut._sort_batch(key)
 
         # Assert
         self.assertEqual(expected_batch, sut.batch[key])

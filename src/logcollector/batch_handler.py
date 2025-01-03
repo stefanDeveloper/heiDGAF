@@ -20,6 +20,7 @@ logger = get_logger(module_name)
 config = setup_config()
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
+TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "batch_sender_to_prefilter"
 ]
@@ -66,13 +67,11 @@ class BufferedBatch:
         )
 
     def add_message(self, key: str, logline_id: uuid.UUID, message: str) -> None:
-        """
-        Adds a given message to the messages list of the given key. If the key already exists, the message is simply
-        added, otherwise, the key is created.
+        """Adds message to the key. If the key does not exist yet, it is created first.
 
         Args:
-            logline_id (uuid.UUID): Logline ID of the added message
             key (str): Key to which the message is added
+            logline_id (uuid.UUID): Logline ID of the message
             message (str): Message to be added
         """
         if key in self.batch:  # key already has messages associated
@@ -93,7 +92,7 @@ class BufferedBatch:
                     status="waiting",
                     timestamp=datetime.datetime.now(),
                     is_active=True,
-                    message_count=self.get_number_of_messages(key),
+                    message_count=self.get_message_count_for_batch_key(key),
                 )
             )
 
@@ -126,19 +125,19 @@ class BufferedBatch:
                 timestamp=datetime.datetime.now(),
                 stage=module_name,
                 entry_type="total_loglines_in_batches",
-                entry_count=self.get_number_of_all_batch_messages(),
+                entry_count=self.get_message_count_for_batch(),
             )
         )
 
-    def get_number_of_all_batch_messages(self) -> int:
+    def get_message_count_for_batch(self) -> int:
         """Returns the number of all batch entries as a sum over all key's batch entries."""
         return sum(len(key_entry) for key_entry in self.batch.values())
 
-    def get_number_of_all_buffer_messages(self) -> int:
+    def get_message_count_for_buffer(self) -> int:
         """Returns the number of all buffered entries as a sum over all key's buffer entries."""
         return sum(len(key_entry) for key_entry in self.buffer.values())
 
-    def get_number_of_messages(self, key: str) -> int:
+    def get_message_count_for_batch_key(self, key: str) -> int:
         """Returns the number of all batch messages for a given key.
 
         Args:
@@ -149,7 +148,7 @@ class BufferedBatch:
 
         return 0
 
-    def get_number_of_buffered_messages(self, key: str) -> int:
+    def get_message_count_for_buffer_key(self, key: str) -> int:
         """Returns the number of all buffered messages for a given key.
 
         Args:
@@ -160,99 +159,9 @@ class BufferedBatch:
 
         return 0
 
-    @staticmethod
-    def sort_messages(
-        data: list[tuple[str, str]], timestamp_format: str = "%Y-%m-%dT%H:%M:%S.%fZ"
-    ) -> list[str]:
-        """
-        Sorts the given list of loglines by their respective timestamps, in ascending order.
-
-        Args:
-            timestamp_format (str): Format of the timestamps
-            data (list[tuple[str, str]]): List of loglines to be sorted, with the tuple of strings consisting of 1. the
-                                          timestamps of the message and 2. the full message (unchanged, i.e. including
-                                          the respective timestamp)
-
-        Returns:
-            List of log lines as strings sorted by timestamps (ascending)
-        """
-        sorted_data = sorted(
-            data, key=lambda x: datetime.datetime.strptime(x[0], timestamp_format)
-        )
-        loglines = [message for _, message in sorted_data]
-
-        return loglines
-
-    @staticmethod
-    def extract_tuples_from_json_formatted_strings(
-        data: list[str],
-    ) -> list[tuple[str, str]]:
-        """
-        Args:
-            data (list[str]): Input list of strings to be prepared
-
-        Returns:
-            Tuple with timestamps and log lines, which is needed for :func:'sort_messages'.
-        """
-        tuples = []
-
-        for item in data:
-            record = json.loads(item)
-
-            timestamp = record.get("timestamp", "")
-            tuples.append((str(timestamp), item))
-
-        return tuples
-
-    def _get_first_timestamp_of_buffer(self, key: str) -> str | None:
-        entries = self.buffer.get(key)
-
-        return json.loads(entries[0])["timestamp"] if entries and entries[0] else None
-
-    def _get_last_timestamp_of_buffer(self, key: str) -> str | None:
-        entries = self.buffer.get(key)
-
-        return json.loads(entries[-1])["timestamp"] if entries and entries[-1] else None
-
-    def _get_first_timestamp_of_batch(self, key: str) -> str | None:
-        entries = self.batch.get(key)
-
-        return json.loads(entries[0])["timestamp"] if entries and entries[0] else None
-
-    def _get_last_timestamp_of_batch(self, key: str) -> str | None:
-        entries = self.batch.get(key)
-
-        return json.loads(entries[-1])["timestamp"] if entries and entries[-1] else None
-
-    def sort_buffer(self, key: str):
-        """
-        Sorts the buffer's messages by their timestamp, in ascending order.
-
-        Args:
-            key (str): Key for which to sort entries
-        """
-        if key in self.buffer:
-            self.buffer[key] = self.sort_messages(
-                self.extract_tuples_from_json_formatted_strings(self.buffer[key])
-            )
-
-    def sort_batch(self, key: str):
-        """
-        Sorts the batches messages by their timestamp, in ascending order.
-
-        Args:
-            key (str): Key for which to sort entries
-        """
-        if key in self.batch:
-            self.batch[key] = self.sort_messages(
-                self.extract_tuples_from_json_formatted_strings(self.batch[key])
-            )
-
     def complete_batch(self, key: str) -> dict:
-        """
-        Completes the batch and returns a full data packet including timestamps and messages. Depending on the
-        stored data, either both batches are added to the packet, or just the latest messages. Raises a ValueError
-        if no data is available.
+        """Completes the batch and returns a full data packet including timestamps and messages. Depending on the
+        stored data, either both batches are added to the packet, or just the latest messages.
 
         Args:
             key (str): Key for which to complete the current batch and return data packet
@@ -267,17 +176,45 @@ class BufferedBatch:
         if self.batch.get(key):
             if not self.buffer.get(key):  # Variant 1: Only batch has entries
                 logger.debug("Variant 1: Only batch has entries. Sending...")
-                self.sort_batch(key)
+                self._sort_batch(key)
                 buffer_data = []
-                begin_timestamp = self._get_first_timestamp_of_batch(key)
+
+                def _get_first_timestamp_of_batch() -> str | None:
+                    entries = self.batch.get(key)
+                    return (
+                        json.loads(entries[0])["timestamp"]
+                        if entries and entries[0]
+                        else None
+                    )
+
+                begin_timestamp = _get_first_timestamp_of_batch()
+
             else:  # Variant 2: Buffer and batch have entries
                 logger.debug("Variant 2: Buffer and batch have entries. Sending...")
-                self.sort_batch(key)
-                self.sort_buffer(key)
+                self._sort_batch(key)
+                self._sort_buffer(key)
                 buffer_data = self.buffer[key]
-                begin_timestamp = self._get_first_timestamp_of_buffer(key)
+
+                def _get_first_timestamp_of_buffer() -> str | None:
+                    entries = self.buffer.get(key)
+                    return (
+                        json.loads(entries[0])["timestamp"]
+                        if entries and entries[0]
+                        else None
+                    )
+
+                begin_timestamp = _get_first_timestamp_of_buffer()
 
             batch_id = self.batch_id.get(key)
+
+            def _get_last_timestamp_of_batch() -> str | None:
+                entries = self.batch.get(key)
+
+                return (
+                    json.loads(entries[-1])["timestamp"]
+                    if entries and entries[-1]
+                    else None
+                )
 
             data = {
                 "batch_id": batch_id,
@@ -286,7 +223,7 @@ class BufferedBatch:
                     "%Y-%m-%dT%H:%M:%S.%fZ",
                 ),
                 "end_timestamp": datetime.datetime.strptime(
-                    self._get_last_timestamp_of_batch(key),
+                    _get_last_timestamp_of_batch(),
                     "%Y-%m-%dT%H:%M:%S.%fZ",
                 ),
                 "data": buffer_data + self.batch[key],
@@ -299,7 +236,7 @@ class BufferedBatch:
                     status="completed",
                     timestamp=datetime.datetime.now(),
                     is_active=True,
-                    message_count=self.get_number_of_messages(key),
+                    message_count=self.get_message_count_for_batch_key(key),
                 )
             )
 
@@ -315,7 +252,7 @@ class BufferedBatch:
                     timestamp=datetime.datetime.now(),
                     stage=module_name,
                     entry_type="total_loglines_in_batches",
-                    entry_count=self.get_number_of_all_batch_messages(),
+                    entry_count=self.get_message_count_for_batch(),
                 )
             )
 
@@ -324,7 +261,7 @@ class BufferedBatch:
                     timestamp=datetime.datetime.now(),
                     stage=module_name,
                     entry_type="total_loglines_in_buffer",
-                    entry_count=self.get_number_of_all_buffer_messages(),
+                    entry_count=self.get_message_count_for_buffer(),
                 )
             )
 
@@ -343,9 +280,10 @@ class BufferedBatch:
                     timestamp=datetime.datetime.now(),
                     stage=module_name,
                     entry_type="total_loglines_in_buffer",
-                    entry_count=self.get_number_of_all_buffer_messages(),
+                    entry_count=self.get_message_count_for_buffer(),
                 )
             )
+
         else:  # Variant 4: No data exists
             logger.debug("Variant 4: No data exists. Nothing to send.")
 
@@ -367,6 +305,44 @@ class BufferedBatch:
             keys_set.add(key)
 
         return keys_set.copy()
+
+    @staticmethod
+    def _extract_tuples_from_json_formatted_strings(
+        data: list[str],
+    ) -> list[tuple[str, str]]:
+        tuples = []
+
+        for item in data:
+            record = json.loads(item)
+
+            timestamp = record.get("timestamp", "")
+            tuples.append((str(timestamp), item))
+
+        return tuples
+
+    @staticmethod
+    def _sort_by_timestamp(
+        data: list[tuple[str, str]],
+        timestamp_format: str = TIMESTAMP_FORMAT,
+    ) -> list[str]:
+        sorted_data = sorted(
+            data, key=lambda x: datetime.datetime.strptime(x[0], timestamp_format)
+        )
+        loglines = [message for _, message in sorted_data]
+
+        return loglines
+
+    def _sort_batch(self, key: str):
+        if key in self.batch:
+            self.batch[key] = self._sort_by_timestamp(
+                self._extract_tuples_from_json_formatted_strings(self.batch[key])
+            )
+
+    def _sort_buffer(self, key: str):
+        if key in self.buffer:
+            self.buffer[key] = self._sort_by_timestamp(
+                self._extract_tuples_from_json_formatted_strings(self.buffer[key])
+            )
 
 
 class BufferedBatchSender:
@@ -425,7 +401,7 @@ class BufferedBatchSender:
         )
 
         logger.debug(f"Batch: {self.batch.batch}")
-        number_of_messages_for_key = self.batch.get_number_of_messages(key)
+        number_of_messages_for_key = self.batch.get_message_count_for_batch_key(key)
 
         if number_of_messages_for_key >= BATCH_SIZE:
             self._send_batch_for_key(key)
@@ -443,12 +419,8 @@ class BufferedBatchSender:
 
         for key in self.batch.get_stored_keys():
             number_of_keys += 1
-            total_number_of_batch_messages = (
-                self.batch.get_number_of_all_batch_messages()
-            )
-            total_number_of_buffer_messages = (
-                self.batch.get_number_of_all_buffer_messages()
-            )
+            total_number_of_batch_messages = self.batch.get_message_count_for_batch()
+            total_number_of_buffer_messages = self.batch.get_message_count_for_buffer()
             self._send_batch_for_key(key)
 
         if reset_timer:
