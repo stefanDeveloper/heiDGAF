@@ -41,8 +41,6 @@ class BufferedBatch:
         self.batch = {}  # Batch for the latest messages coming in
         self.buffer = {}  # Former batch with previous messages
         self.batch_id = {}  # Batch ID per key
-        self.batch_logline_count = 0  # Number of loglines in batch
-        self.buffer_logline_count = 0  # Number of loglines in buffer
 
         # databases
         self.logline_to_batches = ClickHouseKafkaSender("logline_to_batches")
@@ -77,8 +75,6 @@ class BufferedBatch:
             key (str): Key to which the message is added
             message (str): Message to be added
         """
-        self.batch_logline_count += 1
-
         if key in self.batch:  # key already has messages associated
             self.batch[key].append(message)
 
@@ -130,19 +126,23 @@ class BufferedBatch:
                 timestamp=datetime.datetime.now(),
                 stage=module_name,
                 entry_type="total_loglines_in_batches",
-                entry_count=self.batch_logline_count,
+                entry_count=self.get_number_of_all_batch_messages(),
             )
         )
 
+    def get_number_of_all_batch_messages(self) -> int:
+        """Returns the number of all batch entries as a sum over all key's batch entries."""
+        return sum(len(key_entry) for key_entry in self.batch.values())
+
+    def get_number_of_all_buffer_messages(self) -> int:
+        """Returns the number of all buffered entries as a sum over all key's buffer entries."""
+        return sum(len(key_entry) for key_entry in self.buffer.values())
+
     def get_number_of_messages(self, key: str) -> int:
-        """
-        Returns the number of entries in the batch of the latest messages.
+        """Returns the number of all batch messages for a given key.
 
         Args:
-            key (str): Key for which to return the number of messages
-
-        Returns:
-            Number of messages associated with the given key as integer
+            key (str): Key for which message count is returned
         """
         if key in self.batch:
             return len(self.batch[key])
@@ -150,14 +150,10 @@ class BufferedBatch:
         return 0
 
     def get_number_of_buffered_messages(self, key: str) -> int:
-        """
-        Returns the number of entries in the buffer of the latest messages.
+        """Returns the number of all buffered messages for a given key.
 
         Args:
-            key (str): Key for which to return the number of messages in the buffer
-
-        Returns:
-            Number of messages in buffer associated with the given key as integer
+            key (str): Key for which message count is returned
         """
         if key in self.buffer:
             return len(self.buffer[key])
@@ -208,46 +204,22 @@ class BufferedBatch:
 
         return tuples
 
-    def get_first_timestamp_of_buffer(self, key: str) -> str | None:
-        """
-        Get the first timestamp of the buffer messages list.
-
-        Returns:
-            First timestamp of the list of buffer messages for the given key, None if the key's list is empty
-        """
+    def _get_first_timestamp_of_buffer(self, key: str) -> str | None:
         entries = self.buffer.get(key)
 
         return json.loads(entries[0])["timestamp"] if entries and entries[0] else None
 
-    def get_last_timestamp_of_buffer(self, key: str) -> str | None:
-        """
-        Get the last timestamp of the buffer messages list.
-
-        Returns:
-            Last timestamp of the list of buffer messages for the given key, None if the key's list is empty
-        """
+    def _get_last_timestamp_of_buffer(self, key: str) -> str | None:
         entries = self.buffer.get(key)
 
         return json.loads(entries[-1])["timestamp"] if entries and entries[-1] else None
 
-    def get_first_timestamp_of_batch(self, key: str) -> str | None:
-        """
-        Get the first timestamp of the batch messages list.
-
-        Returns:
-            First timestamp of the list of batch messages for the given key, None if the key's list is empty
-        """
+    def _get_first_timestamp_of_batch(self, key: str) -> str | None:
         entries = self.batch.get(key)
 
         return json.loads(entries[0])["timestamp"] if entries and entries[0] else None
 
-    def get_last_timestamp_of_batch(self, key: str) -> str | None:
-        """
-        Get the last timestamp of the batch messages list.
-
-        Returns:
-            Last timestamp of the list of batch messages for the given key, None if the key's list is empty
-        """
+    def _get_last_timestamp_of_batch(self, key: str) -> str | None:
         entries = self.batch.get(key)
 
         return json.loads(entries[-1])["timestamp"] if entries and entries[-1] else None
@@ -297,13 +269,13 @@ class BufferedBatch:
                 logger.debug("Variant 1: Only batch has entries. Sending...")
                 self.sort_batch(key)
                 buffer_data = []
-                begin_timestamp = self.get_first_timestamp_of_batch(key)
+                begin_timestamp = self._get_first_timestamp_of_batch(key)
             else:  # Variant 2: Buffer and batch have entries
                 logger.debug("Variant 2: Buffer and batch have entries. Sending...")
                 self.sort_batch(key)
                 self.sort_buffer(key)
                 buffer_data = self.buffer[key]
-                begin_timestamp = self.get_first_timestamp_of_buffer(key)
+                begin_timestamp = self._get_first_timestamp_of_buffer(key)
 
             batch_id = self.batch_id.get(key)
 
@@ -314,13 +286,11 @@ class BufferedBatch:
                     "%Y-%m-%dT%H:%M:%S.%fZ",
                 ),
                 "end_timestamp": datetime.datetime.strptime(
-                    self.get_last_timestamp_of_batch(key),
+                    self._get_last_timestamp_of_batch(key),
                     "%Y-%m-%dT%H:%M:%S.%fZ",
                 ),
                 "data": buffer_data + self.batch[key],
             }
-
-            batch_size = self.get_number_of_messages(key)
 
             self.batch_timestamps.insert(
                 dict(
@@ -329,15 +299,13 @@ class BufferedBatch:
                     status="completed",
                     timestamp=datetime.datetime.now(),
                     is_active=True,
-                    message_count=batch_size,
+                    message_count=self.get_number_of_messages(key),
                 )
             )
 
             # Move data from batch to buffer
             self.buffer[key] = self.batch[key]
-            self.buffer_logline_count += batch_size
             del self.batch[key]
-            self.batch_logline_count -= batch_size
 
             # Batch ID is not needed anymore
             del self.batch_id[key]
@@ -347,19 +315,27 @@ class BufferedBatch:
                     timestamp=datetime.datetime.now(),
                     stage=module_name,
                     entry_type="total_loglines_in_batches",
-                    entry_count=self.batch_logline_count,
+                    entry_count=self.get_number_of_all_batch_messages(),
+                )
+            )
+
+            self.fill_levels.insert(
+                dict(
+                    timestamp=datetime.datetime.now(),
+                    stage=module_name,
+                    entry_type="total_loglines_in_buffer",
+                    entry_count=self.get_number_of_all_buffer_messages(),
                 )
             )
 
             return data
 
-        if self.buffer:  # Variant 3: Only buffer has entries
+        if self.buffer.get(key):  # Variant 3: Only buffer has entries
             logger.debug("Variant 3: Only buffer has entries.")
             logger.debug(
                 "Deleting buffer data (has no influence on analysis since it was too long ago)..."
             )
 
-            self.buffer_logline_count -= len(self.buffer[key])
             del self.buffer[key]
 
             self.fill_levels.insert(
@@ -367,7 +343,7 @@ class BufferedBatch:
                     timestamp=datetime.datetime.now(),
                     stage=module_name,
                     entry_type="total_loglines_in_buffer",
-                    entry_count=self.buffer_logline_count,
+                    entry_count=self.get_number_of_all_buffer_messages(),
                 )
             )
         else:  # Variant 4: No data exists
@@ -410,15 +386,10 @@ class BufferedBatchSender:
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
 
     def __del__(self):
-        logger.debug(f"Closing KafkaBatchSender ({self.topic=})...")
         if self.timer:
-            logger.debug("Timer is active. Cancelling timer...")
             self.timer.cancel()
-            logger.debug("Timer cancelled.")
 
         self._send_all_batches(reset_timer=False)
-
-        logger.debug(f"Closed KafkaBatchSender ({self.topic=}).")
 
     def add_message(self, key: str, message: str) -> None:
         """
@@ -429,8 +400,6 @@ class BufferedBatchSender:
             message (str): Message to be added to the batch
             key (str): Key of the message (e.g. subnet of client IP address in a log message)
         """
-        logger.debug(f"Adding message '{message}' to batch.")
-
         logline_id = json.loads(message).get("logline_id")
 
         self.logline_timestamps.insert(
@@ -459,9 +428,6 @@ class BufferedBatchSender:
         number_of_messages_for_key = self.batch.get_number_of_messages(key)
 
         if number_of_messages_for_key >= BATCH_SIZE:
-            logger.debug(
-                f"Batch for {key=} is full. Calling _send_batch_for_key({key})..."
-            )
             self._send_batch_for_key(key)
             logger.info(
                 f"Full batch: Successfully sent batch messages for subnet_id {key}.\n"
@@ -470,8 +436,6 @@ class BufferedBatchSender:
         elif not self.timer:  # First time setting the timer
             self._reset_timer()
 
-        logger.debug(f"Message '{message}' successfully added to batch for {key=}.")
-
     def _send_all_batches(self, reset_timer: bool = True) -> None:
         number_of_keys = 0
         total_number_of_batch_messages = 0
@@ -479,16 +443,18 @@ class BufferedBatchSender:
 
         for key in self.batch.get_stored_keys():
             number_of_keys += 1
-            total_number_of_batch_messages += self.batch.get_number_of_messages(key)
-            total_number_of_buffer_messages += (
-                self.batch.get_number_of_buffered_messages(key)
+            total_number_of_batch_messages = (
+                self.batch.get_number_of_all_batch_messages()
+            )
+            total_number_of_buffer_messages = (
+                self.batch.get_number_of_all_buffer_messages()
             )
             self._send_batch_for_key(key)
 
         if reset_timer:
             self._reset_timer()
 
-        if not total_number_of_batch_messages:
+        if total_number_of_batch_messages == 0:
             return
 
         if number_of_keys == 1:
@@ -532,14 +498,8 @@ class BufferedBatchSender:
         all batches are sent. The timer serves as a backup so that all batches are cleared sometimes (prevents subnets
         with few messages from never being analyzed).
         """
-        logger.debug("Resetting timer...")
         if self.timer:
-            logger.debug("Cancelling active timer...")
             self.timer.cancel()
-        else:
-            logger.debug("No timer active.")
 
-        logger.debug("Starting new timer...")
         self.timer = Timer(BATCH_TIMEOUT, self._send_all_batches)
         self.timer.start()
-        logger.debug("Successfully started new timer.")
