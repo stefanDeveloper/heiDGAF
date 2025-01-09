@@ -21,4 +21,3 @@ COPY src/monitoring /app/src/monitoring
 COPY config.yaml /app
 WORKDIR /app
 ENTRYPOINT ["/venv/bin/python3", "src/monitoring/monitoring_agent.py"]
-

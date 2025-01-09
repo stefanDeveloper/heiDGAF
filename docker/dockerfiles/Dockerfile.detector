@@ -21,4 +21,3 @@ COPY src/detector /app/src/detector
 COPY config.yaml /app
 WORKDIR /app
 ENTRYPOINT ["/venv/bin/python3", "src/detector/detector.py"]
-

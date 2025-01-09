@@ -21,4 +21,3 @@ COPY src/prefilter /app/src/prefilter
 COPY config.yaml /app
 WORKDIR /app
 ENTRYPOINT ["/venv/bin/python3", "src/prefilter/prefilter.py"]
-
