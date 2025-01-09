@@ -1,16 +1,24 @@
-FROM python:3.11-slim-bookworm
+# Build a virtualenv using the appropriate Debian release
+# * Install python3-venv for the built-in Python3 venv module (not installed by default)
+# * Install gcc libpython3-dev to compile C Python modules
+# * In the virtualenv: Update pip setuputils and wheel to support building new packages
+FROM debian:12-slim AS build
+RUN apt-get update && \
+    apt-get install --no-install-suggests --no-install-recommends --yes python3-venv gcc libpython3-dev && \
+    python3 -m venv /venv && \
+    /venv/bin/pip install --upgrade pip setuptools wheel
 
-ENV PYTHONDONTWRITEBYTECODE=1
+# Build the virtualenv as a separate step: Only re-execute this step when requirements.txt changes
+FROM build AS build-venv
+COPY requirements/requirements.prefilter.txt /requirements.prefilter.txt
+RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.prefilter.txt
 
-WORKDIR /usr/src/app
+# Copy the virtualenv into a distroless image
+FROM gcr.io/distroless/python3-debian12
+COPY --from=build-venv /venv /venv
+COPY src/base /app/src/base
+COPY src/prefilter /app/src/prefilter
+COPY config.yaml /app
+WORKDIR /app
+ENTRYPOINT ["/venv/bin/python3", "src/prefilter/prefilter.py"]
 
-COPY requirements/requirements.prefilter.txt ./
-RUN pip --disable-pip-version-check install --no-cache-dir --no-compile -r requirements.prefilter.txt
-
-COPY src/base ./src/base
-COPY src/prefilter ./src/prefilter
-COPY config.yaml .
-
-RUN rm -rf /root/.cache
-
-CMD [ "python", "src/prefilter/prefilter.py"]
