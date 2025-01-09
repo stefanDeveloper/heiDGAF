@@ -32,8 +32,8 @@ pipeline:
         - [ "response_ip", IpAddress ]
         - [ "size", RegEx, '^\d+b$' ]
     batch_handler:
-      batch_size: 1000
-      batch_timeout: 20.0
+      batch_size: 10000
+      batch_timeout: 30.0
       subnet_id:
         ipv4_prefix_length: 24
         ipv6_prefix_length: 64
@@ -65,7 +65,7 @@ pipeline:
 
   monitoring:
     clickhouse_connector:
-      batch_size: 10000
+      batch_size: 50  # do not set higher
       batch_timeout: 2.0
 
 environment:
