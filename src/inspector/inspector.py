@@ -18,7 +18,6 @@ from src.base.kafka_handler import (
     ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
 )
-from src.base.utils import generate_unique_transactional_id
 from src.base.log_config import get_logger
 
 module_name = "data_inspection.inspector"
@@ -88,9 +87,8 @@ class Inspector:
         self.messages = []
         self.anomalies = []
 
-        transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")

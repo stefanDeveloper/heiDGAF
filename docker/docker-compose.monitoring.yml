@@ -60,8 +60,9 @@ services:
         condition: service_healthy
     networks:
       heidgaf:
-        ipv4_address: 172.27.0.12
-
+    #        ipv4_address: 172.27.0.12
+    environment:
+      - GROUP_ID=monitoring_agent
 networks:
   heidgaf:
     driver: bridge

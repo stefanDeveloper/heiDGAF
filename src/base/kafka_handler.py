@@ -16,8 +16,8 @@ from confluent_kafka import (
     KafkaError,
     KafkaException,
     Producer,
-    TopicPartition,
 )
+from confluent_kafka.admin import AdminClient, NewTopic
 
 sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
@@ -26,7 +26,8 @@ from src.base.utils import kafka_delivery_report, setup_config
 
 logger = get_logger()
 
-CONSUMER_GROUP_ID = "consumer_group"
+HOSTNAME = os.environ["HOSTNAME"]
+NUMBER_OF_INSTANCES = int(os.getenv("NUMBER_OF_INSTANCES", 1))
 
 config = setup_config()
 KAFKA_BROKERS = config["environment"]["kafka_brokers"]
@@ -114,7 +115,7 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
         self.producer.produce(
             topic=topic,
             key=key,
-            value=data.encode("utf-8"),
+            value=data,
             callback=kafka_delivery_report,
         )
 
@@ -124,14 +125,14 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
     Wrapper for the Kafka Producer with Write-Exactly-Once semantics.
     """
 
-    def __init__(self, transactional_id: str):
+    def __init__(self):
         self.brokers = ",".join(
             [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
         )
 
         conf = {
             "bootstrap.servers": self.brokers,
-            "transactional.id": transactional_id,
+            "transactional.id": HOSTNAME,
             "enable.idempotence": True,
         }
 
@@ -161,7 +162,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             self.producer.produce(
                 topic=topic,
                 key=key,
-                value=data.encode("utf-8"),
+                value=data,
                 callback=kafka_delivery_report,
             )
 
@@ -214,23 +215,52 @@ class KafkaConsumeHandler(KafkaHandler):
     def __init__(self, topics: str | list[str]) -> None:
         super().__init__()
 
+        # get brokers
         self.brokers = ",".join(
             [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
         )
 
+        # create consumer
         conf = {
             "bootstrap.servers": self.brokers,
-            "group.id": CONSUMER_GROUP_ID,
+            "group.id": os.getenv("GROUP_ID"),
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,
         }
+        self.consumer = Consumer(conf)
 
         if isinstance(topics, str):
             topics = [topics]
 
-        self.consumer = Consumer(conf)
-        self.consumer.assign([TopicPartition(topic, 0) for topic in topics])
+        # create topics
+        admin_client = AdminClient(
+            {
+                "bootstrap.servers": self.brokers,
+            }
+        )
+        admin_client.create_topics(
+            [NewTopic(topic, NUMBER_OF_INSTANCES, 1) for topic in topics]
+        )
+
+        # check if topics are created
+        number_of_retries_left = 30
+        all_topics_created = False
+        while not all_topics_created:  # try for 15 seconds
+            assigned_topics = self.consumer.list_topics(timeout=10)
+
+            all_topics_created = True
+            for topic in topics:
+                if topic not in assigned_topics.topics:
+                    all_topics_created = False
+
+            if number_of_retries_left == 0:
+                raise TooManyFailedAttemptsError("Not all topics were created.")
+
+            time.sleep(0.5)
+
+        # subscribe to the topics
+        self.consumer.subscribe(topics)
 
     @abstractmethod
     def consume(self, *args, **kwargs):

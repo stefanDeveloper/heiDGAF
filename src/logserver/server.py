@@ -12,7 +12,6 @@ from src.base.kafka_handler import (
     ExactlyOnceKafkaProduceHandler,
 )
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.utils import generate_unique_transactional_id
 from src.base.utils import setup_config
 from src.base.log_config import get_logger
 
@@ -40,10 +39,8 @@ class LogServer:
     """
 
     def __init__(self) -> None:
-        transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
-
         self.kafka_consume_handler = SimpleKafkaConsumeHandler(CONSUME_TOPIC)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
         self.server_logs = ClickHouseKafkaSender("server_logs")

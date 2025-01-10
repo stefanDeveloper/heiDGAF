@@ -3,32 +3,6 @@ include:
   - "docker-compose.monitoring.yml"
 
 services:
-  logcollector:
-    build:
-      context: ..
-      dockerfile: docker/dockerfiles/Dockerfile.logcollector
-      network: host
-    restart: "unless-stopped"
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.7
-    memswap_limit: 768m
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
-
   logserver:
     build:
       context: ..
@@ -44,7 +18,7 @@ services:
         condition: service_healthy
     networks:
       heidgaf:
-        ipv4_address: 172.27.0.8
+    #        ipv4_address: 172.27.0.8
     memswap_limit: 768m
     deploy:
       resources:
@@ -56,12 +30,13 @@ services:
           memory: 256m
     volumes:
       - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
+    environment:
+      - GROUP_ID=log_storage
 
-
-  inspector:
+  logcollector:
     build:
       context: ..
-      dockerfile: docker/dockerfiles/Dockerfile.inspector
+      dockerfile: docker/dockerfiles/Dockerfile.logcollector
       network: host
     restart: "unless-stopped"
     depends_on:
@@ -73,10 +48,9 @@ services:
         condition: service_healthy
     networks:
       heidgaf:
-        ipv4_address: 172.27.0.6
+    #        ipv4_address: 172.27.0.7
+    memswap_limit: 768m
     deploy:
-      mode: "replicated"
-      replicas: 1
       resources:
         limits:
           cpus: '2'
@@ -84,6 +58,8 @@ services:
         reservations:
           cpus: '1'
           memory: 256m
+    environment:
+      - GROUP_ID=log_collection
 
   prefilter:
     build:
@@ -100,7 +76,7 @@ services:
         condition: service_healthy
     networks:
       heidgaf:
-        ipv4_address: 172.27.0.9
+    #        ipv4_address: 172.27.0.9
     deploy:
       mode: "replicated"
       replicas: 1
@@ -111,6 +87,38 @@ services:
         reservations:
           cpus: '1'
           memory: 256m
+    environment:
+      - GROUP_ID=log_filtering
+
+  inspector:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.inspector
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      heidgaf:
+    #        ipv4_address: 172.27.0.6
+    deploy:
+      mode: "replicated"
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+    environment:
+      - GROUP_ID=data_inspection
+      - NUMBER_OF_INSTANCES=2
 
   detector:
     build:
@@ -127,7 +135,7 @@ services:
         condition: service_healthy
     networks:
       heidgaf:
-        ipv4_address: 172.27.0.10
+    #        ipv4_address: 172.27.0.10
     deploy:
       mode: "replicated"
       replicas: 1
@@ -142,6 +150,8 @@ services:
             - driver: nvidia
               count: 1 # alternatively, use `count: all` for all GPUs
               capabilities: [ gpu ]
+    environment:
+      - GROUP_ID=data_analysis
 
 networks:
   heidgaf:
