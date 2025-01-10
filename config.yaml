@@ -79,11 +79,11 @@ environment:
       port: 8099
   kafka_topics:
     pipeline:
-      logserver_in: "pipeline.logserver_in"
-      logserver_to_collector: "pipeline.logserver_to_collector"
-      batch_sender_to_prefilter: "pipeline.batch_sender_to_prefilter"
-      prefilter_to_inspector: "pipeline.prefilter_to_inspector"
-      inspector_to_detector: "pipeline.inspector_to_detector"
+      logserver_in: "pipeline-logserver_in"
+      logserver_to_collector: "pipeline-logserver_to_collector"
+      batch_sender_to_prefilter: "pipeline-batch_sender_to_prefilter"
+      prefilter_to_inspector: "pipeline-prefilter_to_inspector"
+      inspector_to_detector: "pipeline-inspector_to_detector"
   monitoring:
     clickhouse_server:
       hostname: 172.27.0.11
