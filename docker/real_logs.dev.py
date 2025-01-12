@@ -38,7 +38,7 @@ if __name__ == "__main__":
             for i in range(0, 10):
                 random_domain = data.sample(n=1)
                 logline = generate_dns_log_line(random_domain["query"].item())
-                kafka_producer.produce("pipeline.logserver_in", logline.encode("utf-8"))
+                kafka_producer.produce("pipeline-logserver_in", logline.encode("utf-8"))
                 logger.info(f"Sent logline: {logline}")
             time.sleep(0.1)
     except KeyboardInterrupt:
