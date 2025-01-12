@@ -101,7 +101,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 6,
+        "w": 9,
         "x": 0,
         "y": 1
       },
@@ -125,7 +125,7 @@
           "sort": "none"
         },
         "xField": "name",
-        "xTickLabelRotation": -30,
+        "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
       "pluginVersion": "11.2.2+security-01",
@@ -207,8 +207,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 18,
-        "x": 6,
+        "w": 15,
+        "x": 9,
         "y": 1
       },
       "id": 41,
@@ -333,13 +333,13 @@
       "gridPos": {
         "h": 6,
         "w": 7,
-        "x": 6,
+        "x": 9,
         "y": 4
       },
       "id": 44,
       "options": {
         "barRadius": 0.05,
-        "barWidth": 0.52,
+        "barWidth": 0.79,
         "fullHighlight": false,
         "groupWidth": 0.32,
         "legend": {
@@ -424,8 +424,8 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 11,
-        "x": 13,
+        "w": 8,
+        "x": 16,
         "y": 4
       },
       "id": 43,
@@ -1957,8 +1957,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -2107,8 +2106,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -2224,8 +2222,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -2374,8 +2371,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -2454,8 +2450,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -2533,8 +2528,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -2662,8 +2656,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -2849,8 +2842,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -3034,8 +3026,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -3181,8 +3172,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -3274,8 +3264,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -3367,8 +3356,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
