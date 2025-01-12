@@ -38,9 +38,12 @@ def get_batch(data):
 
 class TestInit(unittest.TestCase):
     @patch("src.inspector.inspector.CONSUME_TOPIC", "test_topic")
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    def test_init(self, mock_kafka_consume_handler, mock_produce_handler):
+    def test_init(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_produce_handler_instance = MagicMock()
@@ -140,10 +143,11 @@ class TestGetData(unittest.TestCase):
         self.assertEqual(end, sut.end_timestamp)
         self.assertEqual([], sut.messages)
 
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     def test_get_data_while_busy(
-        self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -166,10 +170,11 @@ class TestGetData(unittest.TestCase):
 
 
 class TestClearData(unittest.TestCase):
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     def test_clear_data_without_existing_data(
-        self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -187,10 +192,11 @@ class TestClearData(unittest.TestCase):
 
         self.assertEqual([], sut.messages)
 
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     def test_clear_data_with_existing_data(
-        self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_kafka_produce_handler, mock_clickhouse
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -200,7 +206,7 @@ class TestClearData(unittest.TestCase):
             "data": [],
         }
         mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
+        mock_kafka_produce_handler.return_value = mock_produce_handler_instance
 
         sut = Inspector()
         sut.messages = ["test_data"]
@@ -215,11 +221,14 @@ class TestClearData(unittest.TestCase):
 
 class TestDataFunction(unittest.TestCase):
 
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.TIME_TYPE", "ms")
     @patch("src.inspector.inspector.TIME_RANGE", 1)
-    def test_count_errors(self, mock_kafka_consume_handler, mock_produce_handler):
+    def test_count_errors(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_produce_handler_instance = MagicMock()
@@ -238,11 +247,14 @@ class TestDataFunction(unittest.TestCase):
             sut._count_errors(messages, begin_timestamp, end_timestamp),
         )
 
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.TIME_TYPE", "ms")
     @patch("src.inspector.inspector.TIME_RANGE", 1)
-    def test_mean_packet_size(self, mock_kafka_consume_handler, mock_produce_handler):
+    def test_mean_packet_size(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_produce_handler_instance = MagicMock()
@@ -261,10 +273,11 @@ class TestDataFunction(unittest.TestCase):
             sut._mean_packet_size(messages, begin_timestamp, end_timestamp),
         )
 
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     def test_count_errors_empty_messages(
-        self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -283,10 +296,11 @@ class TestDataFunction(unittest.TestCase):
             sut._count_errors([], begin_timestamp, end_timestamp),
         )
 
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     def test_mean_packet_size_empty_messages(
-        self, mock_kafka_consume_handler, mock_produce_handler
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -308,6 +322,7 @@ class TestDataFunction(unittest.TestCase):
 
 class TestInspectFunction(unittest.TestCase):
     @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch(
@@ -315,7 +330,11 @@ class TestInspectFunction(unittest.TestCase):
         None,
     )
     def test_inspect_none_models(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self,
+        mock_kafka_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+        mock_logger,
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -331,6 +350,7 @@ class TestInspectFunction(unittest.TestCase):
             sut.inspect()
 
     @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch(
@@ -338,7 +358,11 @@ class TestInspectFunction(unittest.TestCase):
         "",
     )
     def test_inspect_empty_models(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self,
+        mock_kafka_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+        mock_logger,
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -760,6 +784,7 @@ class TestInspectFunction(unittest.TestCase):
             sut.inspect()
 
     @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch(
@@ -767,7 +792,11 @@ class TestInspectFunction(unittest.TestCase):
         [{"model": "INVALID", "module": "streamad.model"}],
     )
     def test_invalid_model_univariate(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self,
+        mock_kafka_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+        mock_logger,
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -779,6 +808,7 @@ class TestInspectFunction(unittest.TestCase):
             sut.inspect()
 
     @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch(
@@ -787,7 +817,11 @@ class TestInspectFunction(unittest.TestCase):
     )
     @patch("src.inspector.inspector.MODE", "multivariate")
     def test_invalid_model_multivariate(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self,
+        mock_kafka_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+        mock_logger,
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -799,6 +833,7 @@ class TestInspectFunction(unittest.TestCase):
             sut.inspect()
 
     @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch(
@@ -807,7 +842,11 @@ class TestInspectFunction(unittest.TestCase):
     )
     @patch("src.inspector.inspector.MODE", "ensemble")
     def test_invalid_model_ensemble(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_logger
+        self,
+        mock_kafka_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+        mock_logger,
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -818,10 +857,13 @@ class TestInspectFunction(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             sut.inspect()
 
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.MODE", "INVALID")
-    def test_invalid_mode(self, mock_kafka_consume_handler, mock_produce_handler):
+    def test_invalid_mode(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_produce_handler_instance = MagicMock()
@@ -843,13 +885,13 @@ class TestSend(unittest.TestCase):
         self,
         mock_clickhouse,
         mock_kafka_consume_handler,
-        mock_produce_handler,
+        mock_kafka_produce_handler,
         mock_logger,
     ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
+        mock_kafka_produce_handler.return_value = mock_produce_handler_instance
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
         sut = Inspector()
@@ -868,7 +910,7 @@ class TestSend(unittest.TestCase):
             sut.send_data()
 
         mock_produce_handler_instance.produce.assert_called_once_with(
-            topic="pipeline.inspector_to_detector",
+            topic="pipeline-inspector_to_detector",
             data=batch_schema.dumps(
                 {
                     "batch_id": mock_batch_id,
