@@ -7,6 +7,7 @@ from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
 
 
 class TestInit(unittest.TestCase):
+    @patch("src.base.kafka_handler.HOSTNAME", "test_transactional_id")
     @patch(
         "src.base.kafka_handler.KAFKA_BROKERS",
         [
@@ -35,7 +36,7 @@ class TestInit(unittest.TestCase):
             "enable.idempotence": True,
         }
 
-        sut = ExactlyOnceKafkaProduceHandler("test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler()
 
         self.assertIsNone(sut.consumer)
         self.assertEqual(mock_producer_instance, sut.producer)
@@ -68,7 +69,7 @@ class TestInit(unittest.TestCase):
 
         expected_conf = {
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
-            "transactional.id": "test_transactional_id",
+            "transactional.id": "default",
             "enable.idempotence": True,
         }
 
@@ -76,9 +77,7 @@ class TestInit(unittest.TestCase):
             mock_producer_instance, "init_transactions", side_effect=KafkaException
         ):
             with self.assertRaises(KafkaException):
-                sut = ExactlyOnceKafkaProduceHandler(
-                    transactional_id="test_transactional_id"
-                )
+                sut = ExactlyOnceKafkaProduceHandler()
 
             mock_producer.assert_called_once_with(expected_conf)
             mock_producer_instance.init_transactions.assert_called_once()
@@ -116,13 +115,13 @@ class TestSend(unittest.TestCase):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
 
-        sut = ExactlyOnceKafkaProduceHandler(transactional_id="test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler()
         sut.produce("test_topic", "test_data", key=None)
 
         mock_producer_instance.produce.assert_called_once_with(
             topic="test_topic",
             key=None,
-            value="test_data".encode("utf-8"),
+            value="test_data",
             callback=mock_kafka_delivery_report,
         )
         mock_commit_transaction_with_retry.assert_called_once()
@@ -147,7 +146,7 @@ class TestSend(unittest.TestCase):
     )
     @patch("src.base.kafka_handler.Producer")
     def test_send_with_empty_data_string(self, mock_producer):
-        sut = ExactlyOnceKafkaProduceHandler(transactional_id="test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler()
         sut.produce("test_topic", "", None)
 
         mock_producer.begin_transaction.assert_not_called()
@@ -188,7 +187,7 @@ class TestSend(unittest.TestCase):
         mock_producer.return_value = mock_producer_instance
         mock_commit_transaction_with_retry.side_effect = Exception
 
-        sut = ExactlyOnceKafkaProduceHandler(transactional_id="test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler()
 
         with self.assertRaises(Exception):
             sut.produce("test_topic", "test_data", key=None)
@@ -196,7 +195,7 @@ class TestSend(unittest.TestCase):
         mock_producer_instance.produce.assert_called_once_with(
             topic="test_topic",
             key=None,
-            value="test_data".encode("utf-8"),
+            value="test_data",
             callback=mock_kafka_delivery_report,
         )
 
@@ -230,7 +229,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         mock_producer.return_value = mock_producer_instance
         mock_producer.commit_transaction.return_value = None
 
-        sut = ExactlyOnceKafkaProduceHandler(transactional_id="test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler()
         sut.commit_transaction_with_retry()
 
         mock_producer_instance.commit_transaction.assert_called_once()
@@ -265,7 +264,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
             None,
         ]
 
-        sut = ExactlyOnceKafkaProduceHandler(transactional_id="test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler()
         sut.commit_transaction_with_retry()
 
         self.assertEqual(mock_producer_instance.commit_transaction.call_count, 2)
@@ -298,7 +297,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
             "Conflicting commit_transaction API call is already in progress"
         )
 
-        sut = ExactlyOnceKafkaProduceHandler(transactional_id="test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler()
         with self.assertRaises(RuntimeError) as context:
             sut.commit_transaction_with_retry()
 
@@ -334,7 +333,7 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
             "Some other error"
         )
 
-        sut = ExactlyOnceKafkaProduceHandler(transactional_id="test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler()
         with self.assertRaises(KafkaException) as context:
             sut.commit_transaction_with_retry()
 
@@ -366,7 +365,7 @@ class TestDel(unittest.TestCase):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
 
-        sut = ExactlyOnceKafkaProduceHandler(transactional_id="test_transactional_id")
+        sut = ExactlyOnceKafkaProduceHandler()
         del sut
 
         mock_producer_instance.flush.assert_called_once()
