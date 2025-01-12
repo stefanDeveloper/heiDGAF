@@ -316,11 +316,32 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byValue",
+              "options": {
+                "op": "gte",
+                "reducer": "allIsNull",
+                "value": 0
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 7,
-        "w": 8,
+        "w": 16,
         "x": 0,
         "y": 4
       },
@@ -358,7 +379,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.collector'\nAND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.collector'\n  AND 'Collector' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
           "refId": "Collector"
         },
         {
@@ -381,7 +402,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_filtering.prefilter'\n  AND entry_type = 'total_loglines'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_filtering.prefilter'\n  AND entry_type = 'total_loglines'\n  AND 'Prefilter' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
           "refId": "Prefilter"
         },
         {
@@ -404,7 +425,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'data_inspection.inspector'\n  AND entry_type = 'total_loglines'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'data_inspection.inspector'\n  AND entry_type = 'total_loglines'\n  AND 'Inspector' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
           "refId": "Inspector"
         },
         {
@@ -427,205 +448,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'data_analysis.detector'\n  AND entry_type = 'total_loglines'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
-          "refId": "Detector"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": true,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.batch_handler'\n  AND entry_type = 'total_loglines_in_batches'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
-          "refId": "BatchHandler"
-        }
-      ],
-      "title": "Fill States Combined (without BatchHandler)",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": true,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 11,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "stepAfter",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "log": 2,
-              "type": "log"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 4
-      },
-      "id": 71,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.collector'\nAND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
-          "refId": "Collector"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_filtering.prefilter'\n  AND entry_type = 'total_loglines'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
-          "refId": "Prefilter"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'data_inspection.inspector'\n  AND entry_type = 'total_loglines'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
-          "refId": "Inspector"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'data_analysis.detector'\n  AND entry_type = 'total_loglines'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'data_analysis.detector'\n  AND entry_type = 'total_loglines'\n  AND 'Detector' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
           "refId": "Detector"
         },
         {
@@ -648,11 +471,11 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.batch_handler'\n  AND entry_type = 'total_loglines_in_batches'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.batch_handler'\n  AND entry_type = 'total_loglines_in_batches'\n  AND 'BatchHandler' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
           "refId": "BatchHandler"
         }
       ],
-      "title": "Fill States Combined (with BatchHandler, logarithmic)",
+      "title": "Fill States Combined (logarithmic)",
       "type": "timeseries"
     },
     {
@@ -787,7 +610,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT *\nFROM (\n  SELECT 'Collector' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 2 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.collector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'BatchHandler' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 3 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.batch_handler' AND entry_type = 'total_loglines_in_batches' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Prefilter' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 4 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_filtering.prefilter' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Inspector' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 5 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_inspection.inspector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Detector' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 6 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_analysis.detector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n)\n\nORDER BY sort_order ASC;",
+          "rawSql": "SELECT *\nFROM (\n  SELECT 'Collector' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 2 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.collector' AND entry_type = 'total_loglines'\n      AND timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'BatchHandler' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 3 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.batch_handler' AND entry_type = 'total_loglines_in_batches' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Prefilter' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 4 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_filtering.prefilter' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Inspector' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 5 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_inspection.inspector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Detector' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 6 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_analysis.detector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n)\n\nORDER BY sort_order ASC;",
           "refId": "Fill States"
         }
       ],
@@ -854,8 +677,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -929,8 +751,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1042,8 +863,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1121,8 +941,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1200,8 +1019,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1294,8 +1112,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1422,8 +1239,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1524,8 +1340,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1604,8 +1419,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1717,8 +1531,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1796,8 +1609,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1875,8 +1687,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1992,8 +1803,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -2120,8 +1930,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -2199,8 +2008,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -2278,8 +2086,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -2405,8 +2212,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -2587,8 +2393,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -2805,8 +2610,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -2916,8 +2720,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -3746,29 +3549,58 @@
       },
       {
         "current": {
-          "selected": false,
-          "text": "without wait time",
-          "value": "without wait time"
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
-        "description": "Select whether the wait time in the BatchHandler should be part of its latency.",
+        "description": "Modules to be included in the comparison graphs and charts",
         "hide": 0,
-        "includeAll": false,
-        "label": "BatchHandler",
-        "multi": false,
-        "name": "IncludeWaitTime",
+        "includeAll": true,
+        "label": "Include Modules",
+        "multi": true,
+        "name": "include_modules",
         "options": [
           {
-            "selected": false,
-            "text": "with wait time",
-            "value": "with wait time"
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
           },
           {
-            "selected": true,
-            "text": "without wait time",
-            "value": "without wait time"
+            "selected": false,
+            "text": "LogServer",
+            "value": "'LogServer'"
+          },
+          {
+            "selected": false,
+            "text": "Collector",
+            "value": "'Collector'"
+          },
+          {
+            "selected": false,
+            "text": "BatchHandler",
+            "value": "'BatchHandler'"
+          },
+          {
+            "selected": false,
+            "text": "Prefilter",
+            "value": "'Prefilter'"
+          },
+          {
+            "selected": false,
+            "text": "Inspector",
+            "value": "'Inspector'"
+          },
+          {
+            "selected": false,
+            "text": "Detector",
+            "value": "'Detector'"
           }
         ],
-        "query": "with wait time, without wait time",
+        "query": "LogServer : 'LogServer', Collector : 'Collector', BatchHandler : 'BatchHandler', Prefilter : 'Prefilter', Inspector : 'Inspector', Detector : 'Detector'",
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
@@ -3796,6 +3628,6 @@
   "timezone": "browser",
   "title": "Fill States",
   "uid": "ae9rw4xedy1a8e",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }
