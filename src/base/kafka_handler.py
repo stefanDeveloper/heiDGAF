@@ -26,7 +26,7 @@ from src.base.utils import kafka_delivery_report, setup_config
 
 logger = get_logger()
 
-HOSTNAME = os.environ["HOSTNAME"]
+HOSTNAME = os.getenv("HOSTNAME", "default")
 NUMBER_OF_INSTANCES = int(os.getenv("NUMBER_OF_INSTANCES", 1))
 
 config = setup_config()
