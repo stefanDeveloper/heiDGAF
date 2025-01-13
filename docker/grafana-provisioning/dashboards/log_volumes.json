@@ -341,7 +341,7 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 14,
+        "w": 15,
         "x": 0,
         "y": 4
       },
@@ -480,36 +480,18 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed"
+            "fixedColor": "blue",
+            "mode": "shades"
           },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 49,
-            "gradientMode": "hue",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
+          "decimals": 0,
+          "fieldMinMax": false,
           "mappings": [],
           "noValue": "-",
           "thresholds": {
@@ -525,35 +507,19 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byName",
-              "options": "Median"
+              "id": "byValue",
+              "options": {
+                "op": "gte",
+                "reducer": "allIsNull",
+                "value": 0
+              }
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "blue",
+                  "fixedColor": "light-red",
                   "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 100
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sort_order"
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": true,
-                  "tooltip": true,
-                  "viz": true
                 }
               }
             ]
@@ -562,31 +528,28 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 10,
-        "x": 14,
+        "w": 9,
+        "x": 15,
         "y": 4
       },
       "id": 47,
       "options": {
-        "barRadius": 0.2,
-        "barWidth": 0.3,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "displayMode": "basic",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 0,
+        "namePlacement": "top",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "orientation": "horizontal",
-        "showValue": "never",
-        "stacking": "normal",
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
+        "showUnfilled": false,
+        "sizing": "auto",
+        "valueMode": "color"
       },
       "pluginVersion": "11.2.2+security-01",
       "targets": [
@@ -610,12 +573,33 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT *\nFROM (\n  SELECT 'Collector' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 2 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.collector' AND entry_type = 'total_loglines'\n      AND timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'BatchHandler' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 3 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.batch_handler' AND entry_type = 'total_loglines_in_batches' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Prefilter' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 4 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_filtering.prefilter' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Inspector' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 5 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_inspection.inspector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Detector' AS name, min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\", 6 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_analysis.detector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n)\n\nORDER BY sort_order ASC;",
+          "rawSql": "SELECT *\nFROM (\n  SELECT 'Collector' AS name, median(value) AS \"Median\", 2 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.collector' AND entry_type = 'total_loglines'\n      AND timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'BatchHandler' AS name, median(value) AS \"Median\", 3 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.batch_handler' AND entry_type = 'total_loglines_in_batches' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Prefilter' AS name, median(value) AS \"Median\", 4 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_filtering.prefilter' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Inspector' AS name, median(value) AS \"Median\", 5 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_inspection.inspector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Detector' AS name, median(value) AS \"Median\", 6 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_analysis.detector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n)\nWHERE name IN (${include_modules:csv})\nORDER BY sort_order ASC;",
           "refId": "Fill States"
         }
       ],
       "title": "Fill State Comparison",
-      "type": "barchart"
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "name",
+                "handlerKey": "field.name"
+              },
+              {
+                "fieldName": "Median",
+                "handlerKey": "field.value"
+              },
+              {
+                "fieldName": "sort_order",
+                "handlerKey": "__ignore"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "bargauge"
     },
     {
       "collapsed": false,
@@ -3566,10 +3550,18 @@
         "current": {
           "selected": true,
           "text": [
-            "All"
+            "LogServer",
+            "Collector",
+            "Prefilter",
+            "Inspector",
+            "Detector"
           ],
           "value": [
-            "$__all"
+            "'LogServer'",
+            "'Collector'",
+            "'Prefilter'",
+            "'Inspector'",
+            "'Detector'"
           ]
         },
         "description": "Modules to be included in the comparison graphs and charts",
@@ -3580,17 +3572,17 @@
         "name": "include_modules",
         "options": [
           {
-            "selected": true,
+            "selected": false,
             "text": "All",
             "value": "$__all"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "LogServer",
             "value": "'LogServer'"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "Collector",
             "value": "'Collector'"
           },
@@ -3600,17 +3592,17 @@
             "value": "'BatchHandler'"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "Prefilter",
             "value": "'Prefilter'"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "Inspector",
             "value": "'Inspector'"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "Detector",
             "value": "'Detector'"
           }
@@ -3623,8 +3615,8 @@
     ]
   },
   "time": {
-    "from": "2025-01-12T13:40:38.398Z",
-    "to": "2025-01-12T13:42:12.913Z"
+    "from": "2025-01-13T08:23:10.007Z",
+    "to": "2025-01-13T08:24:20.039Z"
   },
   "timepicker": {
     "refresh_intervals": [
@@ -3643,6 +3635,6 @@
   "timezone": "browser",
   "title": "Log Volumes",
   "uid": "ae9rw4xedy1a8e",
-  "version": 4,
+  "version": 1,
   "weekStart": ""
 }
