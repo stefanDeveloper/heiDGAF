@@ -31,7 +31,7 @@
       },
       "id": 72,
       "panels": [],
-      "title": "Overview",
+      "title": "Comparison",
       "type": "row"
     },
     {
@@ -3524,6 +3524,6 @@
   "timezone": "browser",
   "title": "Latencies",
   "uid": "fe9rv9qph1af4f",
-  "version": 1,
+  "version": 4,
   "weekStart": ""
 }
