@@ -61,7 +61,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT 'LogCollector' AS id, 'LogCollector' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'log_collection.collector'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL \n\nSELECT 'BatchHandler' AS id, 'BatchHandler' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'log_collection.batch_handler'\n    AND entry_type = 'total_loglines_in_batches'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL\n\nSELECT 'Prefilter' AS id, 'Prefilter' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'log_filtering.prefilter'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat",
+          "rawSql": "SELECT 'LogCollector' AS id, 'LogCollector' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'log_collection.collector'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL \n\nSELECT 'BatchHandler' AS id, 'BatchHandler' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'log_collection.batch_handler'\n    AND entry_type = 'total_loglines_in_batches'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL\n\nSELECT 'Prefilter' AS id, 'Prefilter' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'log_filtering.prefilter'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL\n\nSELECT 'Inspector' AS id, 'Inspector' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'data_inspection.inspector'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL\n\nSELECT 'Detector' AS id, 'Detector' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'data_analysis.detector'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat",
           "refId": "Nodes"
         },
         {
@@ -84,7 +84,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT 'LogCollector_BatchHandler' AS id, 'LogCollector' AS source, 'BatchHandler' AS target\nUNION ALL\nSELECT 'BatchHandler_Prefilter' AS id, 'BatchHandler' AS source, 'Prefilter' AS target",
+          "rawSql": "SELECT 'LogCollector_BatchHandler' AS id, 'LogCollector' AS source, 'BatchHandler' AS target\nUNION ALL\nSELECT 'BatchHandler_Prefilter' AS id, 'BatchHandler' AS source, 'Prefilter' AS target\nUNION ALL\nSELECT 'Prefilter_Inspector' AS id, 'Prefilter' AS source, 'Inspector' AS target\nUNION ALL\nSELECT 'Inspector_Detector' AS id, 'Inspector' AS source, 'Detector' AS target",
           "refId": "Edges"
         }
       ],
