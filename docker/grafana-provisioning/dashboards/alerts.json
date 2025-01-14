@@ -177,7 +177,7 @@
           "sort": "none"
         },
         "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
+        "xTickLabelSpacing": 100
       },
       "pluginVersion": "11.2.2+security-01",
       "targets": [
@@ -201,7 +201,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT \n    toDateTime64(toStartOf${Granularity}(alert_timestamp), 3) AS time_bucket,\n    count(client_ip) AS \"count\"\nFROM alerts\nWHERE alert_timestamp >= toStartOf${Granularity}($__fromTime) AND alert_timestamp <= toStartOf${Granularity}($__toTime)\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toDateTime64(toStartOf${Granularity}($__fromTime), 3)\nTO toDateTime64(toStartOf${Granularity}($__toTime), 3)\nSTEP toInterval${Granularity}(1);",
+          "rawSql": "SELECT \n    toStartOf${Granularity}(toDateTime64(alert_timestamp, 6)) AS time_bucket,\n    count(client_ip) AS \"count\"\nFROM alerts\nWHERE alert_timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND alert_timestamp <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\nTO toStartOf${Granularity}(toDateTime64($__toTime, 6))\nSTEP toInterval${Granularity}(1);",
           "refId": "B"
         }
       ],
@@ -297,8 +297,12 @@
       {
         "current": {
           "selected": false,
-          "text": "Minute",
-          "value": "Minute"
+          "text": "Second",
+          "value": "Second"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "PDEE91DDB90597936"
         },
         "definition": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 1 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 24 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
         "hide": 2,
@@ -317,13 +321,13 @@
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Alerts",
   "uid": "de9z3fduc2m0we",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }
