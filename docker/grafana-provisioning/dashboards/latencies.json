@@ -3444,7 +3444,7 @@
       "type": "stat"
     }
   ],
-  "refresh": "5s",
+  "refresh": "",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -3504,8 +3504,8 @@
     ]
   },
   "time": {
-    "from": "now-15m",
-    "to": "now"
+    "from": "2025-01-14T08:55:17.438Z",
+    "to": "2025-01-14T09:05:03.705Z"
   },
   "timepicker": {
     "refresh_intervals": [
