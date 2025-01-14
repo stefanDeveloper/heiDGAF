@@ -154,7 +154,7 @@
           "refId": "A"
         }
       ],
-      "title": "Median Latency Comparison",
+      "title": "Latency Comparison (Median)",
       "type": "barchart"
     },
     {
@@ -260,7 +260,7 @@
           "refId": "A"
         }
       ],
-      "title": "Median Latency per Module (relative)",
+      "title": "Relative Latency Comparison (Median)",
       "transparent": true,
       "type": "barchart"
     },
@@ -384,7 +384,7 @@
           "refId": "Data Preparation Phase"
         }
       ],
-      "title": "Median Duration Comparison",
+      "title": "Duration Comparison (Median)",
       "type": "barchart"
     },
     {
@@ -500,7 +500,7 @@
           "refId": "Analysis"
         }
       ],
-      "title": "Median Duration per Phase",
+      "title": "Duration per Phase (Median)",
       "type": "piechart"
     },
     {
@@ -3444,7 +3444,7 @@
       "type": "stat"
     }
   ],
-  "refresh": "",
+  "refresh": "5s",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -3452,8 +3452,8 @@
       {
         "current": {
           "selected": false,
-          "text": "Second",
-          "value": "Second"
+          "text": "Minute",
+          "value": "Minute"
         },
         "datasource": {
           "type": "grafana-clickhouse-datasource",
@@ -3504,8 +3504,8 @@
     ]
   },
   "time": {
-    "from": "2025-01-12T13:40:38.398Z",
-    "to": "2025-01-12T13:42:12.913Z"
+    "from": "now-15m",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": [
@@ -3524,6 +3524,6 @@
   "timezone": "browser",
   "title": "Latencies",
   "uid": "fe9rv9qph1af4f",
-  "version": 4,
+  "version": 7,
   "weekStart": ""
 }
