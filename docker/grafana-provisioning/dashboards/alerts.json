@@ -201,7 +201,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT \n    toDateTime64(toStartOf${Granularity}(alert_timestamp), 3) AS time_bucket,\n    count(client_ip) AS \"count\"\nFROM alerts\nWHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toDateTime64(toStartOf${Granularity}($__fromTime), 3)\nTO toDateTime64(toStartOf${Granularity}($__toTime), 3)\nSTEP toInterval${Granularity}(1);",
+          "rawSql": "SELECT \n    toDateTime64(toStartOf${Granularity}(alert_timestamp), 3) AS time_bucket,\n    count(client_ip) AS \"count\"\nFROM alerts\nWHERE alert_timestamp >= toStartOf${Granularity}($__fromTime) AND alert_timestamp <= toStartOf${Granularity}($__toTime)\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toDateTime64(toStartOf${Granularity}($__fromTime), 3)\nTO toDateTime64(toStartOf${Granularity}($__toTime), 3)\nSTEP toInterval${Granularity}(1);",
           "refId": "B"
         }
       ],
