@@ -30,15 +30,15 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "light-orange",
+            "mode": "shades"
           },
           "custom": {
             "axisBorderShow": true,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
             "axisPlacement": "auto",
-            "fillOpacity": 68,
+            "fillOpacity": 74,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -61,15 +61,27 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "orange",
-                "value": 0
               }
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -90,7 +102,7 @@
           "showLegend": true
         },
         "orientation": "vertical",
-        "showValue": "auto",
+        "showValue": "never",
         "stacking": "normal",
         "tooltip": {
           "mode": "single",
@@ -121,7 +133,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT \n    toStartOf${Granularity}(timestamp_in) AS time_bucket,\n    count(*) AS lines\nFROM server_logs\nWHERE timestamp_in >= $__fromTime AND timestamp_in <= $__toTime\nGROUP BY time_bucket\nORDER BY time_bucket;",
+          "rawSql": "SELECT \n    toDateTime64(toStartOf${Granularity}(timestamp_in), 3) AS time_bucket,\n    count(*) AS lines\nFROM server_logs\nWHERE timestamp_in >= $__fromTime AND timestamp_in <= $__toTime\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toDateTime64($__fromTime, 3)\nTO toDateTime64($__toTime, 3)\nSTEP toInterval${Granularity}(1);",
           "refId": "A"
         },
         {
@@ -144,11 +156,11 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT time_bucket, -sum(number)\nFROM (\n  SELECT \n    toStartOf${Granularity}(timestamp_failed) AS time_bucket,\n    count(*) AS number\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= $__fromTime AND timestamp_failed <= $__toTime\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(timestamp) AS time_bucket,\n    count(*) AS number\n  FROM logline_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(timestamp) AS time_bucket,\n    count(*) AS number\n  FROM batch_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n)\nGROUP BY time_bucket;",
+          "rawSql": "SELECT time_bucket, -sum(number)\nFROM (\n  SELECT \n    toDateTime64(toStartOf${Granularity}(timestamp_failed), 3) AS time_bucket,\n    count(*) AS number\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= $__fromTime AND timestamp_failed <= $__toTime\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toDateTime64($__fromTime, 3)\n  TO toDateTime64($__toTime, 3)\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toDateTime64(toStartOf${Granularity}(timestamp), 3) AS time_bucket,\n    count(*) AS number\n  FROM logline_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toDateTime64($__fromTime, 3)\n  TO toDateTime64($__toTime, 3)\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toDateTime64(toStartOf${Granularity}(timestamp), 3) AS time_bucket,\n    count(*) AS number\n  FROM batch_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toDateTime64($__fromTime, 3)\n  TO toDateTime64($__toTime, 3)\n  STEP toInterval${Granularity}(1)\n)\nGROUP BY time_bucket;",
           "refId": "B"
         }
       ],
-      "title": "TODO: Ingoing and Outgoing / sec",
+      "title": "TODO: Ingoing and Outgoing / ${Granularity}",
       "type": "barchart"
     },
     {
@@ -1383,8 +1395,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1485,8 +1496,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -1565,8 +1575,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -1678,8 +1687,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1757,8 +1765,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -1836,8 +1843,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -1953,8 +1959,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -2081,8 +2086,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2160,8 +2164,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -2239,8 +2242,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -2379,8 +2381,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -2596,8 +2597,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2707,8 +2707,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -2885,8 +2884,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -2991,8 +2989,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -3107,8 +3104,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -3196,8 +3192,8 @@
       {
         "current": {
           "selected": false,
-          "text": "Hour",
-          "value": "Hour"
+          "text": "Minute",
+          "value": "Minute"
         },
         "datasource": {
           "type": "grafana-clickhouse-datasource",
@@ -3218,7 +3214,7 @@
       },
       {
         "current": {
-          "selected": false,
+          "selected": true,
           "text": [
             "All"
           ],
@@ -3277,8 +3273,8 @@
     ]
   },
   "time": {
-    "from": "2025-01-12T12:30:11.539Z",
-    "to": "2025-01-12T15:41:57.841Z"
+    "from": "2025-01-12T13:38:30.195Z",
+    "to": "2025-01-12T14:07:18.975Z"
   },
   "timepicker": {
     "refresh_intervals": [
@@ -3297,6 +3293,6 @@
   "timezone": "browser",
   "title": "Log Volumes",
   "uid": "ae9rw4xedy1a8e",
-  "version": 3,
+  "version": 5,
   "weekStart": ""
 }
