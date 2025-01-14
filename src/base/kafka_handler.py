@@ -26,7 +26,8 @@ from src.base.utils import kafka_delivery_report, setup_config
 
 logger = get_logger()
 
-HOSTNAME = os.getenv("HOSTNAME", "default")
+HOSTNAME = os.getenv("HOSTNAME", "default_tid")
+CONSUMER_GROUP_ID = os.getenv("GROUP_ID", "default_gid")
 NUMBER_OF_INSTANCES = int(os.getenv("NUMBER_OF_INSTANCES", 1))
 
 config = setup_config()
@@ -223,7 +224,7 @@ class KafkaConsumeHandler(KafkaHandler):
         # create consumer
         conf = {
             "bootstrap.servers": self.brokers,
-            "group.id": os.getenv("GROUP_ID"),
+            "group.id": CONSUMER_GROUP_ID,
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,
@@ -244,20 +245,8 @@ class KafkaConsumeHandler(KafkaHandler):
         )
 
         # check if topics are created
-        number_of_retries_left = 30
-        all_topics_created = False
-        while not all_topics_created:  # try for 15 seconds
-            assigned_topics = self.consumer.list_topics(timeout=10)
-
-            all_topics_created = True
-            for topic in topics:
-                if topic not in assigned_topics.topics:
-                    all_topics_created = False
-
-            if number_of_retries_left == 0:
-                raise TooManyFailedAttemptsError("Not all topics were created.")
-
-            time.sleep(0.5)
+        if not self._all_topics_created(topics):
+            raise TooManyFailedAttemptsError("Not all topics were created.")
 
         # subscribe to the topics
         self.consumer.subscribe(topics)
@@ -294,6 +283,24 @@ class KafkaConsumeHandler(KafkaHandler):
                 raise
         except Exception:
             raise ValueError("Unknown data format")
+
+    def _all_topics_created(self, topics):
+        number_of_retries_left = 30
+        all_topics_created = False
+        while not all_topics_created:  # try for 15 seconds
+            assigned_topics = self.consumer.list_topics(timeout=10)
+
+            all_topics_created = True
+            for topic in topics:
+                if topic not in assigned_topics.topics:
+                    all_topics_created = False
+
+            if number_of_retries_left == 0:
+                return False
+
+            time.sleep(0.5)
+
+        return True
 
     def __del__(self) -> None:
         if self.consumer:
