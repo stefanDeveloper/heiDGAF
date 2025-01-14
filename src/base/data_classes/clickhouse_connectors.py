@@ -169,6 +169,9 @@ class Alerts:
     overall_score: float = field(
         metadata={"marshmallow_field": marshmallow.fields.Float()}
     )
+    domain_names: str = field(
+        metadata={"marshmallow_field": marshmallow.fields.String()}
+    )
     result: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
 
 

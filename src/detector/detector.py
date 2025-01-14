@@ -325,6 +325,9 @@ class Detector:
                     alert_timestamp=datetime.datetime.now(),
                     suspicious_batch_id=self.suspicious_batch_id,
                     overall_score=overall_score,
+                    domain_names=json.dumps(
+                        [warning["request"]["domain_name"] for warning in self.warnings]
+                    ),
                     result=json.dumps(self.warnings),
                 )
             )
@@ -339,7 +342,7 @@ class Detector:
                 status="finished",
                 timestamp=datetime.datetime.now(),
                 is_active=False,
-                message_count=len(self.messages),  # TODO: Remove
+                message_count=len(self.messages),
             )
         )
 
