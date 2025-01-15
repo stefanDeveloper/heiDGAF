@@ -59,7 +59,7 @@
       },
       "gridPos": {
         "h": 11,
-        "w": 11,
+        "w": 10,
         "x": 0,
         "y": 0
       },
@@ -155,7 +155,7 @@
       "gridPos": {
         "h": 11,
         "w": 10,
-        "x": 11,
+        "x": 10,
         "y": 0
       },
       "id": 2,
@@ -171,7 +171,7 @@
           "showLegend": false
         },
         "orientation": "vertical",
-        "showValue": "auto",
+        "showValue": "never",
         "stacking": "none",
         "tooltip": {
           "mode": "single",
@@ -239,8 +239,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 21,
+        "w": 4,
+        "x": 20,
         "y": 0
       },
       "id": 3,
@@ -289,6 +289,35 @@
       "title": "Number of Alerts",
       "transparent": true,
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 20,
+        "y": 3
+      },
+      "id": 4,
+      "options": {
+        "includeVars": true,
+        "keepTime": true,
+        "maxItems": 10,
+        "query": "",
+        "showFolderNames": true,
+        "showHeadings": false,
+        "showRecentlyViewed": true,
+        "showSearch": false,
+        "showStarred": true,
+        "tags": []
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "title": "Dashboards",
+      "transparent": true,
+      "type": "dashlist"
     }
   ],
   "refresh": "auto",
@@ -330,6 +359,6 @@
   "timezone": "browser",
   "title": "Alerts",
   "uid": "de9z3fduc2m0we",
-  "version": 4,
+  "version": 1,
   "weekStart": ""
 }
