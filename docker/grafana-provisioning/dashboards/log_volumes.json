@@ -29,7 +29,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
         "y": 0
       },
@@ -37,7 +37,12 @@
       "options": {
         "edges": {},
         "nodes": {
-          "arcs": [],
+          "arcs": [
+            {
+              "color": "#FF9830",
+              "field": "arc__in"
+            }
+          ],
           "mainStatUnit": ""
         }
       },
@@ -61,7 +66,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT 'LogCollector' AS id, 'LogCollector' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'log_collection.collector'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL \n\nSELECT 'BatchHandler' AS id, 'BatchHandler' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'log_collection.batch_handler'\n    AND entry_type = 'total_loglines_in_batches'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL\n\nSELECT 'Prefilter' AS id, 'Prefilter' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'log_filtering.prefilter'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL\n\nSELECT 'Inspector' AS id, 'Inspector' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'data_inspection.inspector'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat\n\nUNION ALL\n\nSELECT 'Detector' AS id, 'Detector' AS title, (\n  SELECT median(entry_count)\n  FROM fill_levels\n  WHERE stage = 'data_analysis.detector'\n    AND entry_type = 'total_loglines'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS mainstat",
+          "rawSql": "WITH dateDiff('seconds', $__fromTime, $__toTime) AS time_diff\n\nSELECT 'LogCollector' AS id, 'LogCollector' AS title, (\n  SELECT count(*) / time_diff\n  FROM logline_timestamps\n  WHERE stage = 'log_collection.collector'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in\n\nUNION ALL \n\nSELECT 'BatchHandler' AS id, 'BatchHandler' AS title, (\n  SELECT count(*) / time_diff\n  FROM logline_timestamps\n  WHERE stage = 'log_collection.batch_handler'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in\n\nUNION ALL\n\nSELECT 'Prefilter' AS id, 'Prefilter' AS title, (\n  SELECT sum(message_count) / time_diff\n  FROM batch_timestamps\n  WHERE stage = 'log_filtering.prefilter'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in\n\nUNION ALL\n\nSELECT 'Inspector' AS id, 'Inspector' AS title, (\n  SELECT count(*) / time_diff\n  FROM logline_timestamps\n  WHERE stage = 'log_collection.collector'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in\n\nUNION ALL\n\nSELECT 'Detector' AS id, 'Detector' AS title, (\n  SELECT count(*) / time_diff\n  FROM logline_timestamps\n  WHERE stage = 'log_collection.collector'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in",
           "refId": "Nodes"
         },
         {
@@ -91,203 +96,6 @@
       "title": "Panel Title",
       "transparent": true,
       "type": "nodeGraph"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 100,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "maximal_size"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "orange",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "average_size"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "minimal_size"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sort_order"
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": true,
-                  "tooltip": true,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 12,
-        "y": 0
-      },
-      "id": 20,
-      "options": {
-        "barRadius": 0,
-        "barWidth": 0.97,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "auto",
-        "showValue": "auto",
-        "stacking": "normal",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT *\nFROM (\n      SELECT 'Suspicious' AS state, MIN(message_count) AS minimal_size, AVG(message_count) AS average_size, MAX(message_count) AS maximal_size, 3 as sort_order\n      FROM suspicious_batch_timestamps\n      WHERE stage = 'data_inspection.inspector' AND\n            status = 'finished'\n\n      UNION ALL\n\n      SELECT 'Filtered' AS state, MIN(message_count) AS minimal_size, AVG(message_count) AS average_size, MAX(message_count) AS maximal_size, 2 as sort_order\n      FROM batch_timestamps\n      WHERE stage = 'log_filtering.prefilter' AND\n            status = 'finished'\n\n      UNION ALL\n\n      SELECT 'Initial' AS state, MIN(message_count) AS minimal_size, AVG(message_count) AS average_size, MAX(message_count) AS maximal_size, 1 as sort_order\n      FROM batch_timestamps\n      WHERE stage = 'log_collection.batch_handler' AND\n            status = 'completed'\n)\nORDER BY sort_order ASC;",
-          "refId": "A"
-        }
-      ],
-      "title": "TODO: How many have existed in what stage",
-      "transparent": true,
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "type": "datasource",
-        "uid": "grafana"
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 4,
-        "x": 20,
-        "y": 0
-      },
-      "id": 74,
-      "options": {
-        "includeVars": true,
-        "keepTime": true,
-        "maxItems": 10,
-        "query": "",
-        "showFolderNames": true,
-        "showHeadings": false,
-        "showRecentlyViewed": true,
-        "showSearch": false,
-        "showStarred": true,
-        "tags": []
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "title": "Dashboards",
-      "transparent": true,
-      "type": "dashlist"
     },
     {
       "datasource": {
@@ -438,6 +246,203 @@
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 100,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "maximal_size"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "average_size"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "minimal_size"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sort_order"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 12,
+        "y": 8
+      },
+      "id": 20,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT *\nFROM (\n      SELECT 'Suspicious' AS state, MIN(message_count) AS minimal_size, AVG(message_count) AS average_size, MAX(message_count) AS maximal_size, 3 as sort_order\n      FROM suspicious_batch_timestamps\n      WHERE stage = 'data_inspection.inspector' AND\n            status = 'finished'\n\n      UNION ALL\n\n      SELECT 'Filtered' AS state, MIN(message_count) AS minimal_size, AVG(message_count) AS average_size, MAX(message_count) AS maximal_size, 2 as sort_order\n      FROM batch_timestamps\n      WHERE stage = 'log_filtering.prefilter' AND\n            status = 'finished'\n\n      UNION ALL\n\n      SELECT 'Initial' AS state, MIN(message_count) AS minimal_size, AVG(message_count) AS average_size, MAX(message_count) AS maximal_size, 1 as sort_order\n      FROM batch_timestamps\n      WHERE stage = 'log_collection.batch_handler' AND\n            status = 'completed'\n)\nORDER BY sort_order ASC;",
+          "refId": "A"
+        }
+      ],
+      "title": "TODO: How many have existed in what stage",
+      "transparent": true,
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 20,
+        "y": 8
+      },
+      "id": 74,
+      "options": {
+        "includeVars": true,
+        "keepTime": true,
+        "maxItems": 10,
+        "query": "",
+        "showFolderNames": true,
+        "showHeadings": false,
+        "showRecentlyViewed": true,
+        "showSearch": false,
+        "showStarred": true,
+        "tags": []
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "title": "Dashboards",
+      "transparent": true,
+      "type": "dashlist"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -571,8 +576,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -759,8 +763,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -926,8 +929,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1001,8 +1003,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1114,8 +1115,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1193,8 +1193,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1272,8 +1271,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1366,8 +1364,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1494,8 +1491,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1596,8 +1592,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1676,8 +1671,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1789,8 +1783,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1868,8 +1861,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -3280,7 +3272,6 @@
       "type": "row"
     }
   ],
-  "refresh": "",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -3288,8 +3279,8 @@
       {
         "current": {
           "selected": false,
-          "text": "Hour",
-          "value": "Hour"
+          "text": "Minute",
+          "value": "Minute"
         },
         "datasource": {
           "type": "grafana-clickhouse-datasource",
@@ -3369,8 +3360,8 @@
     ]
   },
   "time": {
-    "from": "now-12h",
-    "to": "now"
+    "from": "2025-01-14T14:38:42.854Z",
+    "to": "2025-01-14T15:25:19.413Z"
   },
   "timepicker": {
     "refresh_intervals": [
@@ -3389,6 +3380,6 @@
   "timezone": "browser",
   "title": "Log Volumes",
   "uid": "ae9rw4xedy1a8e",
-  "version": 2,
+  "version": 1,
   "weekStart": ""
 }
