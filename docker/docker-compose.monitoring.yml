@@ -5,6 +5,8 @@ services:
   clickhouse-server:
     image: clickhouse/clickhouse-server:24.3.12.75-alpine
     container_name: clickhouse-server
+    volumes:
+      - ./create_tables:/docker-entrypoint-initdb.d
     networks:
       heidgaf:
         ipv4_address: 172.27.0.11

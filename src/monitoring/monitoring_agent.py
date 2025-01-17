@@ -15,7 +15,10 @@ from src.base.utils import setup_config
 logger = get_logger()
 
 CONFIG = setup_config()
-CREATE_TABLES_DIRECTORY = "src/monitoring/create_tables"  # TODO: Get from config
+CREATE_TABLES_DIRECTORY = "docker/create_tables"  # TODO: Get from config
+CLICKHOUSE_HOSTNAME = CONFIG["environment"]["monitoring"]["clickhouse_server"][
+    "hostname"
+]
 
 
 def prepare_all_tables():
@@ -79,7 +82,6 @@ class MonitoringAgent:
 
 
 def main():
-    prepare_all_tables()
     clickhouse_consumer = MonitoringAgent()
     asyncio.run(clickhouse_consumer.start())
 
