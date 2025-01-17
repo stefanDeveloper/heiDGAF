@@ -1,0 +1,158 @@
+include:
+  - "docker-compose.kafka.yml"
+  - "docker-compose.monitoring.yml"
+
+services:
+  logserver:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.logserver
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      heidgaf:
+    memswap_limit: 768m
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+    volumes:
+      - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
+    environment:
+      - GROUP_ID=log_storage
+
+  logcollector:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.logcollector
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      heidgaf:
+    memswap_limit: 768m
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+    environment:
+      - GROUP_ID=log_collection
+
+  prefilter:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.prefilter
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      heidgaf:
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+    environment:
+      - GROUP_ID=log_filtering
+
+  inspector:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.inspector
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      heidgaf:
+    deploy:
+      mode: "replicated"
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+    environment:
+      - GROUP_ID=data_inspection
+      - NUMBER_OF_INSTANCES=2
+
+  detector:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.detector
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      heidgaf:
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+#          devices:
+#            - driver: nvidia
+#              count: 1 # alternatively, use `count: all` for all GPUs
+#              capabilities: [ gpu ]
+    environment:
+      - GROUP_ID=data_analysis
+
+networks:
+  heidgaf:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.27.0.0/16
+          gateway: 172.27.0.1
