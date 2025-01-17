@@ -1,27 +1,63 @@
-include:
-  - "docker-compose.pipeline.yml"
-  - "docker-compose.grafana-datatests.yml"
-
 services:
-  load-datasets:
-    build:
-      context: ..
-      dockerfile: docker/dockerfiles/Dockerfile.test-datasets
-      network: host
-    depends_on:
-      clickhouse-server:
-        condition: service_healthy
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.200
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+  zookeeper:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: zookeeper
+
+  kafka1:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: kafka1
+
+  kafka2:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: kafka2
+
+  kafka3:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: kafka3
+
+  logserver:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: logserver
+
+  logcollector:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: logcollector
+
+  prefilter:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: prefilter
+
+  inspector:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: inspector
+
+  detector:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: detector
+
+  clickhouse-server:
+    extends:
+      file: "docker-compose/datatests/docker-compose.clickhouse.yml"
+      service: clickhouse-server
+
+  grafana:
+    extends:
+      file: "docker-compose/datatests/docker-compose.grafana.yml"
+      service: grafana
+
+  monitoring_agent:
+    extends:
+      file: "docker-compose/base/docker-compose.monitoring.yml"
+      service: monitoring_agent
 
 networks:
   heidgaf:

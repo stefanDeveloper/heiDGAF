@@ -1,3 +1,69 @@
-include:
-  - "docker-compose.pipeline.yml"
-  - "docker-compose.grafana.yml"
+services:
+  zookeeper:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: zookeeper
+
+  kafka1:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: kafka1
+
+  kafka2:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: kafka2
+
+  kafka3:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: kafka3
+
+  logserver:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: logserver
+
+  logcollector:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: logcollector
+
+  prefilter:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: prefilter
+
+  inspector:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: inspector
+
+  detector:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: detector
+
+  clickhouse-server:
+    extends:
+      file: "docker-compose/prod/docker-compose.clickhouse.yml"
+      service: clickhouse-server
+
+  grafana:
+    extends:
+      file: "docker-compose/prod/docker-compose.grafana.yml"
+      service: grafana
+
+  monitoring_agent:
+    extends:
+      file: "docker-compose/base/docker-compose.monitoring.yml"
+      service: monitoring_agent
+
+networks:
+  heidgaf:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.27.0.0/16
+          gateway: 172.27.0.1

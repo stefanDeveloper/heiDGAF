@@ -9,9 +9,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
-      - ./grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
-      - ./grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ../../grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ../../grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ../../grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
@@ -21,12 +21,3 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-
-networks:
-  heidgaf:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.27.0.0/16
-          gateway: 172.27.0.1

@@ -1,0 +1,22 @@
+services:
+  monitoring_agent:
+    build:
+      context: ../../..
+      dockerfile: docker/dockerfiles/Dockerfile.monitoring
+      network: host
+    restart: "unless-stopped"
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
+      grafana:
+        condition: service_healthy
+    networks:
+      heidgaf:
+    environment:
+      - GROUP_ID=monitoring_agent

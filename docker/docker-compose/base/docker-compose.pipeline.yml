@@ -1,11 +1,7 @@
-include:
-  - "docker-compose.kafka.yml"
-  - "docker-compose.monitoring.yml"
-
 services:
   logserver:
     build:
-      context: ..
+      context: ../../..
       dockerfile: docker/dockerfiles/Dockerfile.logserver
       network: host
     restart: "unless-stopped"
@@ -34,7 +30,7 @@ services:
 
   logcollector:
     build:
-      context: ..
+      context: ../../..
       dockerfile: docker/dockerfiles/Dockerfile.logcollector
       network: host
     restart: "unless-stopped"
@@ -61,7 +57,7 @@ services:
 
   prefilter:
     build:
-      context: ..
+      context: ../../..
       dockerfile: docker/dockerfiles/Dockerfile.prefilter
       network: host
     restart: "unless-stopped"
@@ -89,7 +85,7 @@ services:
 
   inspector:
     build:
-      context: ..
+      context: ../../..
       dockerfile: docker/dockerfiles/Dockerfile.inspector
       network: host
     restart: "unless-stopped"
@@ -118,7 +114,7 @@ services:
 
   detector:
     build:
-      context: ..
+      context: ../../..
       dockerfile: docker/dockerfiles/Dockerfile.detector
       network: host
     restart: "unless-stopped"
@@ -148,11 +144,6 @@ services:
     environment:
       - GROUP_ID=data_analysis
 
-networks:
-  heidgaf:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.27.0.0/16
-          gateway: 172.27.0.1
+#networks:
+#  heidgaf:
+#    external: true
