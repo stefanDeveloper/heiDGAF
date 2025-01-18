@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS dns_loglines (
     status_code String NOT NULL,
     client_ip String NOT NULL,
     record_type String NOT NULL,
-    additional_fields Nullable(String)
+    additional_fields String
 )
 ENGINE = MergeTree
 PRIMARY KEY (logline_id);

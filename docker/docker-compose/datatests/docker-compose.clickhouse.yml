@@ -5,7 +5,9 @@ services:
     volumes:
       - ../../create_tables:/create_tables
       - ../../create_datatest_tables:/create_datatest_tables
-      - ../../create_datatest_tables.sh:/docker-entrypoint-initdb.d/init.sh
+      - ../../insert_datatest_data:/insert_datatest_data
+      - ../../insert_datatest_data/data:/var/lib/clickhouse/user_files/data
+      - ../../init_datatests.sh:/docker-entrypoint-initdb.d/init.sh
     networks:
       heidgaf:
         ipv4_address: 172.27.0.11
