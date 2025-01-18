@@ -9,7 +9,7 @@ from src.base.log_config import get_logger
 logger = get_logger()
 
 
-def create_dgta_dataset_json(base_path="../data"):
+def create_dgta_dataset_json_gz(base_path="../data"):
     logger.info("Loading data for DGTA dataset...")
     try:
         loader = DatasetLoader(base_path)
@@ -17,12 +17,12 @@ def create_dgta_dataset_json(base_path="../data"):
 
         logger.info("Converting to JSON data...")
         json_data = dataset.data.write_json()
-        logger.info("Compressing data...")
-        compressed_data = gzip.compress(json_data.encode("utf-8"))
+        logger.warning(json_data)
 
+        logger.info("Compressing data...")
         with gzip.open("../data/dgta_dataset.json.gz", "wb") as f:
             logger.info("Writing compressed data to file...")
-            f.write(compressed_data)
+            f.write(json_data.encode())
     except FileNotFoundError:
         logger.warning(
             "Dataset was not found in 'data' directory. Skipping this dataset"
@@ -36,4 +36,4 @@ def create_dgta_dataset_json(base_path="../data"):
 
 
 if __name__ == "__main__":
-    create_dgta_dataset_json()
+    create_dgta_dataset_json_gz()
