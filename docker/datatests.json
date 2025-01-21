@@ -22,7 +22,7 @@
   "panels": [
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -45,13 +45,13 @@
               }
             ]
           },
-          "unit": "percent"
+          "unit": "percentunit"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
-        "w": 4,
+        "h": 5,
+        "w": 12,
         "x": 0,
         "y": 0
       },
@@ -82,6 +82,7 @@
           },
           "editorType": "sql",
           "format": 1,
+          "hide": true,
           "meta": {
             "builderOptions": {
               "columns": [],
@@ -94,13 +95,296 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "WITH\n  (\n    SELECT count(*) AS total_count\n    FROM (\n      SELECT JSONExtractString(additional_fields, 'domain_name') AS registered_domains\n      FROM dns_loglines\n      INNER JOIN dgta_dataset ds\n              ON registered_domains = ds.query\n    )\n  ) AS total_lines,\n  (\n    SELECT count(*) AS malicious_count\n    FROM (\n      SELECT JSONExtractString(additional_fields, 'domain_name') AS registered_domains\n      FROM dns_loglines\n      INNER JOIN dgta_dataset ds ON registered_domains = ds.query\n      INNER JOIN (\n        SELECT arrayJoin(JSONExtract(domain_names, 'Array(String)')) AS domains\n        FROM alerts\n      ) AS malicious_domains ON registered_domains = malicious_domains.domains\n    )\n  ) AS malicious_lines\nSELECT\n    (malicious_lines / total_lines) * 100 AS percent_recognized",
-          "refId": "A"
+          "rawSql": "SELECT count(detected_ips.client_ip) AS number_of_detected_ips\nFROM (\n  SELECT DISTINCT client_ip\n  FROM alerts\n) AS detected_ips\n",
+          "refId": "number_of_detected_ips"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": true,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(malicious_ips.client_ip) AS number_of_malicious_ips\nFROM (\n  SELECT DISTINCT client_ip\n  FROM (\n    SELECT *\n    FROM (\n      SELECT client_ip, arrayJoin(domain_list) AS domain_name\n      FROM (\n        SELECT DISTINCT client_ip, JSONExtract(domain_names, 'Array(String)') AS domain_list\n        FROM alerts\n      )\n    ) AS detected_ips_and_their_requested_domains\n    INNER JOIN (\n      SELECT query\n      FROM dgta_dataset\n      WHERE class = 1\n    ) AS malicious_queries ON malicious_queries.query = detected_ips_and_their_requested_domains.domain_name\n  )\n) AS malicious_ips",
+          "refId": "number_of_malicious_ips"
+        },
+        {
+          "datasource": {
+            "name": "Expression",
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "expression": "$number_of_detected_ips / $number_of_malicious_ips",
+          "hide": false,
+          "refId": "A",
+          "type": "math"
         }
       ],
       "title": "Malicious Domains / All Domains",
       "transparent": true,
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT client_ip\nFROM alerts\nGROUP BY client_ip\nLIMIT 100",
+          "refId": "A"
+        }
+      ],
+      "title": "Alle als malicious eingestuften IPs",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT query\nFROM dgta_dataset\nWHERE class = 1\nLIMIT 15",
+          "refId": "A"
+        }
+      ],
+      "title": "Alle malicious Queries",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT DISTINCT client_ip\nFROM (\n  SELECT *\n  FROM (\n    SELECT client_ip, arrayJoin(domain_list) AS domain_name\n    FROM (\n      SELECT DISTINCT client_ip, JSONExtract(domain_names, 'Array(String)') AS domain_list\n      FROM alerts\n    )\n  ) AS detected_ips_and_their_requested_domains\n  INNER JOIN (\n    SELECT query\n    FROM dgta_dataset\n    WHERE class = 1\n  ) AS malicious_queries ON malicious_queries.query = detected_ips_and_their_requested_domains.domain_name\n)\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Alle IP-Adressen, die eine tatsächliche malicious Domain angefragt haben",
+      "type": "table"
     }
   ],
   "refresh": "auto",
