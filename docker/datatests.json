@@ -222,6 +222,172 @@
     },
     {
       "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "shades"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 5
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN (\n    SELECT client_ip, JSONExtractString(additional_fields, 'domain_name') as queried_domain\n    FROM dns_loglines dl\n    INNER JOIN logline_to_batches ltb ON ltb.logline_id = dl.logline_id\n    INNER JOIN batch_timestamps bt ON bt.batch_id = ltb.batch_id\n    WHERE stage = 'data_inspection.inspector'\n      AND status = 'in_process'\n  ) AS relevant_ips ON dgta_dataset.query = relevant_ips.queried_domain\n  WHERE class = 0\n    AND relevant_ips.client_ip NOT IN (\n      SELECT client_ip\n      FROM alerts\n    )\n)",
+          "refId": "B"
+        }
+      ],
+      "title": "benign/benign",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "red",
+            "mode": "shades"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 5,
+        "y": 5
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN (\n    SELECT client_ip, JSONExtractString(additional_fields, 'domain_name') as queried_domain\n    FROM dns_loglines dl\n    INNER JOIN logline_to_batches ltb ON ltb.logline_id = dl.logline_id\n    INNER JOIN batch_timestamps bt ON bt.batch_id = ltb.batch_id\n    WHERE stage = 'data_inspection.inspector'\n      AND status = 'in_process'\n  ) AS relevant_ips ON dgta_dataset.query = relevant_ips.queried_domain\n  WHERE class = 0\n    AND relevant_ips.client_ip IN (\n      SELECT client_ip\n      FROM alerts\n    )\n)",
+          "refId": "B"
+        }
+      ],
+      "title": "benign/malicious",
+      "type": "stat"
+    },
+    {
+      "datasource": {
         "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
@@ -305,7 +471,7 @@
     },
     {
       "datasource": {
-        "default": false,
+        "default": true,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -313,14 +479,8 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
+            "fixedColor": "red",
+            "mode": "shades"
           },
           "mappings": [],
           "thresholds": {
@@ -340,23 +500,28 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 16
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 9
       },
-      "id": 5,
+      "id": 7,
       "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
           ],
-          "show": false
+          "fields": "",
+          "values": false
         },
-        "showHeader": true
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
       "pluginVersion": "11.2.2+security-01",
       "targets": [
@@ -367,6 +532,7 @@
           },
           "editorType": "sql",
           "format": 1,
+          "hide": false,
           "meta": {
             "builderOptions": {
               "columns": [],
@@ -379,12 +545,95 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT DISTINCT client_ip\nFROM (\n  SELECT *\n  FROM (\n    SELECT client_ip, arrayJoin(domain_list) AS domain_name\n    FROM (\n      SELECT DISTINCT client_ip, JSONExtract(domain_names, 'Array(String)') AS domain_list\n      FROM alerts\n    )\n  ) AS detected_ips_and_their_requested_domains\n  INNER JOIN (\n    SELECT query\n    FROM dgta_dataset\n    WHERE class = 1\n  ) AS malicious_queries ON malicious_queries.query = detected_ips_and_their_requested_domains.domain_name\n)\n",
-          "refId": "A"
+          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN (\n    SELECT client_ip, JSONExtractString(additional_fields, 'domain_name') as queried_domain\n    FROM dns_loglines dl\n    INNER JOIN logline_to_batches ltb ON ltb.logline_id = dl.logline_id\n    INNER JOIN batch_timestamps bt ON bt.batch_id = ltb.batch_id\n    WHERE stage = 'data_inspection.inspector'\n      AND status = 'in_process'\n  ) AS relevant_ips ON dgta_dataset.query = relevant_ips.queried_domain\n  WHERE class = 1\n    AND relevant_ips.client_ip NOT IN (\n      SELECT client_ip\n      FROM alerts\n    )\n)",
+          "refId": "B"
         }
       ],
-      "title": "Alle IP-Adressen, die eine tatsächliche malicious Domain angefragt haben",
-      "type": "table"
+      "title": "malicious/benign",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "shades"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 5,
+        "y": 9
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN (\n    SELECT client_ip, JSONExtractString(additional_fields, 'domain_name') as queried_domain\n    FROM dns_loglines dl\n    INNER JOIN logline_to_batches ltb ON ltb.logline_id = dl.logline_id\n    INNER JOIN batch_timestamps bt ON bt.batch_id = ltb.batch_id\n    WHERE stage = 'data_inspection.inspector'\n      AND status = 'in_process'\n  ) AS relevant_ips ON dgta_dataset.query = relevant_ips.queried_domain\n  WHERE class = 1\n    AND relevant_ips.client_ip IN (\n      SELECT client_ip\n      FROM alerts\n    )\n)",
+          "refId": "B"
+        }
+      ],
+      "title": "malicious/malicious",
+      "type": "stat"
     }
   ],
   "refresh": "auto",
