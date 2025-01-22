@@ -29,8 +29,9 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "continuous-GrYlRd"
           },
+          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -50,12 +51,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 5,
-        "w": 12,
+        "h": 4,
+        "w": 7,
         "x": 0,
         "y": 0
       },
-      "id": 1,
+      "id": 9,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -95,8 +96,8 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT count(detected_ips.client_ip) AS number_of_detected_ips\nFROM (\n  SELECT DISTINCT client_ip\n  FROM alerts\n) AS detected_ips\n",
-          "refId": "number_of_detected_ips"
+          "rawSql": "SELECT count(DISTINCT client_ip) AS malicious_detected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\nAND client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)",
+          "refId": "malicious_detected"
         },
         {
           "datasource": {
@@ -118,8 +119,8 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT count(malicious_ips.client_ip) AS number_of_malicious_ips\nFROM (\n  SELECT DISTINCT client_ip\n  FROM (\n    SELECT *\n    FROM (\n      SELECT client_ip, arrayJoin(domain_list) AS domain_name\n      FROM (\n        SELECT DISTINCT client_ip, JSONExtract(domain_names, 'Array(String)') AS domain_list\n        FROM alerts\n      )\n    ) AS detected_ips_and_their_requested_domains\n    INNER JOIN (\n      SELECT query\n      FROM dgta_dataset\n      WHERE class = 1\n    ) AS malicious_queries ON malicious_queries.query = detected_ips_and_their_requested_domains.domain_name\n  )\n) AS malicious_ips",
-          "refId": "number_of_malicious_ips"
+          "rawSql": "SELECT count(DISTINCT client_ip) AS benign_detected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)",
+          "refId": "benign_detected"
         },
         {
           "datasource": {
@@ -127,14 +128,130 @@
             "type": "__expr__",
             "uid": "__expr__"
           },
-          "expression": "$number_of_detected_ips / $number_of_malicious_ips",
+          "expression": "$malicious_detected / ($benign_detected + $malicious_detected)",
           "hide": false,
           "refId": "A",
           "type": "math"
         }
       ],
-      "title": "Malicious Domains / All Domains",
-      "transparent": true,
+      "title": "True Positive Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-RdYlGr"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 7,
+        "y": 0
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": true,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS malicious_detected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\nAND client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)",
+          "refId": "malicious_detected"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": true,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS benign_detected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)",
+          "refId": "benign_detected"
+        },
+        {
+          "datasource": {
+            "name": "Expression",
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "expression": "$benign_detected / ($benign_detected + $malicious_detected)",
+          "hide": false,
+          "refId": "A",
+          "type": "math"
+        }
+      ],
+      "title": "False Positive Rate",
       "type": "stat"
     },
     {
@@ -226,6 +343,240 @@
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 7,
+        "x": 0,
+        "y": 4
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": true,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS malicious_notdetected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
+          "refId": "malicious_notdetected"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": true,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS benign_notdetected\nFROM dns_loglines\nWHERE client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
+          "refId": "benign_notdetected"
+        },
+        {
+          "datasource": {
+            "name": "Expression",
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "expression": "$benign_notdetected / ($benign_notdetected + $malicious_notdetected)",
+          "hide": false,
+          "refId": "A",
+          "type": "math"
+        }
+      ],
+      "title": "True Negative Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-RdYlGr"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 7,
+        "y": 4
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": true,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS malicious_notdetected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
+          "refId": "malicious_notdetected"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": true,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS benign_notdetected\nFROM dns_loglines\nWHERE client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
+          "refId": "benign_notdetected"
+        },
+        {
+          "datasource": {
+            "name": "Expression",
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "expression": "$malicious_notdetected / ($benign_notdetected + $malicious_notdetected)",
+          "hide": false,
+          "refId": "A",
+          "type": "math"
+        }
+      ],
+      "title": "False Negative Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -252,9 +603,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
+        "w": 4,
         "x": 0,
-        "y": 5
+        "y": 8
       },
       "id": 5,
       "options": {
@@ -335,9 +686,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 5,
-        "y": 5
+        "w": 4,
+        "x": 4,
+        "y": 8
       },
       "id": 6,
       "options": {
@@ -501,9 +852,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
+        "w": 4,
         "x": 0,
-        "y": 9
+        "y": 12
       },
       "id": 7,
       "options": {
@@ -584,9 +935,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 5,
-        "y": 9
+        "w": 4,
+        "x": 4,
+        "y": 12
       },
       "id": 8,
       "options": {
