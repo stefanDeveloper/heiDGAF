@@ -222,7 +222,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -296,16 +296,16 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN (\n    SELECT client_ip, JSONExtractString(additional_fields, 'domain_name') as queried_domain\n    FROM dns_loglines dl\n    INNER JOIN logline_to_batches ltb ON ltb.logline_id = dl.logline_id\n    INNER JOIN batch_timestamps bt ON bt.batch_id = ltb.batch_id\n    WHERE stage = 'data_inspection.inspector'\n      AND status = 'in_process'\n  ) AS relevant_ips ON dgta_dataset.query = relevant_ips.queried_domain\n  WHERE class = 0\n    AND relevant_ips.client_ip NOT IN (\n      SELECT client_ip\n      FROM alerts\n    )\n)",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS benign_notdetected\nFROM dns_loglines\nWHERE client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
           "refId": "B"
         }
       ],
-      "title": "benign/benign",
+      "title": "benign/not detected",
       "type": "stat"
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -379,11 +379,11 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN (\n    SELECT client_ip, JSONExtractString(additional_fields, 'domain_name') as queried_domain\n    FROM dns_loglines dl\n    INNER JOIN logline_to_batches ltb ON ltb.logline_id = dl.logline_id\n    INNER JOIN batch_timestamps bt ON bt.batch_id = ltb.batch_id\n    WHERE stage = 'data_inspection.inspector'\n      AND status = 'in_process'\n  ) AS relevant_ips ON dgta_dataset.query = relevant_ips.queried_domain\n  WHERE class = 0\n    AND relevant_ips.client_ip IN (\n      SELECT client_ip\n      FROM alerts\n    )\n)",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS benign_detected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)",
           "refId": "B"
         }
       ],
-      "title": "benign/malicious",
+      "title": "benign/detected",
       "type": "stat"
     },
     {
@@ -471,7 +471,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -545,16 +545,16 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN (\n    SELECT client_ip, JSONExtractString(additional_fields, 'domain_name') as queried_domain\n    FROM dns_loglines dl\n    INNER JOIN logline_to_batches ltb ON ltb.logline_id = dl.logline_id\n    INNER JOIN batch_timestamps bt ON bt.batch_id = ltb.batch_id\n    WHERE stage = 'data_inspection.inspector'\n      AND status = 'in_process'\n  ) AS relevant_ips ON dgta_dataset.query = relevant_ips.queried_domain\n  WHERE class = 1\n    AND relevant_ips.client_ip NOT IN (\n      SELECT client_ip\n      FROM alerts\n    )\n)",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS malicious_notdetected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
           "refId": "B"
         }
       ],
-      "title": "malicious/benign",
+      "title": "malicious/not detected",
       "type": "stat"
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -628,11 +628,11 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN (\n    SELECT client_ip, JSONExtractString(additional_fields, 'domain_name') as queried_domain\n    FROM dns_loglines dl\n    INNER JOIN logline_to_batches ltb ON ltb.logline_id = dl.logline_id\n    INNER JOIN batch_timestamps bt ON bt.batch_id = ltb.batch_id\n    WHERE stage = 'data_inspection.inspector'\n      AND status = 'in_process'\n  ) AS relevant_ips ON dgta_dataset.query = relevant_ips.queried_domain\n  WHERE class = 1\n    AND relevant_ips.client_ip IN (\n      SELECT client_ip\n      FROM alerts\n    )\n)",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS malicious_detected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\nAND client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)",
           "refId": "B"
         }
       ],
-      "title": "malicious/malicious",
+      "title": "malicious/detected",
       "type": "stat"
     }
   ],
