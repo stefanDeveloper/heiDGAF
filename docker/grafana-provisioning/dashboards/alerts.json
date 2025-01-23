@@ -96,9 +96,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT DISTINCT client_ip, arrayStringConcat(JSONExtract(domain_names, 'Array(String)'), ', ') AS domain_list\nFROM alerts\nWHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\nORDER BY alert_timestamp DESC\nLIMIT 100",
+          "rawSql": "SELECT DISTINCT client_ip, arrayStringConcat(JSONExtract(domain_names, 'Array(String)'), ', ') AS domain_list\nFROM alerts\nORDER BY alert_timestamp DESC\nLIMIT 100",
           "refId": "A"
         }
       ],
@@ -280,7 +280,7 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.6.0",
           "queryType": "table",
           "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM alerts\n  WHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\n);",
           "refId": "A"
@@ -318,6 +318,109 @@
       "title": "Dashboards",
       "transparent": true,
       "type": "dashlist"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "shades"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 57,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 7,
+        "x": 0,
+        "y": 11
+      },
+      "id": 5,
+      "options": {
+        "barRadius": 0.45,
+        "barWidth": 0.6,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "never",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.6.0",
+          "queryType": "table",
+          "rawSql": "SELECT client_ip, count(logline_id) AS number_of_requests\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n  WHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\n)\nGROUP BY client_ip\nORDER BY number_of_requests DESC\nLIMIT 5",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 5 most active malicious IP addresses",
+      "type": "barchart"
     }
   ],
   "refresh": "auto",
@@ -352,7 +455,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {},
