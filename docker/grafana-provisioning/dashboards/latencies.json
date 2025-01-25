@@ -354,13 +354,14 @@
         "uid": "grafana"
       },
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 3,
         "x": 21,
         "y": 0
       },
       "id": 77,
       "options": {
+        "folderUID": "",
         "includeVars": true,
         "keepTime": true,
         "maxItems": 10,
@@ -368,8 +369,8 @@
         "showFolderNames": true,
         "showHeadings": false,
         "showRecentlyViewed": false,
-        "showSearch": false,
-        "showStarred": true,
+        "showSearch": true,
+        "showStarred": false,
         "tags": []
       },
       "pluginVersion": "11.2.2+security-01",
@@ -3519,7 +3520,7 @@
       "type": "stat"
     }
   ],
-  "refresh": "",
+  "refresh": "5s",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -3527,8 +3528,8 @@
       {
         "current": {
           "selected": false,
-          "text": "Minute",
-          "value": "Minute"
+          "text": "Second",
+          "value": "Second"
         },
         "datasource": {
           "type": "grafana-clickhouse-datasource",
@@ -3579,7 +3580,7 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
