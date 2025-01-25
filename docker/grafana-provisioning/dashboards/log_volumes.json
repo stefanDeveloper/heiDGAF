@@ -39,8 +39,12 @@
         "nodes": {
           "arcs": [
             {
-              "color": "#FF9830",
-              "field": "arc__in"
+              "color": "#73BF69",
+              "field": "arc__success"
+            },
+            {
+              "color": "#F2495C",
+              "field": "arc__filteredout"
             }
           ],
           "mainStatUnit": ""
@@ -64,9 +68,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "WITH dateDiff('seconds', $__fromTime, $__toTime) AS time_diff\n\nSELECT 'LogCollector' AS id, 'LogCollector' AS title, (\n  SELECT count(*) / time_diff\n  FROM logline_timestamps\n  WHERE stage = 'log_collection.collector'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in\n\nUNION ALL \n\nSELECT 'BatchHandler' AS id, 'BatchHandler' AS title, (\n  SELECT count(*) / time_diff\n  FROM logline_timestamps\n  WHERE stage = 'log_collection.batch_handler'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in\n\nUNION ALL\n\nSELECT 'Prefilter' AS id, 'Prefilter' AS title, (\n  SELECT sum(message_count) / time_diff\n  FROM batch_timestamps\n  WHERE stage = 'log_filtering.prefilter'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in\n\nUNION ALL\n\nSELECT 'Inspector' AS id, 'Inspector' AS title, (\n  SELECT count(*) / time_diff\n  FROM logline_timestamps\n  WHERE stage = 'log_collection.collector'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in\n\nUNION ALL\n\nSELECT 'Detector' AS id, 'Detector' AS title, (\n  SELECT count(*) / time_diff\n  FROM logline_timestamps\n  WHERE stage = 'log_collection.collector'\n    AND status = 'in_process'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS arc__in",
+          "rawSql": "SELECT 'LogCollector' AS id, 'LogCollector' AS title, (\n  SELECT count(*)\n  FROM logline_timestamps\n  WHERE stage = 'log_collection.collector'\n    AND status = 'finished'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS successful_count, (\n  SELECT count(*)\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= $__fromTime AND timestamp_failed <= $__toTime\n) AS filteredout_count,\nsuccessful_count / (successful_count + filteredout_count) AS arc__success,\nfilteredout_count / (successful_count + filteredout_count) AS arc__filteredout\n\nUNION ALL \n\nSELECT 'BatchHandler' AS id, 'BatchHandler' AS title, 0 AS successful_count, 0 AS filteredout_count, 1 AS arc__success, 0 AS arc__filteredout\n\nUNION ALL\n\nSELECT 'Prefilter' AS id, 'Prefilter' AS title, (\n  SELECT sum(message_count)\n  FROM batch_timestamps\n  WHERE stage = 'log_filtering.prefilter'\n    AND status = 'finished'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS successful_count, (\n  SELECT count(*)\n  FROM logline_timestamps\n  WHERE stage = 'log_filtering.prefilter'\n    AND status = 'filtered_out'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS filteredout_count,\nsuccessful_count / (successful_count + filteredout_count) AS arc__success,\nfilteredout_count / (successful_count + filteredout_count) AS arc__filteredout\n\nUNION ALL\n\nSELECT 'Inspector' AS id, 'Inspector' AS title, (\n  SELECT sum(message_count)\n  FROM suspicious_batch_timestamps\n  WHERE stage = 'data_inspection.inspector'\n    AND status = 'finished'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS successful_count, (\n  SELECT sum(message_count)\n  FROM batch_timestamps\n  WHERE stage = 'data_inspection.inspector'\n    AND status = 'filtered_out'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS filteredout_count,\nsuccessful_count / (successful_count + filteredout_count) AS arc__success,\nfilteredout_count / (successful_count + filteredout_count) AS arc__filteredout\n\nUNION ALL\n\nSELECT 'Detector' AS id, 'Detector' AS title, (\n  SELECT sum(message_count)\n  FROM suspicious_batch_timestamps\n  WHERE stage = 'data_analysis.detector'\n    AND status = 'finished'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS successful_count, (\n  SELECT sum(message_count)\n  FROM batch_timestamps\n  WHERE stage = 'data_analysis.detector'\n    AND status = 'filtered_out'\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n) AS filteredout_count,\nsuccessful_count / (successful_count + filteredout_count) AS arc__success,\nfilteredout_count / (successful_count + filteredout_count) AS arc__filteredout",
           "refId": "Nodes"
         },
         {
@@ -3194,8 +3198,8 @@
       {
         "current": {
           "selected": false,
-          "text": "Minute",
-          "value": "Minute"
+          "text": "Hour",
+          "value": "Hour"
         },
         "datasource": {
           "type": "grafana-clickhouse-datasource",
@@ -3275,7 +3279,7 @@
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-12h",
     "to": "now"
   },
   "timepicker": {
