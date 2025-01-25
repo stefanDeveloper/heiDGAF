@@ -490,7 +490,7 @@
       },
       "id": 33,
       "panels": [],
-      "title": "Per Module",
+      "title": "Per module",
       "type": "row"
     },
     {
@@ -2581,7 +2581,7 @@
       },
       "id": 71,
       "panels": [],
-      "title": "Transport and Wait Time between Stages",
+      "title": "Transport and wait time between stages",
       "type": "row"
     },
     {
@@ -3429,8 +3429,8 @@
       {
         "current": {
           "selected": false,
-          "text": "Hour",
-          "value": "Hour"
+          "text": "Minute",
+          "value": "Minute"
         },
         "datasource": {
           "type": "grafana-clickhouse-datasource",
@@ -3481,8 +3481,8 @@
     ]
   },
   "time": {
-    "from": "2025-01-25T01:54:08.157Z",
-    "to": "2025-01-25T13:54:08.157Z"
+    "from": "now-30m",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": [
