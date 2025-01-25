@@ -81,7 +81,7 @@
           "yHistogram": true
         },
         "yAxis": {
-          "axisLabel": "# Logs / Quarter Hour",
+          "axisLabel": "# Alerts / Quarter Hour",
           "axisPlacement": "left",
           "reverse": true,
           "unit": "m"
@@ -118,78 +118,70 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
           "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "# Alerts / ${Granularity}",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "scheme",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "lineWidth": 1,
             "scaleDistribution": {
               "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
             }
           },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "fieldMinMax": false
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 10,
-        "x": 10,
+        "h": 6,
+        "w": 6,
+        "x": 6,
         "y": 0
       },
-      "id": 2,
+      "hideTimeOverride": false,
+      "id": 7,
       "options": {
-        "barRadius": 0,
-        "barWidth": 1,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
+        "calculate": false,
+        "cellGap": 0,
+        "color": {
+          "exponent": 0.5,
+          "fill": "blue",
+          "min": 0,
+          "mode": "opacity",
+          "reverse": false,
+          "scale": "linear",
+          "scheme": "PuBu",
+          "steps": 62
         },
-        "orientation": "vertical",
-        "showValue": "never",
-        "stacking": "none",
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        },
+        "filterValues": {
+          "le": 1e-9
+        },
+        "legend": {
+          "show": false
+        },
+        "rowsFrame": {
+          "layout": "ge"
+        },
         "tooltip": {
           "mode": "single",
-          "sort": "none"
+          "showColorScale": true,
+          "yHistogram": true
         },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 100
+        "yAxis": {
+          "axisLabel": "# Alerts / Day",
+          "axisPlacement": "left",
+          "reverse": true,
+          "unit": ""
+        }
       },
       "pluginVersion": "11.2.2+security-01",
       "targets": [
@@ -200,7 +192,6 @@
           },
           "editorType": "sql",
           "format": 1,
-          "hide": false,
           "meta": {
             "builderOptions": {
               "columns": [],
@@ -211,14 +202,15 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT \n    toStartOf${Granularity}(toDateTime64(alert_timestamp, 6)) AS time_bucket,\n    count(client_ip) AS \"count\"\nFROM alerts\nWHERE alert_timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND alert_timestamp <= $__toTime\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\nTO toStartOf${Granularity}(toDateTime64($__toTime, 6))\nSTEP toInterval${Granularity}(1);",
-          "refId": "B"
+          "rawSql": "SELECT \n    alert_month AS time,\n    SUM(CASE WHEN day = 1 THEN alert_count ELSE 0 END) AS `1`,\n    SUM(CASE WHEN day = 2 THEN alert_count ELSE 0 END) AS `2`,\n    SUM(CASE WHEN day = 3 THEN alert_count ELSE 0 END) AS `3`,\n    SUM(CASE WHEN day = 4 THEN alert_count ELSE 0 END) AS `4`,\n    SUM(CASE WHEN day = 5 THEN alert_count ELSE 0 END) AS `5`,\n    SUM(CASE WHEN day = 6 THEN alert_count ELSE 0 END) AS `6`,\n    SUM(CASE WHEN day = 7 THEN alert_count ELSE 0 END) AS `7`,\n    SUM(CASE WHEN day = 8 THEN alert_count ELSE 0 END) AS `8`,\n    SUM(CASE WHEN day = 9 THEN alert_count ELSE 0 END) AS `9`,\n    SUM(CASE WHEN day = 10 THEN alert_count ELSE 0 END) AS `10`,\n    SUM(CASE WHEN day = 11 THEN alert_count ELSE 0 END) AS `11`,\n    SUM(CASE WHEN day = 12 THEN alert_count ELSE 0 END) AS `12`,\n    SUM(CASE WHEN day = 13 THEN alert_count ELSE 0 END) AS `13`,\n    SUM(CASE WHEN day = 14 THEN alert_count ELSE 0 END) AS `14`,\n    SUM(CASE WHEN day = 15 THEN alert_count ELSE 0 END) AS `15`,\n    SUM(CASE WHEN day = 16 THEN alert_count ELSE 0 END) AS `16`,\n    SUM(CASE WHEN day = 17 THEN alert_count ELSE 0 END) AS `17`,\n    SUM(CASE WHEN day = 18 THEN alert_count ELSE 0 END) AS `18`,\n    SUM(CASE WHEN day = 19 THEN alert_count ELSE 0 END) AS `19`,\n    SUM(CASE WHEN day = 20 THEN alert_count ELSE 0 END) AS `20`,\n    SUM(CASE WHEN day = 21 THEN alert_count ELSE 0 END) AS `21`,\n    SUM(CASE WHEN day = 22 THEN alert_count ELSE 0 END) AS `22`,\n    SUM(CASE WHEN day = 23 THEN alert_count ELSE 0 END) AS `23`,\n    SUM(CASE WHEN day = 24 THEN alert_count ELSE 0 END) AS `24`,\n    SUM(CASE WHEN day = 25 THEN alert_count ELSE 0 END) AS `25`,\n    SUM(CASE WHEN day = 26 THEN alert_count ELSE 0 END) AS `26`,\n    SUM(CASE WHEN day = 27 THEN alert_count ELSE 0 END) AS `27`,\n    SUM(CASE WHEN day = 28 THEN alert_count ELSE 0 END) AS `28`,\n    SUM(CASE WHEN day = 29 THEN alert_count ELSE 0 END) AS `29`,\n    SUM(CASE WHEN day = 30 THEN alert_count ELSE 0 END) AS `30`,\n    SUM(CASE WHEN day = 31 THEN alert_count ELSE 0 END) AS `31`\nFROM (\n    SELECT \n        toStartOfMonth(alert_timestamp) AS alert_month,\n        toDayOfMonth(alert_timestamp) - 1 AS day,\n        COUNT(*) AS alert_count\n    FROM alerts\n    WHERE alert_timestamp >= toStartOfMonth(now() - INTERVAL 1 MONTH)\n      AND alert_timestamp < toStartOfMonth(now())\n    GROUP BY alert_month, day\n) AS subquery\nGROUP BY alert_month\nORDER BY alert_month\nWITH FILL\nFROM toStartOfMonth(now() - INTERVAL 1 YEAR)\nTO toStartOfMonth(now())\nSTEP toIntervalMonth(1);\n",
+          "refId": "A"
         }
       ],
-      "title": "Alerts per Time",
-      "type": "barchart"
+      "timeFrom": "1y",
+      "title": "# Alerts per day",
+      "type": "heatmap"
     },
     {
       "datasource": {
@@ -414,6 +406,110 @@
       ],
       "title": "Latest 100 Malicious IP Addresses and their Host Names",
       "type": "table"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "# Alerts / ${Granularity}",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 10,
+        "x": 10,
+        "y": 6
+      },
+      "id": 2,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 1,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "vertical",
+        "showValue": "never",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT \n    toStartOf${Granularity}(toDateTime64(alert_timestamp, 6)) AS time_bucket,\n    count(client_ip) AS \"count\"\nFROM alerts\nWHERE alert_timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND alert_timestamp <= $__toTime\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\nTO toStartOf${Granularity}(toDateTime64($__toTime, 6))\nSTEP toInterval${Granularity}(1);",
+          "refId": "B"
+        }
+      ],
+      "title": "Alerts per Time",
+      "type": "barchart"
     },
     {
       "datasource": {
