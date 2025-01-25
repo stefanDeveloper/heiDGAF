@@ -231,7 +231,6 @@
         }
       ],
       "title": "Relative latency (median)",
-      "transparent": true,
       "type": "barchart"
     },
     {
@@ -270,7 +269,7 @@
         ]
       },
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 3,
         "x": 18,
         "y": 0
@@ -347,7 +346,6 @@
           "refId": "Analysis"
         }
       ],
-      "transparent": true,
       "type": "piechart"
     },
     {
