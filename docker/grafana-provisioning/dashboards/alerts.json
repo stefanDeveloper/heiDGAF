@@ -54,12 +54,13 @@
         "cellGap": 0,
         "color": {
           "exponent": 0.5,
-          "fill": "dark-orange",
-          "mode": "scheme",
+          "fill": "blue",
+          "min": 0,
+          "mode": "opacity",
           "reverse": false,
-          "scale": "exponential",
-          "scheme": "Oranges",
-          "steps": 64
+          "scale": "linear",
+          "scheme": "PuBu",
+          "steps": 62
         },
         "exemplars": {
           "color": "rgba(255,0,255,0.7)"
@@ -68,19 +69,21 @@
           "le": 1e-9
         },
         "legend": {
-          "show": true
+          "show": false
         },
         "rowsFrame": {
           "layout": "ge"
         },
         "tooltip": {
           "mode": "single",
-          "showColorScale": false,
+          "showColorScale": true,
           "yHistogram": true
         },
         "yAxis": {
+          "axisLabel": "# Logs / Quarter Hour",
           "axisPlacement": "left",
-          "reverse": true
+          "reverse": true,
+          "unit": "m"
         }
       },
       "pluginVersion": "11.2.2+security-01",
@@ -104,7 +107,7 @@
           },
           "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT \n    alert_hour as time,\n    SUM(CASE WHEN quarter = 0 THEN alert_count ELSE 0 END) AS `1`,\n    SUM(CASE WHEN quarter = 1 THEN alert_count ELSE 0 END) AS `2`,\n    SUM(CASE WHEN quarter = 2 THEN alert_count ELSE 0 END) AS `3`,\n    SUM(CASE WHEN quarter = 3 THEN alert_count ELSE 0 END) AS `4`\nFROM (\n    SELECT \n        toDateTime(DATE_FORMAT(alert_timestamp, '%Y-%m-%d %H:00:00')) AS alert_hour,\n        FLOOR(MINUTE(alert_timestamp) / 15) AS quarter,\n        COUNT(*) AS alert_count\n    FROM alerts\n    WHERE alert_hour >= toDateTime(DATE_FORMAT(now() - INTERVAL 1 DAY, '%Y-%m-%d %H:00:00'))\n      AND alert_timestamp <= now()\n    GROUP BY alert_hour, quarter\n) AS subquery\nGROUP BY alert_hour\nORDER BY alert_hour\nWITH FILL\nFROM toDateTime(DATE_FORMAT(now() - INTERVAL 1 DAY, '%Y-%m-%d %H:00:00'))\nTO toDateTime($__toTime)\nSTEP toIntervalHour(1);\n",
+          "rawSql": "SELECT \n    alert_hour as time,\n    SUM(CASE WHEN quarter = 0 THEN alert_count ELSE 0 END) AS `0`,\n    SUM(CASE WHEN quarter = 1 THEN alert_count ELSE 0 END) AS `15`,\n    SUM(CASE WHEN quarter = 2 THEN alert_count ELSE 0 END) AS `30`,\n    SUM(CASE WHEN quarter = 3 THEN alert_count ELSE 0 END) AS `45`\nFROM (\n    SELECT \n        toDateTime(DATE_FORMAT(alert_timestamp, '%Y-%m-%d %H:00:00')) AS alert_hour,\n        FLOOR(MINUTE(alert_timestamp) / 15) AS quarter,\n        COUNT(*) AS alert_count\n    FROM alerts\n    WHERE alert_hour >= toDateTime(DATE_FORMAT(now() - INTERVAL 1 DAY, '%Y-%m-%d %H:00:00'))\n      AND alert_timestamp <= now()\n    GROUP BY alert_hour, quarter\n) AS subquery\nGROUP BY alert_hour\nORDER BY alert_hour\nWITH FILL\nFROM toDateTime(DATE_FORMAT(now() - INTERVAL 1 DAY, '%Y-%m-%d %H:00:00'))\nTO toDateTime($__toTime)\nSTEP toIntervalHour(1);\n",
           "refId": "A"
         }
       ],
@@ -546,7 +549,7 @@
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {},
