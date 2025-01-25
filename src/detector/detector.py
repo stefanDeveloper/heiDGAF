@@ -331,20 +331,32 @@ class Detector:
                     result=json.dumps(self.warnings),
                 )
             )
+
+            self.suspicious_batch_timestamps.insert(
+                dict(
+                    suspicious_batch_id=self.suspicious_batch_id,
+                    client_ip=self.key,
+                    stage=module_name,
+                    status="finished",
+                    timestamp=datetime.datetime.now(),
+                    is_active=False,
+                    message_count=len(self.messages),
+                )
+            )
         else:
             logger.info("No warning produced.")
 
-        self.suspicious_batch_timestamps.insert(
-            dict(
-                suspicious_batch_id=self.suspicious_batch_id,
-                client_ip=self.key,
-                stage=module_name,
-                status="finished",
-                timestamp=datetime.datetime.now(),
-                is_active=False,
-                message_count=len(self.messages),
+            self.suspicious_batch_timestamps.insert(
+                dict(
+                    suspicious_batch_id=self.suspicious_batch_id,
+                    client_ip=self.key,
+                    stage=module_name,
+                    status="filtered_out",
+                    timestamp=datetime.datetime.now(),
+                    is_active=False,
+                    message_count=len(self.messages),
+                )
             )
-        )
 
         self.fill_levels.insert(
             dict(
