@@ -48,6 +48,7 @@
         "x": 0,
         "y": 0
       },
+      "hideTimeOverride": false,
       "id": 6,
       "options": {
         "calculate": false,
@@ -111,6 +112,7 @@
           "refId": "A"
         }
       ],
+      "timeFrom": "24h",
       "title": "Panel Title",
       "type": "heatmap"
     },
@@ -214,7 +216,7 @@
         "query": "",
         "showFolderNames": true,
         "showHeadings": false,
-        "showRecentlyViewed": true,
+        "showRecentlyViewed": false,
         "showSearch": false,
         "showStarred": true,
         "tags": []
