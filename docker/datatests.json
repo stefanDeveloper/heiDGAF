@@ -690,7 +690,7 @@
         "x": 4,
         "y": 8
       },
-      "id": 6,
+      "id": 7,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -728,13 +728,13 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT count(DISTINCT client_ip) AS benign_detected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS malicious_notdetected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
           "refId": "B"
         }
       ],
-      "title": "benign/detected",
+      "title": "malicious/not detected",
       "type": "stat"
     },
     {
@@ -856,7 +856,7 @@
         "x": 0,
         "y": 12
       },
-      "id": 7,
+      "id": 6,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -896,11 +896,11 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT count(DISTINCT client_ip) AS malicious_notdetected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
+          "rawSql": "SELECT count(DISTINCT client_ip) AS benign_detected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\nAND client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)",
           "refId": "B"
         }
       ],
-      "title": "malicious/not detected",
+      "title": "benign/detected",
       "type": "stat"
     },
     {
