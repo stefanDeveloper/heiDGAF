@@ -114,14 +114,14 @@
             "mode": "shades"
           },
           "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
+            "axisBorderShow": true,
+            "axisCenteredZero": true,
             "axisColorMode": "text",
             "axisGridShow": true,
             "axisLabel": "# Log Lines / ${Granularity}",
             "axisPlacement": "left",
             "fillOpacity": 74,
-            "gradientMode": "none",
+            "gradientMode": "hue",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
@@ -184,7 +184,7 @@
           "showLegend": true
         },
         "orientation": "vertical",
-        "showValue": "always",
+        "showValue": "never",
         "stacking": "normal",
         "tooltip": {
           "mode": "single",
@@ -1285,7 +1285,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           }
@@ -1378,7 +1379,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           }
