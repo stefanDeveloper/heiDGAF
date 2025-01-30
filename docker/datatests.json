@@ -1011,6 +1011,20 @@
         }
       ],
       "title": "False Positive IPs and domains",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "client_ip": "Client IP address",
+              "domain_name": "Domain used"
+            }
+          }
+        }
+      ],
       "type": "table"
     },
     {
@@ -1093,6 +1107,20 @@
         }
       ],
       "title": "False Negative IPs and domains",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "client_ip": "Client IP address",
+              "domain_name": "Domain used"
+            }
+          }
+        }
+      ],
       "type": "table"
     }
   ],
