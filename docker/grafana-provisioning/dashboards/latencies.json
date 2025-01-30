@@ -134,8 +134,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 4,
-        "x": 20,
+        "w": 5,
+        "x": 19,
         "y": 0
       },
       "id": 77,
@@ -3600,6 +3600,6 @@
   "timezone": "browser",
   "title": "Latencies",
   "uid": "fe9rv9qph1af4f",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
