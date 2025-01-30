@@ -30,7 +30,6 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "text",
             "mode": "shades"
           },
           "mappings": [],
@@ -40,10 +39,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -51,18 +46,19 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
-        "w": 4,
+        "h": 5,
+        "w": 8,
         "x": 0,
         "y": 0
       },
-      "id": 19,
+      "id": 23,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -70,9 +66,9 @@
           "fields": "",
           "values": false
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
       },
       "pluginVersion": "11.2.2+security-01",
       "targets": [
@@ -83,7 +79,6 @@
           },
           "editorType": "sql",
           "format": 1,
-          "hide": false,
           "meta": {
             "builderOptions": {
               "columns": [],
@@ -96,261 +91,32 @@
           },
           "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT count(DISTINCT client_ip) AS benign\nFROM dns_loglines\nWHERE client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)",
-          "refId": "B"
+          "rawSql": "SELECT 'benign' AS type, count(DISTINCT client_ip) AS number\nFROM dns_loglines\nWHERE client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM dgta_dataset\n  INNER JOIN dns_loglines ON dgta_dataset.query = JSONExtractString(dns_loglines.additional_fields, 'domain_name')\n  WHERE class = 1\n)\n\nUNION ALL\n\nSELECT 'malicious' AS type, count(DISTINCT client_ip) AS number\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\n\nUNION ALL\n\nSELECT 'undetected' AS type, count(DISTINCT client_ip) AS number\nFROM dns_loglines\nWHERE client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)\n\nUNION ALL\n\nSELECT 'detected' AS type, count(DISTINCT client_ip) AS number\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
+          "refId": "A"
         }
       ],
-      "title": "# Total benign IPs",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": false,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "text",
-            "mode": "shades"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+      "title": "Total number of logs",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "benign": 2,
+              "detected": 1,
+              "malicious": 3,
+              "undetected": 0
+            },
+            "renameByName": {}
           }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 4,
-        "x": 4,
-        "y": 0
-      },
-      "id": 20,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.6.0",
-          "queryType": "table",
-          "rawSql": "SELECT count(DISTINCT client_ip) AS malicious\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
-          "refId": "malicious_detected"
         }
       ],
-      "title": "# Total malicious IPs",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": false,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "text",
-            "mode": "shades"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 4,
-        "x": 8,
-        "y": 0
-      },
-      "id": 21,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.6.0",
-          "queryType": "table",
-          "rawSql": "SELECT count(DISTINCT client_ip) AS notdetected\nFROM dns_loglines\nWHERE client_ip NOT IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
-          "refId": "B"
-        }
-      ],
-      "title": "# Total undetected IPs",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "default": false,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "text",
-            "mode": "shades"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 4,
-        "x": 12,
-        "y": 0
-      },
-      "id": 22,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.6.0",
-          "queryType": "table",
-          "rawSql": "SELECT count(DISTINCT client_ip) AS detected\nFROM dns_loglines\nWHERE client_ip IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n)",
-          "refId": "B"
-        }
-      ],
-      "title": "# Total detected IPs",
-      "type": "stat"
+      "type": "bargauge"
     },
     {
       "collapsed": false,
@@ -358,7 +124,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 3
+        "y": 5
       },
       "id": 17,
       "panels": [],
@@ -399,7 +165,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 4
+        "y": 6
       },
       "id": 9,
       "options": {
@@ -516,7 +282,7 @@
         "h": 3,
         "w": 4,
         "x": 4,
-        "y": 4
+        "y": 6
       },
       "id": 10,
       "options": {
@@ -633,7 +399,7 @@
         "h": 3,
         "w": 4,
         "x": 9,
-        "y": 4
+        "y": 6
       },
       "id": 8,
       "options": {
@@ -716,7 +482,7 @@
         "h": 3,
         "w": 4,
         "x": 13,
-        "y": 4
+        "y": 6
       },
       "id": 6,
       "options": {
@@ -800,7 +566,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 7
+        "y": 9
       },
       "id": 12,
       "options": {
@@ -918,7 +684,7 @@
         "h": 3,
         "w": 4,
         "x": 4,
-        "y": 7
+        "y": 9
       },
       "id": 11,
       "options": {
@@ -1035,7 +801,7 @@
         "h": 3,
         "w": 4,
         "x": 9,
-        "y": 7
+        "y": 9
       },
       "id": 7,
       "options": {
@@ -1118,7 +884,7 @@
         "h": 3,
         "w": 4,
         "x": 13,
-        "y": 7
+        "y": 9
       },
       "id": 5,
       "options": {
