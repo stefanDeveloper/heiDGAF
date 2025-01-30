@@ -882,14 +882,14 @@
       "type": "bargauge"
     }
   ],
-  "refresh": "",
+  "refresh": "auto",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
     "list": [
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
             "All"
           ],
@@ -978,6 +978,6 @@
   "timezone": "browser",
   "title": "Overview",
   "uid": "eebjla27u66f4f",
-  "version": 2,
+  "version": 1,
   "weekStart": ""
 }
