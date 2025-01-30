@@ -86,7 +86,7 @@
         ]
       },
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 12,
         "x": 0,
         "y": 0
@@ -167,13 +167,113 @@
     },
     {
       "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "noValue": "-",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 7,
+        "x": 12,
+        "y": 0
+      },
+      "id": 20,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "top",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": false,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.6.0",
+          "queryType": "table",
+          "rawSql": "SELECT 'Suspicious' AS state, MAX(message_count) AS maximal_size\nFROM suspicious_batch_timestamps\nWHERE stage = 'data_inspection.inspector' AND\n      status = 'finished' AND\n      timestamp >= $__fromTime AND timestamp <= $__toTime\n\nUNION ALL\n\nSELECT 'Filtered' AS state, MAX(message_count) AS maximal_size\nFROM batch_timestamps\nWHERE stage = 'log_filtering.prefilter' AND\n      status = 'finished' AND\n      timestamp >= $__fromTime AND timestamp <= $__toTime\n\nUNION ALL\n\nSELECT 'Initial' AS state, MAX(message_count) AS maximal_size\nFROM batch_timestamps\nWHERE stage = 'log_collection.batch_handler' AND\n      status = 'completed' AND\n      timestamp >= $__fromTime AND timestamp <= $__toTime",
+          "refId": "A"
+        }
+      ],
+      "title": "Max. number of entries per Batch",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "Filtered": 1,
+              "Initial": 0,
+              "Suspicious": 2
+            },
+            "renameByName": {
+              "Initial": ""
+            }
+          }
+        }
+      ],
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
         "type": "datasource",
         "uid": "grafana"
       },
       "gridPos": {
         "h": 7,
-        "w": 4,
-        "x": 20,
+        "w": 5,
+        "x": 19,
         "y": 0
       },
       "id": 74,
@@ -201,7 +301,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 7
       },
       "id": 72,
       "panels": [],
@@ -292,7 +392,7 @@
         "h": 9,
         "w": 15,
         "x": 0,
-        "y": 9
+        "y": 8
       },
       "id": 55,
       "options": {
@@ -480,7 +580,7 @@
         "h": 9,
         "w": 9,
         "x": 15,
-        "y": 9
+        "y": 8
       },
       "id": 47,
       "options": {
@@ -557,7 +657,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 17
       },
       "id": 59,
       "panels": [],
@@ -584,8 +684,8 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 11,
-            "gradientMode": "none",
+            "fillOpacity": 27,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
@@ -593,6 +693,9 @@
             },
             "insertNulls": false,
             "lineInterpolation": "stepAfter",
+            "lineStyle": {
+              "fill": "solid"
+            },
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
@@ -608,7 +711,6 @@
               "mode": "off"
             }
           },
-          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -616,6 +718,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
           }
@@ -626,15 +732,15 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 19
+        "y": 18
       },
-      "id": 50,
+      "id": 51,
       "options": {
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "mode": "single",
@@ -662,11 +768,34 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT *\nFROM fill_levels\nWHERE stage = 'log_collection.collector'\n  AND entry_type = 'total_loglines'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
-          "refId": "A"
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.batch_handler'\n  AND entry_type = 'total_loglines_in_batches'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "refId": "Batch"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.batch_handler'\n  AND entry_type = 'total_loglines_in_buffer'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "refId": "Buffer"
         }
       ],
-      "title": "Collector Fill State",
+      "title": "BatchHandler Fill State",
       "type": "timeseries"
     },
     {
@@ -701,7 +830,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 19
+        "y": 18
       },
       "id": 60,
       "options": {
@@ -818,7 +947,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 19
+        "y": 18
       },
       "id": 52,
       "options": {
@@ -893,7 +1022,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 19
+        "y": 18
       },
       "id": 64,
       "options": {
@@ -988,7 +1117,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 22
+        "y": 21
       },
       "id": 61,
       "options": {
@@ -1082,7 +1211,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 22
+        "y": 21
       },
       "id": 67,
       "options": {
@@ -1150,8 +1279,8 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 27,
-            "gradientMode": "opacity",
+            "fillOpacity": 11,
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
@@ -1159,9 +1288,6 @@
             },
             "insertNulls": false,
             "lineInterpolation": "stepAfter",
-            "lineStyle": {
-              "fill": "solid"
-            },
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
@@ -1177,6 +1303,7 @@
               "mode": "off"
             }
           },
+          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -1184,10 +1311,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -1198,15 +1321,15 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 25
+        "y": 24
       },
-      "id": 51,
+      "id": 50,
       "options": {
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "single",
@@ -1234,34 +1357,11 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.batch_handler'\n  AND entry_type = 'total_loglines_in_batches'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
-          "refId": "Batch"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.batch_handler'\n  AND entry_type = 'total_loglines_in_buffer'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
-          "refId": "Buffer"
+          "rawSql": "SELECT *\nFROM fill_levels\nWHERE stage = 'log_collection.collector'\n  AND entry_type = 'total_loglines'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "refId": "A"
         }
       ],
-      "title": "BatchHandler Fill State",
+      "title": "Collector Fill State",
       "type": "timeseries"
     },
     {
@@ -1296,7 +1396,7 @@
         "h": 3,
         "w": 3,
         "x": 6,
-        "y": 25
+        "y": 24
       },
       "id": 62,
       "options": {
@@ -1376,7 +1476,7 @@
         "h": 3,
         "w": 2,
         "x": 9,
-        "y": 25
+        "y": 24
       },
       "id": 68,
       "options": {
@@ -1493,7 +1593,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 25
+        "y": 24
       },
       "id": 53,
       "options": {
@@ -1568,7 +1668,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 25
+        "y": 24
       },
       "id": 66,
       "options": {
@@ -1663,7 +1763,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 28
+        "y": 27
       },
       "id": 63,
       "options": {
@@ -1780,7 +1880,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 28
+        "y": 27
       },
       "id": 65,
       "options": {
@@ -1896,7 +1996,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 31
+        "y": 30
       },
       "id": 54,
       "options": {
@@ -1971,7 +2071,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 31
+        "y": 30
       },
       "id": 70,
       "options": {
@@ -2066,7 +2166,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 34
+        "y": 33
       },
       "id": 69,
       "options": {
@@ -2120,285 +2220,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
-      },
-      "id": 77,
-      "panels": [],
-      "title": "Batch details",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "default": false,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 69,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "maximal_size"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "orange",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "average_size"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "minimal_size"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sort_order"
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": true,
-                  "tooltip": true,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 38
-      },
-      "id": 20,
-      "options": {
-        "barRadius": 0,
-        "barWidth": 0.73,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "auto",
-        "showValue": "auto",
-        "stacking": "normal",
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.6.0",
-          "queryType": "table",
-          "rawSql": "SELECT *\nFROM (\n      SELECT 'Suspicious' AS state, MIN(message_count) AS minimal_size, median(message_count) AS median_size, MAX(message_count) AS maximal_size, 3 as sort_order\n      FROM suspicious_batch_timestamps\n      WHERE stage = 'data_inspection.inspector' AND\n            status = 'finished' AND\n            timestamp >= $__fromTime AND timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT 'Filtered' AS state, MIN(message_count) AS minimal_size, median(message_count) AS median_size, MAX(message_count) AS maximal_size, 2 as sort_order\n      FROM batch_timestamps\n      WHERE stage = 'log_filtering.prefilter' AND\n            status = 'finished' AND\n            timestamp >= $__fromTime AND timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT 'Initial' AS state, MIN(message_count) AS minimal_size, median(message_count) AS median_size, MAX(message_count) AS maximal_size, 1 as sort_order\n      FROM batch_timestamps\n      WHERE stage = 'log_collection.batch_handler' AND\n            status = 'completed' AND\n            timestamp >= $__fromTime AND timestamp <= $__toTime\n)\nORDER BY sort_order ASC;",
-          "refId": "A"
-        }
-      ],
-      "title": "# Entries per Batch",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "minimal_size": false,
-              "sort_order": true,
-              "state": false
-            },
-            "includeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "maximal_size": "Maximum",
-              "median_size": "Median",
-              "minimal_size": "Minimum"
-            }
-          }
-        }
-      ],
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "default": true,
-        "type": "grafana-clickhouse-datasource",
-        "uid": "PDEE91DDB90597936"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "shades"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 8,
-        "y": 38
-      },
-      "id": 56,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT max(entry_count)\nFROM fill_levels\nWHERE stage = 'log_collection.batch_handler'\n  AND entry_type = 'total_loglines_in_batches'\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime",
-          "refId": "A"
-        }
-      ],
-      "title": "Maximum Batch Size for Configured Timeout",
-      "type": "stat"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 46
+        "y": 36
       },
       "id": 76,
       "panels": [],
@@ -2415,7 +2237,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 37
       },
       "id": 75,
       "options": {
