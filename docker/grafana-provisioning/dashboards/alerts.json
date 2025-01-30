@@ -599,7 +599,7 @@
         "cellHeight": "sm",
         "footer": {
           "countRows": false,
-          "enablePagination": true,
+          "enablePagination": false,
           "fields": "",
           "reducer": [
             "sum"
@@ -629,11 +629,11 @@
           },
           "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT DISTINCT client_ip AS \"Client IP address\", arrayStringConcat(JSONExtract(domain_names, 'Array(String)'), ', ') AS \"Domains used\"\nFROM alerts\nORDER BY alert_timestamp DESC\nLIMIT 100",
+          "rawSql": "SELECT DISTINCT client_ip AS \"Client IP address\", arrayStringConcat(JSONExtract(domain_names, 'Array(String)'), ', ') AS \"Domains used\"\nFROM alerts\nORDER BY alert_timestamp DESC\nLIMIT 20",
           "refId": "A"
         }
       ],
-      "title": "Latest 100 alerts",
+      "title": "Latest 20 alerts",
       "transparent": true,
       "type": "table"
     },
@@ -762,6 +762,6 @@
   "timezone": "browser",
   "title": "Alerts",
   "uid": "de9z3fduc2m0we",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }
