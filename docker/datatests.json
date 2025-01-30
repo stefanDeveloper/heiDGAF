@@ -422,6 +422,36 @@
     },
     {
       "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 5,
+        "x": 19,
+        "y": 0
+      },
+      "id": 27,
+      "options": {
+        "folderUID": "",
+        "includeVars": true,
+        "keepTime": true,
+        "maxItems": 10,
+        "query": "",
+        "showFolderNames": false,
+        "showHeadings": false,
+        "showRecentlyViewed": false,
+        "showSearch": true,
+        "showStarred": false,
+        "tags": []
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "title": "Dashboards",
+      "transparent": true,
+      "type": "dashlist"
+    },
+    {
+      "datasource": {
         "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
@@ -827,7 +857,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 7
       },
       "id": 26,
       "title": "Details",
@@ -862,7 +892,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 7
+        "y": 8
       },
       "id": 23,
       "options": {
@@ -970,7 +1000,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 7
+        "y": 8
       },
       "id": 24,
       "options": {
@@ -1066,7 +1096,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 7
+        "y": 8
       },
       "id": 25,
       "options": {
@@ -1131,13 +1161,15 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-1h",
     "to": "now"
   },
-  "timepicker": {},
+  "timepicker": {
+    "hidden": true
+  },
   "timezone": "browser",
   "title": "Data Tests",
   "uid": "cea2xqic5klq8b",
-  "version": 2,
+  "version": 6,
   "weekStart": ""
 }
