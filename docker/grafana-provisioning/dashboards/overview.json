@@ -18,9 +18,562 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 7,
   "links": [],
   "panels": [
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "fieldMinMax": false
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "hideTimeOverride": false,
+      "id": 5,
+      "options": {
+        "calculate": false,
+        "cellGap": 0,
+        "color": {
+          "exponent": 0.5,
+          "fill": "blue",
+          "min": 0,
+          "mode": "opacity",
+          "reverse": false,
+          "scale": "linear",
+          "scheme": "PuBu",
+          "steps": 62
+        },
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        },
+        "filterValues": {
+          "le": 1e-9
+        },
+        "legend": {
+          "show": false
+        },
+        "rowsFrame": {
+          "layout": "ge"
+        },
+        "tooltip": {
+          "mode": "single",
+          "showColorScale": true,
+          "yHistogram": true
+        },
+        "yAxis": {
+          "axisLabel": "# Alerts / Quarter Hour",
+          "axisPlacement": "left",
+          "reverse": true,
+          "unit": "m"
+        }
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.6.0",
+          "queryType": "table",
+          "rawSql": "SELECT \n    alert_hour as time,\n    SUM(CASE WHEN quarter = 0 THEN alert_count ELSE 0 END) AS `0`,\n    SUM(CASE WHEN quarter = 1 THEN alert_count ELSE 0 END) AS `15`,\n    SUM(CASE WHEN quarter = 2 THEN alert_count ELSE 0 END) AS `30`,\n    SUM(CASE WHEN quarter = 3 THEN alert_count ELSE 0 END) AS `45`\nFROM (\n    SELECT \n        toDateTime(DATE_FORMAT(alert_timestamp, '%Y-%m-%d %H:00:00')) AS alert_hour,\n        FLOOR(MINUTE(alert_timestamp) / 15) AS quarter,\n        COUNT(*) AS alert_count\n    FROM alerts\n    WHERE alert_hour >= toDateTime(DATE_FORMAT(now() - INTERVAL 1 DAY, '%Y-%m-%d %H:00:00'))\n      AND alert_timestamp <= now()\n    GROUP BY alert_hour, quarter\n) AS subquery\nGROUP BY alert_hour\nORDER BY alert_hour\nWITH FILL\nFROM toDateTime(DATE_FORMAT(now() - INTERVAL 1 DAY, '%Y-%m-%d %H:00:00'))\nTO toDateTime($__toTime)\nSTEP toIntervalHour(1);\n",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": "24h",
+      "title": "# Alerts per quarter hour",
+      "type": "heatmap"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": false
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "noValue": "-",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 11,
+        "x": 8,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.6.0",
+          "queryType": "table",
+          "rawSql": "SELECT concat(rowNumberInAllBlocks() + 1, '.') AS \"Rank\", client_ip AS \"Client IP address\", count(logline_id) AS \"# Total Requests\"\nFROM dns_loglines\nWHERE \"Client IP address\" IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n  WHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\n)\nGROUP BY \"Client IP address\"\nORDER BY \"# Total Requests\" DESC\nLIMIT 5",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 5 most active malicious addresses",
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 5,
+        "x": 19,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "folderUID": "",
+        "includeVars": true,
+        "keepTime": true,
+        "maxItems": 10,
+        "query": "",
+        "showFolderNames": true,
+        "showHeadings": false,
+        "showRecentlyViewed": false,
+        "showSearch": true,
+        "showStarred": false,
+        "tags": []
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "title": "Dashboards",
+      "transparent": true,
+      "type": "dashlist"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": true,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "# Log Lines / Module (log10)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 11,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "log": 10,
+              "type": "log"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byValue",
+              "options": {
+                "op": "gte",
+                "reducer": "allIsNull",
+                "value": 0
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 15,
+        "x": 0,
+        "y": 8
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.collector'\n  AND 'Collector' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "refId": "Collector"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_filtering.prefilter'\n  AND entry_type = 'total_loglines'\n  AND 'Prefilter' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "refId": "Prefilter"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'data_inspection.inspector'\n  AND entry_type = 'total_loglines'\n  AND 'Inspector' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "refId": "Inspector"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'data_analysis.detector'\n  AND entry_type = 'total_loglines'\n  AND 'Detector' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "refId": "Detector"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.5.1",
+          "queryType": "table",
+          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.batch_handler'\n  AND entry_type = 'total_loglines_in_batches'\n  AND 'BatchHandler' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
+          "refId": "BatchHandler"
+        }
+      ],
+      "title": "Log volume combined",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "shades"
+          },
+          "decimals": 0,
+          "fieldMinMax": false,
+          "mappings": [],
+          "noValue": "-",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byValue",
+              "options": {
+                "op": "gte",
+                "reducer": "allIsNull",
+                "value": 0
+              }
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "light-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 9,
+        "x": 15,
+        "y": 8
+      },
+      "id": 8,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 0,
+        "namePlacement": "top",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.6.0",
+          "queryType": "table",
+          "rawSql": "SELECT *\nFROM (\n  SELECT 'Collector' AS name, median(value) AS \"Median\", 2 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.collector' AND entry_type = 'total_loglines'\n      AND timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'BatchHandler' AS name, median(value) AS \"Median\", 3 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.batch_handler' AND entry_type = 'total_loglines_in_batches' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Prefilter' AS name, median(value) AS \"Median\", 4 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_filtering.prefilter' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Inspector' AS name, median(value) AS \"Median\", 5 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_inspection.inspector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Detector' AS name, median(value) AS \"Median\", 6 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_analysis.detector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n)\nWHERE name IN (${include_modules:csv})\nORDER BY sort_order ASC;",
+          "refId": "Fill States"
+        }
+      ],
+      "title": "Log volume comparison",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "name",
+                "handlerKey": "field.name"
+              },
+              {
+                "fieldName": "Median",
+                "handlerKey": "field.value"
+              },
+              {
+                "fieldName": "sort_order",
+                "handlerKey": "__ignore"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "bargauge"
+    },
     {
       "datasource": {
         "default": true,
@@ -51,9 +604,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 13,
         "x": 0,
-        "y": 0
+        "y": 15
       },
       "id": 1,
       "options": {
@@ -159,9 +712,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 7,
-        "x": 12,
-        "y": 0
+        "w": 11,
+        "x": 13,
+        "y": 15
       },
       "id": 3,
       "options": {
@@ -230,36 +783,6 @@
     },
     {
       "datasource": {
-        "type": "datasource",
-        "uid": "grafana"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 5,
-        "x": 19,
-        "y": 0
-      },
-      "id": 2,
-      "options": {
-        "folderUID": "",
-        "includeVars": true,
-        "keepTime": true,
-        "maxItems": 10,
-        "query": "",
-        "showFolderNames": true,
-        "showHeadings": false,
-        "showRecentlyViewed": false,
-        "showSearch": true,
-        "showStarred": false,
-        "tags": []
-      },
-      "pluginVersion": "11.2.2+security-01",
-      "title": "Dashboards",
-      "transparent": true,
-      "type": "dashlist"
-    },
-    {
-      "datasource": {
         "default": true,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
@@ -289,9 +812,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 7,
-        "x": 12,
-        "y": 4
+        "w": 11,
+        "x": 13,
+        "y": 19
       },
       "id": 4,
       "options": {
@@ -362,16 +885,98 @@
   "schemaVersion": 39,
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "description": "Modules to be included in the comparison graphs and charts",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Modules to include in comparison",
+        "multi": true,
+        "name": "include_modules",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "LogServer",
+            "value": "'LogServer'"
+          },
+          {
+            "selected": false,
+            "text": "Collector",
+            "value": "'Collector'"
+          },
+          {
+            "selected": false,
+            "text": "BatchHandler",
+            "value": "'BatchHandler'"
+          },
+          {
+            "selected": false,
+            "text": "Prefilter",
+            "value": "'Prefilter'"
+          },
+          {
+            "selected": false,
+            "text": "Inspector",
+            "value": "'Inspector'"
+          },
+          {
+            "selected": false,
+            "text": "Detector",
+            "value": "'Detector'"
+          }
+        ],
+        "query": "LogServer : 'LogServer', Collector : 'Collector', BatchHandler : 'BatchHandler', Prefilter : 'Prefilter', Inspector : 'Inspector', Detector : 'Detector'",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "Minute",
+          "value": "Minute"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "PDEE91DDB90597936"
+        },
+        "definition": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 6 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 72 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "Granularity",
+        "options": [],
+        "query": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 6 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 72 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Overview",
   "uid": "eebjla27u66f4f",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
