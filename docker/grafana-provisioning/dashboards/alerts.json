@@ -731,21 +731,21 @@
       {
         "current": {
           "selected": false,
-          "text": "Minute",
-          "value": "Minute"
+          "text": "Day",
+          "value": "Day"
         },
         "datasource": {
           "type": "grafana-clickhouse-datasource",
           "uid": "PDEE91DDB90597936"
         },
-        "definition": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 1 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 24 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
+        "definition": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 6 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 72 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
         "hide": 2,
         "includeAll": false,
         "label": "",
         "multi": false,
         "name": "Granularity",
         "options": [],
-        "query": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 1 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 24 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
+        "query": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 6 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 72 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -755,13 +755,13 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-1d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Alerts",
   "uid": "de9z3fduc2m0we",
-  "version": 3,
+  "version": 4,
   "weekStart": ""
 }
