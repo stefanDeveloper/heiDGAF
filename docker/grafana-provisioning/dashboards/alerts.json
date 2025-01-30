@@ -723,7 +723,7 @@
       "type": "table"
     }
   ],
-  "refresh": "5s",
+  "refresh": "auto",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -762,6 +762,6 @@
   "timezone": "browser",
   "title": "Alerts",
   "uid": "de9z3fduc2m0we",
-  "version": 5,
+  "version": 1,
   "weekStart": ""
 }
