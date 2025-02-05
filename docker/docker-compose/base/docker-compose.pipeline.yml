@@ -5,13 +5,6 @@ services:
       dockerfile: docker/dockerfiles/Dockerfile.logserver
       network: host
     restart: "unless-stopped"
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
     networks:
       heidgaf:
     memswap_limit: 768m
@@ -34,13 +27,6 @@ services:
       dockerfile: docker/dockerfiles/Dockerfile.logcollector
       network: host
     restart: "unless-stopped"
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
     networks:
       heidgaf:
     memswap_limit: 768m
@@ -61,13 +47,6 @@ services:
       dockerfile: docker/dockerfiles/Dockerfile.prefilter
       network: host
     restart: "unless-stopped"
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
     networks:
       heidgaf:
     deploy:
@@ -89,13 +68,6 @@ services:
       dockerfile: docker/dockerfiles/Dockerfile.inspector
       network: host
     restart: "unless-stopped"
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
     networks:
       heidgaf:
     deploy:
@@ -118,13 +90,6 @@ services:
       dockerfile: docker/dockerfiles/Dockerfile.detector
       network: host
     restart: "unless-stopped"
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
     networks:
       heidgaf:
     deploy:
@@ -143,7 +108,3 @@ services:
 #              capabilities: [ gpu ]
     environment:
       - GROUP_ID=data_analysis
-
-#networks:
-#  heidgaf:
-#    external: true

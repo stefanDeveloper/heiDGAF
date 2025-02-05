@@ -8,41 +8,85 @@ services:
     extends:
       file: "docker-compose/base/docker-compose.kafka.yml"
       service: kafka1
+    depends_on:
+      zookeeper:
+        condition: service_healthy
 
   kafka2:
     extends:
       file: "docker-compose/base/docker-compose.kafka.yml"
       service: kafka2
+    depends_on:
+      zookeeper:
+        condition: service_healthy
 
   kafka3:
     extends:
       file: "docker-compose/base/docker-compose.kafka.yml"
       service: kafka3
+    depends_on:
+      zookeeper:
+        condition: service_healthy
 
   logserver:
     extends:
       file: "docker-compose/base/docker-compose.pipeline.yml"
       service: logserver
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
 
   logcollector:
     extends:
       file: "docker-compose/base/docker-compose.pipeline.yml"
       service: logcollector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
 
   prefilter:
     extends:
       file: "docker-compose/base/docker-compose.pipeline.yml"
       service: prefilter
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
 
   inspector:
     extends:
       file: "docker-compose/base/docker-compose.pipeline.yml"
       service: inspector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
 
   detector:
     extends:
       file: "docker-compose/base/docker-compose.pipeline.yml"
       service: detector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
 
   clickhouse-server:
     extends:
@@ -58,6 +102,15 @@ services:
     extends:
       file: "docker-compose/base/docker-compose.monitoring.yml"
       service: monitoring_agent
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
 
 networks:
   heidgaf:

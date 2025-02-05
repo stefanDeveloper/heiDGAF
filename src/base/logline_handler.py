@@ -7,7 +7,13 @@ logger = get_logger()
 
 CONFIG = setup_config()
 LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["logline_format"]
-REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
+REQUIRED_FIELDS = [
+    "timestamp",
+    "status_code",
+    "client_ip",
+    "record_type",
+    "domain_name",
+]
 FORBIDDEN_FIELD_NAMES = [
     "logline_id",
     "batch_id",
