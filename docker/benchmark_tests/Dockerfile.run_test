@@ -1,0 +1,17 @@
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /usr/src/app
+
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile marshmallow_dataclass colorlog pyYAML confluent_kafka numpy polars scikit-learn torch
+
+COPY src/base ./src/base
+COPY src/train ./src/train
+COPY config.yaml .
+COPY docker/benchmark_tests .
+COPY data ./data
+
+RUN rm -rf /root/.cache
+
+CMD [ "python", "run_test.py"]
