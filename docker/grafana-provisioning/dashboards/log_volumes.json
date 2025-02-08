@@ -23,6 +23,159 @@
   "panels": [
     {
       "datasource": {
+        "default": true,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 0,
+        "y": 0
+      },
+      "id": 77,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.7.0",
+          "queryType": "table",
+          "rawSql": "SELECT timestamp_in, count(*) OVER (ORDER BY timestamp_in) AS cumulative_count\nFROM server_logs\nWHERE timestamp_in >= $__fromTime;",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": true,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.7.0",
+          "queryType": "table",
+          "rawSql": "SELECT timestamp_in, count(*) OVER (ORDER BY timestamp_in) AS cumulative_count\nFROM (\n  SELECT *\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= \n)",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": true,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.7.0",
+          "queryType": "table",
+          "rawSql": "SELECT time_bucket, -sum(number) as \"(negative)\"\nFROM (\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp_failed, 6)) AS time_bucket,\n    count(*) AS number\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp_failed <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp, 6)) AS time_bucket,\n    count(*) AS number\n  FROM logline_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp, 6)) AS time_bucket,\n    count(*) AS number\n  FROM batch_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n)\nGROUP BY time_bucket;",
+          "refId": "B"
+        }
+      ],
+      "title": "Entering/Processed Log Lines in time range",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
         "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
@@ -86,9 +239,9 @@
         ]
       },
       "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
+        "h": 8,
+        "w": 6,
+        "x": 9,
         "y": 0
       },
       "id": 73,
@@ -192,9 +345,9 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 7,
-        "x": 12,
+        "h": 8,
+        "w": 4,
+        "x": 15,
         "y": 0
       },
       "id": 20,
@@ -301,7 +454,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 8
       },
       "id": 72,
       "panels": [],
@@ -392,7 +545,7 @@
         "h": 9,
         "w": 15,
         "x": 0,
-        "y": 8
+        "y": 9
       },
       "id": 55,
       "options": {
@@ -580,7 +733,7 @@
         "h": 9,
         "w": 9,
         "x": 15,
-        "y": 8
+        "y": 9
       },
       "id": 47,
       "options": {
@@ -657,7 +810,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 17
+        "y": 18
       },
       "id": 59,
       "panels": [],
@@ -732,7 +885,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 18
+        "y": 19
       },
       "id": 51,
       "options": {
@@ -830,7 +983,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 18
+        "y": 19
       },
       "id": 60,
       "options": {
@@ -947,7 +1100,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 18
+        "y": 19
       },
       "id": 52,
       "options": {
@@ -1022,7 +1175,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 18
+        "y": 19
       },
       "id": 64,
       "options": {
@@ -1117,7 +1270,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 21
+        "y": 22
       },
       "id": 61,
       "options": {
@@ -1211,7 +1364,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 21
+        "y": 22
       },
       "id": 67,
       "options": {
@@ -1321,7 +1474,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 24
+        "y": 25
       },
       "id": 50,
       "options": {
@@ -1396,7 +1549,7 @@
         "h": 3,
         "w": 3,
         "x": 6,
-        "y": 24
+        "y": 25
       },
       "id": 62,
       "options": {
@@ -1476,7 +1629,7 @@
         "h": 3,
         "w": 2,
         "x": 9,
-        "y": 24
+        "y": 25
       },
       "id": 68,
       "options": {
@@ -1593,7 +1746,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 24
+        "y": 25
       },
       "id": 53,
       "options": {
@@ -1668,7 +1821,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 24
+        "y": 25
       },
       "id": 66,
       "options": {
@@ -1763,7 +1916,7 @@
         "h": 3,
         "w": 5,
         "x": 6,
-        "y": 27
+        "y": 28
       },
       "id": 63,
       "options": {
@@ -1880,7 +2033,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 27
+        "y": 28
       },
       "id": 65,
       "options": {
@@ -1996,7 +2149,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 30
+        "y": 31
       },
       "id": 54,
       "options": {
@@ -2071,7 +2224,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 30
+        "y": 31
       },
       "id": 70,
       "options": {
@@ -2166,7 +2319,7 @@
         "h": 3,
         "w": 5,
         "x": 18,
-        "y": 33
+        "y": 34
       },
       "id": 69,
       "options": {
@@ -2220,7 +2373,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 37
       },
       "id": 76,
       "panels": [],
@@ -2237,7 +2390,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 38
       },
       "id": 75,
       "options": {
@@ -2337,7 +2490,7 @@
       "type": "nodeGraph"
     }
   ],
-  "refresh": "auto",
+  "refresh": "",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -2426,8 +2579,8 @@
     ]
   },
   "time": {
-    "from": "now-1h",
-    "to": "now"
+    "from": "2025-02-08T13:10:38.203Z",
+    "to": "2025-02-08T13:16:06.761Z"
   },
   "timepicker": {
     "refresh_intervals": [
@@ -2446,6 +2599,6 @@
   "timezone": "browser",
   "title": "Log Volumes",
   "uid": "ae9rw4xedy1a8e",
-  "version": 6,
+  "version": 1,
   "weekStart": ""
 }
