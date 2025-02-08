@@ -10,7 +10,7 @@ kafka_producer = SimpleKafkaProduceHandler()
 
 def main():
     try:
-        for i in range(20):
+        for i in range(50000):
             kafka_producer.produce(
                 "pipeline-logserver_in", f"{generate_dns_log_line('random-ip.de')}"
             )
