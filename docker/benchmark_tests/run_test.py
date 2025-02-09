@@ -110,48 +110,44 @@ class ScalabilityTest:
     """Base class for tests that focus on the scalability of the software."""
 
     def __init__(self):
-        number_of_loglines = 10000
-        # dataset_generator = DatasetGenerator("../../data")  # TODO: Change file path
         self.dataset_generator = DatasetGenerator()
-        self.dataset = self.dataset_generator.generate_dataset(number_of_loglines)
-
         self.kafka_producer = SimpleKafkaProduceHandler()
 
 
 class RampUpTest(ScalabilityTest):
     """Starts with a low rate and increases the rate in fixed intervals."""
 
+    def __init__(
+        self,
+        msg_per_sec_in_interval: list[float | int],
+        interval_length_in_sec: int | float | list[int | float],
+    ):
+        super().__init__()
+
+        self.msg_per_sec_in_interval = msg_per_sec_in_interval
+
+        if interval_length_in_sec is list:
+            self.interval_lengths = interval_length_in_sec
+        else:
+            self.interval_lengths = [
+                interval_length_in_sec for _ in range(len(msg_per_sec_in_interval))
+            ]
+
     def start(self):
-        msg_per_sec_in_interval = [
-            1,
-            10,
-            50,
-            100,
-            150,
-            160,
-            170,
-            180,
-            190,
-            200,
-            210,
-            220,
-            230,
-            240,
-            250,
-        ]
-        interval_length = 20  # in seconds
-
-        cur_index = 0
         logger.warning(f"Start at: {datetime.datetime.now()}")
+        cur_index = 0
 
-        for messages_per_second in msg_per_sec_in_interval:
+        for i in range(len(self.msg_per_sec_in_interval)):
+            messages_per_second = self.msg_per_sec_in_interval[i]
+
             start_of_interval_timestamp = datetime.datetime.now()
             logger.warning(
                 f"Start interval with {messages_per_second} msg/s at {start_of_interval_timestamp}"
             )
+
             while (
                 datetime.datetime.now() - start_of_interval_timestamp
-                < datetime.timedelta(seconds=interval_length)
+                < datetime.timedelta(seconds=self.interval_lengths[i])
             ):
                 try:
                     self.kafka_producer.produce(
@@ -295,7 +291,10 @@ class LongTermTest(ScalabilityTest):
 
 
 def main():
-    ramp_up_test = RampUpTest()
+    ramp_up_test = RampUpTest(
+        msg_per_sec_in_interval=[1, 10, 50, 100, 150],
+        interval_length_in_sec=5,
+    )
     ramp_up_test.start()
 
     # burst_test = BurstTest()
