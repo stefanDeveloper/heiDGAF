@@ -576,7 +576,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -812,8 +812,8 @@
             "excludeByName": {},
             "includeByName": {},
             "indexByName": {
-              "Analysis Phase": 1,
-              "Data Preparation Phase": 0
+              "Data analysis phase": 1,
+              "Data preparation phase": 0
             },
             "renameByName": {}
           }
@@ -1005,29 +1005,6 @@
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "Minute",
-          "value": "Minute"
-        },
-        "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "PDEE91DDB90597936"
-        },
-        "definition": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 6 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 72 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
-        "hide": 2,
-        "includeAll": false,
-        "multi": false,
-        "name": "Granularity",
-        "options": [],
-        "query": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 6 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 72 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
       }
     ]
   },
@@ -1039,6 +1016,6 @@
   "timezone": "browser",
   "title": "Overview",
   "uid": "eebjla27u66f4f",
-  "version": 1,
+  "version": 5,
   "weekStart": ""
 }
