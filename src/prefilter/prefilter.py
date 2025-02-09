@@ -91,7 +91,7 @@ class Prefilter:
                 status="in_process",
                 timestamp=datetime.datetime.now(),
                 is_active=True,
-                message_count=len(self.unfiltered_data),  # TODO: Remove
+                message_count=len(self.unfiltered_data),
             )
         )
 
