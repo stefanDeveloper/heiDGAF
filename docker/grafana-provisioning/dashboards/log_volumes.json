@@ -92,7 +92,7 @@
                 "id": "color",
                 "value": {
                   "fixedColor": "green",
-                  "mode": "shades"
+                  "mode": "fixed"
                 }
               }
             ]
@@ -107,7 +107,7 @@
                 "id": "color",
                 "value": {
                   "fixedColor": "yellow",
-                  "mode": "shades"
+                  "mode": "fixed"
                 }
               }
             ]
@@ -239,7 +239,7 @@
             "axisLabel": "# Log Lines / ${Granularity}",
             "axisPlacement": "left",
             "fillOpacity": 74,
-            "gradientMode": "hue",
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
@@ -269,14 +269,29 @@
           {
             "matcher": {
               "id": "byFrameRefID",
-              "options": "Processed"
+              "options": "Entering"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
                   "fixedColor": "green",
-                  "mode": "shades"
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "Processed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
                 }
               }
             ]
