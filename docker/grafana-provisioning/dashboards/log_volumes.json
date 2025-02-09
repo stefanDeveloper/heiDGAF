@@ -27,6 +27,7 @@
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
+      "description": "Number of all log lines that entered the LogServer in the time range, and those being fully processed, either by being filtered out or leading to an alert.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -171,7 +172,7 @@
           "refId": "B"
         }
       ],
-      "title": "Entering/Processed Log Lines in time range",
+      "title": "Entering and processed log lines",
       "type": "timeseries"
     },
     {
@@ -315,7 +316,7 @@
           "refId": "Processed"
         }
       ],
-      "title": "Entering/Processed Log Lines per ${Granularity}",
+      "title": "Entering and processed log lines per ${Granularity}",
       "type": "barchart"
     },
     {
