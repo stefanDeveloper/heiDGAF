@@ -68,6 +68,7 @@ class Detector:
             "suspicious_batch_timestamps"
         )
         self.alerts = ClickHouseKafkaSender("alerts")
+        self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
         self.fill_levels = ClickHouseKafkaSender("fill_levels")
 
         self.fill_levels.insert(
@@ -352,6 +353,21 @@ class Detector:
                     message_count=len(self.messages),
                 )
             )
+
+            logline_ids = set()
+            for message in self.messages:
+                logline_ids.add(message["logline_id"])
+
+            for logline_id in logline_ids:
+                self.logline_timestamps.insert(
+                    dict(
+                        logline_id=logline_id,
+                        stage=module_name,
+                        status="detected",
+                        timestamp=datetime.datetime.now(),
+                        is_active=False,
+                    )
+                )
         else:
             logger.info("No warning produced.")
 
@@ -366,6 +382,21 @@ class Detector:
                     message_count=len(self.messages),
                 )
             )
+
+            logline_ids = set()
+            for message in self.messages:
+                logline_ids.add(message["logline_id"])
+
+            for logline_id in logline_ids:
+                self.logline_timestamps.insert(
+                    dict(
+                        logline_id=logline_id,
+                        stage=module_name,
+                        status="filtered_out",
+                        timestamp=datetime.datetime.now(),
+                        is_active=False,
+                    )
+                )
 
         self.fill_levels.insert(
             dict(

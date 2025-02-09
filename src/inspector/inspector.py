@@ -510,10 +510,14 @@ class Inspector:
                 )
             )
 
+            logline_ids = set()
             for message in self.messages:
+                logline_ids.add(message["logline_id"])
+
+            for logline_id in logline_ids:
                 self.logline_timestamps.insert(
                     dict(
-                        logline_id=message["logline_id"],
+                        logline_id=logline_id,
                         stage=module_name,
                         status="filtered_out",
                         timestamp=datetime.now(),
