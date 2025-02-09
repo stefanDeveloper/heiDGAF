@@ -27,6 +27,7 @@
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
+      "description": "Median latencies per module shown throughout the \"lifetime\" of a log line, ignoring wait and transport times.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -124,7 +125,7 @@
           "refId": "A"
         }
       ],
-      "title": "Relative module latency (median)",
+      "title": "Relative module latency",
       "type": "barchart"
     },
     {
@@ -163,6 +164,7 @@
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
+      "description": "Comparison of the median latencies per module.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -171,7 +173,7 @@
           },
           "fieldMinMax": false,
           "mappings": [],
-          "noValue": "No data",
+          "noValue": "-",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -183,7 +185,27 @@
           },
           "unit": "µs"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byValue",
+              "options": {
+                "op": "gte",
+                "reducer": "allIsNull",
+                "value": 0
+              }
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 7,
@@ -230,13 +252,13 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.6.0",
+          "pluginVersion": "4.7.0",
           "queryType": "table",
-          "rawSql": "SELECT *\nFROM (\n      SELECT 'LogServer' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n            FROM server_logs sl\n            INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n            WHERE slt.event = 'timestamp_out' AND\n                  sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'LogCollection' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                  lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'BatchHandler' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                  lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Prefilter' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) as value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                  bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Inspector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n            UNION ALL\n\n            SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n            FROM batch_timestamps bt\n            INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n            INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n            WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                  sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                  bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Detector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n            FROM suspicious_batch_timestamps sbt1\n            INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n            WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                  sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                  sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n      )\n);\n",
+          "rawSql": "SELECT *\nFROM (\n      SELECT 'LogServer' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n            FROM server_logs sl\n            INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n            WHERE slt.event = 'timestamp_out' AND\n                  sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Collector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                  lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'BatchHandler' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                  lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Prefilter' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) as value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                  bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Inspector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n            UNION ALL\n\n            SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n            FROM batch_timestamps bt\n            INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n            INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n            WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                  sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                  bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Detector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n            FROM suspicious_batch_timestamps sbt1\n            INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n            WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                  sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                  sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n      )\n)\nWHERE name IN (${include_modules:csv});\n",
           "refId": "A"
         }
       ],
-      "title": "Module latency comparison (median)",
+      "title": "Module latency comparison",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -251,9 +273,9 @@
             "includeByName": {},
             "indexByName": {
               "BatchHandler": 2,
+              "Collector": 1,
               "Detector": 5,
               "Inspector": 4,
-              "LogCollection": 1,
               "LogServer": 0,
               "Prefilter": 3
             },
@@ -384,7 +406,7 @@
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
-      "description": "",
+      "description": "Median time that a log line spends in a phase.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -394,7 +416,7 @@
           "fieldMinMax": false,
           "mappings": [],
           "min": 0,
-          "noValue": "No data",
+          "noValue": "-",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -406,7 +428,27 @@
           },
           "unit": "µs"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byValue",
+              "options": {
+                "op": "gte",
+                "reducer": "allIsNull",
+                "value": 0
+              }
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 4,
@@ -431,7 +473,7 @@
         },
         "showUnfilled": false,
         "sizing": "auto",
-        "valueMode": "color"
+        "valueMode": "text"
       },
       "pluginVersion": "11.2.2+security-01",
       "targets": [
@@ -452,13 +494,13 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.6.0",
+          "pluginVersion": "4.7.0",
           "queryType": "table",
-          "rawSql": "SELECT *\nFROM (\n      SELECT 'Analysis Phase' AS name, sum(Median)\n      FROM (\n            SELECT 'Inspector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                        bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n                  UNION ALL\n\n                  SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n                  FROM batch_timestamps bt\n                  INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n                  INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n                  WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                        sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                        bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Detector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n                  FROM suspicious_batch_timestamps sbt1\n                  INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n                  WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                        sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                        sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n            )\n      )\n\n      UNION ALL\n\n      SELECT 'Data Preparation Phase' AS name, sum(Median) as median\n      FROM (\n            SELECT 'LogServer' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n                  FROM server_logs sl\n                  INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n                  WHERE slt.event = 'timestamp_out' AND\n                        sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'LogCollector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                        lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'BatchHandler' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                        lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Prefilter' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n            )\n      )\n);\n",
+          "rawSql": "SELECT *\nFROM (\n      SELECT 'Data analysis phase' AS name, sum(Median)\n      FROM (\n            SELECT 'Inspector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                        bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n                  UNION ALL\n\n                  SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n                  FROM batch_timestamps bt\n                  INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n                  INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n                  WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                        sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                        bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Detector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n                  FROM suspicious_batch_timestamps sbt1\n                  INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n                  WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                        sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                        sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n            )\n      )\n\n      UNION ALL\n\n      SELECT 'Data preparation phase' AS name, sum(Median) as median\n      FROM (\n            SELECT 'LogServer' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n                  FROM server_logs sl\n                  INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n                  WHERE slt.event = 'timestamp_out' AND\n                        sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'LogCollector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                        lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'BatchHandler' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                        lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Prefilter' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n            )\n      )\n);\n",
           "refId": "phases"
         }
       ],
-      "title": "Duration per phase (median)",
+      "title": "Duration per phase",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -470,8 +512,8 @@
             "excludeByName": {},
             "includeByName": {},
             "indexByName": {
-              "Analysis Phase": 1,
-              "Data Preparation Phase": 0
+              "Data analysis phase": 1,
+              "Data preparation phase": 0
             },
             "renameByName": {}
           }
@@ -485,7 +527,7 @@
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
-      "description": "",
+      "description": "Latency of all modules combined. Approximated through the medians of all single latencies per module.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -495,6 +537,7 @@
           "fieldMinMax": false,
           "mappings": [],
           "min": 0,
+          "noValue": "-",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -506,7 +549,27 @@
           },
           "unit": "µs"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byValue",
+              "options": {
+                "op": "gte",
+                "reducer": "allIsNull",
+                "value": 0
+              }
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 4,
@@ -558,7 +621,7 @@
           "refId": "A"
         }
       ],
-      "title": "Total latency (approx., median)",
+      "title": "Total latency",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -1468,7 +1531,7 @@
           "refId": "Median"
         }
       ],
-      "title": "Latency LogCollector",
+      "title": "Latency Collector",
       "type": "timeseries"
     },
     {
@@ -1838,7 +1901,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -1916,7 +1980,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2031,7 +2096,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2180,7 +2246,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2296,7 +2363,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2445,7 +2513,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2524,7 +2593,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2602,7 +2672,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2730,7 +2801,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2916,7 +2988,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -3100,7 +3173,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -3246,7 +3320,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -3338,7 +3413,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -3430,7 +3506,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -3513,52 +3590,58 @@
     "list": [
       {
         "current": {
-          "selected": false,
-          "text": "Minute",
-          "value": "Minute"
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
-        "datasource": {
-          "type": "grafana-clickhouse-datasource",
-          "uid": "PDEE91DDB90597936"
-        },
-        "definition": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 1 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 24 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
-        "hide": 2,
-        "includeAll": false,
-        "multi": false,
-        "name": "Granularity",
-        "options": [],
-        "query": "SELECT CASE \n    WHEN (dateDiff('minute', toDateTime($__fromTime), toDateTime($__toTime))) <= 5 THEN 'Second'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 1 THEN 'Minute'\n    WHEN (dateDiff('hour', toDateTime($__fromTime), toDateTime($__toTime))) <= 24 THEN 'Hour'\n    ELSE 'Day'\nEND AS interval;",
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "without wait time",
-          "value": "without wait time"
-        },
-        "description": "Select whether the wait time in the BatchHandler should be part of its latency.",
+        "description": "Modules to be included in the comparison graphs and charts",
         "hide": 0,
-        "includeAll": false,
-        "label": "BatchHandler",
-        "multi": false,
-        "name": "IncludeWaitTime",
+        "includeAll": true,
+        "label": "Modules to include in comparison",
+        "multi": true,
+        "name": "include_modules",
         "options": [
           {
-            "selected": false,
-            "text": "with wait time",
-            "value": "with wait time"
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
           },
           {
-            "selected": true,
-            "text": "without wait time",
-            "value": "without wait time"
+            "selected": false,
+            "text": "LogServer",
+            "value": "'LogServer'"
+          },
+          {
+            "selected": false,
+            "text": "Collector",
+            "value": "'Collector'"
+          },
+          {
+            "selected": false,
+            "text": "BatchHandler",
+            "value": "'BatchHandler'"
+          },
+          {
+            "selected": false,
+            "text": "Prefilter",
+            "value": "'Prefilter'"
+          },
+          {
+            "selected": false,
+            "text": "Inspector",
+            "value": "'Inspector'"
+          },
+          {
+            "selected": false,
+            "text": "Detector",
+            "value": "'Detector'"
           }
         ],
-        "query": "with wait time, without wait time",
+        "query": "LogServer : 'LogServer', Collector : 'Collector', BatchHandler : 'BatchHandler', Prefilter : 'Prefilter', Inspector : 'Inspector', Detector : 'Detector'",
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
