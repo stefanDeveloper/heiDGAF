@@ -81,7 +81,38 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Entering"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "shades"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Processed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -190,7 +221,7 @@
     },
     {
       "datasource": {
-        "default": false,
+        "default": true,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -202,7 +233,7 @@
           },
           "custom": {
             "axisBorderShow": true,
-            "axisCenteredZero": true,
+            "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisGridShow": true,
             "axisLabel": "# Log Lines / ${Granularity}",
@@ -261,7 +292,7 @@
       "id": 73,
       "options": {
         "barRadius": 0,
-        "barWidth": 1,
+        "barWidth": 0.8,
         "fullHighlight": false,
         "groupWidth": 0.7,
         "legend": {
@@ -323,9 +354,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.6.0",
+          "pluginVersion": "4.7.0",
           "queryType": "table",
-          "rawSql": "SELECT time_bucket, -sum(number) as \"(negative)\"\nFROM (\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp_failed, 6)) AS time_bucket,\n    count(*) AS number\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp_failed <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp, 6)) AS time_bucket,\n    count(*) AS number\n  FROM logline_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp, 6)) AS time_bucket,\n    count(*) AS number\n  FROM batch_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n)\nGROUP BY time_bucket;",
+          "rawSql": "SELECT time_bucket, -sum(number) as \"(negative)\"\nFROM (\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp_failed, 6)) AS time_bucket,\n    count(DISTINCT message_text) AS number\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp_failed <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp, 6)) AS time_bucket,\n    count(DISTINCT logline_id) AS number\n  FROM logline_timestamps\n  WHERE is_active = False\n    AND timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n)\nGROUP BY time_bucket;",
           "refId": "Processed"
         }
       ],
