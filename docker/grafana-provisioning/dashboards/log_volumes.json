@@ -42,15 +42,18 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
+            "fillOpacity": 17,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "stepAfter",
+            "lineStyle": {
+              "fill": "solid"
+            },
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
@@ -66,6 +69,7 @@
               "mode": "off"
             }
           },
+          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -73,10 +77,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -110,6 +110,7 @@
           },
           "editorType": "sql",
           "format": 1,
+          "hide": false,
           "meta": {
             "builderOptions": {
               "columns": [],
@@ -122,7 +123,7 @@
           },
           "pluginVersion": "4.7.0",
           "queryType": "table",
-          "rawSql": "SELECT timestamp_in, count(*) OVER (ORDER BY timestamp_in) AS cumulative_count\nFROM server_logs\nWHERE timestamp_in >= $__fromTime;",
+          "rawSql": "SELECT timestamp_in, count(DISTINCT message_id) OVER (ORDER BY timestamp_in) AS cumulative_count\nFROM (\n  SELECT timestamp_in, message_id\n  FROM server_logs\n  WHERE timestamp_in >= $__fromTime AND timestamp_in <= $__toTime\n);",
           "refId": "A"
         },
         {
@@ -132,7 +133,7 @@
           },
           "editorType": "sql",
           "format": 1,
-          "hide": true,
+          "hide": false,
           "meta": {
             "builderOptions": {
               "columns": [],
@@ -145,34 +146,46 @@
           },
           "pluginVersion": "4.7.0",
           "queryType": "table",
-          "rawSql": "SELECT timestamp_in, count(*) OVER (ORDER BY timestamp_in) AS cumulative_count\nFROM (\n  SELECT *\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= \n)",
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": true,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.7.0",
-          "queryType": "table",
-          "rawSql": "SELECT time_bucket, -sum(number) as \"(negative)\"\nFROM (\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp_failed, 6)) AS time_bucket,\n    count(*) AS number\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp_failed <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp, 6)) AS time_bucket,\n    count(*) AS number\n  FROM logline_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp, 6)) AS time_bucket,\n    count(*) AS number\n  FROM batch_timestamps\n  WHERE status = 'filtered_out'\n    AND timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n)\nGROUP BY time_bucket;",
+          "rawSql": "SELECT timestamp, count(DISTINCT value) OVER (ORDER BY timestamp) AS cumulative_count\nFROM (\n  SELECT timestamp_failed AS timestamp, message_text AS value\n  FROM failed_dns_loglines\n  WHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n\n  UNION ALL\n\n  SELECT timestamp, toString(logline_id) AS value\n  FROM logline_timestamps\n  WHERE is_active = False\n    AND timestamp >= $__fromTime AND timestamp <= $__toTime\n);",
           "refId": "B"
         }
       ],
       "title": "Entering and processed log lines",
+      "transformations": [
+        {
+          "filter": {
+            "id": "byRefId",
+            "options": "A"
+          },
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "cumulative_count": "Entering",
+              "timestamp_in": ""
+            }
+          },
+          "topic": "series"
+        },
+        {
+          "filter": {
+            "id": "byRefId",
+            "options": "B"
+          },
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "cumulative_count": "Processed"
+            }
+          },
+          "topic": "series"
+        }
+      ],
       "type": "timeseries"
     },
     {
