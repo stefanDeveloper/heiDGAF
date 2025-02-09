@@ -98,6 +98,7 @@ class Inspector:
         self.suspicious_batches_to_batch = ClickHouseKafkaSender(
             "suspicious_batches_to_batch"
         )
+        self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
         self.fill_levels = ClickHouseKafkaSender("fill_levels")
 
         self.fill_levels.insert(
@@ -508,6 +509,17 @@ class Inspector:
                     message_count=len(self.messages),
                 )
             )
+
+            for message in self.messages:
+                self.logline_timestamps.insert(
+                    dict(
+                        logline_id=message["logline_id"],
+                        stage=module_name,
+                        status="filtered_out",
+                        timestamp=datetime.now(),
+                        is_active=False,
+                    )
+                )
 
         self.fill_levels.insert(
             dict(
