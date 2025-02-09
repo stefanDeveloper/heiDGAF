@@ -126,14 +126,18 @@ class RampUpTest(ScalabilityTest):
 
         self.msg_per_sec_in_interval = msg_per_sec_in_interval
 
-        if interval_length_in_sec is list:
+        if type(interval_length_in_sec) is list:
             self.interval_lengths = interval_length_in_sec
         else:
             self.interval_lengths = [
                 interval_length_in_sec for _ in range(len(msg_per_sec_in_interval))
             ]
 
+        if len(interval_length_in_sec) != len(msg_per_sec_in_interval):
+            raise Exception("Different lengths of interval lists. Must be equal.")
+
     def start(self):
+        """Executes the ramp-up test with the configured parameters."""
         logger.warning(f"Start at: {datetime.datetime.now()}")
         cur_index = 0
 
@@ -169,22 +173,38 @@ class RampUpTest(ScalabilityTest):
 class BurstTest(ScalabilityTest):
     """Starts with a normal rate, sends a high rate for a short period, then returns to normal rate."""
 
+    def __init__(
+        self,
+        normal_rate_msg_per_sec: float | int,
+        burst_rate_msg_per_sec: float | int,
+        interval_lengths_in_sec: list[int | float],
+    ):
+        super().__init__()
+
+        self.normal_rate_msg_per_sec = normal_rate_msg_per_sec
+        self.burst_rate_msg_per_sec = burst_rate_msg_per_sec
+
+        if len(interval_lengths_in_sec) != 3:
+            raise Exception(
+                f"Three intervals must be defined. {len(interval_lengths_in_sec)} intervals given."
+            )
+
+        self.interval_lengths = interval_lengths_in_sec
+
     def start(self):
+        """Executes the burst test with the configured parameters."""
         cur_index = 0
         logger.warning(f"Start at: {datetime.datetime.now()}")
 
         # first interval (normal rate)
         start_of_interval_timestamp = datetime.datetime.now()
-        messages_per_second = 20
-        interval_length = 30
-
         logger.warning(
-            f"Start normal rate interval with {messages_per_second} msg/s at {start_of_interval_timestamp}"
+            f"Start normal rate interval with {self.normal_rate_msg_per_sec} msg/s at {start_of_interval_timestamp}"
         )
 
         while (
             datetime.datetime.now() - start_of_interval_timestamp
-            < datetime.timedelta(seconds=interval_length)
+            < datetime.timedelta(seconds=self.interval_lengths[0])
         ):
             try:
                 self.kafka_producer.produce(
@@ -197,21 +217,21 @@ class BurstTest(ScalabilityTest):
                 cur_index += 1
             except KafkaError:
                 logger.warning(KafkaError)
-            time.sleep(1.0 / messages_per_second)
-        logger.warning(f"Finish normal rate interval with {messages_per_second} msg/s")
+            time.sleep(1.0 / self.normal_rate_msg_per_sec)
+        logger.warning(
+            f"Finish normal rate interval with {self.normal_rate_msg_per_sec} msg/s: Sent {cur_index} messages."
+        )
 
         # second interval (burst rate)
+        before_index = cur_index
         start_of_interval_timestamp = datetime.datetime.now()
-        messages_per_second = 10000
-        interval_length = 2
-
         logger.warning(
-            f"Start normal rate interval with {messages_per_second} msg/s at {start_of_interval_timestamp}"
+            f"Start normal rate interval with {self.burst_rate_msg_per_sec} msg/s at {start_of_interval_timestamp}"
         )
 
         while (
             datetime.datetime.now() - start_of_interval_timestamp
-            < datetime.timedelta(seconds=interval_length)
+            < datetime.timedelta(seconds=self.interval_lengths[1])
         ):
             try:
                 self.kafka_producer.produce(
@@ -224,21 +244,21 @@ class BurstTest(ScalabilityTest):
                 cur_index += 1
             except KafkaError:
                 logger.warning(KafkaError)
-            time.sleep(1.0 / messages_per_second)
-        logger.warning(f"Finish normal rate interval with {messages_per_second} msg/s")
+            time.sleep(1.0 / self.burst_rate_msg_per_sec)
+        logger.warning(
+            f"Finish normal rate interval with {self.burst_rate_msg_per_sec} msg/s: Sent {cur_index - before_index} messages."
+        )
 
         # third interval (normal rate)
+        before_index = cur_index
         start_of_interval_timestamp = datetime.datetime.now()
-        messages_per_second = 20
-        interval_length = 30
-
         logger.warning(
-            f"Start normal rate interval with {messages_per_second} msg/s at {start_of_interval_timestamp}"
+            f"Start normal rate interval with {self.normal_rate_msg_per_sec} msg/s at {start_of_interval_timestamp}"
         )
 
         while (
             datetime.datetime.now() - start_of_interval_timestamp
-            < datetime.timedelta(seconds=interval_length)
+            < datetime.timedelta(seconds=self.interval_lengths[2])
         ):
             try:
                 self.kafka_producer.produce(
@@ -251,8 +271,10 @@ class BurstTest(ScalabilityTest):
                 cur_index += 1
             except KafkaError:
                 logger.warning(KafkaError)
-            time.sleep(1.0 / messages_per_second)
-        logger.warning(f"Finish normal rate interval with {messages_per_second} msg/s")
+            time.sleep(1.0 / self.normal_rate_msg_per_sec)
+        logger.warning(
+            f"Finish normal rate interval with {self.normal_rate_msg_per_sec} msg/s: Sent {cur_index - before_index} messages."
+        )
 
 
 class LongTermTest(ScalabilityTest):
@@ -291,14 +313,19 @@ class LongTermTest(ScalabilityTest):
 
 
 def main():
-    ramp_up_test = RampUpTest(
-        msg_per_sec_in_interval=[1, 10, 50, 100, 150],
-        interval_length_in_sec=5,
-    )
-    ramp_up_test.start()
+    """Creates the test instance and executes the test."""
+    # ramp_up_test = RampUpTest(
+    #     msg_per_sec_in_interval=[1, 10, 50, 100, 150],
+    #     interval_length_in_sec=[10, 5, 4, 4, 2],
+    # )
+    # ramp_up_test.start()
 
-    # burst_test = BurstTest()
-    # burst_test.start()
+    burst_test = BurstTest(
+        normal_rate_msg_per_sec=20,
+        burst_rate_msg_per_sec=10000,
+        interval_lengths_in_sec=[60, 2, 60],
+    )
+    burst_test.start()
 
     # long_term_test = LongTermTest()
     # long_term_test.start()
