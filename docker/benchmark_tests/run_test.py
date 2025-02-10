@@ -12,8 +12,12 @@ sys.path.append(os.getcwd())
 from src.base.kafka_handler import SimpleKafkaProduceHandler
 from src.train.dataset import Dataset, DatasetLoader
 from src.base.log_config import get_logger
+from src.base.utils import setup_config
 
 logger = get_logger()
+config = setup_config()
+
+PRODUCE_TO_TOPIC = config["environment"]["kafka_topics"]["pipeline"]["logserver_in"]
 
 
 class DatasetGenerator:
@@ -113,61 +117,72 @@ class ScalabilityTest:
         self.dataset_generator = DatasetGenerator()
         self.kafka_producer = SimpleKafkaProduceHandler()
 
+        self.interval_lengths = None
+        self.msg_per_sec_in_intervals = None
+
+    def execute(self):
+        """Executes the test with the configured parameters."""
+        logger.warning(f"Start at: {datetime.datetime.now()}")
+
+        cur_index = 0
+        for i in range(len(self.msg_per_sec_in_intervals)):
+            cur_index = self._execute_one_interval(
+                cur_index=cur_index,
+                msg_per_sec=self.msg_per_sec_in_intervals[i],
+                length_in_sec=self.interval_lengths[i],
+            )
+
+        logger.warning(f"Stop at: {datetime.datetime.now()}")
+
+    def _execute_one_interval(
+        self, cur_index: int, msg_per_sec: float | int, length_in_sec: float | int
+    ) -> int:
+        start_of_interval_timestamp = datetime.datetime.now()
+        logger.warning(
+            f"Start interval with {msg_per_sec} msg/s at {start_of_interval_timestamp}"
+        )
+
+        while (
+            datetime.datetime.now() - start_of_interval_timestamp
+            < datetime.timedelta(seconds=length_in_sec)
+        ):
+            try:
+                self.kafka_producer.produce(
+                    PRODUCE_TO_TOPIC,
+                    self.dataset_generator.generate_random_logline(),
+                )
+                logger.info(
+                    f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
+                )
+                cur_index += 1
+            except KafkaError:
+                logger.warning(KafkaError)
+            time.sleep(1.0 / msg_per_sec)
+
+        logger.warning(f"Finish interval with {msg_per_sec} msg/s")
+        return cur_index
+
 
 class RampUpTest(ScalabilityTest):
     """Starts with a low rate and increases the rate in fixed intervals."""
 
     def __init__(
         self,
-        msg_per_sec_in_interval: list[float | int],
+        msg_per_sec_in_intervals: list[float | int],
         interval_length_in_sec: int | float | list[int | float],
     ):
         super().__init__()
-
-        self.msg_per_sec_in_interval = msg_per_sec_in_interval
+        self.msg_per_sec_in_intervals = msg_per_sec_in_intervals
 
         if type(interval_length_in_sec) is list:
             self.interval_lengths = interval_length_in_sec
         else:
             self.interval_lengths = [
-                interval_length_in_sec for _ in range(len(msg_per_sec_in_interval))
+                interval_length_in_sec for _ in range(len(msg_per_sec_in_intervals))
             ]
 
-        if len(interval_length_in_sec) != len(msg_per_sec_in_interval):
+        if len(interval_length_in_sec) != len(msg_per_sec_in_intervals):
             raise Exception("Different lengths of interval lists. Must be equal.")
-
-    def start(self):
-        """Executes the ramp-up test with the configured parameters."""
-        logger.warning(f"Start at: {datetime.datetime.now()}")
-        cur_index = 0
-
-        for i in range(len(self.msg_per_sec_in_interval)):
-            messages_per_second = self.msg_per_sec_in_interval[i]
-
-            start_of_interval_timestamp = datetime.datetime.now()
-            logger.warning(
-                f"Start interval with {messages_per_second} msg/s at {start_of_interval_timestamp}"
-            )
-
-            while (
-                datetime.datetime.now() - start_of_interval_timestamp
-                < datetime.timedelta(seconds=self.interval_lengths[i])
-            ):
-                try:
-                    self.kafka_producer.produce(
-                        "pipeline-logserver_in",
-                        self.dataset_generator.generate_random_logline(),
-                    )
-                    logger.info(
-                        f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
-                    )
-                    cur_index += 1
-                except KafkaError:
-                    logger.warning(KafkaError)
-                time.sleep(1.0 / messages_per_second)
-            logger.warning(f"Finish interval with {messages_per_second} msg/s")
-
-        logger.warning(f"Stop at: {datetime.datetime.now()}")
 
 
 class BurstTest(ScalabilityTest):
@@ -181,8 +196,11 @@ class BurstTest(ScalabilityTest):
     ):
         super().__init__()
 
-        self.normal_rate_msg_per_sec = normal_rate_msg_per_sec
-        self.burst_rate_msg_per_sec = burst_rate_msg_per_sec
+        self.msg_per_sec_in_intervals = [
+            normal_rate_msg_per_sec,
+            burst_rate_msg_per_sec,
+            normal_rate_msg_per_sec,
+        ]
 
         if len(interval_lengths_in_sec) != 3:
             raise Exception(
@@ -191,144 +209,37 @@ class BurstTest(ScalabilityTest):
 
         self.interval_lengths = interval_lengths_in_sec
 
-    def start(self):
-        """Executes the burst test with the configured parameters."""
-        cur_index = 0
-        logger.warning(f"Start at: {datetime.datetime.now()}")
-
-        # first interval (normal rate)
-        start_of_interval_timestamp = datetime.datetime.now()
-        logger.warning(
-            f"Start normal rate interval with {self.normal_rate_msg_per_sec} msg/s at {start_of_interval_timestamp}"
-        )
-
-        while (
-            datetime.datetime.now() - start_of_interval_timestamp
-            < datetime.timedelta(seconds=self.interval_lengths[0])
-        ):
-            try:
-                self.kafka_producer.produce(
-                    "pipeline-logserver_in",
-                    self.dataset_generator.generate_random_logline(),
-                )
-                logger.info(
-                    f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
-                )
-                cur_index += 1
-            except KafkaError:
-                logger.warning(KafkaError)
-            time.sleep(1.0 / self.normal_rate_msg_per_sec)
-        logger.warning(
-            f"Finish normal rate interval with {self.normal_rate_msg_per_sec} msg/s: Sent {cur_index} messages."
-        )
-
-        # second interval (burst rate)
-        before_index = cur_index
-        start_of_interval_timestamp = datetime.datetime.now()
-        logger.warning(
-            f"Start normal rate interval with {self.burst_rate_msg_per_sec} msg/s at {start_of_interval_timestamp}"
-        )
-
-        while (
-            datetime.datetime.now() - start_of_interval_timestamp
-            < datetime.timedelta(seconds=self.interval_lengths[1])
-        ):
-            try:
-                self.kafka_producer.produce(
-                    "pipeline-logserver_in",
-                    self.dataset_generator.generate_random_logline(),
-                )
-                logger.info(
-                    f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
-                )
-                cur_index += 1
-            except KafkaError:
-                logger.warning(KafkaError)
-            time.sleep(1.0 / self.burst_rate_msg_per_sec)
-        logger.warning(
-            f"Finish normal rate interval with {self.burst_rate_msg_per_sec} msg/s: Sent {cur_index - before_index} messages."
-        )
-
-        # third interval (normal rate)
-        before_index = cur_index
-        start_of_interval_timestamp = datetime.datetime.now()
-        logger.warning(
-            f"Start normal rate interval with {self.normal_rate_msg_per_sec} msg/s at {start_of_interval_timestamp}"
-        )
-
-        while (
-            datetime.datetime.now() - start_of_interval_timestamp
-            < datetime.timedelta(seconds=self.interval_lengths[2])
-        ):
-            try:
-                self.kafka_producer.produce(
-                    "pipeline-logserver_in",
-                    self.dataset_generator.generate_random_logline(),
-                )
-                logger.info(
-                    f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
-                )
-                cur_index += 1
-            except KafkaError:
-                logger.warning(KafkaError)
-            time.sleep(1.0 / self.normal_rate_msg_per_sec)
-        logger.warning(
-            f"Finish normal rate interval with {self.normal_rate_msg_per_sec} msg/s: Sent {cur_index - before_index} messages."
-        )
-
 
 class LongTermTest(ScalabilityTest):
     """Starts with a low rate and increases the rate in fixed intervals."""
 
-    def start(self):
-        full_length = 4  # in minutes
-        messages_per_second = 50
+    def __init__(self, full_length: float | int, msg_per_sec: float | int):
+        super().__init__()
 
-        cur_index = 0
-        logger.warning(f"Start at: {datetime.datetime.now()}")
-
-        start_of_interval_timestamp = datetime.datetime.now()
-        logger.warning(
-            f"Start interval with {messages_per_second} msg/s at {start_of_interval_timestamp}"
-        )
-        while (
-            datetime.datetime.now() - start_of_interval_timestamp
-            < datetime.timedelta(minutes=full_length)
-        ):
-            try:
-                self.kafka_producer.produce(
-                    "pipeline-logserver_in",
-                    self.dataset_generator.generate_random_logline(),
-                )
-                logger.info(
-                    f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
-                )
-                cur_index += 1
-            except KafkaError:
-                logger.warning(KafkaError)
-            time.sleep(1.0 / messages_per_second)
-        logger.warning(f"Finish test with {messages_per_second} msg/s")
-
-        logger.warning(f"Stop at: {datetime.datetime.now()}")
+        self.msg_per_sec_in_intervals = [msg_per_sec]
+        self.interval_lengths = [full_length]
 
 
 def main():
     """Creates the test instance and executes the test."""
-    # ramp_up_test = RampUpTest(
-    #     msg_per_sec_in_interval=[1, 10, 50, 100, 150],
-    #     interval_length_in_sec=[10, 5, 4, 4, 2],
-    # )
-    # ramp_up_test.start()
-
-    burst_test = BurstTest(
-        normal_rate_msg_per_sec=20,
-        burst_rate_msg_per_sec=10000,
-        interval_lengths_in_sec=[60, 2, 60],
+    ramp_up_test = RampUpTest(
+        msg_per_sec_in_intervals=[1, 10, 50, 100, 150],
+        interval_length_in_sec=[10, 5, 4, 4, 2],
     )
-    burst_test.start()
+    ramp_up_test.execute()
 
-    # long_term_test = LongTermTest()
-    # long_term_test.start()
+    # burst_test = BurstTest(
+    #     normal_rate_msg_per_sec=20,
+    #     burst_rate_msg_per_sec=10000,
+    #     interval_lengths_in_sec=[60, 2, 60],
+    # )
+    # burst_test.execute()
+
+    # long_term_test = LongTermTest(
+    #     full_length=10.4,
+    #     msg_per_sec=15,
+    # )
+    # long_term_test.execute()
 
 
 if __name__ == "__main__":
