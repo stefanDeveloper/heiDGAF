@@ -186,28 +186,28 @@ class RampUpTest(ScalabilityTest):
 
 
 class BurstTest(ScalabilityTest):
-    """Starts with a normal rate, sends a high rate for a short period, then returns to normal rate."""
+    """Starts with a normal rate, sends a high rate for a short period, then returns to normal rate. Repeats the
+    process for a defined number of times."""
 
     def __init__(
         self,
         normal_rate_msg_per_sec: float | int,
         burst_rate_msg_per_sec: float | int,
-        interval_lengths_in_sec: list[int | float],
+        normal_rate_interval_length: float | int,
+        burst_rate_interval_length: float | int,
+        number_of_intervals: int = 1,
     ):
         super().__init__()
 
-        self.msg_per_sec_in_intervals = [
-            normal_rate_msg_per_sec,
-            burst_rate_msg_per_sec,
-            normal_rate_msg_per_sec,
-        ]
+        self.msg_per_sec_in_intervals = [normal_rate_msg_per_sec]
+        self.interval_lengths = [normal_rate_interval_length]
 
-        if len(interval_lengths_in_sec) != 3:
-            raise Exception(
-                f"Three intervals must be defined. {len(interval_lengths_in_sec)} intervals given."
-            )
+        for _ in range(number_of_intervals):
+            self.msg_per_sec_in_intervals.append(burst_rate_msg_per_sec)
+            self.msg_per_sec_in_intervals.append(normal_rate_msg_per_sec)
 
-        self.interval_lengths = interval_lengths_in_sec
+            self.interval_lengths.append(burst_rate_interval_length)
+            self.interval_lengths.append(normal_rate_interval_length)
 
 
 class LongTermTest(ScalabilityTest):
@@ -222,18 +222,20 @@ class LongTermTest(ScalabilityTest):
 
 def main():
     """Creates the test instance and executes the test."""
-    ramp_up_test = RampUpTest(
-        msg_per_sec_in_intervals=[1, 10, 50, 100, 150],
-        interval_length_in_sec=[10, 5, 4, 4, 2],
-    )
-    ramp_up_test.execute()
-
-    # burst_test = BurstTest(
-    #     normal_rate_msg_per_sec=20,
-    #     burst_rate_msg_per_sec=10000,
-    #     interval_lengths_in_sec=[60, 2, 60],
+    # ramp_up_test = RampUpTest(
+    #     msg_per_sec_in_intervals=[1, 10, 50, 100, 150],
+    #     interval_length_in_sec=[10, 5, 4, 4, 2],
     # )
-    # burst_test.execute()
+    # ramp_up_test.execute()
+
+    burst_test = BurstTest(
+        normal_rate_msg_per_sec=20,
+        burst_rate_msg_per_sec=10000,
+        normal_rate_interval_length=10,
+        burst_rate_interval_length=2,
+        number_of_intervals=3,
+    )
+    burst_test.execute()
 
     # long_term_test = LongTermTest(
     #     full_length=10.4,
