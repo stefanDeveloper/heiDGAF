@@ -1,7 +1,6 @@
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.2
-    restart: "unless-stopped"
     networks:
       heidgaf:
         ipv4_address: 172.27.0.2
@@ -21,7 +20,6 @@ services:
 
   kafka1:
     image: confluentinc/cp-kafka:7.3.2
-    restart: "unless-stopped"
     networks:
       heidgaf:
         ipv4_address: 172.27.0.3
@@ -54,7 +52,6 @@ services:
 
   kafka2:
     image: confluentinc/cp-kafka:7.3.2
-    restart: "unless-stopped"
     networks:
       heidgaf:
         ipv4_address: 172.27.0.4
@@ -85,7 +82,6 @@ services:
 
   kafka3:
     image: confluentinc/cp-kafka:7.3.2
-    restart: "unless-stopped"
     networks:
       heidgaf:
         ipv4_address: 172.27.0.5
@@ -115,11 +111,7 @@ services:
         condition: on-failure
 
   logserver:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.logserver
-      network: host
-    restart: "unless-stopped"
+    image: stefan96/heidgaf-logserver
     networks:
       heidgaf:
     deploy:
@@ -138,11 +130,7 @@ services:
       - GROUP_ID=log_storage
 
   logcollector:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.logcollector
-      network: host
-    restart: "unless-stopped"
+    image: stefan96/heidgaf-logcollector
     networks:
       heidgaf:
     deploy:
@@ -159,11 +147,7 @@ services:
       - GROUP_ID=log_collection
 
   prefilter:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.prefilter
-      network: host
-    restart: "unless-stopped"
+    image: stefan96/heidgaf-prefilter
     networks:
       heidgaf:
     deploy:
@@ -182,11 +166,7 @@ services:
       - GROUP_ID=log_filtering
 
   inspector:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.inspector
-      network: host
-    restart: "unless-stopped"
+    image: stefan96/heidgaf-inspector
     networks:
       heidgaf:
     deploy:
@@ -206,11 +186,7 @@ services:
       - NUMBER_OF_INSTANCES=2
 
   detector:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.detector
-      network: host
-    restart: "unless-stopped"
+    image: stefan96/heidgaf-detector
     networks:
       heidgaf:
     deploy:
@@ -239,7 +215,6 @@ services:
     networks:
       heidgaf:
         ipv4_address: 172.27.0.11
-    restart: "unless-stopped"
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -259,7 +234,6 @@ services:
     networks:
       heidgaf:
         ipv4_address: 172.27.0.13
-    restart: "unless-stopped"
     ports:
       - "3000:3000"
     volumes:
@@ -286,7 +260,6 @@ services:
       context: ../../..
       dockerfile: docker/dockerfiles/Dockerfile.monitoring
       network: host
-    restart: "unless-stopped"
     networks:
       heidgaf:
     environment:
