@@ -256,10 +256,7 @@ services:
         condition: on-failure
 
   monitoring_agent:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.monitoring
-      network: host
+    image: monitoring_agent:latest
     networks:
       heidgaf:
     environment:
