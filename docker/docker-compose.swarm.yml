@@ -133,7 +133,7 @@ services:
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
     volumes:
-      - "$${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
+      - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
     environment:
       - GROUP_ID=log_storage
 
