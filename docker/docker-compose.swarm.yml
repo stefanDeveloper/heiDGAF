@@ -3,7 +3,7 @@ services:
     image: confluentinc/cp-zookeeper:7.3.2
     networks:
       heidgaf:
-        ipv4_address: 10.0.1.2
+        ipv4_address: 172.27.0.2
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_SERVER_ID: 1
@@ -14,8 +14,7 @@ services:
       retries: 3
     deploy:
       placement:
-        constraints:
-          - "node.hostname == heidgaf-1"
+        constraints: [ node.hostname == heidgaf-1 ]
       restart_policy:
         condition: on-failure
 
@@ -23,7 +22,7 @@ services:
     image: confluentinc/cp-kafka:7.3.2
     networks:
       heidgaf:
-        ipv4_address: 10.0.1.3
+        ipv4_address: 172.27.0.3
     ports:
       - "8097:8097"
       - "29092:29092"
@@ -39,15 +38,14 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://10.0.1.3:8097,DOCKER://host.docker.internal:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://172.27.0.3:8097,DOCKER://host.docker.internal:29092
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
     deploy:
       placement:
-        constraints:
-          - "node.hostname == heidgaf-1"
+        constraints: [ node.hostname == heidgaf-1 ]
       restart_policy:
         condition: on-failure
 
@@ -56,7 +54,7 @@ services:
     image: confluentinc/cp-kafka:7.3.2
     networks:
       heidgaf:
-        ipv4_address: 10.0.1.4
+        ipv4_address: 172.27.0.4
     ports:
       - "8098:8098"
       - "29093:29093"
@@ -71,15 +69,14 @@ services:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://10.0.1.4:8098,DOCKER://host.docker.internal:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://172.27.0.4:8098,DOCKER://host.docker.internal:29093
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
     deploy:
       placement:
-        constraints:
-          - "node.hostname == heidgaf-1"
+        constraints: [ node.hostname == heidgaf-1 ]
       restart_policy:
         condition: on-failure
 
@@ -87,7 +84,7 @@ services:
     image: confluentinc/cp-kafka:7.3.2
     networks:
       heidgaf:
-        ipv4_address: 10.0.1.5
+        ipv4_address: 172.27.0.5
     ports:
       - "8099:8099"
       - "29094:29094"
@@ -102,15 +99,14 @@ services:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://10.0.1.5:8099,DOCKER://host.docker.internal:29094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://172.27.0.5:8099,DOCKER://host.docker.internal:29094
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
     deploy:
       placement:
-        constraints:
-          - "node.hostname == heidgaf-1"
+        constraints: [ node.hostname == heidgaf-1 ]
       restart_policy:
         condition: on-failure
 
@@ -127,8 +123,7 @@ services:
           cpus: '1'
           memory: 256m
       placement:
-        constraints:
-          - "node.hostname == heidgaf-2"
+        constraints: [ node.hostname == heidgaf-2 ]
     volumes:
       - "../../default.txt:/opt/file.txt"
     environment:
@@ -147,8 +142,7 @@ services:
           cpus: '1'
           memory: 256m
       placement:
-        constraints:
-          - "node.hostname == heidgaf-2"
+        constraints: [ node.hostname == heidgaf-2 ]
     environment:
       - GROUP_ID=log_collection
 
@@ -167,8 +161,7 @@ services:
           cpus: '1'
           memory: 256m
       placement:
-        constraints:
-          - "node.hostname == heidgaf-2"
+        constraints: [ node.hostname == heidgaf-2 ]
     environment:
       - GROUP_ID=log_filtering
 
@@ -187,8 +180,7 @@ services:
           cpus: '1'
           memory: 256m
       placement:
-        constraints:
-          - "node.hostname == heidgaf-2"
+        constraints: [ node.hostname == heidgaf-2 ]
     environment:
       - GROUP_ID=data_inspection
       - NUMBER_OF_INSTANCES=2
@@ -212,8 +204,7 @@ services:
       #              count: 1 # alternatively, use `count: all` for all GPUs
       #              capabilities: [ gpu ]
       placement:
-        constraints:
-          - "node.hostname == heidgaf-2"
+        constraints: [ node.hostname == heidgaf-2 ]
     environment:
       - GROUP_ID=data_analysis
 
@@ -223,7 +214,7 @@ services:
       - ../../create_tables:/docker-entrypoint-initdb.d
     networks:
       heidgaf:
-        ipv4_address: 10.0.1.11
+        ipv4_address: 172.27.0.11
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -234,8 +225,7 @@ services:
       retries: 3
     deploy:
       placement:
-        constraints:
-          - "node.hostname == heidgaf-3"
+        constraints: [ node.hostname == heidgaf-3 ]
       restart_policy:
         condition: on-failure
 
@@ -243,7 +233,7 @@ services:
     image: grafana/grafana:11.2.2-security-01
     networks:
       heidgaf:
-        ipv4_address: 10.0.1.13
+        ipv4_address: 172.27.0.13
     ports:
       - "3000:3000"
     volumes:
@@ -261,8 +251,7 @@ services:
       retries: 3
     deploy:
       placement:
-        constraints:
-          - "node.hostname == heidgaf-3"
+        constraints: [ node.hostname == heidgaf-3 ]
       restart_policy:
         condition: on-failure
 
@@ -279,8 +268,7 @@ services:
       - clickhouse-server
     deploy:
       placement:
-        constraints:
-          - "node.hostname == heidgaf-3"
+        constraints: [ node.hostname == heidgaf-3 ]
       restart_policy:
         condition: on-failure
 
