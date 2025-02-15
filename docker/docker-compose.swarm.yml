@@ -18,259 +18,259 @@ services:
       restart_policy:
         condition: on-failure
 
-  kafka1:
-    image: confluentinc/cp-kafka:7.3.2
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.3
-    ports:
-      - "8097:8097"
-      - "29092:29092"
-    depends_on:
-      - zookeeper
-    healthcheck:
-      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka1:8097", "--list" ]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://172.27.0.3:8097,DOCKER://host.docker.internal:29092
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
-      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-    deploy:
-      placement:
-        constraints: [ node.hostname == heidgaf-1 ]
-      restart_policy:
-        condition: on-failure
-
-
-  kafka2:
-    image: confluentinc/cp-kafka:7.3.2
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.4
-    ports:
-      - "8098:8098"
-      - "29093:29093"
-    depends_on:
-      - zookeeper
-    healthcheck:
-      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka2:8098", "--list" ]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-    environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://172.27.0.4:8098,DOCKER://host.docker.internal:29093
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
-      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-    deploy:
-      placement:
-        constraints: [ node.hostname == heidgaf-1 ]
-      restart_policy:
-        condition: on-failure
-
-  kafka3:
-    image: confluentinc/cp-kafka:7.3.2
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.5
-    ports:
-      - "8099:8099"
-      - "29094:29094"
-    depends_on:
-      - zookeeper
-    healthcheck:
-      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka3:8099", "--list" ]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-    environment:
-      KAFKA_BROKER_ID: 3
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://172.27.0.5:8099,DOCKER://host.docker.internal:29094
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
-      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-    deploy:
-      placement:
-        constraints: [ node.hostname == heidgaf-1 ]
-      restart_policy:
-        condition: on-failure
-
-  logserver:
-    image: stefan96/heidgaf-logserver
-    networks:
-      heidgaf:
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
-      placement:
-        constraints: [ node.hostname == heidgaf-2 ]
-    volumes:
-      - "../../default.txt:/opt/file.txt"
-    environment:
-      - GROUP_ID=log_storage
-
-  logcollector:
-    image: stefan96/heidgaf-logcollector
-    networks:
-      heidgaf:
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
-      placement:
-        constraints: [ node.hostname == heidgaf-2 ]
-    environment:
-      - GROUP_ID=log_collection
-
-  prefilter:
-    image: stefan96/heidgaf-prefilter
-    networks:
-      heidgaf:
-    deploy:
-      mode: "replicated"
-      replicas: 1
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
-      placement:
-        constraints: [ node.hostname == heidgaf-2 ]
-    environment:
-      - GROUP_ID=log_filtering
-
-  inspector:
-    image: stefan96/heidgaf-inspector
-    networks:
-      heidgaf:
-    deploy:
-      mode: "replicated"
-      replicas: 2
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
-      placement:
-        constraints: [ node.hostname == heidgaf-2 ]
-    environment:
-      - GROUP_ID=data_inspection
-      - NUMBER_OF_INSTANCES=2
-
-  detector:
-    image: stefan96/heidgaf-detector
-    networks:
-      heidgaf:
-    deploy:
-      mode: "replicated"
-      replicas: 1
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-      #        reservations:
-      #          cpus: '1'
-      #          memory: 256m
-      #          devices:
-      #            - driver: nvidia
-      #              count: 1 # alternatively, use `count: all` for all GPUs
-      #              capabilities: [ gpu ]
-      placement:
-        constraints: [ node.hostname == heidgaf-2 ]
-    environment:
-      - GROUP_ID=data_analysis
-
-  clickhouse-server:
-    image: clickhouse/clickhouse-server:24.3.12.75-alpine
-    volumes:
-      - ../../create_tables:/docker-entrypoint-initdb.d
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.11
-    ports:
-      - "8123:8123"
-      - "9000:9000"
-    healthcheck:
-      test: [ "CMD-SHELL", "nc -z 127.0.0.1 8123" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    deploy:
-      placement:
-        constraints: [ node.hostname == heidgaf-3 ]
-      restart_policy:
-        condition: on-failure
-
-  grafana:
-    image: grafana/grafana:11.2.2-security-01
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.13
-    ports:
-      - "3000:3000"
-    volumes:
-      - ../../grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
-      - ../../grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
-      - ../../grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
-    healthcheck:
-      test: [ "CMD-SHELL", "nc -z localhost 3000" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    deploy:
-      placement:
-        constraints: [ node.hostname == heidgaf-3 ]
-      restart_policy:
-        condition: on-failure
-
-  monitoring_agent:
-    image: monitoring_agent:latest
-    networks:
-      heidgaf:
-    environment:
-      - GROUP_ID=monitoring_agent
-    depends_on:
-      - kafka1
-      - kafka2
-      - kafka3
-      - clickhouse-server
-    deploy:
-      placement:
-        constraints: [ node.hostname == heidgaf-3 ]
-      restart_policy:
-        condition: on-failure
+#  kafka1:
+#    image: confluentinc/cp-kafka:7.3.2
+#    networks:
+#      heidgaf:
+#        ipv4_address: 172.27.0.3
+#    ports:
+#      - "8097:8097"
+#      - "29092:29092"
+#    depends_on:
+#      - zookeeper
+#    healthcheck:
+#      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka1:8097", "--list" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 10
+#    environment:
+#      KAFKA_BROKER_ID: 1
+#      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
+#      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://172.27.0.3:8097,DOCKER://host.docker.internal:29092
+#      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+#      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+#      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+#      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+#    deploy:
+#      placement:
+#        constraints: [ node.hostname == heidgaf-1 ]
+#      restart_policy:
+#        condition: on-failure
+#
+#
+#  kafka2:
+#    image: confluentinc/cp-kafka:7.3.2
+#    networks:
+#      heidgaf:
+#        ipv4_address: 172.27.0.4
+#    ports:
+#      - "8098:8098"
+#      - "29093:29093"
+#    depends_on:
+#      - zookeeper
+#    healthcheck:
+#      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka2:8098", "--list" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 10
+#    environment:
+#      KAFKA_BROKER_ID: 2
+#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
+#      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://172.27.0.4:8098,DOCKER://host.docker.internal:29093
+#      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+#      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+#      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+#      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+#    deploy:
+#      placement:
+#        constraints: [ node.hostname == heidgaf-1 ]
+#      restart_policy:
+#        condition: on-failure
+#
+#  kafka3:
+#    image: confluentinc/cp-kafka:7.3.2
+#    networks:
+#      heidgaf:
+#        ipv4_address: 172.27.0.5
+#    ports:
+#      - "8099:8099"
+#      - "29094:29094"
+#    depends_on:
+#      - zookeeper
+#    healthcheck:
+#      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka3:8099", "--list" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 10
+#    environment:
+#      KAFKA_BROKER_ID: 3
+#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
+#      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://172.27.0.5:8099,DOCKER://host.docker.internal:29094
+#      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+#      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+#      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+#      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+#    deploy:
+#      placement:
+#        constraints: [ node.hostname == heidgaf-1 ]
+#      restart_policy:
+#        condition: on-failure
+#
+#  logserver:
+#    image: stefan96/heidgaf-logserver
+#    networks:
+#      heidgaf:
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+#      placement:
+#        constraints: [ node.hostname == heidgaf-2 ]
+#    volumes:
+#      - "../../default.txt:/opt/file.txt"
+#    environment:
+#      - GROUP_ID=log_storage
+#
+#  logcollector:
+#    image: stefan96/heidgaf-logcollector
+#    networks:
+#      heidgaf:
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+#      placement:
+#        constraints: [ node.hostname == heidgaf-2 ]
+#    environment:
+#      - GROUP_ID=log_collection
+#
+#  prefilter:
+#    image: stefan96/heidgaf-prefilter
+#    networks:
+#      heidgaf:
+#    deploy:
+#      mode: "replicated"
+#      replicas: 1
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+#      placement:
+#        constraints: [ node.hostname == heidgaf-2 ]
+#    environment:
+#      - GROUP_ID=log_filtering
+#
+#  inspector:
+#    image: stefan96/heidgaf-inspector
+#    networks:
+#      heidgaf:
+#    deploy:
+#      mode: "replicated"
+#      replicas: 2
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+#      placement:
+#        constraints: [ node.hostname == heidgaf-2 ]
+#    environment:
+#      - GROUP_ID=data_inspection
+#      - NUMBER_OF_INSTANCES=2
+#
+#  detector:
+#    image: stefan96/heidgaf-detector
+#    networks:
+#      heidgaf:
+#    deploy:
+#      mode: "replicated"
+#      replicas: 1
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#      #        reservations:
+#      #          cpus: '1'
+#      #          memory: 256m
+#      #          devices:
+#      #            - driver: nvidia
+#      #              count: 1 # alternatively, use `count: all` for all GPUs
+#      #              capabilities: [ gpu ]
+#      placement:
+#        constraints: [ node.hostname == heidgaf-2 ]
+#    environment:
+#      - GROUP_ID=data_analysis
+#
+#  clickhouse-server:
+#    image: clickhouse/clickhouse-server:24.3.12.75-alpine
+#    volumes:
+#      - ../../create_tables:/docker-entrypoint-initdb.d
+#    networks:
+#      heidgaf:
+#        ipv4_address: 172.27.0.11
+#    ports:
+#      - "8123:8123"
+#      - "9000:9000"
+#    healthcheck:
+#      test: [ "CMD-SHELL", "nc -z 127.0.0.1 8123" ]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 3
+#    deploy:
+#      placement:
+#        constraints: [ node.hostname == heidgaf-3 ]
+#      restart_policy:
+#        condition: on-failure
+#
+#  grafana:
+#    image: grafana/grafana:11.2.2-security-01
+#    networks:
+#      heidgaf:
+#        ipv4_address: 172.27.0.13
+#    ports:
+#      - "3000:3000"
+#    volumes:
+#      - ../../grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
+#      - ../../grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+#      - ../../grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+#    environment:
+#      - GF_SECURITY_ADMIN_USER=admin
+#      - GF_SECURITY_ADMIN_PASSWORD=admin
+#      - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
+#    healthcheck:
+#      test: [ "CMD-SHELL", "nc -z localhost 3000" ]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 3
+#    deploy:
+#      placement:
+#        constraints: [ node.hostname == heidgaf-3 ]
+#      restart_policy:
+#        condition: on-failure
+#
+#  monitoring_agent:
+#    image: monitoring_agent:latest
+#    networks:
+#      heidgaf:
+#    environment:
+#      - GROUP_ID=monitoring_agent
+#    depends_on:
+#      - kafka1
+#      - kafka2
+#      - kafka3
+#      - clickhouse-server
+#    deploy:
+#      placement:
+#        constraints: [ node.hostname == heidgaf-3 ]
+#      restart_policy:
+#        condition: on-failure
 
 networks:
   heidgaf:
