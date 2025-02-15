@@ -110,25 +110,25 @@ services:
       restart_policy:
         condition: none
 
-#  logserver:
-#    image: stefan96/heidgaf-logserver
-#    networks:
-#      heidgaf:
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '2'
-#          memory: 512m
-#        reservations:
-#          cpus: '1'
-#          memory: 256m
-#      placement:
-#        constraints: [ node.hostname == heidgaf-2 ]
-#    volumes:
-#      - "../../default.txt:/opt/file.txt"
-#    environment:
-#      - GROUP_ID=log_storage
-#
+  logserver:
+    image: stefan96/heidgaf-logserver
+    networks:
+      heidgaf:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    volumes:
+      - "../../default.txt:/opt/file.txt"
+    environment:
+      - GROUP_ID=log_storage
+
 #  logcollector:
 #    image: stefan96/heidgaf-logcollector
 #    networks:
