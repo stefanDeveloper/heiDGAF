@@ -16,100 +16,100 @@ services:
       placement:
         constraints: [ node.hostname == heidgaf-1 ]
       restart_policy:
-        condition: None
+        condition: none
 
-#  kafka1:
-#    image: confluentinc/cp-kafka:7.3.2
-#    networks:
-#      heidgaf:
-#        ipv4_address: 172.27.0.3
-#    ports:
-#      - "8097:8097"
-#      - "29092:29092"
-#    depends_on:
-#      - zookeeper
-#    healthcheck:
-#      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka1:8097", "--list" ]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 10
-#    environment:
-#      KAFKA_BROKER_ID: 1
-#      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-#      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://172.27.0.3:8097,DOCKER://host.docker.internal:29092
-#      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-#      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-#      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
-#      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-#    deploy:
-#      placement:
-#        constraints: [ node.hostname == heidgaf-1 ]
-#      restart_policy:
-#        condition: on-failure
-#
-#
-#  kafka2:
-#    image: confluentinc/cp-kafka:7.3.2
-#    networks:
-#      heidgaf:
-#        ipv4_address: 172.27.0.4
-#    ports:
-#      - "8098:8098"
-#      - "29093:29093"
-#    depends_on:
-#      - zookeeper
-#    healthcheck:
-#      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka2:8098", "--list" ]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 10
-#    environment:
-#      KAFKA_BROKER_ID: 2
-#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-#      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://172.27.0.4:8098,DOCKER://host.docker.internal:29093
-#      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-#      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-#      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
-#      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-#    deploy:
-#      placement:
-#        constraints: [ node.hostname == heidgaf-1 ]
-#      restart_policy:
-#        condition: on-failure
-#
-#  kafka3:
-#    image: confluentinc/cp-kafka:7.3.2
-#    networks:
-#      heidgaf:
-#        ipv4_address: 172.27.0.5
-#    ports:
-#      - "8099:8099"
-#      - "29094:29094"
-#    depends_on:
-#      - zookeeper
-#    healthcheck:
-#      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka3:8099", "--list" ]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 10
-#    environment:
-#      KAFKA_BROKER_ID: 3
-#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-#      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://172.27.0.5:8099,DOCKER://host.docker.internal:29094
-#      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-#      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-#      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
-#      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-#    deploy:
-#      placement:
-#        constraints: [ node.hostname == heidgaf-1 ]
-#      restart_policy:
-#        condition: on-failure
-#
+  kafka1:
+    image: confluentinc/cp-kafka:7.3.2
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.3
+    ports:
+      - "8097:8097"
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka1:8097", "--list" ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://172.27.0.3:8097,DOCKER://host.docker.internal:29092
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+    deploy:
+      placement:
+        constraints: [ node.hostname == heidgaf-1 ]
+      restart_policy:
+        condition: none
+
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.3.2
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.4
+    ports:
+      - "8098:8098"
+      - "29093:29093"
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka2:8098", "--list" ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://172.27.0.4:8098,DOCKER://host.docker.internal:29093
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+    deploy:
+      placement:
+        constraints: [ node.hostname == heidgaf-1 ]
+      restart_policy:
+        condition: on-failure
+
+  kafka3:
+    image: confluentinc/cp-kafka:7.3.2
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.5
+    ports:
+      - "8099:8099"
+      - "29094:29094"
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka3:8099", "--list" ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://172.27.0.5:8099,DOCKER://host.docker.internal:29094
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+    deploy:
+      placement:
+        constraints: [ node.hostname == heidgaf-1 ]
+      restart_policy:
+        condition: none
+
 #  logserver:
 #    image: stefan96/heidgaf-logserver
 #    networks:
