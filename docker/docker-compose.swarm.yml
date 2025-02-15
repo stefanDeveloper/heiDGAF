@@ -14,7 +14,8 @@ services:
       retries: 3
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-1 ]
+        constraints:
+          - "node.hostname == heidgaf-1"
       restart_policy:
         condition: on-failure
 
@@ -45,7 +46,8 @@ services:
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-1 ]
+        constraints:
+          - "node.hostname == heidgaf-1"
       restart_policy:
         condition: on-failure
 
@@ -76,7 +78,8 @@ services:
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-1 ]
+        constraints:
+          - "node.hostname == heidgaf-1"
       restart_policy:
         condition: on-failure
 
@@ -106,7 +109,8 @@ services:
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-1 ]
+        constraints:
+          - "node.hostname == heidgaf-1"
       restart_policy:
         condition: on-failure
 
@@ -123,7 +127,8 @@ services:
           cpus: '1'
           memory: 256m
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints:
+          - "node.hostname == heidgaf-2"
     volumes:
       - "../../default.txt:/opt/file.txt"
     environment:
@@ -142,7 +147,8 @@ services:
           cpus: '1'
           memory: 256m
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints:
+          - "node.hostname == heidgaf-2"
     environment:
       - GROUP_ID=log_collection
 
@@ -161,7 +167,8 @@ services:
           cpus: '1'
           memory: 256m
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints:
+          - "node.hostname == heidgaf-2"
     environment:
       - GROUP_ID=log_filtering
 
@@ -180,7 +187,8 @@ services:
           cpus: '1'
           memory: 256m
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints:
+          - "node.hostname == heidgaf-2"
     environment:
       - GROUP_ID=data_inspection
       - NUMBER_OF_INSTANCES=2
@@ -204,7 +212,8 @@ services:
       #              count: 1 # alternatively, use `count: all` for all GPUs
       #              capabilities: [ gpu ]
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints:
+          - "node.hostname == heidgaf-2"
     environment:
       - GROUP_ID=data_analysis
 
@@ -225,7 +234,8 @@ services:
       retries: 3
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-3 ]
+        constraints:
+          - "node.hostname == heidgaf-3"
       restart_policy:
         condition: on-failure
 
@@ -251,7 +261,8 @@ services:
       retries: 3
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-3 ]
+        constraints:
+          - "node.hostname == heidgaf-3"
       restart_policy:
         condition: on-failure
 
@@ -268,7 +279,8 @@ services:
       - clickhouse-server
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-3 ]
+        constraints:
+          - "node.hostname == heidgaf-3"
       restart_policy:
         condition: on-failure
 
