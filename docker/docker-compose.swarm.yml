@@ -1,7 +1,6 @@
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.2
-    container_name: zookeeper
     restart: "unless-stopped"
     networks:
       heidgaf:
@@ -17,10 +16,11 @@ services:
     deploy:
       placement:
         constraints: [ node.hostname == heidgaf-1 ]
+      restart_policy:
+        condition: on-failure
 
   kafka1:
     image: confluentinc/cp-kafka:7.3.2
-    container_name: kafka1
     restart: "unless-stopped"
     networks:
       heidgaf:
@@ -29,8 +29,7 @@ services:
       - "8097:8097"
       - "29092:29092"
     depends_on:
-      zookeeper:
-        condition: service_healthy
+      - zookeeper
     healthcheck:
       test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka1:8097", "--list" ]
       interval: 30s
@@ -49,11 +48,12 @@ services:
     deploy:
       placement:
         constraints: [ node.hostname == heidgaf-1 ]
+      restart_policy:
+        condition: on-failure
 
 
   kafka2:
     image: confluentinc/cp-kafka:7.3.2
-    container_name: kafka2
     restart: "unless-stopped"
     networks:
       heidgaf:
@@ -62,8 +62,7 @@ services:
       - "8098:8098"
       - "29093:29093"
     depends_on:
-      zookeeper:
-        condition: service_healthy
+      - zookeeper
     healthcheck:
       test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka2:8098", "--list" ]
       interval: 30s
@@ -81,10 +80,11 @@ services:
     deploy:
       placement:
         constraints: [ node.hostname == heidgaf-1 ]
+      restart_policy:
+        condition: on-failure
 
   kafka3:
     image: confluentinc/cp-kafka:7.3.2
-    container_name: kafka3
     restart: "unless-stopped"
     networks:
       heidgaf:
@@ -93,8 +93,7 @@ services:
       - "8099:8099"
       - "29094:29094"
     depends_on:
-      zookeeper:
-        condition: service_healthy
+      - zookeeper
     healthcheck:
       test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka3:8099", "--list" ]
       interval: 30s
@@ -112,6 +111,8 @@ services:
     deploy:
       placement:
         constraints: [ node.hostname == heidgaf-1 ]
+      restart_policy:
+        condition: on-failure
 
   logserver:
     build:
@@ -233,7 +234,6 @@ services:
 
   clickhouse-server:
     image: clickhouse/clickhouse-server:24.3.12.75-alpine
-    container_name: clickhouse-server
     volumes:
       - ../../create_tables:/docker-entrypoint-initdb.d
     networks:
@@ -251,10 +251,11 @@ services:
     deploy:
       placement:
         constraints: [ node.hostname == heidgaf-3 ]
+      restart_policy:
+        condition: on-failure
 
   grafana:
     image: grafana/grafana:11.2.2-security-01
-    container_name: grafana
     networks:
       heidgaf:
         ipv4_address: 172.27.0.13
@@ -277,6 +278,8 @@ services:
     deploy:
       placement:
         constraints: [ node.hostname == heidgaf-3 ]
+      restart_policy:
+        condition: on-failure
 
   monitoring_agent:
     build:
@@ -289,17 +292,15 @@ services:
     environment:
       - GROUP_ID=monitoring_agent
     depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-      clickhouse-server:
-        condition: service_healthy
+      - kafka1
+      - kafka2
+      - kafka3
+      - clickhouse-server
     deploy:
       placement:
         constraints: [ node.hostname == heidgaf-3 ]
+      restart_policy:
+        condition: on-failure
 
 networks:
   heidgaf:
