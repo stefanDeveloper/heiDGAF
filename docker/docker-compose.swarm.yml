@@ -274,9 +274,4 @@ services:
 
 networks:
   heidgaf:
-    driver: overlay
-    attachable: true
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.27.0.0/16
+    external: true
