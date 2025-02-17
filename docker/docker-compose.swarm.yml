@@ -232,9 +232,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
-      - grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
-      - grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ./grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
