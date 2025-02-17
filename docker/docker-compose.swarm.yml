@@ -111,13 +111,13 @@ services:
     networks:
       heidgaf:
     deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
     volumes:
@@ -130,13 +130,13 @@ services:
     networks:
       heidgaf:
     deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
     environment:
@@ -149,13 +149,13 @@ services:
     deploy:
       mode: "replicated"
       replicas: 1
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
     environment:
@@ -168,13 +168,13 @@ services:
     deploy:
       mode: "replicated"
       replicas: 2
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
     environment:
@@ -188,17 +188,17 @@ services:
     deploy:
       mode: "replicated"
       replicas: 1
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
-          generic_resources:
-            - discrete_resource_spec:
-                kind: 'gpu'
-                value: 1
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+#          generic_resources:
+#            - discrete_resource_spec:
+#                kind: 'gpu'
+#                value: 1
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
     environment:
