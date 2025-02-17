@@ -192,13 +192,13 @@ services:
         limits:
           cpus: '2'
           memory: 512m
-          reservations:
-            cpus: '1'
-            memory: 256m
-            devices:
-              - driver: nvidia
-                count: 1 # alternatively, use `count: all` for all GPUs
-                capabilities: [ gpu ]
+        reservations:
+          cpus: '1'
+          memory: 256m
+          devices:
+            - driver: nvidia
+              count: 1 # alternatively, use `count: all` for all GPUs
+              capabilities: [ gpu ]
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
     environment:
