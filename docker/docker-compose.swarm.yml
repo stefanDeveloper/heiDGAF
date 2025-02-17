@@ -125,23 +125,23 @@ services:
     environment:
       - GROUP_ID=log_storage
 
-#  logcollector:
-#    image: stefan96/heidgaf-logcollector
-#    networks:
-#      heidgaf:
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '2'
-#          memory: 512m
-#        reservations:
-#          cpus: '1'
-#          memory: 256m
-#      placement:
-#        constraints: [ node.hostname == heidgaf-2 ]
-#    environment:
-#      - GROUP_ID=log_collection
-#
+  logcollector:
+    image: stefan96/heidgaf-logcollector
+    networks:
+      heidgaf:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    environment:
+      - GROUP_ID=log_collection
+
 #  prefilter:
 #    image: stefan96/heidgaf-prefilter
 #    networks:
