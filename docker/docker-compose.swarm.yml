@@ -246,7 +246,7 @@ services:
       retries: 3
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-3 ]
+        constraints: [ node.hostname == heidgaf-1 ]
       restart_policy:
         condition: on-failure
 #
