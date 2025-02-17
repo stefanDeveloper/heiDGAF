@@ -195,10 +195,10 @@ services:
         reservations:
           cpus: '1'
           memory: 256m
-          devices:
-            - driver: nvidia
-              count: 1 # alternatively, use `count: all` for all GPUs
-              capabilities: [ gpu ]
+          generic_resources:
+            - discrete_resource_spec:
+                kind: 'gpu'
+                value: 1
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
     environment:
