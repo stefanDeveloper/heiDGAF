@@ -142,68 +142,68 @@ services:
     environment:
       - GROUP_ID=log_collection
 
-#  prefilter:
-#    image: stefan96/heidgaf-prefilter
-#    networks:
-#      heidgaf:
-#    deploy:
-#      mode: "replicated"
-#      replicas: 1
-#      resources:
-#        limits:
-#          cpus: '2'
-#          memory: 512m
-#        reservations:
-#          cpus: '1'
-#          memory: 256m
-#      placement:
-#        constraints: [ node.hostname == heidgaf-2 ]
-#    environment:
-#      - GROUP_ID=log_filtering
-#
-#  inspector:
-#    image: stefan96/heidgaf-inspector
-#    networks:
-#      heidgaf:
-#    deploy:
-#      mode: "replicated"
-#      replicas: 2
-#      resources:
-#        limits:
-#          cpus: '2'
-#          memory: 512m
-#        reservations:
-#          cpus: '1'
-#          memory: 256m
-#      placement:
-#        constraints: [ node.hostname == heidgaf-2 ]
-#    environment:
-#      - GROUP_ID=data_inspection
-#      - NUMBER_OF_INSTANCES=2
-#
-#  detector:
-#    image: stefan96/heidgaf-detector
-#    networks:
-#      heidgaf:
-#    deploy:
-#      mode: "replicated"
-#      replicas: 1
-#      resources:
-#        limits:
-#          cpus: '2'
-#          memory: 512m
-#      #        reservations:
-#      #          cpus: '1'
-#      #          memory: 256m
-#      #          devices:
-#      #            - driver: nvidia
-#      #              count: 1 # alternatively, use `count: all` for all GPUs
-#      #              capabilities: [ gpu ]
-#      placement:
-#        constraints: [ node.hostname == heidgaf-2 ]
-#    environment:
-#      - GROUP_ID=data_analysis
-#
+  prefilter:
+    image: stefan96/heidgaf-prefilter
+    networks:
+      heidgaf:
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    environment:
+      - GROUP_ID=log_filtering
+
+  inspector:
+    image: stefan96/heidgaf-inspector
+    networks:
+      heidgaf:
+    deploy:
+      mode: "replicated"
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    environment:
+      - GROUP_ID=data_inspection
+      - NUMBER_OF_INSTANCES=2
+
+  detector:
+    image: stefan96/heidgaf-detector
+    networks:
+      heidgaf:
+    deploy:
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+          reservations:
+            cpus: '1'
+            memory: 256m
+            devices:
+              - driver: nvidia
+                count: 1 # alternatively, use `count: all` for all GPUs
+                capabilities: [ gpu ]
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    environment:
+      - GROUP_ID=data_analysis
+
   clickhouse-server:
     image: clickhouse/clickhouse-server:24.3.12.75-alpine
     volumes:
