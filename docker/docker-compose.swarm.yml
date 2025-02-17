@@ -109,7 +109,7 @@ services:
   logserver:
     image: stefan96/heidgaf-logserver
     networks:
-      heidgaf:
+      - heidgaf
     deploy:
 #      resources:
 #        limits:
@@ -128,7 +128,7 @@ services:
   logcollector:
     image: stefan96/heidgaf-logcollector
     networks:
-      heidgaf:
+      - heidgaf
     deploy:
 #      resources:
 #        limits:
@@ -145,7 +145,7 @@ services:
   prefilter:
     image: stefan96/heidgaf-prefilter
     networks:
-      heidgaf:
+      - heidgaf
     deploy:
       mode: "replicated"
       replicas: 1
@@ -164,7 +164,7 @@ services:
   inspector:
     image: stefan96/heidgaf-inspector
     networks:
-      heidgaf:
+      - heidgaf
     deploy:
       mode: "replicated"
       replicas: 2
@@ -184,7 +184,7 @@ services:
   detector:
     image: stefan96/heidgaf-detector
     networks:
-      heidgaf:
+      - heidgaf
     deploy:
       mode: "replicated"
       replicas: 1
@@ -209,8 +209,7 @@ services:
     volumes:
       - ./create_tables:/docker-entrypoint-initdb.d
     networks:
-      heidgaf:
-        ipv4_address: 172.27.0.11
+      - heidgaf
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -249,23 +248,23 @@ services:
         constraints: [ node.hostname == heidgaf-3 ]
       restart_policy:
         condition: on-failure
-#
-#  monitoring_agent:
-#    image: monitoring_agent:latest
-#    networks:
-#      heidgaf:
-#    environment:
-#      - GROUP_ID=monitoring_agent
-#    depends_on:
-#      - kafka1
-#      - kafka2
-#      - kafka3
-#      - clickhouse-server
-#    deploy:
-#      placement:
-#        constraints: [ node.hostname == heidgaf-3 ]
-#      restart_policy:
-#        condition: on-failure
+
+  monitoring_agent:
+    image: monitoring_agent:latest
+    networks:
+      - heidgaf
+    environment:
+      - GROUP_ID=monitoring_agent
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+      - clickhouse-server
+    deploy:
+      placement:
+        constraints: [ node.hostname == heidgaf-3 ]
+      restart_policy:
+        condition: on-failure
 
 networks:
   heidgaf:
