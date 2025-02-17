@@ -15,7 +15,7 @@ services:
       placement:
         constraints: [ node.hostname == heidgaf-1 ]
       restart_policy:
-        condition: none
+        condition: on-failure
 
   kafka1:
     image: confluentinc/cp-kafka:7.3.2
@@ -45,7 +45,7 @@ services:
       placement:
         constraints: [ node.hostname == heidgaf-1 ]
       restart_policy:
-        condition: none
+        condition: on-failure
 
 
   kafka2:
@@ -104,7 +104,7 @@ services:
       placement:
         constraints: [ node.hostname == heidgaf-1 ]
       restart_policy:
-        condition: none
+        condition: on-failure
 
 #  logserver:
 #    image: stefan96/heidgaf-logserver
@@ -204,27 +204,27 @@ services:
 #    environment:
 #      - GROUP_ID=data_analysis
 #
-#  clickhouse-server:
-#    image: clickhouse/clickhouse-server:24.3.12.75-alpine
-#    volumes:
-#      - ../../create_tables:/docker-entrypoint-initdb.d
-#    networks:
-#      heidgaf:
-#        ipv4_address: 172.27.0.11
-#    ports:
-#      - "8123:8123"
-#      - "9000:9000"
-#    healthcheck:
-#      test: [ "CMD-SHELL", "nc -z 127.0.0.1 8123" ]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 3
-#    deploy:
-#      placement:
-#        constraints: [ node.hostname == heidgaf-3 ]
-#      restart_policy:
-#        condition: on-failure
-#
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:24.3.12.75-alpine
+    volumes:
+      - ./create_tables:/docker-entrypoint-initdb.d
+    networks:
+      heidgaf:
+        ipv4_address: 172.27.0.11
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z 127.0.0.1 8123" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      placement:
+        constraints: [ node.hostname == heidgaf-3 ]
+      restart_policy:
+        condition: on-failure
+
   grafana:
     image: grafana/grafana:11.2.2-security-01
     networks:
