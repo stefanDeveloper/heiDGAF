@@ -3,8 +3,7 @@ services:
     image: grafana/grafana:11.2.2-security-01
     container_name: grafana
     networks:
-      heidgaf:
-        ipv4_address: 172.27.0.13
+      - heidgaf
     restart: "unless-stopped"
     ports:
       - "3000:3000"
