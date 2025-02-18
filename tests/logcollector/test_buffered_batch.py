@@ -7,7 +7,8 @@ from src.logcollector.batch_handler import BufferedBatch
 
 
 class TestInit(unittest.TestCase):
-    def test_init(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_init(self, mock_clickhouse):
         # Act
         sut = BufferedBatch()
 
@@ -135,7 +136,8 @@ class TestAddMessage(unittest.TestCase):
 
 
 class TestGetNumberOfMessages(unittest.TestCase):
-    def test_get_number_of_messages_with_empty_batch(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_messages_with_empty_batch(self, mock_clickhouse):
         # Arrange
         key = "test_key"
 
@@ -144,7 +146,8 @@ class TestGetNumberOfMessages(unittest.TestCase):
         # Act and Assert
         self.assertEqual(0, sut.get_message_count_for_batch_key(key))
 
-    def test_get_number_of_messages_with_used_batch_for_key(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_messages_with_used_batch_for_key(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         message = "test_message"
@@ -155,7 +158,10 @@ class TestGetNumberOfMessages(unittest.TestCase):
         # Act and Assert
         self.assertEqual(1, sut.get_message_count_for_batch_key(key))
 
-    def test_get_number_of_messages_with_used_batch_for_other_key(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_messages_with_used_batch_for_other_key(
+        self, mock_clickhouse
+    ):
         # Arrange
         key = "test_key"
         other_key = "other_key"
@@ -168,7 +174,10 @@ class TestGetNumberOfMessages(unittest.TestCase):
         self.assertEqual(0, sut.get_message_count_for_batch_key(key))
         self.assertEqual(1, sut.get_message_count_for_batch_key(other_key))
 
-    def test_get_number_of_messages_with_empty_batch_and_used_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_messages_with_empty_batch_and_used_buffer(
+        self, mock_clickhouse
+    ):
         # Arrange
         key = "test_key"
         other_key = "other_key"
@@ -181,7 +190,10 @@ class TestGetNumberOfMessages(unittest.TestCase):
         self.assertEqual(0, sut.get_message_count_for_batch_key(key))
         self.assertEqual(0, sut.get_message_count_for_batch_key(other_key))
 
-    def test_get_number_of_messages_with_multiple_keys_and_messages(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_messages_with_multiple_keys_and_messages(
+        self, mock_clickhouse
+    ):
         # Arrange
         key_1 = "key_1"
         key_2 = "key_2"
@@ -209,7 +221,8 @@ class TestGetNumberOfMessages(unittest.TestCase):
 
 
 class TestGetNumberOfBufferedMessages(unittest.TestCase):
-    def test_get_number_of_buffered_messages_with_empty_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_buffered_messages_with_empty_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
 
@@ -218,7 +231,10 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         # Act and Assert
         self.assertEqual(0, sut.get_message_count_for_buffer_key(key))
 
-    def test_get_number_of_buffered_messages_with_used_buffer_for_key(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_buffered_messages_with_used_buffer_for_key(
+        self, mock_clickhouse
+    ):
         # Arrange
         key = "test_key"
         message = "test_message"
@@ -229,7 +245,10 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         # Act and Assert
         self.assertEqual(1, sut.get_message_count_for_buffer_key(key))
 
-    def test_get_number_of_buffered_messages_with_used_buffer_for_other_key(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_buffered_messages_with_used_buffer_for_other_key(
+        self, mock_clickhouse
+    ):
         # Arrange
         key = "test_key"
         other_key = "other_key"
@@ -242,7 +261,10 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         self.assertEqual(0, sut.get_message_count_for_buffer_key(key))
         self.assertEqual(1, sut.get_message_count_for_buffer_key(other_key))
 
-    def test_get_number_of_buffered_messages_with_empty_buffer_and_used_batch(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_buffered_messages_with_empty_buffer_and_used_batch(
+        self, mock_clickhouse
+    ):
         # Arrange
         key = "test_key"
         other_key = "other_key"
@@ -255,7 +277,10 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         self.assertEqual(0, sut.get_message_count_for_buffer_key(key))
         self.assertEqual(0, sut.get_message_count_for_buffer_key(other_key))
 
-    def test_get_number_of_buffered_messages_with_multiple_keys_and_messages(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_number_of_buffered_messages_with_multiple_keys_and_messages(
+        self, mock_clickhouse
+    ):
         # Arrange
         key_1 = "key_1"
         key_2 = "key_2"
@@ -283,7 +308,8 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
 
 
 class TestSortMessages(unittest.TestCase):
-    def test_sort_with_empty_list(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_sort_with_empty_list(self, mock_clickhouse):
         # Arrange
         list_of_timestamps_and_loglines = []
         sut = BufferedBatch()
@@ -294,7 +320,8 @@ class TestSortMessages(unittest.TestCase):
         # Assert
         self.assertEqual([], result)
 
-    def test_sort_with_sorted_list(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_sort_with_sorted_list(self, mock_clickhouse):
         # Arrange
         list_of_timestamps_and_loglines = [
             (
@@ -330,7 +357,8 @@ class TestSortMessages(unittest.TestCase):
         # Assert
         self.assertEqual(expected_list, result)
 
-    def test_sort_with_unsorted_list(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_sort_with_unsorted_list(self, mock_clickhouse):
         # Arrange
         list_of_timestamps_and_loglines = [
             (
@@ -368,7 +396,8 @@ class TestSortMessages(unittest.TestCase):
 
 
 class TestExtractTuplesFromJson(unittest.TestCase):
-    def test_empty_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_empty_data(self, mock_clickhouse):
         # Arrange
         sut = BufferedBatch()
         data = []
@@ -379,7 +408,8 @@ class TestExtractTuplesFromJson(unittest.TestCase):
         # Assert
         self.assertEqual([], result)
 
-    def test_with_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_with_data(self, mock_clickhouse):
         # Arrange
         sut = BufferedBatch()
         data = [
@@ -417,7 +447,8 @@ class TestExtractTuplesFromJson(unittest.TestCase):
 
 
 class TestGetFirstTimestampOfBuffer(unittest.TestCase):
-    def test_with_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_with_data(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -438,7 +469,8 @@ class TestGetFirstTimestampOfBuffer(unittest.TestCase):
         # Assert
         self.assertEqual("2024-05-21T08:31:28.119Z", result)
 
-    def test_no_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_no_data(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -451,7 +483,8 @@ class TestGetFirstTimestampOfBuffer(unittest.TestCase):
         # Assert
         self.assertIsNone(result)
 
-    def test_key_does_not_exist(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_key_does_not_exist(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -464,7 +497,8 @@ class TestGetFirstTimestampOfBuffer(unittest.TestCase):
 
 
 class TestGetFirstTimestampOfBatch(unittest.TestCase):
-    def test_with_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_with_data(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -485,7 +519,8 @@ class TestGetFirstTimestampOfBatch(unittest.TestCase):
         # Assert
         self.assertEqual("2025-05-21T08:31:28.119Z", result)
 
-    def test_no_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_no_data(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -498,7 +533,8 @@ class TestGetFirstTimestampOfBatch(unittest.TestCase):
         # Assert
         self.assertIsNone(result)
 
-    def test_key_does_not_exist(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_key_does_not_exist(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -511,7 +547,8 @@ class TestGetFirstTimestampOfBatch(unittest.TestCase):
 
 
 class TestGetLastTimestampOfBatch(unittest.TestCase):
-    def test_with_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_with_data(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -532,7 +569,8 @@ class TestGetLastTimestampOfBatch(unittest.TestCase):
         # Assert
         self.assertEqual("2025-12-21T08:31:28.119Z", result)
 
-    def test_no_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_no_data(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -545,7 +583,8 @@ class TestGetLastTimestampOfBatch(unittest.TestCase):
         # Assert
         self.assertIsNone(result)
 
-    def test_key_does_not_exist(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_key_does_not_exist(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -558,7 +597,8 @@ class TestGetLastTimestampOfBatch(unittest.TestCase):
 
 
 class TestGetLastTimestampOfBuffer(unittest.TestCase):
-    def test_with_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_with_data(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -579,7 +619,8 @@ class TestGetLastTimestampOfBuffer(unittest.TestCase):
         # Assert
         self.assertEqual("2024-12-21T08:31:28.119Z", result)
 
-    def test_no_data(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_no_data(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -592,7 +633,8 @@ class TestGetLastTimestampOfBuffer(unittest.TestCase):
         # Assert
         self.assertIsNone(result)
 
-    def test_key_does_not_exist(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_key_does_not_exist(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -605,7 +647,8 @@ class TestGetLastTimestampOfBuffer(unittest.TestCase):
 
 
 class TestSortBuffer(unittest.TestCase):
-    def test_sort_empty_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_sort_empty_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -617,7 +660,8 @@ class TestSortBuffer(unittest.TestCase):
         # Assert
         self.assertEqual([], sut.buffer)
 
-    def test_sort_sorted_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_sort_sorted_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -643,7 +687,8 @@ class TestSortBuffer(unittest.TestCase):
         # Assert
         self.assertEqual(expected_buffer, sut.buffer[key])
 
-    def test_sort_unsorted_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_sort_unsorted_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -684,7 +729,8 @@ class TestSortBuffer(unittest.TestCase):
 
 
 class TestSortBatch(unittest.TestCase):
-    def test_sort_empty_batch(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_sort_empty_batch(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -696,7 +742,8 @@ class TestSortBatch(unittest.TestCase):
         # Assert
         self.assertEqual([], sut.batch)
 
-    def test_sort_sorted_batch(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_sort_sorted_batch(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -722,7 +769,8 @@ class TestSortBatch(unittest.TestCase):
         # Assert
         self.assertEqual(expected_batch, sut.batch[key])
 
-    def test_sort_unsorted_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_sort_unsorted_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
         sut = BufferedBatch()
@@ -848,7 +896,8 @@ class TestCompleteBatch(unittest.TestCase):
         self.assertEqual({key: [message_3, message_4]}, sut.buffer)
         self.assertEqual({}, sut.batch)
 
-    def test_complete_batch_variant_3(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_complete_batch_variant_3(self, mock_clickhouse):
         # Arrange
         key = "test_key"
 
@@ -862,7 +911,8 @@ class TestCompleteBatch(unittest.TestCase):
         self.assertEqual({}, sut.batch)
         self.assertEqual({}, sut.buffer, "Should have been emptied")
 
-    def test_complete_batch_variant_4(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_complete_batch_variant_4(self, mock_clickhouse):
         # Arrange
         key = "test_key"
 
@@ -877,14 +927,16 @@ class TestCompleteBatch(unittest.TestCase):
 
 
 class TestGetStoredKeys(unittest.TestCase):
-    def test_get_stored_keys_without_any_keys_stored(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_stored_keys_without_any_keys_stored(self, mock_clickhouse):
         # Arrange
         sut = BufferedBatch()
 
         # Act and Assert
         self.assertEqual(set(), sut.get_stored_keys())
 
-    def test_get_stored_keys_with_keys_stored_only_in_batch(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_stored_keys_with_keys_stored_only_in_batch(self, mock_clickhouse):
         # Arrange
         key_1 = "key_1"
         key_2 = "key_2"
@@ -896,7 +948,8 @@ class TestGetStoredKeys(unittest.TestCase):
         # Act and Assert
         self.assertEqual({key_1, key_2, key_3}, sut.get_stored_keys())
 
-    def test_get_stored_keys_with_keys_stored_only_in_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_stored_keys_with_keys_stored_only_in_buffer(self, mock_clickhouse):
         # Arrange
         key_1 = "key_1"
         key_2 = "key_2"
@@ -908,7 +961,10 @@ class TestGetStoredKeys(unittest.TestCase):
         # Act and Assert
         self.assertEqual({key_1, key_2, key_3}, sut.get_stored_keys())
 
-    def test_get_stored_keys_with_keys_stored_in_both_batch_and_buffer(self):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_get_stored_keys_with_keys_stored_in_both_batch_and_buffer(
+        self, mock_clickhouse
+    ):
         # Arrange
         key_1 = "key_1"
         key_2 = "key_2"
