@@ -5,8 +5,7 @@ services:
     volumes:
       - ../../create_tables:/docker-entrypoint-initdb.d
     networks:
-      heidgaf:
-        ipv4_address: 172.27.0.11
+      - heidgaf
     restart: "unless-stopped"
     ports:
       - "8123:8123"

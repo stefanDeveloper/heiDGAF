@@ -86,4 +86,4 @@ environment:
       inspector_to_detector: "pipeline-inspector_to_detector"
   monitoring:
     clickhouse_server:
-      hostname: 172.27.0.11
+      hostname: clickhouse-server

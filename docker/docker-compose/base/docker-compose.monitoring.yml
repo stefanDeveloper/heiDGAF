@@ -17,6 +17,6 @@ services:
       grafana:
         condition: service_healthy
     networks:
-      heidgaf:
+      - heidgaf
     environment:
       - GROUP_ID=monitoring_agent

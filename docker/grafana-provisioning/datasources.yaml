@@ -4,7 +4,7 @@ datasources:
   - name: ClickHouse
     type: grafana-clickhouse-datasource
     jsonData:
-      host: 172.27.0.11
+      host: clickhouse-server
       port: 9000
 
       protocol: native
