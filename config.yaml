@@ -71,11 +71,11 @@ pipeline:
 environment:
   timestamp_format: "%Y-%m-%dT%H:%M:%S.%fZ"
   kafka_brokers:
-    - hostname: 172.27.0.3
+    - hostname: kafka1
       port: 8097
-    - hostname: 172.27.0.4
+    - hostname: kafka2
       port: 8098
-    - hostname: 172.27.0.5
+    - hostname: kafka3
       port: 8099
   kafka_topics:
     pipeline:
