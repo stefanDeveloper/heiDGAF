@@ -399,7 +399,10 @@ class TestResetTimer(unittest.TestCase):
     @patch("src.logcollector.batch_handler.BATCH_TIMEOUT", 5.9)
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.Timer")
-    def test_reset_timer_with_existing_timer(self, mock_timer, mock_produce_handler):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_reset_timer_with_existing_timer(
+        self, mock_clickhouse, mock_timer, mock_produce_handler
+    ):
         # Arrange
         mock_timer_instance = MagicMock()
         mock_timer.return_value = mock_timer_instance
@@ -423,7 +426,10 @@ class TestResetTimer(unittest.TestCase):
     @patch("src.logcollector.batch_handler.BATCH_TIMEOUT", 4.6)
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.Timer")
-    def test_reset_timer_without_existing_timer(self, mock_timer, mock_produce_handler):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
+    def test_reset_timer_without_existing_timer(
+        self, mock_clickhouse, mock_timer, mock_produce_handler
+    ):
         # Arrange
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
