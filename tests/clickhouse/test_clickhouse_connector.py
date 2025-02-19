@@ -728,5 +728,65 @@ class TestAlertsConnector(unittest.TestCase):
             )
 
 
+class TestFillLevelsConnector(unittest.TestCase):
+    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
+    def test_init(self, mock_clickhouse_batch_sender):
+        # Arrange
+        mock_clickhouse_batch_sender_instance = MagicMock()
+        mock_clickhouse_batch_sender.return_value = (
+            mock_clickhouse_batch_sender_instance
+        )
+
+        expected_table_name = "fill_levels"
+        expected_column_names = [
+            "timestamp",
+            "stage",
+            "entry_type",
+            "entry_count",
+        ]
+
+        # Act
+        sut = FillLevelsConnector()
+
+        # Assert
+        self.assertEqual(expected_table_name, sut._table_name)
+        self.assertEqual(expected_column_names, sut._column_names)
+        self.assertEqual(mock_clickhouse_batch_sender_instance, sut._batch_sender)
+
+        mock_clickhouse_batch_sender.assert_called_once_with(
+            table_name=expected_table_name,
+            column_names=expected_column_names,
+        )
+
+    @patch("src.monitoring.clickhouse_connector.ClickHouseBatchSender")
+    def test_insert_all_given(self, mock_clickhouse_batch_sender):
+        # Arrange
+        timestamp = datetime.datetime(2034, 12, 13, 12, 35, 35, 542635)
+        stage = "test_stage"
+        entry_type = "test_entry_type"
+        entry_count = 17
+
+        sut = FillLevelsConnector()
+
+        with patch.object(sut, "_add_to_batch", MagicMock()) as mock_add_to_batch:
+            # Act
+            sut.insert(
+                timestamp=timestamp,
+                stage=stage,
+                entry_type=entry_type,
+                entry_count=entry_count,
+            )
+
+            # Assert
+            mock_add_to_batch.assert_called_once_with(
+                [
+                    datetime.datetime(2034, 12, 13, 12, 35, 35, 542635),
+                    "test_stage",
+                    "test_entry_type",
+                    17,
+                ]
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
