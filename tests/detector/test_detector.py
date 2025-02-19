@@ -274,6 +274,7 @@ class TestSendWarning(unittest.TestCase):
                 "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
             },
         ]
+        sut.messages = [{"logline_id": "test_id"}]
         open_mock = mock_open()
         with patch("src.detector.detector.open", open_mock, create=True):
             sut.send_warning()
@@ -299,6 +300,7 @@ class TestSendWarning(unittest.TestCase):
 
         sut = Detector()
         sut.warnings = []
+        sut.messages = [{"logline_id": "test_id"}]
         open_mock = mock_open()
         with patch("src.detector.detector.open", open_mock, create=True):
             sut.send_warning()
