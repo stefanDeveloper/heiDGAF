@@ -950,6 +950,7 @@ class TestSend(unittest.TestCase):
         data["timestamp"] = datetime.strftime(
             sut.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
         )
+        data["logline_id"] = uuid.UUID("99a427a6-ba3f-4aa2-b848-210d994d9108")
         sut.messages = [data]
         mock_batch_id = uuid.UUID("5ae0872e-5bb9-472c-8c37-8c173213a51f")
         with patch("src.inspector.inspector.uuid") as mock_uuid:

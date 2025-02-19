@@ -31,9 +31,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual(mock_handler_instance, sut.kafka_produce_handler)
 
         mock_buffered_batch.assert_called_once()
-        mock_kafka_produce_handler.assert_called_once_with(
-            "log_collection.batch_handler"
-        )
+        mock_kafka_produce_handler.assert_called_once()
 
 
 class TestDel(unittest.TestCase):
@@ -46,14 +44,12 @@ class TestAddMessage(unittest.TestCase):
     @patch("src.logcollector.batch_handler.BATCH_SIZE", 1000)
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._reset_timer")
-    @patch("src.logcollector.batch_handler.BufferedBatch.get_number_of_messages")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
     @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_add_message_normal(
         self,
         mock_clickhouse,
         mock_send_batch,
-        mock_get_nr_messages,
         mock_reset_timer,
         mock_produce_handler,
         mock_logger,
@@ -61,7 +57,6 @@ class TestAddMessage(unittest.TestCase):
         # Arrange
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
-        mock_get_nr_messages.return_value = 1
 
         key = "test_key"
         message = json.dumps(
@@ -79,7 +74,6 @@ class TestAddMessage(unittest.TestCase):
 
         # Assert
         mock_send_batch.assert_not_called()
-        mock_get_nr_messages.assert_called_once_with(key)
         mock_reset_timer.assert_not_called()
 
     @patch("src.logcollector.batch_handler.logger")

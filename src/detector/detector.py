@@ -336,7 +336,7 @@ class Detector:
                     suspicious_batch_id=self.suspicious_batch_id,
                     overall_score=overall_score,
                     domain_names=json.dumps(
-                        [warning["request"]["domain_name"] for warning in self.warnings]
+                        [warning["request"] for warning in self.warnings]
                     ),
                     result=json.dumps(self.warnings),
                 )

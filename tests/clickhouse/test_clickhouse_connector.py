@@ -675,6 +675,7 @@ class TestAlertsConnector(unittest.TestCase):
             "alert_timestamp",
             "suspicious_batch_id",
             "overall_score",
+            "domain_names",
             "result",
         ]
 
@@ -698,6 +699,7 @@ class TestAlertsConnector(unittest.TestCase):
         alert_timestamp = datetime.datetime(2034, 12, 13, 12, 35, 35, 542635)
         suspicious_batch_id = uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff")
         overall_score = 15.4
+        domain_names = "random.de"
         result = "test"
 
         sut = AlertsConnector()
@@ -709,6 +711,7 @@ class TestAlertsConnector(unittest.TestCase):
                 alert_timestamp=alert_timestamp,
                 suspicious_batch_id=suspicious_batch_id,
                 overall_score=overall_score,
+                domain_names=domain_names,
                 result=result,
             )
 
@@ -719,6 +722,7 @@ class TestAlertsConnector(unittest.TestCase):
                     datetime.datetime(2034, 12, 13, 12, 35, 35, 542635),
                     uuid.UUID("7299539b-6215-4f6b-b39f-69335aafbeff"),
                     15.4,
+                    "random.de",
                     "test",
                 ]
             )
