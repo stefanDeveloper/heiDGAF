@@ -69,7 +69,7 @@ class TestInit(unittest.TestCase):
 
         expected_conf = {
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
-            "transactional.id": "default",
+            "transactional.id": "default_tid",
             "enable.idempotence": True,
         }
 
