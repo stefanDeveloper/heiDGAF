@@ -242,5 +242,63 @@ class TestConsumeAsJSON(unittest.TestCase):
         self.assertEqual((None, {}), returned_values)
 
 
+class TestAllTopicsCreated(unittest.TestCase):
+    @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
+    @patch(
+        "src.base.kafka_handler.KAFKA_BROKERS",
+        [
+            {
+                "hostname": "127.0.0.1",
+                "port": 9999,
+            },
+            {
+                "hostname": "127.0.0.2",
+                "port": 9998,
+            },
+            {
+                "hostname": "127.0.0.3",
+                "port": 9997,
+            },
+        ],
+    )
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
+    @patch("src.base.kafka_handler.Consumer")
+    def setUp(self, mock_consumer, mock_admin_client, mock_all_topics_created):
+        self.sut = KafkaConsumeHandler(topics=["test_topic", "another_topic"])
+
+    @patch("src.base.kafka_handler.Consumer")
+    def test_with_all_created(self, mock_consumer):
+        # Arrange
+        mock_topics = MagicMock()
+        mock_topics.topics = ["test_topic", "another_topic"]
+
+        self.sut.consumer = MagicMock()
+        self.sut.consumer.list_topics.return_value = mock_topics
+
+        # Act and Assert
+        self.assertTrue(
+            self.sut._all_topics_created(topics=["test_topic", "another_topic"])
+        )
+
+    @patch("src.base.kafka_handler.time.sleep")
+    @patch("src.base.kafka_handler.Consumer")
+    def test_with_none_created(self, mock_consumer, mock_sleep):
+        # Arrange
+        mock_topics = MagicMock()
+        mock_topics.topics = []
+
+        self.sut.consumer = MagicMock()
+        self.sut.consumer.list_topics.return_value = mock_topics
+
+        # Act and Assert
+        self.assertFalse(
+            self.sut._all_topics_created(topics=["test_topic", "another_topic"])
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

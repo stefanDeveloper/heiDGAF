@@ -295,7 +295,10 @@ class KafkaConsumeHandler(KafkaHandler):
                 if topic not in assigned_topics.topics:
                     all_topics_created = False
 
-            if number_of_retries_left == 0:
+            if not all_topics_created:
+                number_of_retries_left -= 1
+
+            if not number_of_retries_left > 0:
                 return False
 
             time.sleep(0.5)
