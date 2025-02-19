@@ -91,15 +91,19 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
 class TestSend(unittest.TestCase):
     @patch("src.logserver.server.PRODUCE_TOPIC", "test_topic")
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
+    @patch("src.logserver.server.SimpleKafkaConsumeHandler")
     @patch("src.logserver.server.ClickHouseKafkaSender")
     def test_send(
         self,
         mock_clickhouse,
+        mock_consume_handler,
         mock_produce_handler,
     ):
         # Arrange
         mock_kafka_produce_handler_instance = MagicMock()
+        mock_kafka_consume_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_kafka_produce_handler_instance
+        mock_consume_handler.return_value = mock_kafka_consume_handler_instance
 
         message = "test_message"
         sut = LogServer()
