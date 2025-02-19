@@ -24,8 +24,15 @@ class TestInit(unittest.TestCase):
             },
         ],
     )
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
     @patch("src.base.kafka_handler.Consumer")
-    def test_init_successful(self, mock_consumer):
+    def test_init_successful(
+        self, mock_consumer, mock_admin_client, mock_all_topics_created
+    ):
         # Arrange
         mock_consumer_instance = MagicMock()
         mock_consumer.return_value = mock_consumer_instance
@@ -45,7 +52,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual(mock_consumer_instance, sut.consumer)
 
         mock_consumer.assert_called_once_with(expected_conf)
-        mock_consumer_instance.assign.assert_called_once()
+        mock_consumer_instance.subscribe.assert_called_once()
 
     @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
     @patch(
@@ -65,8 +72,15 @@ class TestInit(unittest.TestCase):
             },
         ],
     )
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
     @patch("src.base.kafka_handler.Consumer")
-    def test_init_successful_with_list(self, mock_consumer):
+    def test_init_successful_with_list(
+        self, mock_consumer, mock_admin_client, mock_all_topics_created
+    ):
         # Arrange
         mock_consumer_instance = MagicMock()
         mock_consumer.return_value = mock_consumer_instance
@@ -86,7 +100,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual(mock_consumer_instance, sut.consumer)
 
         mock_consumer.assert_called_once_with(expected_conf)
-        mock_consumer_instance.assign.assert_called_once()
+        mock_consumer_instance.subscribe.assert_called_once()
 
 
 class TestConsume(unittest.TestCase):
@@ -108,8 +122,15 @@ class TestConsume(unittest.TestCase):
             },
         ],
     )
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
     @patch("src.base.kafka_handler.Consumer")
-    def test_not_implemented(self, mock_consumer):
+    def test_not_implemented(
+        self, mock_consumer, mock_admin_client, mock_all_topics_created
+    ):
         # Arrange
         sut = KafkaConsumeHandler(topics="test_topic")
 
@@ -137,8 +158,13 @@ class TestConsumeAsJSON(unittest.TestCase):
             },
         ],
     )
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
     @patch("src.base.kafka_handler.Consumer")
-    def setUp(self, mock_consumer):
+    def setUp(self, mock_consumer, mock_admin_client, mock_all_topics_created):
         self.sut = KafkaConsumeHandler(topics="test_topic")
 
     def test_successful(self):
