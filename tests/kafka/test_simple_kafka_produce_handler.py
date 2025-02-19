@@ -61,7 +61,7 @@ class TestProduce(unittest.TestCase):
         mock_producer_instance.produce.assert_called_once_with(
             topic="test_topic",
             key=None,
-            value="test_data".encode("utf-8"),
+            value="test_data",
             callback=kafka_delivery_report,
         )
 
