@@ -10,11 +10,10 @@ from confluent_kafka import KafkaException, KafkaError
 from src.base.data_classes.batch import Batch
 from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 
-CONSUMER_GROUP_ID = "test_group_id"
+CONSUMER_GROUP_ID = "default_gid"
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
     @patch(
         "src.base.kafka_handler.KAFKA_BROKERS",
         [
@@ -32,8 +31,13 @@ class TestInit(unittest.TestCase):
             },
         ],
     )
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
     @patch("src.base.kafka_handler.Consumer")
-    def test_init(self, mock_consumer):
+    def test_init(self, mock_consumer, mock_admin_client, mock_all_topics_created):
         mock_consumer_instance = Mock()
         mock_consumer.return_value = mock_consumer_instance
 
@@ -50,10 +54,8 @@ class TestInit(unittest.TestCase):
         self.assertEqual(mock_consumer_instance, sut.consumer)
 
         mock_consumer.assert_called_once_with(expected_conf)
-        mock_consumer_instance.assign.assert_called_once()
+        mock_consumer_instance.subscribe.assert_called_once()
 
-    @patch("src.base.kafka_handler.logger")
-    @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
     @patch(
         "src.base.kafka_handler.KAFKA_BROKERS",
         [
@@ -71,8 +73,13 @@ class TestInit(unittest.TestCase):
             },
         ],
     )
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
     @patch("src.base.kafka_handler.Consumer")
-    def test_init_fail(self, mock_consumer, mock_logger):
+    def test_init_fail(self, mock_consumer, mock_admin_client, mock_all_topics_created):
         mock_consumer_instance = Mock()
         mock_consumer.return_value = mock_consumer_instance
 
@@ -84,7 +91,9 @@ class TestInit(unittest.TestCase):
             "enable.partition.eof": True,
         }
 
-        with patch.object(mock_consumer_instance, "assign", side_effect=KafkaException):
+        with patch.object(
+            mock_consumer_instance, "subscribe", side_effect=KafkaException
+        ):
             with self.assertRaises(KafkaException):
                 sut = ExactlyOnceKafkaConsumeHandler(topics="test_topic")
 
@@ -114,7 +123,12 @@ class TestConsume(unittest.TestCase):
         ],
     )
     @patch("src.base.kafka_handler.Consumer")
-    def setUp(self, mock_consumer):
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
+    def setUp(self, mock_admin_client, mock_all_topics_created, mock_consumer):
         self.mock_consumer = mock_consumer
         self.topics = ["test_topic_1", "test_topic_2"]
         self.sut = ExactlyOnceKafkaConsumeHandler(self.topics)
@@ -209,7 +223,14 @@ class TestDel(unittest.TestCase):
         ],
     )
     @patch("src.base.kafka_handler.Consumer")
-    def test_del_with_existing_consumer(self, mock_consumer):
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
+    def test_del_with_existing_consumer(
+        self, mock_admin_client, mock_all_topics_created, mock_consumer
+    ):
         # Arrange
         mock_consumer_instance = Mock()
         mock_consumer.return_value = mock_consumer_instance
@@ -242,7 +263,14 @@ class TestDel(unittest.TestCase):
         ],
     )
     @patch("src.base.kafka_handler.Consumer")
-    def test_del_with_existing_consumer(self, mock_consumer):
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
+    def test_del_with_existing_consumer(
+        self, mock_admin_client, mock_all_topics_created, mock_consumer
+    ):
         # Arrange
         mock_consumer_instance = Mock()
         mock_consumer.return_value = mock_consumer_instance
@@ -277,7 +305,12 @@ class TestDict(unittest.TestCase):
         ],
     )
     @patch("src.base.kafka_handler.Consumer")
-    def test_dict(self, mock_consumer):
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
+    def test_dict(self, mock_admin_client, mock_all_topics_created, mock_consumer):
         mock_consumer_instance = Mock()
         mock_consumer.return_value = mock_consumer_instance
 
@@ -304,8 +337,13 @@ class TestConsumeAsObject(unittest.TestCase):
             },
         ],
     )
+    @patch(
+        "src.base.kafka_handler.KafkaConsumeHandler._all_topics_created",
+        return_value=True,
+    )
+    @patch("src.base.kafka_handler.AdminClient")
     @patch("src.base.kafka_handler.Consumer")
-    def setUp(self, mock_consumer):
+    def setUp(self, mock_consumer, mock_admin_client, mock_all_topics_created):
         self.sut = ExactlyOnceKafkaConsumeHandler(topics="test_topic")
 
     def test_consume_as_object_no_key_no_value(self):

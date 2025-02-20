@@ -33,9 +33,8 @@ CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
 
 
 class LogCollector:
-    """
-    Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
-    value, invalid loglines are discarded. All valid loglines are sent to the Batch Sender.
+    """Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
+    value, invalid loglines are discarded. All valid loglines are sent to the batch sender.
     """
 
     def __init__(self) -> None:
@@ -48,11 +47,19 @@ class LogCollector:
         self.failed_dns_loglines = ClickHouseKafkaSender("failed_dns_loglines")
         self.dns_loglines = ClickHouseKafkaSender("dns_loglines")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
+        self.fill_levels = ClickHouseKafkaSender("fill_levels")
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
+            )
+        )
 
     async def start(self) -> None:
-        """
-        Starts fetching messages from Kafka and sending them to the :class:`Prefilter`.
-        """
+        """Starts fetching messages from Kafka and sending them to the :class:`Prefilter`."""
         logger.info(
             "LogCollector started:\n"
             f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'"
@@ -73,10 +80,8 @@ class LogCollector:
             logger.info("LogCollector stopped.")
 
     async def fetch(self) -> None:
-        """
-        Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is
-        decoded and stored.
-        """
+        """Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is
+        decoded and stored."""
         loop = asyncio.get_running_loop()
 
         while True:
@@ -88,15 +93,22 @@ class LogCollector:
             await self.store(datetime.datetime.now(), value)
 
     async def send(self) -> None:
-        """
-        Continuously sends the next logline in JSON format to the BatchSender, where it is stored in
-        a temporary batch before being sent to the Prefilter. Adds a subnet ID to the message, that it retrieves
-        from the client's IP address.
+        """Continuously sends the next logline in JSON format to the BatchSender, where it is stored in
+        a temporary batch before being sent to the :class:`Prefilter`. Adds the subnet ID to the message.
         """
         try:
             while True:
                 if not self.loglines.empty():
                     timestamp_in, logline = await self.loglines.get()
+
+                    self.fill_levels.insert(
+                        dict(
+                            timestamp=datetime.datetime.now(),
+                            stage=module_name,
+                            entry_type="total_loglines",
+                            entry_count=self.loglines.qsize(),
+                        )
+                    )
 
                     try:
                         fields = self.logline_handler.validate_logline_and_get_fields_as_json(
@@ -113,7 +125,7 @@ class LogCollector:
                         )
                         continue
 
-                    subnet_id = self.get_subnet_id(
+                    subnet_id = self._get_subnet_id(
                         ipaddress.ip_address(fields.get("client_ip"))
                     )
 
@@ -150,10 +162,6 @@ class LogCollector:
                     message_fields = fields.copy()
                     message_fields["logline_id"] = str(logline_id)
 
-                    self.batch_handler.add_message(
-                        subnet_id, json.dumps(message_fields)
-                    )
-
                     self.logline_timestamps.insert(
                         dict(
                             logline_id=logline_id,
@@ -163,16 +171,30 @@ class LogCollector:
                             is_active=True,
                         )
                     )
+
+                    self.batch_handler.add_message(
+                        subnet_id, json.dumps(message_fields)
+                    )
                     logger.debug(f"Sent: '{logline}'")
                 else:
                     await asyncio.sleep(0.1)
         except KeyboardInterrupt:
             while not self.loglines.empty():
                 logline = await self.loglines.get()
+
+                self.fill_levels.insert(
+                    dict(
+                        timestamp=datetime.datetime.now(),
+                        stage=module_name,
+                        entry_type="total_loglines",
+                        entry_count=self.loglines.qsize(),
+                    )
+                )
+
                 fields = self.logline_handler.validate_logline_and_get_fields_as_json(
                     logline
                 )
-                subnet_id = self.get_subnet_id(
+                subnet_id = self._get_subnet_id(
                     ipaddress.ip_address(fields.get("client_ip"))
                 )
 
@@ -181,8 +203,7 @@ class LogCollector:
             logger.info("Stopped LogCollector.")
 
     async def store(self, timestamp_in: datetime.datetime, message: str):
-        """
-        Stores the given message temporarily.
+        """Stores the message temporarily.
 
         Args:
             timestamp_in (datetime.datetime): Timestamp of entering the pipeline
@@ -190,8 +211,17 @@ class LogCollector:
         """
         await self.loglines.put((timestamp_in, message))
 
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=self.loglines.qsize(),
+            )
+        )
+
     @staticmethod
-    def get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+    def _get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
         """
         Returns the subnet ID of an IP address.
 

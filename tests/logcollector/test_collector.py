@@ -385,7 +385,7 @@ class TestGetSubnetId(unittest.TestCase):
         sut = LogCollector()
 
         # Act
-        result = sut.get_subnet_id(test_address)
+        result = sut._get_subnet_id(test_address)
 
         # Assert
         self.assertEqual(expected_result, result)
@@ -408,7 +408,7 @@ class TestGetSubnetId(unittest.TestCase):
         sut = LogCollector()
 
         # Act
-        result = sut.get_subnet_id(test_address)
+        result = sut._get_subnet_id(test_address)
 
         # Assert
         self.assertEqual(expected_result, result)
@@ -431,7 +431,7 @@ class TestGetSubnetId(unittest.TestCase):
         sut = LogCollector()
 
         # Act
-        result = sut.get_subnet_id(test_address)
+        result = sut._get_subnet_id(test_address)
 
         # Assert
         self.assertEqual(expected_result, result)
@@ -454,7 +454,7 @@ class TestGetSubnetId(unittest.TestCase):
         sut = LogCollector()
 
         # Act
-        result = sut.get_subnet_id(test_address)
+        result = sut._get_subnet_id(test_address)
 
         # Assert
         self.assertEqual(expected_result, result)
@@ -477,7 +477,7 @@ class TestGetSubnetId(unittest.TestCase):
         sut = LogCollector()
 
         # Act
-        result = sut.get_subnet_id(test_address)
+        result = sut._get_subnet_id(test_address)
 
         # Assert
         self.assertEqual(expected_result, result)
@@ -500,7 +500,7 @@ class TestGetSubnetId(unittest.TestCase):
         sut = LogCollector()
 
         # Act
-        result = sut.get_subnet_id(test_address)
+        result = sut._get_subnet_id(test_address)
 
         # Assert
         self.assertEqual(expected_result, result)
@@ -525,7 +525,7 @@ class TestGetSubnetId(unittest.TestCase):
         # Act & Assert
         with self.assertRaises(ValueError):
             # noinspection PyTypeChecker
-            sut.get_subnet_id(test_address)
+            sut._get_subnet_id(test_address)
 
     @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24)
     @patch("src.logcollector.collector.IPV6_PREFIX_LENGTH", 48)
@@ -547,7 +547,7 @@ class TestGetSubnetId(unittest.TestCase):
         # Act & Assert
         with self.assertRaises(ValueError):
             # noinspection PyTypeChecker
-            sut.get_subnet_id(test_address)
+            sut._get_subnet_id(test_address)
 
 
 class TestMain(unittest.TestCase):

@@ -18,7 +18,7 @@ def get_tables():
 
 def query_once(client, tables):
     for table_name in tables.keys():
-        tables[table_name] = client.query(f"SELECT * FROM {table_name};")
+        tables[table_name] = client.query(f"SELECT * FROM {table_name} LIMIT 10;")
 
     return tables
 

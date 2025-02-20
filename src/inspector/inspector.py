@@ -18,7 +18,6 @@ from src.base.kafka_handler import (
     ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
 )
-from src.base.utils import generate_unique_transactional_id
 from src.base.log_config import get_logger
 
 module_name = "data_inspection.inspector"
@@ -88,9 +87,8 @@ class Inspector:
         self.messages = []
         self.anomalies = []
 
-        transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
@@ -99,6 +97,17 @@ class Inspector:
         )
         self.suspicious_batches_to_batch = ClickHouseKafkaSender(
             "suspicious_batches_to_batch"
+        )
+        self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
+        self.fill_levels = ClickHouseKafkaSender("fill_levels")
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
+            )
         )
 
     def get_and_fill_data(self) -> None:
@@ -127,6 +136,15 @@ class Inspector:
                 timestamp=datetime.now(),
                 is_active=True,
                 message_count=len(self.messages),
+            )
+        )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=len(self.messages),
             )
         )
 
@@ -463,12 +481,6 @@ class Inspector:
 
                 batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
-                self.kafka_produce_handler.produce(
-                    topic=PRODUCE_TOPIC,
-                    data=batch_schema.dumps(data_to_send),
-                    key=key,
-                )
-
                 self.suspicious_batch_timestamps.insert(
                     dict(
                         suspicious_batch_id=suspicious_batch_id,
@@ -479,6 +491,12 @@ class Inspector:
                         is_active=True,
                         message_count=len(value),
                     )
+                )
+
+                self.kafka_produce_handler.produce(
+                    topic=PRODUCE_TOPIC,
+                    data=batch_schema.dumps(data_to_send),
+                    key=key,
                 )
         else:  # subnet is not suspicious
             self.batch_timestamps.insert(
@@ -491,6 +509,30 @@ class Inspector:
                     message_count=len(self.messages),
                 )
             )
+
+            logline_ids = set()
+            for message in self.messages:
+                logline_ids.add(message["logline_id"])
+
+            for logline_id in logline_ids:
+                self.logline_timestamps.insert(
+                    dict(
+                        logline_id=logline_id,
+                        stage=module_name,
+                        status="filtered_out",
+                        timestamp=datetime.now(),
+                        is_active=False,
+                    )
+                )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
+            )
+        )
 
 
 def main(one_iteration: bool = False):

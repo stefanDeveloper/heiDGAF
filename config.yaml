@@ -32,8 +32,8 @@ pipeline:
         - [ "response_ip", IpAddress ]
         - [ "size", RegEx, '^\d+b$' ]
     batch_handler:
-      batch_size: 1000
-      batch_timeout: 20.0
+      batch_size: 10000
+      batch_timeout: 30.0
       subnet_id:
         ipv4_prefix_length: 24
         ipv6_prefix_length: 64
@@ -65,25 +65,25 @@ pipeline:
 
   monitoring:
     clickhouse_connector:
-      batch_size: 10000
+      batch_size: 50  # do not set higher
       batch_timeout: 2.0
 
 environment:
   timestamp_format: "%Y-%m-%dT%H:%M:%S.%fZ"
   kafka_brokers:
-    - hostname: 172.27.0.3
+    - hostname: kafka1
       port: 8097
-    - hostname: 172.27.0.4
+    - hostname: kafka2
       port: 8098
-    - hostname: 172.27.0.5
+    - hostname: kafka3
       port: 8099
   kafka_topics:
     pipeline:
-      logserver_in: "pipeline.logserver_in"
-      logserver_to_collector: "pipeline.logserver_to_collector"
-      batch_sender_to_prefilter: "pipeline.batch_sender_to_prefilter"
-      prefilter_to_inspector: "pipeline.prefilter_to_inspector"
-      inspector_to_detector: "pipeline.inspector_to_detector"
+      logserver_in: "pipeline-logserver_in"
+      logserver_to_collector: "pipeline-logserver_to_collector"
+      batch_sender_to_prefilter: "pipeline-batch_sender_to_prefilter"
+      prefilter_to_inspector: "pipeline-prefilter_to_inspector"
+      inspector_to_detector: "pipeline-inspector_to_detector"
   monitoring:
     clickhouse_server:
-      hostname: 172.27.0.11
+      hostname: clickhouse-server

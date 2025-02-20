@@ -301,6 +301,7 @@ class AlertsConnector(ClickHouseConnector):
             "alert_timestamp",
             "suspicious_batch_id",
             "overall_score",
+            "domain_names",
             "result",
         ]
 
@@ -312,6 +313,7 @@ class AlertsConnector(ClickHouseConnector):
         alert_timestamp: datetime.datetime,
         suspicious_batch_id: uuid.UUID,
         overall_score: float,
+        domain_names: str,
         result: str,
     ) -> None:
         self._add_to_batch(
@@ -320,6 +322,35 @@ class AlertsConnector(ClickHouseConnector):
                 alert_timestamp,
                 suspicious_batch_id,
                 overall_score,
+                domain_names,
                 result,
+            ]
+        )
+
+
+class FillLevelsConnector(ClickHouseConnector):
+    def __init__(self):
+        column_names = [
+            "timestamp",
+            "stage",
+            "entry_type",
+            "entry_count",
+        ]
+
+        super().__init__("fill_levels", column_names)
+
+    def insert(
+        self,
+        timestamp: datetime.datetime,
+        stage: str,
+        entry_type: str,
+        entry_count: int,
+    ) -> None:
+        self._add_to_batch(
+            [
+                timestamp,
+                stage,
+                entry_type,
+                entry_count,
             ]
         )

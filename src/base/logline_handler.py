@@ -7,7 +7,13 @@ logger = get_logger()
 
 CONFIG = setup_config()
 LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["logline_format"]
-REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
+REQUIRED_FIELDS = [
+    "timestamp",
+    "status_code",
+    "client_ip",
+    "record_type",
+    "domain_name",
+]
 FORBIDDEN_FIELD_NAMES = [
     "logline_id",
     "batch_id",
@@ -176,11 +182,12 @@ class LoglineHandler:
             True if the logline contains correct fields in the configured format, False otherwise
         """
         parts = logline.split()
+        number_of_entries = len(parts)
 
         # check number of entries
-        if len(parts) != self.number_of_fields:
+        if number_of_entries != self.number_of_fields:
             logger.warning(
-                f"Logline contains {len(parts)} value(s), not {self.number_of_fields}."
+                f"Logline contains {number_of_entries} value(s), not {self.number_of_fields}."
             )
             return False
 
@@ -225,9 +232,8 @@ class LoglineHandler:
         return return_dict.copy()
 
     def validate_logline_and_get_fields_as_json(self, logline: str) -> dict:
-        """
-        Validates the fields and returns them as dictionary, with the names of the fields as key, and the field value
-        as value.
+        """Validates the fields and returns them as dictionary, with the names of the fields as key, and the field
+        value as value.
 
         Args:
             logline (str): Logline as string to be validated

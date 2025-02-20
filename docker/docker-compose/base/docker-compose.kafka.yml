@@ -4,8 +4,7 @@ services:
     container_name: zookeeper
     restart: "unless-stopped"
     networks:
-      heidgaf:
-        ipv4_address: 172.27.0.2
+      - heidgaf
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_SERVER_ID: 1
@@ -20,8 +19,7 @@ services:
     container_name: kafka1
     restart: "unless-stopped"
     networks:
-      heidgaf:
-        ipv4_address: 172.27.0.3
+      - heidgaf
     ports:
       - "8097:8097"
       - "29092:29092"
@@ -35,10 +33,10 @@ services:
       retries: 10
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://172.27.0.3:8097,DOCKER://host.docker.internal:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://kafka1:8097,DOCKER://host.docker.internal:29092
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
@@ -50,8 +48,7 @@ services:
     container_name: kafka2
     restart: "unless-stopped"
     networks:
-      heidgaf:
-        ipv4_address: 172.27.0.4
+      - heidgaf
     ports:
       - "8098:8098"
       - "29093:29093"
@@ -67,7 +64,7 @@ services:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://172.27.0.4:8098,DOCKER://host.docker.internal:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://kafka2:8098,DOCKER://host.docker.internal:29093
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
@@ -78,8 +75,7 @@ services:
     container_name: kafka3
     restart: "unless-stopped"
     networks:
-      heidgaf:
-        ipv4_address: 172.27.0.5
+      - heidgaf
     ports:
       - "8099:8099"
       - "29094:29094"
@@ -95,7 +91,7 @@ services:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://172.27.0.5:8099,DOCKER://host.docker.internal:29094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://kafka3:8099,DOCKER://host.docker.internal:29094
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
@@ -103,9 +99,4 @@ services:
 
 networks:
   heidgaf:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.27.0.0/16
-          gateway: 172.27.0.1
+    external: true

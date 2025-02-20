@@ -1,40 +1,37 @@
-include:
-  - "docker-compose.kafka.yml"
-  - "docker-compose.monitoring.yml"
-
 services:
-  logcollector:
-    build:
-      context: ..
-      dockerfile: docker/dockerfiles/Dockerfile.logcollector
-      network: host
-    restart: "unless-stopped"
+  zookeeper:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: zookeeper
+
+  kafka1:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: kafka1
     depends_on:
-      kafka1:
+      zookeeper:
         condition: service_healthy
-      kafka2:
+
+  kafka2:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: kafka2
+    depends_on:
+      zookeeper:
         condition: service_healthy
-      kafka3:
+
+  kafka3:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka.yml"
+      service: kafka3
+    depends_on:
+      zookeeper:
         condition: service_healthy
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.7
-    memswap_limit: 768m
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
 
   logserver:
-    build:
-      context: ..
-      dockerfile: docker/dockerfiles/Dockerfile.logserver
-      network: host
-    restart: "unless-stopped"
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: logserver
     depends_on:
       kafka1:
         condition: service_healthy
@@ -42,28 +39,11 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.8
-    memswap_limit: 768m
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
-    volumes:
-      - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
 
-
-  inspector:
-    build:
-      context: ..
-      dockerfile: docker/dockerfiles/Dockerfile.inspector
-      network: host
-    restart: "unless-stopped"
+  logcollector:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: logcollector
     depends_on:
       kafka1:
         condition: service_healthy
@@ -71,26 +51,11 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.6
-    deploy:
-      mode: "replicated"
-      replicas: 1
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
 
   prefilter:
-    build:
-      context: ..
-      dockerfile: docker/dockerfiles/Dockerfile.prefilter
-      network: host
-    restart: "unless-stopped"
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: prefilter
     depends_on:
       kafka1:
         condition: service_healthy
@@ -98,26 +63,23 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.9
-    deploy:
-      mode: "replicated"
-      replicas: 1
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+
+  inspector:
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: inspector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
 
   detector:
-    build:
-      context: ..
-      dockerfile: docker/dockerfiles/Dockerfile.detector
-      network: host
-    restart: "unless-stopped"
+    extends:
+      file: "docker-compose/base/docker-compose.pipeline.yml"
+      service: detector
     depends_on:
       kafka1:
         condition: service_healthy
@@ -125,23 +87,30 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
-    networks:
-      heidgaf:
-        ipv4_address: 172.27.0.10
-    deploy:
-      mode: "replicated"
-      replicas: 1
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
-          devices:
-            - driver: nvidia
-              count: 1 # alternatively, use `count: all` for all GPUs
-              capabilities: [ gpu ]
+
+  clickhouse-server:
+    extends:
+      file: "docker-compose/prod/docker-compose.clickhouse.yml"
+      service: clickhouse-server
+
+  grafana:
+    extends:
+      file: "docker-compose/prod/docker-compose.grafana.yml"
+      service: grafana
+
+  monitoring_agent:
+    extends:
+      file: "docker-compose/base/docker-compose.monitoring.yml"
+      service: monitoring_agent
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
 
 networks:
   heidgaf:

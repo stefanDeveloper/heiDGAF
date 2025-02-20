@@ -13,7 +13,8 @@ from src.detector.detector import Detector, WrongChecksum
 
 class TestSha256Sum(unittest.TestCase):
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_sha256_empty_file(self, mock_kafka_consume_handler):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_sha256_empty_file(self, mock_clickhouse, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -23,7 +24,10 @@ class TestSha256Sum(unittest.TestCase):
             sut._sha256sum("")
 
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_sha256_not_existing_file(self, mock_kafka_consume_handler):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_sha256_not_existing_file(
+        self, mock_clickhouse, mock_kafka_consume_handler
+    ):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -49,7 +53,8 @@ class TestFeatures(unittest.TestCase):
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_get_model(self, mock_kafka_consume_handler):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_get_model(self, mock_clickhouse, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -73,7 +78,8 @@ class TestGetModel(unittest.TestCase):
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_get_model(self, mock_kafka_consume_handler):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_get_model(self, mock_clickhouse, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -205,7 +211,10 @@ class TestGetData(unittest.TestCase):
 
     @patch("src.detector.detector.logger")
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_get_data_while_busy(self, mock_kafka_consume_handler, mock_logger):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_get_data_while_busy(
+        self, mock_clickhouse, mock_kafka_consume_handler, mock_logger
+    ):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(
@@ -265,6 +274,7 @@ class TestSendWarning(unittest.TestCase):
                 "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
             },
         ]
+        sut.messages = [{"logline_id": "test_id"}]
         open_mock = mock_open()
         with patch("src.detector.detector.open", open_mock, create=True):
             sut.send_warning()
@@ -290,6 +300,7 @@ class TestSendWarning(unittest.TestCase):
 
         sut = Detector()
         sut.warnings = []
+        sut.messages = [{"logline_id": "test_id"}]
         open_mock = mock_open()
         with patch("src.detector.detector.open", open_mock, create=True):
             sut.send_warning()
@@ -306,7 +317,8 @@ class TestSendWarning(unittest.TestCase):
         "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
     )
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    def test_save_warning_error(self, mock_kafka_consume_handler):
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_save_warning_error(self, mock_clickhouse, mock_kafka_consume_handler):
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -331,8 +343,9 @@ class TestClearData(unittest.TestCase):
 
     @patch("src.detector.detector.logger")
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.detector.detector.ClickHouseKafkaSender")
     def test_clear_data_without_existing_data(
-        self, mock_kafka_consume_handler, mock_logger
+        self, mock_clickhouse, mock_kafka_consume_handler, mock_logger
     ):
         begin = datetime.now()
         end = begin + timedelta(0, 3)
@@ -355,8 +368,9 @@ class TestClearData(unittest.TestCase):
 
     @patch("src.detector.detector.logger")
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.detector.detector.ClickHouseKafkaSender")
     def test_clear_data_with_existing_data(
-        self, mock_kafka_consume_handler, mock_logger
+        self, mock_clickhouse, mock_kafka_consume_handler, mock_logger
     ):
         begin = datetime.now()
         end = begin + timedelta(0, 3)

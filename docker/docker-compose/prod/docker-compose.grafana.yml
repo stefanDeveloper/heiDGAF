@@ -1,0 +1,22 @@
+services:
+  grafana:
+    image: grafana/grafana:11.2.2-security-01
+    container_name: grafana
+    networks:
+      - heidgaf
+    restart: "unless-stopped"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../../grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ../../grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ../../grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 3000" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3

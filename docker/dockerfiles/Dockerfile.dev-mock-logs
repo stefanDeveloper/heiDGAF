@@ -1,0 +1,16 @@
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /usr/src/app
+
+RUN pip --disable-pip-version-check install --no-cache-dir --no-compile marshmallow_dataclass colorlog pyYAML confluent_kafka
+
+COPY src/base ./src/base
+COPY src/mock ./src/mock
+COPY config.yaml .
+COPY docker/mock_logs.dev.py .
+
+RUN rm -rf /root/.cache
+
+CMD [ "python", "mock_logs.dev.py"]

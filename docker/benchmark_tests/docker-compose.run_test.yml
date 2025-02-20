@@ -1,0 +1,20 @@
+services:
+  benchmark_test_run:
+    build:
+      context: ../..
+      dockerfile: docker/benchmark_tests/Dockerfile.run_test
+      network: host
+    networks:
+      docker_heidgaf:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512m
+        reservations:
+          cpus: '1'
+          memory: 256m
+
+networks:
+  docker_heidgaf:
+    external: true

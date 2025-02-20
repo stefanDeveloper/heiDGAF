@@ -1,5 +1,4 @@
 import datetime
-import json
 import os
 import sys
 import uuid
@@ -15,7 +14,6 @@ from src.base.kafka_handler import (
     ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
 )
-from src.base.utils import generate_unique_transactional_id
 from src.base.log_config import get_logger
 from src.base.utils import setup_config
 
@@ -54,12 +52,21 @@ class Prefilter:
 
         self.logline_handler = LoglineHandler()
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
-        transactional_id = generate_unique_transactional_id(module_name, KAFKA_BROKERS)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler(transactional_id)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
+        self.fill_levels = ClickHouseKafkaSender("fill_levels")
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
+            )
+        )
 
     def get_and_fill_data(self) -> None:
         """
@@ -85,6 +92,15 @@ class Prefilter:
                 timestamp=datetime.datetime.now(),
                 is_active=True,
                 message_count=len(self.unfiltered_data),
+            )
+        )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=len(self.unfiltered_data),
             )
         )
 
@@ -121,6 +137,15 @@ class Prefilter:
                     )
                 )
 
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=len(self.filtered_data),
+            )
+        )
+
     def send_filtered_data(self):
         """
         Sends the filtered data if available via the :class:`KafkaProduceHandler`.
@@ -143,6 +168,15 @@ class Prefilter:
                 timestamp=datetime.datetime.now(),
                 is_active=True,
                 message_count=len(self.filtered_data),
+            )
+        )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
             )
         )
 

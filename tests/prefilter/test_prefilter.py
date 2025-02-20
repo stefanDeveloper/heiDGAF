@@ -13,8 +13,13 @@ class TestInit(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_valid_init(
-        self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+        self,
+        mock_clickhouse,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
     ):
         sut = Prefilter()
 
@@ -149,8 +154,10 @@ class TestFilterByError(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_filter_by_error_empty_data(
         self,
+        mock_clickhouse,
         mock_produce_handler,
         mock_consume_handler,
         mock_logline_handler,
@@ -403,8 +410,10 @@ class TestSendFilteredData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_send_without_filtered_data_with_unfiltered_data(
         self,
+        mock_clickhouse,
         mock_produce_handler,
         mock_consume_handler,
         mock_logline_handler,
@@ -425,8 +434,13 @@ class TestSendFilteredData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_send_without_data(
-        self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+        self,
+        mock_clickhouse,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
     ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -445,8 +459,13 @@ class TestClearData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_clear_data_with_data(
-        self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+        self,
+        mock_clickhouse,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
     ):
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
@@ -480,8 +499,13 @@ class TestClearData(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
     def test_clear_data_without_data(
-        self, mock_produce_handler, mock_consume_handler, mock_logline_handler
+        self,
+        mock_clickhouse,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
     ):
         sut = Prefilter()
         sut.unfiltered_data = []

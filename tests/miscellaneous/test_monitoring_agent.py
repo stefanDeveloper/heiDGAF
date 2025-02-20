@@ -59,10 +59,12 @@ class TestInit(unittest.TestCase):
     @patch("src.monitoring.monitoring_agent.SuspiciousBatchesToBatchConnector")
     @patch("src.monitoring.monitoring_agent.SuspiciousBatchTimestampsConnector")
     @patch("src.monitoring.monitoring_agent.AlertsConnector")
+    @patch("src.monitoring.monitoring_agent.FillLevelsConnector")
     @patch("src.monitoring.monitoring_agent.SimpleKafkaConsumeHandler")
     def test_init(
         self,
         mock_kafka_consumer,
+        mock_fill_levels,
         mock_alerts,
         mock_suspicious_batch_timestamps,
         mock_suspicious_batches_to_batch,
@@ -86,6 +88,7 @@ class TestInit(unittest.TestCase):
             "clickhouse_suspicious_batches_to_batch",
             "clickhouse_suspicious_batch_timestamps",
             "clickhouse_alerts",
+            "clickhouse_fill_levels",
         ]
 
         # Act
@@ -110,6 +113,7 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
     @patch("src.monitoring.monitoring_agent.SuspiciousBatchesToBatchConnector")
     @patch("src.monitoring.monitoring_agent.SuspiciousBatchTimestampsConnector")
     @patch("src.monitoring.monitoring_agent.AlertsConnector")
+    @patch("src.monitoring.monitoring_agent.FillLevelsConnector")
     @patch("src.monitoring.monitoring_agent.logger")
     @patch("src.monitoring.monitoring_agent.SimpleKafkaConsumeHandler")
     @patch("asyncio.get_running_loop")
@@ -118,6 +122,7 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         mock_get_running_loop,
         mock_kafka_consume,
         mock_logger,
+        mock_fill_levels,
         mock_alerts,
         mock_suspicious_batch_timestamps,
         mock_suspicious_batches_to_batch,
@@ -167,12 +172,9 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
 
 
 class TestMain(unittest.TestCase):
-    @patch("src.monitoring.monitoring_agent.prepare_all_tables")
     @patch("src.monitoring.monitoring_agent.MonitoringAgent")
     @patch("asyncio.run")
-    def test_main(
-        self, mock_asyncio_run, mock_monitoring_agent, mock_prepare_all_tables
-    ):
+    def test_main(self, mock_asyncio_run, mock_monitoring_agent):
         # Arrange
         mock_agent_instance = Mock()
         mock_monitoring_agent.return_value = mock_agent_instance
@@ -181,7 +183,6 @@ class TestMain(unittest.TestCase):
         main()
 
         # Assert
-        mock_prepare_all_tables.assert_called_once()
         mock_monitoring_agent.assert_called_once()
         mock_asyncio_run.assert_called_once_with(mock_agent_instance.start())
 

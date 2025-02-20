@@ -169,7 +169,24 @@ class Alerts:
     overall_score: float = field(
         metadata={"marshmallow_field": marshmallow.fields.Float()}
     )
+    domain_names: str = field(
+        metadata={"marshmallow_field": marshmallow.fields.String()}
+    )
     result: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+
+
+@dataclass
+class FillLevels:
+    timestamp: datetime.datetime = field(
+        metadata={
+            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
+        }
+    )
+    stage: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    entry_type: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    entry_count: int = field(
+        metadata={"marshmallow_field": marshmallow.fields.Integer()}
+    )
 
 
 TABLE_NAME_TO_TYPE = {
@@ -183,4 +200,5 @@ TABLE_NAME_TO_TYPE = {
     "suspicious_batches_to_batch": SuspiciousBatchesToBatch,
     "suspicious_batch_timestamps": SuspiciousBatchTimestamps,
     "alerts": Alerts,
+    "fill_levels": FillLevels,
 }

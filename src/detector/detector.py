@@ -68,6 +68,17 @@ class Detector:
             "suspicious_batch_timestamps"
         )
         self.alerts = ClickHouseKafkaSender("alerts")
+        self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
+        self.fill_levels = ClickHouseKafkaSender("fill_levels")
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
+            )
+        )
 
     def get_and_fill_data(self) -> None:
         """Consumes data from KafkaConsumeHandler and stores it for processing."""
@@ -96,6 +107,15 @@ class Detector:
                 timestamp=datetime.datetime.now(),
                 is_active=True,
                 message_count=len(self.messages),
+            )
+        )
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=len(self.messages),
             )
         )
 
@@ -315,21 +335,75 @@ class Detector:
                     alert_timestamp=datetime.datetime.now(),
                     suspicious_batch_id=self.suspicious_batch_id,
                     overall_score=overall_score,
+                    domain_names=json.dumps(
+                        [warning["request"] for warning in self.warnings]
+                    ),
                     result=json.dumps(self.warnings),
                 )
             )
+
+            self.suspicious_batch_timestamps.insert(
+                dict(
+                    suspicious_batch_id=self.suspicious_batch_id,
+                    client_ip=self.key,
+                    stage=module_name,
+                    status="finished",
+                    timestamp=datetime.datetime.now(),
+                    is_active=False,
+                    message_count=len(self.messages),
+                )
+            )
+
+            logline_ids = set()
+            for message in self.messages:
+                logline_ids.add(message["logline_id"])
+
+            for logline_id in logline_ids:
+                self.logline_timestamps.insert(
+                    dict(
+                        logline_id=logline_id,
+                        stage=module_name,
+                        status="detected",
+                        timestamp=datetime.datetime.now(),
+                        is_active=False,
+                    )
+                )
         else:
             logger.info("No warning produced.")
 
-        self.suspicious_batch_timestamps.insert(
+            self.suspicious_batch_timestamps.insert(
+                dict(
+                    suspicious_batch_id=self.suspicious_batch_id,
+                    client_ip=self.key,
+                    stage=module_name,
+                    status="filtered_out",
+                    timestamp=datetime.datetime.now(),
+                    is_active=False,
+                    message_count=len(self.messages),
+                )
+            )
+
+            logline_ids = set()
+            for message in self.messages:
+                logline_ids.add(message["logline_id"])
+
+            for logline_id in logline_ids:
+                self.logline_timestamps.insert(
+                    dict(
+                        logline_id=logline_id,
+                        stage=module_name,
+                        status="filtered_out",
+                        timestamp=datetime.datetime.now(),
+                        is_active=False,
+                    )
+                )
+
+        self.fill_levels.insert(
             dict(
-                suspicious_batch_id=self.suspicious_batch_id,
-                client_ip=self.key,
-                stage=module_name,
-                status="finished",
                 timestamp=datetime.datetime.now(),
-                is_active=False,
-                message_count=len(self.messages),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
             )
         )
 
