@@ -210,14 +210,45 @@ class BurstTest(ScalabilityTest):
             self.interval_lengths.append(normal_rate_interval_length)
 
 
-class LongTermTest(ScalabilityTest):
-    """Starts with a low rate and increases the rate in fixed intervals."""
+class LongTermTest:
+    """Keeps a consistent rate for a long time."""
 
-    def __init__(self, full_length: float | int, msg_per_sec: float | int):
-        super().__init__()
+    def __init__(self, full_length_in_min: float | int, msg_per_sec: float | int):
+        self.dataset_generator = DatasetGenerator()
+        self.kafka_producer = SimpleKafkaProduceHandler()
 
-        self.msg_per_sec_in_intervals = [msg_per_sec]
-        self.interval_lengths = [full_length]
+        self.msg_per_sec = msg_per_sec
+        self.full_length_in_min = full_length_in_min
+
+    def execute(self):
+        """Executes the test with the configured parameters."""
+        start_timestamp = datetime.datetime.now()
+        logger.warning(
+            f"Start {self.full_length_in_min} minute-test with "
+            f"rate {self.msg_per_sec} msg/sec at: {start_timestamp}"
+        )
+
+        cur_index = 0
+        while datetime.datetime.now() - start_timestamp < datetime.timedelta(
+            seconds=self.full_length_in_min
+        ):
+            try:
+                self.kafka_producer.produce(
+                    PRODUCE_TO_TOPIC,
+                    self.dataset_generator.generate_random_logline(),
+                )
+                logger.info(
+                    f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
+                )
+                cur_index += 1
+            except KafkaError:
+                logger.warning(KafkaError)
+            time.sleep(1.0 / self.msg_per_sec)
+
+        logger.warning(
+            f"Stop at: {datetime.datetime.now()}, sent {cur_index} messages in the "
+            f"past {(datetime.datetime.now() - start_timestamp).total_seconds() / 60} minutes."
+        )
 
 
 def main():
@@ -238,7 +269,7 @@ def main():
     burst_test.execute()
 
     # long_term_test = LongTermTest(
-    #     full_length=10.4,
+    #     full_length_in_min=10,
     #     msg_per_sec=15,
     # )
     # long_term_test.execute()
