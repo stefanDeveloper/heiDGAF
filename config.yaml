@@ -71,11 +71,11 @@ pipeline:
 environment:
   timestamp_format: "%Y-%m-%dT%H:%M:%S.%fZ"
   kafka_brokers:
-    - hostname: kafka1
+    - hostname: tasks.kafka1
       port: 8097
-    - hostname: kafka2
+    - hostname: tasks.kafka2
       port: 8098
-    - hostname: kafka3
+    - hostname: tasks.kafka3
       port: 8099
   kafka_topics:
     pipeline:
@@ -86,4 +86,4 @@ environment:
       inspector_to_detector: "pipeline-inspector_to_detector"
   monitoring:
     clickhouse_server:
-      hostname: clickhouse-server
+      hostname: tasks.clickhouse-server
