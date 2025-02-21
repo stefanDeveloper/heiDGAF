@@ -230,7 +230,7 @@ class LongTermTest:
 
         cur_index = 0
         while datetime.datetime.now() - start_timestamp < datetime.timedelta(
-            seconds=self.full_length_in_min
+            minutes=self.full_length_in_min
         ):
             try:
                 self.kafka_producer.produce(
@@ -280,7 +280,7 @@ def main(test_type_nr):
 
         case 3:
             maximum_throughput_test = MaximumThroughputTest(
-                length_in_min=10,
+                length_in_min=1,
             )
             maximum_throughput_test.execute()
 
