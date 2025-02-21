@@ -250,7 +250,7 @@ services:
         condition: on-failure
 
   monitoring_agent:
-    image: monitoring_agent:latest
+    image: stefan96/heidgaf-monitoring
     networks:
       - heidgaf
     environment:
