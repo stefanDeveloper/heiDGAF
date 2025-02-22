@@ -1,0 +1,102 @@
+services:
+  logserver:
+    image: stefan96/heidgaf-logserver
+    networks:
+      - heidgaf
+    deploy:
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    volumes:
+      - ./default.txt:/opt/file.txt
+    environment:
+      - GROUP_ID=log_storage
+
+  logcollector:
+    image: stefan96/heidgaf-logcollector
+    networks:
+      - heidgaf
+    deploy:
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    environment:
+      - GROUP_ID=log_collection
+
+  prefilter:
+    image: stefan96/heidgaf-prefilter
+    networks:
+      - heidgaf
+    deploy:
+      mode: "replicated"
+      replicas: 1
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    environment:
+      - GROUP_ID=log_filtering
+
+  inspector:
+    image: stefan96/heidgaf-inspector
+    networks:
+      - heidgaf
+    deploy:
+      mode: "replicated"
+      replicas: 2
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    environment:
+      - GROUP_ID=data_inspection
+      - NUMBER_OF_INSTANCES=2
+
+  detector:
+    image: stefan96/heidgaf-detector
+    networks:
+      - heidgaf
+    deploy:
+      mode: "replicated"
+      replicas: 1
+#      resources:
+#        limits:
+#          cpus: '2'
+#          memory: 512m
+#        reservations:
+#          cpus: '1'
+#          memory: 256m
+#          generic_resources:
+#            - discrete_resource_spec:
+#                kind: 'gpu'
+#                value: 1
+      placement:
+        constraints: [ node.hostname == heidgaf-2 ]
+    environment:
+      - GROUP_ID=data_analysis
+
+networks:
+  heidgaf:
+    external: true
