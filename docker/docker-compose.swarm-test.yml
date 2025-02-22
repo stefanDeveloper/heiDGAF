@@ -214,7 +214,6 @@ services:
     ports:
       - "8123:8123"
       - "9000:9000"
-      - "9009:9009"
     healthcheck:
       test: [ "CMD-SHELL", "nc -z localhost 8123" ]
       interval: 10s
