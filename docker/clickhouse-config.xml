@@ -220,13 +220,12 @@
 
 
     <!-- Same for hosts without support for IPv6: -->
-    <listen_host>10.13.37.25</listen_host>
+    <!-- <listen_host>10.13.37.25</listen_host> -->
 
     <!-- Default values - try listen localhost on IPv4 and IPv6. -->
-    <!--
     <listen_host>::1</listen_host>
     <listen_host>127.0.0.1</listen_host>
-    -->
+
 
     <!-- <interserver_listen_host>::</interserver_listen_host> -->
     <!-- Listen host for communication between replicas. Used for data exchange -->
