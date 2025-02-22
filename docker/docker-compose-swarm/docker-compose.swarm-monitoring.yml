@@ -2,7 +2,7 @@ services:
   clickhouse-server:
     image: clickhouse/clickhouse-server:24.3.12.75-alpine
     volumes:
-      - ./create_tables:/docker-entrypoint-initdb.d
+      - ../create_tables:/docker-entrypoint-initdb.d
     networks:
       - heidgaf
     ports:
@@ -26,9 +26,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
-      - ./grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
-      - ./grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ../grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ../grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ../grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
