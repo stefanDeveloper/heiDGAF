@@ -208,6 +208,8 @@ services:
     image: clickhouse/clickhouse-server:24.3.12.75-alpine
     volumes:
       - ./create_tables:/docker-entrypoint-initdb.d
+    environment:
+      CLICKHOUSE_HOST: 0.0.0.0
     networks:
       - heidgaf
     ports:
@@ -222,7 +224,7 @@ services:
       placement:
         constraints: [ node.hostname == heidgaf-3 ]
       restart_policy:
-        condition: on-failure
+        condition: none
 
   grafana:
     image: grafana/grafana:11.2.2-security-01
@@ -264,7 +266,7 @@ services:
       placement:
         constraints: [ node.hostname == heidgaf-3 ]
       restart_policy:
-        condition: on-failure
+        condition: none
 
 networks:
   heidgaf:
