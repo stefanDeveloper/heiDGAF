@@ -1,0 +1,14 @@
+services:
+  benchmark_test_run:
+    image: benchmark_test_run
+    networks:
+      heidgaf:
+    deploy:
+      placement:
+        constraints: [ node.hostname == heidgaf-1 ]
+      restart_policy:
+        condition: none
+
+networks:
+  docker_heidgaf:
+    external: true
