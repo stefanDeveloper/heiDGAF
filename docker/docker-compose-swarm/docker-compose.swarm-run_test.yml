@@ -10,5 +10,5 @@ services:
         condition: none
 
 networks:
-  docker_heidgaf:
+  heidgaf:
     external: true
