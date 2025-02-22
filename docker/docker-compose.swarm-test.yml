@@ -224,7 +224,7 @@ services:
       placement:
         constraints: [ node.hostname == heidgaf-3 ]
       restart_policy:
-        condition: none
+        condition: on-failure
 #
 #  grafana:
 #    image: grafana/grafana:11.2.2-security-01
