@@ -208,7 +208,7 @@ services:
     image: clickhouse/clickhouse-server:24.3.12.75-alpine
     volumes:
       - ./create_tables:/docker-entrypoint-initdb.d
-    command: ["--listen_host", "10.13.37.25"]
+      - ./config.xml:/etc/clickhouse-server/config.d/listen_host.xml
     networks:
       - heidgaf
     ports:
