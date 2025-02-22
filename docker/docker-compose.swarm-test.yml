@@ -208,7 +208,7 @@ services:
     image: clickhouse/clickhouse-server:24.3.12.75-alpine
     volumes:
       - ./create_tables:/docker-entrypoint-initdb.d
-      - ./config.xml:/etc/clickhouse-server/config.xml
+#      - ./config.xml:/etc/clickhouse-server/config.xml
     networks:
       - heidgaf
     ports:
