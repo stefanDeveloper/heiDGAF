@@ -1,4 +1,0 @@
-<clickhouse>
-    <listen_host>10.13.37.25</listen_host>
-    <listen_try>1</listen_try>
-</clickhouse>
