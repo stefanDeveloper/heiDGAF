@@ -210,39 +210,96 @@ class BurstTest(ScalabilityTest):
             self.interval_lengths.append(normal_rate_interval_length)
 
 
-class LongTermTest(ScalabilityTest):
-    """Starts with a low rate and increases the rate in fixed intervals."""
+class LongTermTest:
+    """Keeps a consistent rate for a long time."""
 
-    def __init__(self, full_length: float | int, msg_per_sec: float | int):
-        super().__init__()
+    def __init__(self, full_length_in_min: float | int, msg_per_sec: float | int):
+        self.dataset_generator = DatasetGenerator()
+        self.kafka_producer = SimpleKafkaProduceHandler()
 
-        self.msg_per_sec_in_intervals = [msg_per_sec]
-        self.interval_lengths = [full_length]
+        self.msg_per_sec = msg_per_sec
+        self.full_length_in_min = full_length_in_min
+
+    def execute(self):
+        """Executes the test with the configured parameters."""
+        start_timestamp = datetime.datetime.now()
+        logger.warning(
+            f"Start {self.full_length_in_min} minute-test with "
+            f"rate {self.msg_per_sec} msg/sec at: {start_timestamp}"
+        )
+
+        cur_index = 0
+        while datetime.datetime.now() - start_timestamp < datetime.timedelta(
+            minutes=self.full_length_in_min
+        ):
+            try:
+                self.kafka_producer.produce(
+                    PRODUCE_TO_TOPIC,
+                    self.dataset_generator.generate_random_logline(),
+                )
+                logger.info(
+                    f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
+                )
+                cur_index += 1
+            except KafkaError:
+                logger.warning(KafkaError)
+            time.sleep(1.0 / self.msg_per_sec)
+
+        logger.warning(
+            f"Stop at: {datetime.datetime.now()}, sent {cur_index} messages in the "
+            f"past {(datetime.datetime.now() - start_timestamp).total_seconds() / 60} minutes."
+        )
 
 
-def main():
+class MaximumThroughputTest(LongTermTest):
+    """Keeps a consistent rate that is too high to be handled."""
+
+    def __init__(self, length_in_min: float | int, msg_per_sec: int = 10000):
+        super().__init__(full_length_in_min=length_in_min, msg_per_sec=msg_per_sec)
+
+
+def main(test_type_nr):
     """Creates the test instance and executes the test."""
-    # ramp_up_test = RampUpTest(
-    #     msg_per_sec_in_intervals=[1, 10, 50, 100, 150],
-    #     interval_length_in_sec=[10, 5, 4, 4, 2],
-    # )
-    # ramp_up_test.execute()
+    match test_type_nr:
+        case 1:
+            ramp_up_test = RampUpTest(
+                msg_per_sec_in_intervals=[1, 10, 50, 100, 150, 200],
+                interval_length_in_sec=[30, 30, 30, 30, 30, 30],
+            )
+            ramp_up_test.execute()
 
-    burst_test = BurstTest(
-        normal_rate_msg_per_sec=20,
-        burst_rate_msg_per_sec=10000,
-        normal_rate_interval_length=10,
-        burst_rate_interval_length=2,
-        number_of_intervals=3,
-    )
-    burst_test.execute()
+        case 2:
+            burst_test = BurstTest(
+                normal_rate_msg_per_sec=20,
+                burst_rate_msg_per_sec=10000,
+                normal_rate_interval_length=10,
+                burst_rate_interval_length=2,
+                number_of_intervals=3,
+            )
+            burst_test.execute()
 
-    # long_term_test = LongTermTest(
-    #     full_length=10.4,
-    #     msg_per_sec=15,
-    # )
-    # long_term_test.execute()
+        case 3:
+            maximum_throughput_test = MaximumThroughputTest(
+                length_in_min=1,
+            )
+            maximum_throughput_test.execute()
+
+        case 4:
+            long_term_test = LongTermTest(
+                full_length_in_min=10,
+                msg_per_sec=15,
+            )
+            long_term_test.execute()
+
+        case _:
+            pass
 
 
 if __name__ == "__main__":
-    main()
+    """
+    1 - Ramp-up test
+    2 - Burst test
+    3 - Maximum throughput test
+    4 - Long-term test
+    """
+    main(1)

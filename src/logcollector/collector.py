@@ -200,8 +200,6 @@ class LogCollector:
 
                 self.batch_handler.add_message(subnet_id, json.dumps(fields))
 
-            logger.info("Stopped LogCollector.")
-
     async def store(self, timestamp_in: datetime.datetime, message: str):
         """Stores the message temporarily.
 
