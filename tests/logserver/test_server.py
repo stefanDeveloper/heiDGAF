@@ -3,7 +3,7 @@ import os
 import tempfile
 import unittest
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch, ANY
 from uuid import UUID
 
 import aiofiles
@@ -47,6 +47,7 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
     ):
         self.sut = LogServer()
 
+    @patch("src.logserver.server.LogServer.send")
     @patch("src.logserver.server.LogServer.fetch_from_kafka")
     @patch("src.logserver.server.LogServer.fetch_from_file")
     @patch("src.logserver.server.ClickHouseKafkaSender")
@@ -55,6 +56,7 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         mock_clickhouse,
         mock_fetch_from_file,
         mock_fetch_from_kafka,
+        mock_send,
     ):
         # Act
         await self.sut.start()
@@ -62,6 +64,7 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         # Assert
         mock_fetch_from_kafka.assert_called_once()
         mock_fetch_from_file.assert_called_once()
+        mock_send.assert_called_once()
 
     @patch("src.logserver.server.LogServer.fetch_from_kafka")
     @patch("src.logserver.server.LogServer.fetch_from_file")
@@ -121,7 +124,7 @@ class TestSend(unittest.TestCase):
 class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
     @patch("src.logserver.server.SimpleKafkaConsumeHandler")
-    @patch("src.logserver.server.LogServer.send")
+    @patch("src.logserver.server.LogServer.store")
     @patch("src.logserver.server.logger")
     @patch("asyncio.get_running_loop")
     @patch("src.logserver.server.ClickHouseKafkaSender")
@@ -132,7 +135,7 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
         mock_clickhouse,
         mock_get_running_loop,
         mock_logger,
-        mock_send,
+        mock_store,
         mock_kafka_consume,
         mock_kafka_produce,
     ):
@@ -141,8 +144,8 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
         mock_uuid_instance = MagicMock()
         mock_uuid.return_value = mock_uuid_instance
         mock_uuid.uuid4.return_value = UUID("bd72ccb4-0ef2-4100-aa22-e787122d6875")
-        mock_send_instance = AsyncMock()
-        mock_send.return_value = mock_send_instance
+        mock_store_instance = AsyncMock()
+        mock_store.return_value = mock_store_instance
         mock_loop = AsyncMock()
         mock_get_running_loop.return_value = mock_loop
         self.sut.kafka_consume_handler.consume.return_value = (
@@ -159,8 +162,8 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await self.sut.fetch_from_kafka()
 
-        mock_send.assert_called_once_with(
-            UUID("bd72ccb4-0ef2-4100-aa22-e787122d6875"), "value1"
+        mock_store.assert_called_once_with(
+            ANY, UUID("bd72ccb4-0ef2-4100-aa22-e787122d6875"), "value1"
         )
 
 
@@ -169,21 +172,21 @@ class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
     @patch("src.logserver.server.SimpleKafkaConsumeHandler")
     @patch("src.logserver.server.PRODUCE_TOPIC", "test_topic")
-    @patch("src.logserver.server.LogServer.send")
+    @patch("src.logserver.server.LogServer.store")
     @patch("src.logserver.server.logger")
     @patch("src.logserver.server.ClickHouseKafkaSender")
     async def test_fetch_from_file(
         self,
         mock_clickhouse,
         mock_logger,
-        mock_send,
+        mock_store,
         mock_kafka_consume,
         mock_kafka_produce,
     ):
         self.sut = LogServer()
 
         mock_send_instance = AsyncMock()
-        mock_send.return_value = mock_send_instance
+        mock_store.return_value = mock_send_instance
 
         with tempfile.NamedTemporaryFile(
             delete=False, mode="w+", newline=""
@@ -210,7 +213,7 @@ class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
         finally:
             os.remove(temp_file_path)
 
-        self.assertEqual(2, mock_send.call_count)
+        self.assertEqual(2, mock_store.call_count)
 
 
 class TestMain(unittest.TestCase):

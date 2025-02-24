@@ -39,12 +39,23 @@ class LogServer:
     """
 
     def __init__(self) -> None:
+        self.messages = asyncio.Queue()
         self.kafka_consume_handler = SimpleKafkaConsumeHandler(CONSUME_TOPIC)
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
         self.server_logs = ClickHouseKafkaSender("server_logs")
         self.server_logs_timestamps = ClickHouseKafkaSender("server_logs_timestamps")
+        self.fill_levels = ClickHouseKafkaSender("fill_levels")
+
+        self.fill_levels.insert(
+            dict(
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=0,
+            )
+        )
 
     async def start(self) -> None:
         """
@@ -59,35 +70,98 @@ class LogServer:
 
         task_fetch_kafka = asyncio.Task(self.fetch_from_kafka())
         task_fetch_file = asyncio.Task(self.fetch_from_file())
+        task_send = asyncio.Task(self.send())
 
         try:
             task = asyncio.gather(
                 task_fetch_kafka,
                 task_fetch_file,
+                task_send,
             )
             await task
         except KeyboardInterrupt:
             task_fetch_kafka.cancel()
             task_fetch_file.cancel()
+            task_send.cancel()
 
             logger.info("LogServer stopped.")
 
-    def send(self, message_id: uuid.UUID, message: str) -> None:
-        """
-        Sends a received message using Kafka.
+    async def send(self) -> None:
+        """Sends a received message to the LogCollector using Kafka."""
+        try:
+            while True:
+                if not self.messages.empty():
+                    timestamp_in, message_id, message = await self.messages.get()
+
+                    self.fill_levels.insert(
+                        dict(
+                            timestamp=datetime.datetime.now(),
+                            stage=module_name,
+                            entry_type="total_loglines",
+                            entry_count=self.messages.qsize(),
+                        )
+                    )
+
+                    self.kafka_produce_handler.produce(
+                        topic=PRODUCE_TOPIC, data=message
+                    )
+                    logger.debug(f"Sent: '{message}'")
+
+                    self.server_logs_timestamps.insert(
+                        dict(
+                            message_id=message_id,
+                            event="timestamp_out",
+                            event_timestamp=datetime.datetime.now(),
+                        )
+                    )
+
+                    logger.debug(f"Sent: '{message}'")
+                else:
+                    await asyncio.sleep(0.1)
+        except KeyboardInterrupt:
+            while not self.messages.empty():
+                timestamp_in, message_id, message = await self.messages.get()
+
+                self.fill_levels.insert(
+                    dict(
+                        timestamp=datetime.datetime.now(),
+                        stage=module_name,
+                        entry_type="total_loglines",
+                        entry_count=self.messages.qsize(),
+                    )
+                )
+
+                self.kafka_produce_handler.produce(topic=PRODUCE_TOPIC, data=message)
+                logger.debug(f"Sent: '{message}'")
+
+                self.server_logs_timestamps.insert(
+                    dict(
+                        message_id=message_id,
+                        event="timestamp_out",
+                        event_timestamp=datetime.datetime.now(),
+                    )
+                )
+
+                logger.debug(f"Sent: '{message}'")
+
+    async def store(
+        self, timestamp_in: datetime.datetime, message_id: uuid.UUID, message: str
+    ):
+        """Stores the message temporarily.
 
         Args:
-            message_id (uuid.UUID): UUID of the message
-            message (str): Message to be sent
+            timestamp_in (datetime.datetime): Timestamp of entering the pipeline
+            message_id (uuid.UUID): Message ID that was assigned to the message
+            message (str): Message to be stored
         """
-        self.kafka_produce_handler.produce(topic=PRODUCE_TOPIC, data=message)
-        logger.debug(f"Sent: '{message}'")
+        await self.messages.put((timestamp_in, message_id, message))
 
-        self.server_logs_timestamps.insert(
+        self.fill_levels.insert(
             dict(
-                message_id=message_id,
-                event="timestamp_out",
-                event_timestamp=datetime.datetime.now(),
+                timestamp=datetime.datetime.now(),
+                stage=module_name,
+                entry_type="total_loglines",
+                entry_count=self.messages.qsize(),
             )
         )
 
@@ -112,7 +186,7 @@ class LogServer:
                 )
             )
 
-            self.send(message_id, value)
+            await self.store(datetime.datetime.now(), message_id, value)
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
         """
@@ -149,7 +223,7 @@ class LogServer:
                         )
                     )
 
-                    self.send(message_id, cleaned_line)
+                    await self.store(datetime.datetime.now(), message_id, cleaned_line)
 
 
 def main() -> None:
