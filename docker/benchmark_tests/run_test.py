@@ -264,7 +264,7 @@ def main(test_type_nr):
         case 1:
             ramp_up_test = RampUpTest(
                 msg_per_sec_in_intervals=[1, 10, 50, 100, 150, 200],
-                interval_length_in_sec=[10, 10, 10, 10, 10, 10],
+                interval_length_in_sec=[30, 30, 30, 30, 30, 30],
             )
             ramp_up_test.execute()
 
