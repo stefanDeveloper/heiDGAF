@@ -61,8 +61,8 @@ class MonitoringAgent:
     async def start(self):
         loop = asyncio.get_running_loop()
 
-        try:
-            while True:
+        while True:
+            try:
                 key, value, topic = await loop.run_in_executor(
                     None, self.kafka_consumer.consume
                 )
@@ -75,10 +75,11 @@ class MonitoringAgent:
                 data = data_schema.loads(value)
 
                 self.connectors[table_name].insert(**asdict(data))
-        except KeyboardInterrupt:
-            logger.info("Stopped MonitoringAgent.")
-        except Exception as e:
-            logger.warning(e)
+            except KeyboardInterrupt:
+                logger.info("Stopped MonitoringAgent.")
+                break
+            except Exception as e:
+                logger.warning(e)
 
 
 def main():
