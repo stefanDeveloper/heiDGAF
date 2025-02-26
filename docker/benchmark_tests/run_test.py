@@ -278,7 +278,7 @@ def main(test_type_nr):
 
         case 2:
             burst_test = BurstTest(
-                normal_rate_msg_per_sec=80,
+                normal_rate_msg_per_sec=50,
                 burst_rate_msg_per_sec=1000,
                 normal_rate_interval_length=120,
                 burst_rate_interval_length=2,
