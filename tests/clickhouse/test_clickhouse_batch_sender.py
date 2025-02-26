@@ -1,8 +1,53 @@
 import datetime
 import unittest
+from typing import Optional
 from unittest.mock import patch, Mock
 
-from src.monitoring.clickhouse_batch_sender import ClickHouseBatchSender
+from src.monitoring.clickhouse_batch_sender import ClickHouseBatchSender, Table
+
+
+class TestTable(unittest.TestCase):
+    def test_verify_with_wrong_number_of_fields(self):
+        # Arrange
+        sut = Table(name="test_table", columns={"col1": str, "col2": int})
+
+        # Act and Assert
+        with self.assertRaises(ValueError):
+            sut.verify({"col1": "value"})
+
+    def test_verify_with_unexpected_field(self):
+        # Arrange
+        sut = Table(name="test_table", columns={"col1": str, "col2": int})
+
+        # Act and Assert
+        with self.assertRaises(ValueError):
+            sut.verify({"col1": "value", "unexpected": 32})
+
+    def test_verify_successful(self):
+        # Arrange
+        sut = Table(name="test_table", columns={"col1": str, "col2": int})
+
+        # Act and Assert
+        sut.verify({"col1": "value", "col2": 32})
+
+    def test_verify_with_wrong_type(self):
+        # Arrange
+        sut = Table(name="test_table", columns={"col1": str, "col2": int})
+
+        # Act and Assert
+        with self.assertRaises(TypeError):
+            sut.verify({"col1": 32, "col2": 32})
+
+    def test_verify_with_optional_value(self):
+        # Arrange
+        sut = Table(name="test_table", columns={"col1": str, "col2": Optional[int]})
+
+        # Act and Assert
+        sut.verify({"col1": "value", "col2": 32})
+        sut.verify({"col1": "value", "col2": None})
+
+        with self.assertRaises(ValueError):
+            sut.verify({"col1": "value"})
 
 
 class TestInit(unittest.TestCase):
