@@ -49,33 +49,9 @@ class TestPrepareAllTables(unittest.TestCase):
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.monitoring.monitoring_agent.ServerLogsConnector")
-    @patch("src.monitoring.monitoring_agent.ServerLogsTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.FailedDNSLoglinesConnector")
-    @patch("src.monitoring.monitoring_agent.LoglineToBatchesConnector")
-    @patch("src.monitoring.monitoring_agent.DNSLoglinesConnector")
-    @patch("src.monitoring.monitoring_agent.LoglineTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.BatchTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.SuspiciousBatchesToBatchConnector")
-    @patch("src.monitoring.monitoring_agent.SuspiciousBatchTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.AlertsConnector")
-    @patch("src.monitoring.monitoring_agent.FillLevelsConnector")
+    @patch("src.monitoring.monitoring_agent.ClickHouseBatchSender")
     @patch("src.monitoring.monitoring_agent.SimpleKafkaConsumeHandler")
-    def test_init(
-        self,
-        mock_kafka_consumer,
-        mock_fill_levels,
-        mock_alerts,
-        mock_suspicious_batch_timestamps,
-        mock_suspicious_batches_to_batch,
-        mock_batch_timestamps,
-        mock_logline_timestamps,
-        mock_dns_loglines,
-        mock_logline_to_batches,
-        mock_failed_dns_loglines,
-        mock_server_logs_timestamps,
-        mock_server_logs,
-    ):
+    def test_init(self, mock_kafka_consumer, mock_clickhouse):
         # Arrange
         expected_topics = [
             "clickhouse_server_logs",
@@ -103,17 +79,7 @@ class TestInit(unittest.TestCase):
 
 
 class TestStart(unittest.IsolatedAsyncioTestCase):
-    @patch("src.monitoring.monitoring_agent.ServerLogsConnector")
-    @patch("src.monitoring.monitoring_agent.ServerLogsTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.FailedDNSLoglinesConnector")
-    @patch("src.monitoring.monitoring_agent.LoglineToBatchesConnector")
-    @patch("src.monitoring.monitoring_agent.DNSLoglinesConnector")
-    @patch("src.monitoring.monitoring_agent.LoglineTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.BatchTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.SuspiciousBatchesToBatchConnector")
-    @patch("src.monitoring.monitoring_agent.SuspiciousBatchTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.AlertsConnector")
-    @patch("src.monitoring.monitoring_agent.FillLevelsConnector")
+    @patch("src.monitoring.monitoring_agent.ClickHouseBatchSender")
     @patch("src.monitoring.monitoring_agent.logger")
     @patch("src.monitoring.monitoring_agent.SimpleKafkaConsumeHandler")
     @patch("asyncio.get_running_loop")
@@ -122,21 +88,11 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         mock_get_running_loop,
         mock_kafka_consume,
         mock_logger,
-        mock_fill_levels,
-        mock_alerts,
-        mock_suspicious_batch_timestamps,
-        mock_suspicious_batches_to_batch,
-        mock_batch_timestamps,
-        mock_logline_timestamps,
-        mock_dns_loglines,
-        mock_logline_to_batches,
-        mock_failed_dns_loglines,
-        mock_server_logs_timestamps,
-        mock_server_logs,
+        mock_batch_sender,
     ):
         # Arrange
         sut = MonitoringAgent()
-        sut.connectors["server_logs"] = Mock()
+        sut.batch_sender = Mock()
 
         data_schema = marshmallow_dataclass.class_schema(ServerLogs)()
         fixed_id = uuid.uuid4()
@@ -164,10 +120,11 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         # Act and Assert
         await sut.start()
 
-        sut.connectors["server_logs"].insert.assert_called_once_with(
-            message_id=fixed_id,
-            timestamp_in=timestamp_in,
-            message_text="test_text",
+        sut.batch_sender.add.assert_called_once_with(
+            "server_logs",
+            dict(
+                message_id=fixed_id, timestamp_in=timestamp_in, message_text="test_text"
+            ),
         )
 
 
