@@ -280,7 +280,7 @@ def main(test_type_nr):
             burst_test = BurstTest(
                 normal_rate_msg_per_sec=80,
                 burst_rate_msg_per_sec=1000,
-                normal_rate_interval_length=60,
+                normal_rate_interval_length=120,
                 burst_rate_interval_length=2,
                 number_of_intervals=3,
             )
@@ -310,4 +310,4 @@ if __name__ == "__main__":
     3 - Maximum throughput test
     4 - Long-term test
     """
-    main(1)
+    main(2)
