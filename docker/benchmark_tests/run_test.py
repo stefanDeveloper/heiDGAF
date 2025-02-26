@@ -263,8 +263,8 @@ def main(test_type_nr):
     match test_type_nr:
         case 1:
             ramp_up_test = RampUpTest(
-                msg_per_sec_in_intervals=[100, 150, 200, 250],
-                interval_length_in_sec=[120, 120, 120, 120],
+                msg_per_sec_in_intervals=[1000, 0, 80],
+                interval_length_in_sec=[5, 120, 120],
             )
             ramp_up_test.execute()
 
@@ -302,4 +302,4 @@ if __name__ == "__main__":
     3 - Maximum throughput test
     4 - Long-term test
     """
-    main(2)
+    main(1)
