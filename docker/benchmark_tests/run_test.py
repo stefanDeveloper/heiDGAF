@@ -157,7 +157,11 @@ class ScalabilityTest:
                 cur_index += 1
             except KafkaError:
                 logger.warning(KafkaError)
-            time.sleep(1.0 / msg_per_sec)
+
+            if msg_per_sec > 0:
+                time.sleep(1.0 / msg_per_sec)
+            else:
+                time.sleep(1.0)
 
         logger.warning(f"Finish interval with {msg_per_sec} msg/s")
         return cur_index
