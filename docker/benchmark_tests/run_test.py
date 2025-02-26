@@ -247,11 +247,7 @@ class LongTermTest:
                 cur_index += 1
             except KafkaError:
                 logger.warning(KafkaError)
-
-            if self.msg_per_sec > 0:
-                time.sleep(1.0 / self.msg_per_sec)
-            else:
-                time.sleep(1.0)
+            time.sleep(1.0 / self.msg_per_sec)
 
         logger.warning(
             f"Stop at: {datetime.datetime.now()}, sent {cur_index} messages in the "
@@ -271,8 +267,8 @@ def main(test_type_nr):
     match test_type_nr:
         case 1:
             ramp_up_test = RampUpTest(
-                msg_per_sec_in_intervals=[100, 150, 200, 250, 1, 100],
-                interval_length_in_sec=[120, 120, 120, 120, 20, 60],
+                msg_per_sec_in_intervals=[100, 150, 200, 250],
+                interval_length_in_sec=[120, 120, 120, 120],
             )
             ramp_up_test.execute()
 
@@ -310,4 +306,4 @@ if __name__ == "__main__":
     3 - Maximum throughput test
     4 - Long-term test
     """
-    main(3)
+    main(1)
