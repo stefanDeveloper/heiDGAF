@@ -271,8 +271,8 @@ def main(test_type_nr):
     match test_type_nr:
         case 1:
             ramp_up_test = RampUpTest(
-                msg_per_sec_in_intervals=[1000, 0, 80],
-                interval_length_in_sec=[10, 30, 60],
+                msg_per_sec_in_intervals=[100, 150, 200, 250, 0, 100],
+                interval_length_in_sec=[120, 120, 120, 120, 20, 60],
             )
             ramp_up_test.execute()
 
