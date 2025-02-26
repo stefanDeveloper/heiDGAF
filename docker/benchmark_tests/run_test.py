@@ -243,7 +243,11 @@ class LongTermTest:
                 cur_index += 1
             except KafkaError:
                 logger.warning(KafkaError)
-            time.sleep(1.0 / self.msg_per_sec)
+
+            if self.msg_per_sec > 0:
+                time.sleep(1.0 / self.msg_per_sec)
+            else:
+                time.sleep(1.0)
 
         logger.warning(
             f"Stop at: {datetime.datetime.now()}, sent {cur_index} messages in the "
