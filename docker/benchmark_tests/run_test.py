@@ -284,7 +284,7 @@ def main(test_type_nr):
 
         case 3:
             maximum_throughput_test = MaximumThroughputTest(
-                length_in_min=2,
+                length_in_min=5,
             )
             maximum_throughput_test.execute()
 
@@ -306,4 +306,4 @@ if __name__ == "__main__":
     3 - Maximum throughput test
     4 - Long-term test
     """
-    main(1)
+    main(3)
