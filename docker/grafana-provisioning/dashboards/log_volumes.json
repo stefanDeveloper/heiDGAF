@@ -547,7 +547,7 @@
               "tooltip": false,
               "viz": false
             },
-            "insertNulls": false,
+            "insertNulls": 60000,
             "lineInterpolation": "stepAfter",
             "lineWidth": 1,
             "pointSize": 5,
