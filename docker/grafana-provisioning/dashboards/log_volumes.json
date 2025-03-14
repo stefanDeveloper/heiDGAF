@@ -346,7 +346,7 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.6.0",
+          "pluginVersion": "4.8.2",
           "queryType": "table",
           "rawSql": "SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp_in, 6)) AS time_bucket,\n    count(*) AS \" \"\nFROM server_logs\nWHERE timestamp_in >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp_in <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\nTO toStartOf${Granularity}(toDateTime64($__toTime, 6))\nSTEP toInterval${Granularity}(1);",
           "refId": "Entering"
@@ -369,9 +369,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.7.0",
+          "pluginVersion": "4.8.2",
           "queryType": "table",
-          "rawSql": "SELECT time_bucket, -sum(number) as \"(negative)\"\nFROM (\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp_failed, 6)) AS time_bucket,\n    count(DISTINCT message_text) AS number\n  FROM failed_dns_loglines\n  WHERE timestamp_failed >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp_failed <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n\n  UNION ALL\n\n  SELECT \n    toStartOf${Granularity}(toDateTime64(timestamp, 6)) AS time_bucket,\n    count(DISTINCT logline_id) AS number\n  FROM logline_timestamps\n  WHERE is_active = False\n    AND timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND timestamp <= toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  GROUP BY time_bucket\n  ORDER BY time_bucket\n  WITH FILL\n  FROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\n  TO toStartOf${Granularity}(toDateTime64($__toTime, 6))\n  STEP toInterval${Granularity}(1)\n)\nGROUP BY time_bucket;",
+          "rawSql": "SELECT time_bucket, -sum(count) AS \" (negative)\"\nFROM (\n  SELECT toStartOf${Granularity}(timestamp) AS time_bucket, count(DISTINCT logline_id) AS count\n  FROM (\n    SELECT logline_id, timestamp\n    FROM (\n      SELECT logline_id, timestamp, ROW_NUMBER() OVER (PARTITION BY logline_id ORDER BY timestamp DESC) AS rn\n      FROM logline_timestamps\n      WHERE is_active = false\n    )\n    WHERE\n    rn = 1\n  )\n  GROUP BY time_bucket\n\n  UNION ALL\n\n  SELECT toStartOf${Granularity}(timestamp_failed) AS time_bucket, count(DISTINCT message_text) AS count\n  FROM failed_dns_loglines\n  GROUP BY time_bucket\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
           "refId": "Processed"
         }
       ],
@@ -2549,7 +2549,7 @@
       "type": "nodeGraph"
     }
   ],
-  "refresh": "auto",
+  "refresh": "5s",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
