@@ -150,8 +150,8 @@ class ClickHouseBatchSender:
                 "alerts",
                 {
                     "client_ip": str,
-                    "alert_timestamp": datetime.datetime,
                     "suspicious_batch_id": uuid.UUID,
+                    "alert_timestamp": datetime.datetime,
                     "overall_score": float,
                     "domain_names": str,
                     "result": str,
