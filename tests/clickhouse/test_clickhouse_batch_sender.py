@@ -1,188 +1,125 @@
 import unittest
 from unittest.mock import patch, Mock
 
-from src.monitoring.clickhouse_batch_sender import ClickHouseBatchSender
+from src.monitoring.clickhouse_batch_sender import ClickHouseBatchSender, Table
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.BATCH_SIZE", 50)
-    @patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 0.5)
-    @patch("src.monitoring.clickhouse_batch_sender.CLICKHOUSE_HOSTNAME", "test_name")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_init(self, mock_clickhouse_connect):
-        # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
 
+    def test_successful(self):
         # Act
-        sut = ClickHouseBatchSender(table_name, column_names)
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.BATCH_SIZE", 50),
+            patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 0.5),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.CLICKHOUSE_HOSTNAME",
+                "test_name",
+            ),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.clickhouse_connect"
+            ) as mock_clickhouse_connect,
+        ):
+            sut = ClickHouseBatchSender()
 
         # Assert
-        self.assertEqual(table_name, sut.table_name)
-        self.assertEqual(column_names, sut.column_names)
+        self.assertIsNotNone(sut.tables)
         self.assertEqual(50, sut.max_batch_size)
         self.assertEqual(0.5, sut.batch_timeout)
         self.assertIsNone(sut.timer)
-        self.assertEqual([], sut.batch)
+        self.assertIsNotNone(sut.lock)
+        self.assertEqual({key: [] for key in sut.tables}, sut.batch)
 
         mock_clickhouse_connect.get_client.assert_called_once_with(host="test_name")
 
 
 class TestDel(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_del(self, mock_clickhouse_connect):
-        # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender(table_name, column_names)
 
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
+
+    def test_del(self):
         # Act
         with patch(
             "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all"
         ) as mock_insert_all:
-            del sut
+            del self.sut
 
         # Assert
         mock_insert_all.assert_called_once()
 
 
 class TestAdd(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_add_list_of_str_successful(
-        self, mock_clickhouse_connect, mock_start_timer, mock_insert_all
-    ):
-        # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender(table_name, column_names)
 
-        data = ["entry_1", "entry_2"]
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
+
+    def test_single_list_with_starting_timer(self):
+        # Arrange
+        test_table_name = "test_table"
+        test_data = {"value_1": 1, "value_2": 2}
+
+        self.sut.tables = {test_table_name: Table(test_table_name, {})}
+        self.sut.batch = {test_table_name: []}
 
         # Act
-        sut.add(data)
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Table.verify"),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer"
+            ) as mock_start_timer,
+        ):
+            self.sut.add(test_table_name, test_data)
 
         # Assert
-        self.assertEqual([["entry_1", "entry_2"]], sut.batch)
-
-        mock_insert_all.assert_not_called()
+        self.sut.batch = {test_table_name: [1, 2]}
         mock_start_timer.assert_called_once()
 
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_add_timer_already_started(
-        self, mock_clickhouse_connect, mock_start_timer, mock_insert_all
-    ):
+    def test_timer_already_started(self):
         # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender(table_name, column_names)
+        test_table_name = "test_table"
+        test_data = {"value_1": 1, "value_2": 2}
 
-        data = ["entry_1", "entry_2"]
-        sut.timer = Mock()
+        self.sut.tables = {test_table_name: Table(test_table_name, {})}
+        self.sut.batch = {test_table_name: []}
+        self.sut.timer = Mock()
 
         # Act
-        sut.add(data)
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Table.verify"),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer"
+            ) as mock_start_timer,
+        ):
+            self.sut.add(test_table_name, test_data)
 
         # Assert
-        self.assertEqual([["entry_1", "entry_2"]], sut.batch)
-
-        mock_insert_all.assert_not_called()
         mock_start_timer.assert_not_called()
 
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_add_max_size_reached_and_timer_already_started(
-        self, mock_clickhouse_connect, mock_start_timer, mock_insert_all
-    ):
+    def test_max_batch_size_reached(self):
         # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender(table_name, column_names)
+        test_table_name = "test_table"
+        test_data = {"value_1": 1, "value_2": 2}
 
-        data = ["entry_1", "entry_2"]
-        sut.timer = Mock()
-        sut.max_batch_size = 1
+        self.sut.tables = {test_table_name: Table(test_table_name, {})}
+        self.sut.batch = {test_table_name: []}
+        self.sut.max_batch_size = 1
 
         # Act
-        sut.add(data)
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Table.verify"),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert"
+            ) as mock_insert,
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer"
+            ),
+        ):
+            self.sut.add(test_table_name, test_data)
 
         # Assert
-        self.assertEqual([["entry_1", "entry_2"]], sut.batch)
-
-        mock_insert_all.assert_called_once()
-        mock_start_timer.assert_not_called()
-
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_add_list_of_str_wrong_field_number(
-        self, mock_clickhouse_connect, mock_start_timer, mock_insert_all
-    ):
-        # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1"]
-        sut = ClickHouseBatchSender(table_name, column_names)
-
-        data = ["entry_1", "entry_2"]
-
-        # Act
-        with self.assertRaises(ValueError):
-            sut.add(data)
-
-        # Assert
-        self.assertEqual([], sut.batch)
-
-        mock_insert_all.assert_not_called()
-        mock_start_timer.assert_not_called()
-
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_add_list_of_lists_successful(
-        self, mock_clickhouse_connect, mock_start_timer, mock_insert_all
-    ):
-        # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender(table_name, column_names)
-
-        data = [["entry_1", "entry_2"], ["entry_3", "entry_4"]]
-
-        # Act
-        sut.add(data)
-
-        # Assert
-        self.assertEqual([["entry_1", "entry_2"], ["entry_3", "entry_4"]], sut.batch)
-
-        mock_insert_all.assert_not_called()
-        mock_start_timer.assert_called_once()
-
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_add_list_of_lists_wrong_field_number(
-        self, mock_clickhouse_connect, mock_start_timer, mock_insert_all
-    ):
-        # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1"]
-        sut = ClickHouseBatchSender(table_name, column_names)
-
-        data = [["entry_1", "entry_2"], ["entry_3"]]
-
-        # Act
-        with self.assertRaises(ValueError):
-            sut.add(data)
-
-        # Assert
-        self.assertEqual([], sut.batch)
-
-        mock_insert_all.assert_not_called()
-        mock_start_timer.assert_not_called()
+        mock_insert.assert_called_once_with(test_table_name)
 
 
 class TestInsertAll(unittest.TestCase):
