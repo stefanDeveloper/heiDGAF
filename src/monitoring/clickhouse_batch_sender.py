@@ -207,8 +207,8 @@ class ClickHouseBatchSender:
 
     def insert_all(self):
         """Inserts the batch for every table."""
-        for e in self.batch:
-            self.insert(e)
+        for table in self.batch:
+            self.insert(table)
 
         if self.timer:
             self.timer.cancel()

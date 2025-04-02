@@ -5,7 +5,6 @@ from src.monitoring.clickhouse_batch_sender import ClickHouseBatchSender, Table
 
 
 class TestInit(unittest.TestCase):
-
     def test_successful(self):
         # Act
         with (
@@ -33,7 +32,6 @@ class TestInit(unittest.TestCase):
 
 
 class TestDel(unittest.TestCase):
-
     def setUp(self):
         with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
             self.sut = ClickHouseBatchSender()
@@ -50,7 +48,6 @@ class TestDel(unittest.TestCase):
 
 
 class TestAdd(unittest.TestCase):
-
     def setUp(self):
         with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
             self.sut = ClickHouseBatchSender()
@@ -122,51 +119,76 @@ class TestAdd(unittest.TestCase):
         mock_insert.assert_called_once_with(test_table_name)
 
 
+class TestInsert(unittest.TestCase):
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
+
+    def test_filled_batch(self):
+        # Arrange
+        test_table_name = "test_table"
+
+        self.sut.tables = {
+            test_table_name: Table(test_table_name, {"col_1": str, "col_2": str})
+        }
+        self.sut.batch = {test_table_name: ["one", "two", "three"]}
+        self.sut._client = Mock()
+
+        # Act
+        self.sut.insert(test_table_name)
+
+        # Assert
+        self.sut._client.insert.assert_called_once_with(
+            test_table_name,
+            ["one", "two", "three"],
+            column_names=["col_1", "col_2"],
+        )
+        self.assertEquals([], self.sut.batch[test_table_name])
+
+    def test_empty_batch(self):
+        # Arrange
+        test_table_name = "test_table"
+
+        self.sut.tables = {
+            test_table_name: Table(test_table_name, {"col_1": str, "col_2": str})
+        }
+        self.sut.batch = {test_table_name: []}
+        self.sut._client = Mock()
+
+        # Act
+        self.sut.insert(test_table_name)
+
+        # Assert
+        self.sut._client.insert.assert_not_called()
+        self.assertEquals([], self.sut.batch[test_table_name])
+
+
 class TestInsertAll(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_insert_all(self, mock_clickhouse_connect):
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
+
+    def test_successful(self):
         # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender(table_name, column_names)
-        sut._client = Mock()
-        sut.batch = [["entry_1", "entry_2"], ["entry_3", "entry_4"]]
+        test_table_name_1 = "test_table_1"
+        test_table_name_2 = "test_table_2"
+
+        self.sut.tables = {
+            test_table_name_1: Table(test_table_name_1, {}),
+            test_table_name_2: Table(test_table_name_2, {}),
+        }
+        self.sut.batch = {test_table_name_1: [1, 2, 3], test_table_name_2: [4, 5]}
+        self.sut.timer = Mock()
 
         # Act
-        sut.insert_all()
+        with patch(
+            "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert"
+        ) as mock_insert:
+            self.sut.insert_all()
 
         # Assert
-        self.assertEqual([], sut.batch)
-        self.assertIsNone(sut.timer)
-
-        sut._client.insert.assert_called_once_with(
-            table_name,
-            [["entry_1", "entry_2"], ["entry_3", "entry_4"]],
-            column_names=column_names,
-        )
-
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_insert_all_with_timer(self, mock_clickhouse_connect):
-        # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender(table_name, column_names)
-        sut._client = Mock()
-        sut.timer = Mock()
-        sut.batch = [["entry_1", "entry_2"]]
-
-        # Act
-        sut.insert_all()
-
-        # Assert
-        self.assertEqual([], sut.batch)
-        self.assertIsNone(sut.timer)
-
-        sut._client.insert.assert_called_once_with(
-            table_name,
-            [["entry_1", "entry_2"]],
-            column_names=column_names,
-        )
+        mock_insert.assert_any_call(test_table_name_1)
+        mock_insert.assert_any_call(test_table_name_2)
 
 
 class TestStartTimer(unittest.TestCase):
