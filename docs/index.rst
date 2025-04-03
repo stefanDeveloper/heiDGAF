@@ -6,7 +6,8 @@ data exfiltration by malicious actors.
 
 Check out the :doc:`usage` section for further information on how to use the software, including how to
 :ref:`install <installation>` and :ref:`configure <configuration>` the project. For more details on the implementation
-and structure, take a look at the :doc:`pipeline` section.
+and structure, take a look at the :doc:`pipeline` section. The :doc:`monitoring` section describes how to set up the
+monitoring environment for observing the software's functionality in real-time.
 
 .. note::
 
@@ -20,6 +21,7 @@ Contents
 
    usage
    pipeline
+   monitoring
    training
    api/index
    references
