@@ -49,98 +49,43 @@ class TestPrepareAllTables(unittest.TestCase):
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.monitoring.monitoring_agent.ServerLogsConnector")
-    @patch("src.monitoring.monitoring_agent.ServerLogsTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.FailedDNSLoglinesConnector")
-    @patch("src.monitoring.monitoring_agent.LoglineToBatchesConnector")
-    @patch("src.monitoring.monitoring_agent.DNSLoglinesConnector")
-    @patch("src.monitoring.monitoring_agent.LoglineTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.BatchTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.SuspiciousBatchesToBatchConnector")
-    @patch("src.monitoring.monitoring_agent.SuspiciousBatchTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.AlertsConnector")
-    @patch("src.monitoring.monitoring_agent.FillLevelsConnector")
-    @patch("src.monitoring.monitoring_agent.SimpleKafkaConsumeHandler")
-    def test_init(
-        self,
-        mock_kafka_consumer,
-        mock_fill_levels,
-        mock_alerts,
-        mock_suspicious_batch_timestamps,
-        mock_suspicious_batches_to_batch,
-        mock_batch_timestamps,
-        mock_logline_timestamps,
-        mock_dns_loglines,
-        mock_logline_to_batches,
-        mock_failed_dns_loglines,
-        mock_server_logs_timestamps,
-        mock_server_logs,
-    ):
-        # Arrange
-        expected_topics = [
-            "clickhouse_server_logs",
-            "clickhouse_server_logs_timestamps",
-            "clickhouse_failed_dns_loglines",
-            "clickhouse_logline_to_batches",
-            "clickhouse_dns_loglines",
-            "clickhouse_logline_timestamps",
-            "clickhouse_batch_timestamps",
-            "clickhouse_suspicious_batches_to_batch",
-            "clickhouse_suspicious_batch_timestamps",
-            "clickhouse_alerts",
-            "clickhouse_fill_levels",
-        ]
-
+    def test_successful(self):
         # Act
-        sut = MonitoringAgent()
+        with (
+            patch(
+                "src.monitoring.monitoring_agent.SimpleKafkaConsumeHandler"
+            ) as mock_simple_kafka_consume_handler,
+            patch(
+                "src.monitoring.monitoring_agent.ClickHouseBatchSender"
+            ) as mock_clickhouse_batch_sender,
+        ):
+            sut = MonitoringAgent()
 
         # Assert
-        self.assertEqual(
-            expected_topics,
-            sut.topics,
+        self.assertTrue(
+            isinstance(sut.table_names, list)
+            and all(isinstance(e, str) for e in sut.table_names)
         )
-        mock_kafka_consumer.assert_called_once_with(expected_topics)
+        self.assertTrue(all(e.startswith("clickhouse_") for e in sut.topics))
+        self.assertIsNotNone(sut.kafka_consumer)
+        self.assertIsNotNone(sut.batch_sender)
+        mock_simple_kafka_consume_handler.assert_called_once_with(sut.topics)
+        mock_clickhouse_batch_sender.assert_called_once()
 
 
 class TestStart(unittest.IsolatedAsyncioTestCase):
-    @patch("src.monitoring.monitoring_agent.ServerLogsConnector")
-    @patch("src.monitoring.monitoring_agent.ServerLogsTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.FailedDNSLoglinesConnector")
-    @patch("src.monitoring.monitoring_agent.LoglineToBatchesConnector")
-    @patch("src.monitoring.monitoring_agent.DNSLoglinesConnector")
-    @patch("src.monitoring.monitoring_agent.LoglineTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.BatchTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.SuspiciousBatchesToBatchConnector")
-    @patch("src.monitoring.monitoring_agent.SuspiciousBatchTimestampsConnector")
-    @patch("src.monitoring.monitoring_agent.AlertsConnector")
-    @patch("src.monitoring.monitoring_agent.FillLevelsConnector")
-    @patch("src.monitoring.monitoring_agent.logger")
-    @patch("src.monitoring.monitoring_agent.SimpleKafkaConsumeHandler")
-    @patch("asyncio.get_running_loop")
-    async def test_handle_kafka_inputs(
-        self,
-        mock_get_running_loop,
-        mock_kafka_consume,
-        mock_logger,
-        mock_fill_levels,
-        mock_alerts,
-        mock_suspicious_batch_timestamps,
-        mock_suspicious_batches_to_batch,
-        mock_batch_timestamps,
-        mock_logline_timestamps,
-        mock_dns_loglines,
-        mock_logline_to_batches,
-        mock_failed_dns_loglines,
-        mock_server_logs_timestamps,
-        mock_server_logs,
-    ):
-        # Arrange
-        sut = MonitoringAgent()
-        sut.connectors["server_logs"] = Mock()
+    def setUp(self):
+        with (
+            patch("src.monitoring.monitoring_agent.SimpleKafkaConsumeHandler"),
+            patch("src.monitoring.monitoring_agent.ClickHouseBatchSender"),
+        ):
+            self.sut = MonitoringAgent()
 
+    async def test_successful(self):
+        # Arrange
         data_schema = marshmallow_dataclass.class_schema(ServerLogs)()
-        fixed_id = uuid.uuid4()
-        timestamp_in = datetime.datetime.now()
+        fixed_id = uuid.UUID("35871c8c-ff72-44ad-a9b7-4f02cf92d484")
+        timestamp_in = datetime.datetime(2025, 4, 3, 12, 32, 7, 264410)
         value = data_schema.dumps(
             {
                 "message_id": fixed_id,
@@ -148,26 +93,34 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
                 "message_text": "test_text",
             }
         )
-
-        mock_loop = AsyncMock()
-        mock_get_running_loop.return_value = mock_loop
-        sut.kafka_consumer.consume.return_value = (
-            "key1",
+        self.sut.kafka_consumer.consume.return_value = (
+            "test_key",
             value,
             "clickhouse_server_logs",
         )
-        mock_loop.run_in_executor.side_effect = [
-            ("key1", value, "clickhouse_server_logs"),
-            KeyboardInterrupt(),
-        ]
 
-        # Act and Assert
-        await sut.start()
+        with patch(
+            "src.monitoring.monitoring_agent.asyncio.get_running_loop"
+        ) as mock_get_running_loop:
+            mock_loop = AsyncMock()
+            mock_get_running_loop.return_value = mock_loop
 
-        sut.connectors["server_logs"].insert.assert_called_once_with(
-            message_id=fixed_id,
-            timestamp_in=timestamp_in,
-            message_text="test_text",
+            mock_loop.run_in_executor.side_effect = [
+                ("test_key", value, "clickhouse_server_logs"),
+                KeyboardInterrupt(),
+            ]
+
+            # Act
+            await self.sut.start()
+
+        # Assert
+        self.sut.batch_sender.add.assert_called_once_with(
+            "server_logs",
+            {
+                "message_id": fixed_id,
+                "timestamp_in": timestamp_in,
+                "message_text": "test_text",
+            },
         )
 
 
