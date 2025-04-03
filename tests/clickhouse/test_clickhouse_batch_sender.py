@@ -192,43 +192,46 @@ class TestInsertAll(unittest.TestCase):
 
 
 class TestStartTimer(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 0.5)
-    @patch("src.monitoring.clickhouse_batch_sender.Timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_start_timer(self, mock_clickhouse_connect, mock_timer):
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
+
+    def test_without_existing_timer(self):
         # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender(table_name, column_names)
+        self.sut.timer = None
 
         # Act
-        sut._start_timer()
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Timer") as mock_timer,
+            patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 5),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all"
+            ) as mock_insert_all,
+        ):
+            self.sut._start_timer()
 
         # Assert
-        mock_timer.assert_called_once_with(
-            0.5,
-            sut.insert_all,
-        )
-        mock_timer.cancel.assert_not_called()
-        sut.timer.start.assert_called_once()
+        mock_timer.assert_called_once_with(5, mock_insert_all)
+        # noinspection PyUnresolvedReferences
+        self.sut.timer.start.assert_called_once()
 
-    @patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 0.5)
-    @patch("src.monitoring.clickhouse_batch_sender.Timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_start_timer_with_running_timer(self, mock_clickhouse_connect, mock_timer):
+    def test_with_existing_timer(self):
         # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender(table_name, column_names)
-        sut.timer = mock_timer
+        self.sut.timer = Mock()
 
         # Act
-        sut._start_timer()
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Timer") as mock_timer,
+            patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 5),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all"
+            ) as mock_insert_all,
+            patch.object(self.sut.timer, "cancel") as mock_cancel,
+        ):
+            self.sut._start_timer()
 
         # Assert
-        mock_timer.assert_called_once_with(
-            0.5,
-            sut.insert_all,
-        )
-        mock_timer.cancel.assert_called_once()
-        sut.timer.start.assert_called_once()
+        mock_cancel.assert_called_once()
+        mock_timer.assert_called_once_with(5, mock_insert_all)
+        # noinspection PyUnresolvedReferences
+        self.sut.timer.start.assert_called_once()
