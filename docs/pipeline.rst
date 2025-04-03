@@ -8,31 +8,22 @@ Pipeline
 Overview
 ========
 
+The core component of the software's architecture is its data pipeline. It consists of five stages/modules, and data
+traverses through it using Apache Kafka.
+
 .. image:: media/pipeline_overview.png
 
 
 Stage 1: Log Storage
 ====================
 
-The primary goal of this stage is to temporarily store incoming loglines until they can be processed by subsequent
-stages of the pipeline. This buffering approach ensures that incoming log data is not lost and can be processed
-efficiently when the next stages are ready.
-
-Once the data is stored, it can be retrieved by the next stage of the pipeline, referred to as
-:ref:`Stage 2: Log Collection`, which connects to the server. This design allows multiple
-:ref:`Log Collection<Stage 2: Log Collection>` instances to connect simultaneously, enabling load balancing and
-efficient distribution of processing tasks.
+This stage serves as the central contact point for all data.
 
 Overview
 --------
 
-The :class:`LogServer` class is the core component of this stage. It opens two types of network ports:
-
-1. **Incoming Port** (``port_in``): Used to receive loglines from various sources.
-2. **Outgoing Port** (``port_out``): Used to send stored loglines to connected components.
-
-This setup facilitates the asynchronous handling of log data, allowing various input sources to transmit loglines and
-multiple processing components to retrieve them as needed.
+The :class:`LogServer` class is the core component of this stage. It reads from several input sources and sends the
+data to Kafka, where it can be obtained by the following module.
 
 Main Class
 ----------
@@ -40,45 +31,23 @@ Main Class
 .. py:currentmodule:: src.logserver.server
 .. autoclass:: LogServer
 
-Usage
------
+Usage and configuration
+-----------------------
 
-The :class:`LogServer` operates with two types of connections:
+Currently, the :class:`LogServer` reads from both an input file and a Kafka topic, simultaneously. The configuration
+allows changing the file name to read from.
 
-- **Incoming Connections** (``port_in``):
+- **Without Docker**:
 
-  - Components can connect to the incoming port to send loglines to the server. These components can include:
+  - To change the input file path, change ``pipeline.log_storage.logserver.input_file`` in the `config.yaml`. The
+    default setting is ``"/opt/file.txt"``.
 
-    - Direct APIs from systems generating log data.
-    - Mock logline generators for testing.
-    - File readers that parse log files and send individual log entries to the server.
+- **With Docker**:
 
-  - The server is designed to handle multiple concurrent sources, allowing diverse and simultaneous input streams.
-
-- **Outgoing Connections** (``port_out``):
-
-  - Components can connect to the outgoing port to retrieve the next available logline from the server.
-  - If no loglines are available at the time of the connection, the server will return ``None``.
-
-This dual-port architecture allows for flexibility and scalability in log data handling.
-
-Configuration
--------------
-
-Configuration settings for the :class:`LogServer` are managed in the `config.yaml` file (key: ``heidgaf.logserver``).
-The default settings include:
-
-- **Port Configuration**:
-
-  - ``port_in``: Default is ``9998``.
-  - ``port_out``: Default is ``9999``.
-
-- **Connection Limits**:
-
-  - ``max_number_of_connections``: The maximum number of simultaneous connections allowed. Default is set to ``1000``.
-
-These settings can be adjusted to meet specific deployment requirements, allowing customization of network ports and
-connection handling.
+  - Docker mounts the file specified in ``MOUNT_PATH`` in the file `docker/.env`. By default, this is set to
+    ``../../default.txt``, which refers to the file `docker/default.txt`.
+  - By changing this variable, the file to be mounted can be set. Please note that in this case, the variable specified
+    in the `config.yaml` must be set to the default value.
 
 
 Stage 2: Log Collection
