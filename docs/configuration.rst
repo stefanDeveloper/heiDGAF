@@ -1,3 +1,65 @@
+Logline format configuration
+............................
+
+Users can define the format and fields of their DNS server loglines. For this, change the
+``pipeline.log_collection.collector.logline_format`` parameter:
+
+For example, a logline might look like this:
+
+.. code-block:: console
+
+   2025-04-04T14:45:32.458Z NXDOMAIN 192.168.3.152 10.10.0.3 test.com AAAA 192.168.15.34 196b
+
+Each list entry of the parameter defines one field of the input logline, and the order of the entries corresponds to the
+order of the values in each logline. Each list entry itself consists of a list with
+three or four entries: For example, a field definition might look like this:
+
+.. code-block:: console
+
+   [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+
+The first entry always corresponds to the name of the field. Some field values must exist in the logline, as they are
+used by the modules. Some field names are cannot be used, as they are defined for internal communication.
+
+.. list-table:: Required and forbidden field names
+   :header-rows: 0
+   :widths: 15 50
+
+   * - Required
+     - ``timestamp``, ``status_code``, ``client_ip``, ``record_type``, ``domain_name``
+   * - Forbidden
+     - ``logline_id``, ``batch_id``
+
+The second entry specifies the type of the field. Depending on the type defined here, the method for defining the
+possible values varies. The third and fourth entry change depending on the type.
+Please check the following table for more information on the types.
+
+There are three types to choose from:
+
+.. list-table:: Field types
+   :header-rows: 1
+   :widths: 20 20 20 30
+
+   * - Field type
+     - Format of 3rd entry
+     - Format of 4th entry
+     - Description
+   * - ``RegEx`` (Regular Expression)
+     - RegEx pattern as string
+     -
+     - The logline field is checked against the pattern. If the pattern is met, the field is valid.
+   * - ``ListItem``
+     - List of values
+     - List of values (optional)
+     - If the logline field value is in the first list, it is valid. If it is also in the second list, it is relevant
+       for the inspection and detection algorithm. All values in the second list must also be in the first list, not
+       vice versa. If this entry is not specified, all values are deemed relevant.
+   * - ``IpAddress``
+     -
+     -
+     - If the logline field value is an IPv4 or IPv6 address, it is valid.
+
+
 Logging Configuration
 .....................
 
@@ -33,17 +95,11 @@ functionality of the modules.
    * - Parameter
      - Default Value
      - Description
-   * - input_kafka_topic
-     - ``"LogServer"``
-     - Kafka topic for incoming log lines.
    * - input_file
      - ``"/opt/file.txt"``
-     - File for appending new log lines continuously.
+     - Path of the input file, to which data is appended during usage.
 
-       Keep this setting unchanged if using Docker; modify the ``MOUNT_PATH`` in ``docker/.env`` instead.
-   * - max_number_of_connections
-     - ``1000``
-     - Maximum number of simultaneous connections for sending and receiving.
+       Keep this setting unchanged when using Docker; modify the ``MOUNT_PATH`` in ``docker/.env`` instead.
 
 ``pipeline.log_collection``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -55,7 +111,7 @@ functionality of the modules.
    * - Parameter
      - Description
    * - logline_format
-     - Defines the expected format for incoming log lines. See the TODO section for more details.
+     - Defines the expected format for incoming log lines. See the :ref:`Logline format configuration` section for more details.
 
 .. list-table:: ``batch_handler`` Parameters
    :header-rows: 1
@@ -65,14 +121,18 @@ functionality of the modules.
      - Default Value
      - Description
    * - batch_size
-     - ``1000``
-     - TODO
+     - ``10000``
+     - Number of entries in a Batch, at which it is sent due to reaching the maximum fill state.
    * - batch_timeout
-     - ``20.0``
-     - TODO
-   * - subnet.subnet_bits
+     - ``30.0``
+     - Time after which a Batch is sent. Mainly relevant for Batches that only contain a small number of entries, and
+       do not reach the size limit for a longer time period.
+   * - subnet_id.ipv4_prefix_length
      - ``24``
-     - The number of bits to trim from the client's IPv4 address for use as ``subnet_id``.
+     - The number of bits to trim from the client's IPv4 address for use as `Subnet ID`.
+   * - subnet_id.ipv6_prefix_length
+     - ``64``
+     - The number of bits to trim from the client's IPv6 address for use as `Subnet ID`.
 
 ``pipeline.data_inspection``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -132,10 +192,10 @@ functionality of the modules.
      - Default Value
      - Description
    * - model
-     - ``xg``
+     - ``rf``
      - TODO
    * - checksum
-     -
+     - Not given here
      - TODO
    * - base_url
      - https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
@@ -158,16 +218,13 @@ The following parameters control the infrastructure of the software.
      - Description
    * - timestamp_format
      - ``"%Y-%m-%dT%H:%M:%S.%fZ"``
-     - TODO
+     - Timestamp format used by the Inspector. Will be removed soon.
    * - kafka_brokers
-     - TODO
-     - TODO
-   * - logserver.hostname
-     - ``172.27.0.8``
-     - The hostname or IP address that the :class:`LogServer` will use to start and bind to the network interface.
-   * - logserver.port_in
-     - ``9998``
-     - The port on which the :class:`LogServer` will listen for incoming log lines.
-   * - logserver.port_out
-     - ``9999``
-     - The port on which the :class:`LogServer` is available for collecting instances. Any instance connecting to this port will receive the latest log line stored on the server.
+     - ``hostname: kafka1, port: 8097``, ``hostname: kafka2, port: 8098``, ``hostname: kafka3, port: 8099``
+     - Hostnames and ports of the Kafka brokers, given as list.
+   * - kafka_topics
+     - Not given here
+     - Kafka topic names given as strings. These topics are used for the data transfer between the modules.
+   * - monitoring.clickhouse_server.hostname
+     - ``clickhouse-server``
+     - Hostname of the ClickHouse server. Used by Grafana.
