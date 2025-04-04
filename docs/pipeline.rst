@@ -1,10 +1,6 @@
 Pipeline
 ~~~~~~~~
 
-.. note::
-
-   This page is under active development.
-
 Overview
 ========
 
@@ -119,7 +115,7 @@ validates. The logline is parsed into its respective fields, each checked for co
 
 - **Log Line Format**:
 
-  - Log lines have the format:
+  - By default, log lines have the following format:
 
     .. code-block::
 
@@ -163,6 +159,8 @@ validates. The logline is parsed into its respective fields, each checked for co
     |                      | bytes.                                         |
     +----------------------+------------------------------------------------+
 
+  - Users can change the format and field types, as described in the :ref:`Logline format configuration` section.
+
 BufferedBatch
 .............
 
@@ -193,31 +191,15 @@ The :class:`CollectorKafkaBatchSender` manages the sending of validated loglines
 Configuration
 -------------
 
-Configuration settings for the :class:`LogCollector` and :class:`CollectorKafkaBatchSender` are managed in the
-`config.yaml` file (keys: ``heidgaf.collector``, ``kafka.batch_sender`` and ``heidgaf.subnet``):
+The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format`` configured
+in the ``config.yaml``.
 
 - **LogCollector Analyzation Criteria**:
 
-  - ``valid_status_codes``: The accepted status codes for logline validation. Default list contains ``NOERROR``
-    and ``NXDOMAIN``.
-  - ``valid_record_types``: The accepted DNS record types for logline validation. Default list contains ``A`` and
-    ``AAAA``.
-
-- **Batch Configuration**:
-
-  - ``batch_size``: The maximum number of loglines per batch. Default is ``1000``.
-  - ``timeout_seconds``: The time interval (in seconds) after which the batch is sent, regardless of size. Default
-    is ``60``.
-
-- **Number of bits used in Subnet ID**:
-
-  - ``subnet_bits``: The number of bits, after which to cut off the client's IP address to use as ``subnet_id``. Default
-    is ``24``.
-
-- **Kafka Topics**:
-
-  - **Output Topic**: ``Prefilter`` - After collection, the processed log data is published to this topic for subsequent
-    stages.
+  - Valid status codes: The accepted status codes for logline validation. This is defined in the field with name
+    ``"status_code"`` in the ``logline_format`` list.
+  - Valid record types: The accepted DNS record types for logline validation. This is defined in the field with name
+    ``"record_type"`` in the ``logline_format`` list.
 
 Buffer Functionality
 --------------------
@@ -320,20 +302,13 @@ for further processing in subsequent stages.
 Configuration
 -------------
 
-To configure the :class:`Prefilter` and customize the filtering behavior, the following options are available:
+To customize the filtering behavior, the following options in the ``logline_format`` set
+in the ``config.yaml`` are used.
 
-- **Error Types**:
+- **Relevant Types**:
 
-  - When creating an instance of :class:`Prefilter`, a list of error types is passed as an argument. This list defines
-    the types of errors that should be retained in the filtering process.
-  - **Example**: If the filter is configured with the list ``["NXDOMAIN"]``, only logs with error status
-    ``NXDOMAIN`` will be processed and sent to the ``Inspect`` topic.
-
-- **Kafka Topics**:
-
-  - **Input Topic**: ``Prefilter`` - This is the Kafka topic from which the `Prefilter` loads the incoming log data.
-  - **Output Topic**: ``Inspect`` - After filtering, the processed log data is published to this topic for subsequent
-    stages.
+  - If the fourth entry of the field configuration with type ``ListItem`` in the ``logline_format`` list is defined for
+    any field name, the values in this list are the relevant values.
 
 
 Stage 4: Inspection
