@@ -30,7 +30,6 @@ REQUIRED_FIELDS = [
     "status_code",
     "client_ip",
     "record_type",
-    "domain_name",
 ]
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
