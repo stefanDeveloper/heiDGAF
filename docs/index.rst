@@ -1,7 +1,7 @@
 Welcome to heiDGAF's documentation!
 ===================================
 
-**heiDGAF** is a machine learning based DNS classifier for detecting Domain Generation Algorithms (DGAs), tunneling, and
+**heiDGAF** is a machine learning-based DNS classifier for detecting Domain Generation Algorithms (DGAs), tunneling, and
 data exfiltration by malicious actors.
 
 Check out the :doc:`usage` section for further information on how to use the software, including how to
@@ -12,6 +12,7 @@ monitoring environment for observing the software's functionality in real-time.
 .. note::
 
    This project is under active development.
+
 
 Contents
 --------
