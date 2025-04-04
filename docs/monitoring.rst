@@ -36,7 +36,7 @@ them with the data in `ClickHouse`. The dashboard views can then be observed on 
 `Datatest` mode
 ---------------
 
-For users interested in testing their own machine-learning models used by the detection algorithm in the `Data Analysis`
+For users interested in testing their own machine learning models used by the detection algorithm in the `Data Analysis`
 stage, the monitoring functionality can be started in the `datatest` mode:
 
 .. code-block:: console
