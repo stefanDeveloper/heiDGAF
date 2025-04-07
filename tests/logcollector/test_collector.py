@@ -58,7 +58,6 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
     async def test_start_successful_execution(self):
         # Arrange
         self.sut.fetch = AsyncMock()
-        self.sut.send = AsyncMock()
 
         async def mock_gather(*args, **kwargs):
             return None
@@ -72,12 +71,10 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
             # Assert
             mock.assert_called_once()
             self.sut.fetch.assert_called_once()
-            self.sut.send.assert_called_once()
 
     async def test_start_handles_keyboard_interrupt(self):
         # Arrange
         self.sut.fetch = AsyncMock()
-        self.sut.send = AsyncMock()
 
         async def mock_gather(*args, **kwargs):
             raise KeyboardInterrupt
@@ -91,7 +88,6 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
             # Assert
             mock.assert_called_once()
             self.sut.fetch.assert_called_once()
-            self.sut.send.assert_called_once()
 
 
 class TestFetch(unittest.IsolatedAsyncioTestCase):
@@ -109,15 +105,15 @@ class TestFetch(unittest.IsolatedAsyncioTestCase):
         self.sut = LogCollector()
         self.sut.kafka_consume_handler = AsyncMock()
 
-    @patch("src.logcollector.collector.LogCollector.store")
+    @patch("src.logcollector.collector.LogCollector.send")
     @patch("src.logcollector.collector.logger")
     @patch("asyncio.get_running_loop")
     @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_handle_kafka_inputs(
-        self, mock_clickhouse, mock_get_running_loop, mock_logger, mock_store
+        self, mock_clickhouse, mock_get_running_loop, mock_logger, mock_send
     ):
-        mock_store_instance = AsyncMock()
-        mock_store.return_value = mock_store_instance
+        mock_send_instance = AsyncMock()
+        mock_send.return_value = mock_send_instance
         mock_loop = AsyncMock()
         mock_get_running_loop.return_value = mock_loop
         self.sut.kafka_consume_handler.consume.return_value = (
@@ -134,7 +130,7 @@ class TestFetch(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await self.sut.fetch()
 
-        mock_store.assert_called_once()
+        mock_send.assert_called_once()
 
 
 class TestSend(unittest.IsolatedAsyncioTestCase):
@@ -339,31 +335,6 @@ class TestSend(unittest.IsolatedAsyncioTestCase):
         mock_batch_handler_instance.add_message.assert_called_once_with(
             "192.168.0.0_22", expected_message
         )
-
-
-class TestStore(unittest.IsolatedAsyncioTestCase):
-    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.logcollector.collector.BufferedBatchSender")
-    @patch("src.logcollector.collector.LoglineHandler")
-    @patch("src.logcollector.collector.ClickHouseKafkaSender")
-    async def test_store(
-        self,
-        mock_clickhouse,
-        mock_logline_handler,
-        mock_batch_handler,
-        mock_kafka_consume_handler,
-    ):
-        # Arrange
-        sut = LogCollector()
-        self.assertTrue(sut.loglines.empty())
-
-        # Act
-        await sut.store(datetime.datetime.now(), "test_message")
-
-        # Assert
-        stored_timestamp, stored_message = await sut.loglines.get()
-        self.assertEqual("test_message", stored_message)
-        self.assertTrue(sut.loglines.empty())
 
 
 class TestGetSubnetId(unittest.TestCase):
