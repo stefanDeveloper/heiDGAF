@@ -161,24 +161,6 @@ class LogCollector:
         self.batch_handler.add_message(subnet_id, json.dumps(message_fields))
         logger.debug(f"Sent: '{message}'")
 
-    async def store(self, timestamp_in: datetime.datetime, message: str):
-        """Stores the message temporarily.
-
-        Args:
-            timestamp_in (datetime.datetime): Timestamp of entering the pipeline
-            message (str): Message to be stored
-        """
-        await self.loglines.put((timestamp_in, message))
-
-        self.fill_levels.insert(
-            dict(
-                timestamp=datetime.datetime.now(),
-                stage=module_name,
-                entry_type="total_loglines",
-                entry_count=self.loglines.qsize(),
-            )
-        )
-
     @staticmethod
     def _get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
         """
