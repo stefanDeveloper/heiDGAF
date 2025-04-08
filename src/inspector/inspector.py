@@ -336,10 +336,18 @@ class Inspector:
                 raise NotImplementedError(f"Mode {MODE} is not supported!")
 
     def _inspect_multivariate(self, model: str):
+        """
+        Method to inspect multivariate data for anomalies using a StreamAD Model
+        Errors are count in the time window and fit model to retrieve scores.
+
+        Args:
+            model (str): Model name (should be capable of handling multivariate data)
+
+        """
         logger.debug(f"Load Model: {model['model']} from {model['module']}.")
         if not model["model"] in VALID_MULTIVARIATE_MODELS:
-            logger.error(f"Model {model} is not a valid univariate model.")
-            raise NotImplementedError(f"Model {model} is not a valid univariate model.")
+            logger.error(f"Model {model} is not a valid multivariate model.")
+            raise NotImplementedError(f"Model {model} is not a valid multivariate model.")
 
         module = importlib.import_module(model["module"])
         module_model = getattr(module, model["model"])
@@ -367,11 +375,19 @@ class Inspector:
                 self.anomalies.append(0)
 
     def _inspect_ensemble(self, models: str):
+        """
+        Method to inspect data for anomalies using ensembles of two StreamAD models
+        Errors are count in the time window and fit model to retrieve scores.
+
+        Args:
+            model (str): Model name (should be a valid ensemble modle)
+
+        """
         logger.debug(f"Load Model: {ENSEMBLE['model']} from {ENSEMBLE['module']}.")
         if not ENSEMBLE["model"] in VALID_ENSEMBLE_MODELS:
-            logger.error(f"Model {ENSEMBLE} is not a valid univariate model.")
+            logger.error(f"Model {ENSEMBLE} is not a valid ensemble model.")
             raise NotImplementedError(
-                f"Model {ENSEMBLE} is not a valid univariate model."
+                f"Model {ENSEMBLE} is not a valid ensemble model."
             )
 
         module = importlib.import_module(ENSEMBLE["module"])
@@ -389,9 +405,9 @@ class Inspector:
         for model in models:
             logger.debug(f"Load Model: {model['model']} from {model['module']}.")
             if not model["model"] in VALID_UNIVARIATE_MODELS:
-                logger.error(f"Model {models} is not a valid univariate model.")
+                logger.error(f"Model {models} is not a valid ensemble model.")
                 raise NotImplementedError(
-                    f"Model {models} is not a valid univariate model."
+                    f"Model {models} is not a valid ensemble model."
                 )
 
             module = importlib.import_module(model["module"])
@@ -415,8 +431,7 @@ class Inspector:
         Errors are count in the time window and fit model to retrieve scores.
 
         Args:
-            model (BaseDetector): StreamAD model.
-            model_args (dict): Arguments passed to the StreamAD model.
+            model (str): StreamAD model name.
         """
 
         logger.debug(f"Load Model: {model['model']} from {model['module']}.")
@@ -445,6 +460,7 @@ class Inspector:
                 self.anomalies.append(0)
 
     def send_data(self):
+        """Pass the anomalous data for the detector unit for further processing"""
         total_anomalies = np.count_nonzero(
             np.greater_equal(np.array(self.anomalies), SCORE_THRESHOLD)
         )

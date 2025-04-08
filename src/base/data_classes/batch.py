@@ -8,6 +8,9 @@ import marshmallow.validate
 
 @dataclass
 class Batch:
+    """
+    Class definition of a batch, used to divide the log input into smaller amounts
+    """
     batch_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
