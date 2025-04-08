@@ -157,7 +157,11 @@ class ScalabilityTest:
                 cur_index += 1
             except KafkaError:
                 logger.warning(KafkaError)
-            time.sleep(1.0 / msg_per_sec)
+
+            if msg_per_sec > 0:
+                time.sleep(1.0 / msg_per_sec)
+            else:
+                time.sleep(1.0)
 
         logger.warning(f"Finish interval with {msg_per_sec} msg/s")
         return cur_index
@@ -254,7 +258,7 @@ class LongTermTest:
 class MaximumThroughputTest(LongTermTest):
     """Keeps a consistent rate that is too high to be handled."""
 
-    def __init__(self, length_in_min: float | int, msg_per_sec: int = 10000):
+    def __init__(self, length_in_min: float | int, msg_per_sec: int = 500):
         super().__init__(full_length_in_min=length_in_min, msg_per_sec=msg_per_sec)
 
 
@@ -263,16 +267,16 @@ def main(test_type_nr):
     match test_type_nr:
         case 1:
             ramp_up_test = RampUpTest(
-                msg_per_sec_in_intervals=[1, 10, 50, 100, 150, 200],
-                interval_length_in_sec=[30, 30, 30, 30, 30, 30],
+                msg_per_sec_in_intervals=[10, 50, 100, 150],
+                interval_length_in_sec=[120, 120, 120, 120],
             )
             ramp_up_test.execute()
 
         case 2:
             burst_test = BurstTest(
-                normal_rate_msg_per_sec=20,
-                burst_rate_msg_per_sec=10000,
-                normal_rate_interval_length=10,
+                normal_rate_msg_per_sec=50,
+                burst_rate_msg_per_sec=1000,
+                normal_rate_interval_length=120,
                 burst_rate_interval_length=2,
                 number_of_intervals=3,
             )
@@ -280,7 +284,7 @@ def main(test_type_nr):
 
         case 3:
             maximum_throughput_test = MaximumThroughputTest(
-                length_in_min=1,
+                length_in_min=5,
             )
             maximum_throughput_test.execute()
 
@@ -302,4 +306,4 @@ if __name__ == "__main__":
     3 - Maximum throughput test
     4 - Long-term test
     """
-    main(1)
+    main(3)

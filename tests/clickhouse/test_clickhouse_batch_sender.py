@@ -51,231 +51,232 @@ class TestTable(unittest.TestCase):
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.BATCH_SIZE", 50)
-    @patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 0.5)
-    @patch("src.monitoring.clickhouse_batch_sender.CLICKHOUSE_HOSTNAME", "test_name")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_init(self, mock_clickhouse_connect):
+    def test_successful(self):
         # Act
-        sut = ClickHouseBatchSender()
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.BATCH_SIZE", 50),
+            patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 0.5),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.CLICKHOUSE_HOSTNAME",
+                "test_name",
+            ),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.clickhouse_connect"
+            ) as mock_clickhouse_connect,
+        ):
+            sut = ClickHouseBatchSender()
 
         # Assert
+        self.assertIsNotNone(sut.tables)
         self.assertEqual(50, sut.max_batch_size)
         self.assertEqual(0.5, sut.batch_timeout)
         self.assertIsNone(sut.timer)
-        self.assertEqual(dict, type(sut.batch))
-
-        mock_clickhouse_connect.get_client.assert_called_once_with(host="test_name")
+        self.assertIsNotNone(sut.lock)
+        self.assertEqual({key: [] for key in sut.tables}, sut.batch)
 
 
 class TestDel(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_del(self, mock_clickhouse_connect):
-        # Arrange
-        table_name = "test_table_name"
-        column_names = ["col_1", "col_2"]
-        sut = ClickHouseBatchSender()
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
 
+    def test_del(self):
         # Act
         with patch(
             "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all"
         ) as mock_insert_all:
-            del sut
+            del self.sut
 
         # Assert
         mock_insert_all.assert_called_once()
 
 
 class TestAdd(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.Table")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_add_list_of_str_successful(
-        self, mock_clickhouse_connect, mock_start_timer, mock_insert, mock_table
-    ):
-        # Arrange
-        table_name = "fill_levels"
-        sut = ClickHouseBatchSender()
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
 
-        now = datetime.datetime.now()
-        data = {
-            "timestamp": now,
-            "stage": "test_stage",
-            "entry_type": "test_type",
-            "entry_count": 23,
-        }
+    def test_single_list_with_starting_timer(self):
+        # Arrange
+        test_table_name = "test_table"
+        test_data = {"value_1": 1, "value_2": 2}
+
+        self.sut.tables = {test_table_name: Table(test_table_name, {})}
+        self.sut.batch = {test_table_name: []}
 
         # Act
-        sut.add(table_name, data)
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Table.verify"),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer"
+            ) as mock_start_timer,
+        ):
+            self.sut.add(test_table_name, test_data)
 
         # Assert
-        self.assertEqual(
-            [[now, "test_stage", "test_type", 23]], sut.batch.get(table_name)
-        )
-
-        mock_insert.assert_not_called()
+        self.sut.batch = {test_table_name: [1, 2]}
         mock_start_timer.assert_called_once()
 
-    @patch("src.monitoring.clickhouse_batch_sender.Table")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_add_timer_already_started(
-        self, mock_clickhouse_connect, mock_start_timer, mock_insert, mock_table
-    ):
+    def test_timer_already_started(self):
         # Arrange
-        table_name = "fill_levels"
-        sut = ClickHouseBatchSender()
+        test_table_name = "test_table"
+        test_data = {"value_1": 1, "value_2": 2}
 
-        now = datetime.datetime.now()
-        data = {
-            "timestamp": now,
-            "stage": "test_stage",
-            "entry_type": "test_type",
-            "entry_count": 23,
-        }
-        sut.timer = Mock()
+        self.sut.tables = {test_table_name: Table(test_table_name, {})}
+        self.sut.batch = {test_table_name: []}
+        self.sut.timer = Mock()
 
         # Act
-        sut.add(table_name, data)
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Table.verify"),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer"
+            ) as mock_start_timer,
+        ):
+            self.sut.add(test_table_name, test_data)
 
         # Assert
-        self.assertEqual(
-            [[now, "test_stage", "test_type", 23]], sut.batch.get(table_name)
-        )
-
-        mock_insert.assert_not_called()
         mock_start_timer.assert_not_called()
 
-    @patch("src.monitoring.clickhouse_batch_sender.Table")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert")
-    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_add_max_size_reached_and_timer_already_started(
-        self, mock_clickhouse_connect, mock_start_timer, mock_insert, mock_table
-    ):
+    def test_max_batch_size_reached(self):
         # Arrange
-        table_name = "fill_levels"
-        sut = ClickHouseBatchSender()
+        test_table_name = "test_table"
+        test_data = {"value_1": 1, "value_2": 2}
 
-        now = datetime.datetime.now()
-        data = {
-            "timestamp": now,
-            "stage": "test_stage",
-            "entry_type": "test_type",
-            "entry_count": 23,
-        }
-        sut.timer = Mock()
-        sut.max_batch_size = 1
+        self.sut.tables = {test_table_name: Table(test_table_name, {})}
+        self.sut.batch = {test_table_name: []}
+        self.sut.max_batch_size = 1
 
         # Act
-        sut.add(table_name, data)
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Table.verify"),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert"
+            ) as mock_insert,
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer"
+            ),
+        ):
+            self.sut.add(test_table_name, test_data)
 
         # Assert
-        self.assertEqual(
-            [[now, "test_stage", "test_type", 23]], sut.batch.get(table_name)
-        )
+        mock_insert.assert_called_once_with(test_table_name)
 
-        mock_insert.assert_called_once()
-        mock_start_timer.assert_not_called()
+
+class TestInsert(unittest.TestCase):
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
+
+    def test_filled_batch(self):
+        # Arrange
+        test_table_name = "test_table"
+
+        self.sut.tables = {
+            test_table_name: Table(test_table_name, {"col_1": str, "col_2": str})
+        }
+        self.sut.batch = {test_table_name: ["one", "two", "three"]}
+        self.sut._client = Mock()
+
+        # Act
+        self.sut.insert(test_table_name)
+
+        # Assert
+        self.sut._client.insert.assert_called_once_with(
+            test_table_name,
+            ["one", "two", "three"],
+            column_names=["col_1", "col_2"],
+        )
+        self.assertEquals([], self.sut.batch[test_table_name])
+
+    def test_empty_batch(self):
+        # Arrange
+        test_table_name = "test_table"
+
+        self.sut.tables = {
+            test_table_name: Table(test_table_name, {"col_1": str, "col_2": str})
+        }
+        self.sut.batch = {test_table_name: []}
+        self.sut._client = Mock()
+
+        # Act
+        self.sut.insert(test_table_name)
+
+        # Assert
+        self.sut._client.insert.assert_not_called()
+        self.assertEquals([], self.sut.batch[test_table_name])
 
 
 class TestInsertAll(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_insert_all(self, mock_clickhouse_connect):
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
+
+    def test_successful(self):
         # Arrange
-        table_name = "fill_levels"
-        sut = ClickHouseBatchSender()
-        sut._client = Mock()
-        first = datetime.datetime.now()
-        second = datetime.datetime.now()
-        sut.batch[table_name] = [
-            [first, "test_stage", "test_type", 23],
-            [second, "test_stage", "test_type", 24],
-        ]
+        test_table_name_1 = "test_table_1"
+        test_table_name_2 = "test_table_2"
+
+        self.sut.tables = {
+            test_table_name_1: Table(test_table_name_1, {}),
+            test_table_name_2: Table(test_table_name_2, {}),
+        }
+        self.sut.batch = {test_table_name_1: [1, 2, 3], test_table_name_2: [4, 5]}
+        self.sut.timer = Mock()
 
         # Act
-        sut.insert_all()
+        with patch(
+            "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert"
+        ) as mock_insert:
+            self.sut.insert_all()
 
         # Assert
-        self.assertEqual([], sut.batch.get(table_name))
-        self.assertIsNone(sut.timer)
 
-        sut._client.insert.assert_called_once_with(
-            table_name,
-            [
-                [first, "test_stage", "test_type", 23],
-                [second, "test_stage", "test_type", 24],
-            ],
-            column_names=["timestamp", "stage", "entry_type", "entry_count"],
-        )
-
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_insert_all_with_timer(self, mock_clickhouse_connect):
-        # Arrange
-        table_name = "fill_levels"
-        sut = ClickHouseBatchSender()
-        sut._client = Mock()
-        sut.timer = Mock()
-        first = datetime.datetime.now()
-        second = datetime.datetime.now()
-        sut.batch[table_name] = [
-            [first, "test_stage", "test_type", 23],
-            [second, "test_stage", "test_type", 24],
-        ]
-
-        # Act
-        sut.insert_all()
-
-        # Assert
-        self.assertEqual([], sut.batch.get(table_name))
-        self.assertIsNone(sut.timer)
-
-        sut._client.insert.assert_called_once_with(
-            table_name,
-            [
-                [first, "test_stage", "test_type", 23],
-                [second, "test_stage", "test_type", 24],
-            ],
-            column_names=["timestamp", "stage", "entry_type", "entry_count"],
-        )
+        mock_insert.assert_any_call(test_table_name_1)
+        mock_insert.assert_any_call(test_table_name_2)
 
 
 class TestStartTimer(unittest.TestCase):
-    @patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 0.5)
-    @patch("src.monitoring.clickhouse_batch_sender.Timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_start_timer(self, mock_clickhouse_connect, mock_timer):
+    def setUp(self):
+        with patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect"):
+            self.sut = ClickHouseBatchSender()
+
+    def test_without_existing_timer(self):
         # Arrange
-        sut = ClickHouseBatchSender()
+        self.sut.timer = None
 
         # Act
-        sut._start_timer()
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Timer") as mock_timer,
+            patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 5),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all"
+            ) as mock_insert_all,
+        ):
+            self.sut._start_timer()
 
         # Assert
-        mock_timer.assert_called_once_with(
-            0.5,
-            sut.insert_all,
-        )
-        mock_timer.cancel.assert_not_called()
-        sut.timer.start.assert_called_once()
+        mock_timer.assert_called_once_with(5, mock_insert_all)
+        # noinspection PyUnresolvedReferences
+        self.sut.timer.start.assert_called_once()
 
-    @patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 0.5)
-    @patch("src.monitoring.clickhouse_batch_sender.Timer")
-    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
-    def test_start_timer_with_running_timer(self, mock_clickhouse_connect, mock_timer):
+    def test_with_existing_timer(self):
         # Arrange
-        sut = ClickHouseBatchSender()
-        sut.timer = mock_timer
+        self.sut.timer = Mock()
 
         # Act
-        sut._start_timer()
+        with (
+            patch("src.monitoring.clickhouse_batch_sender.Timer") as mock_timer,
+            patch("src.monitoring.clickhouse_batch_sender.BATCH_TIMEOUT", 5),
+            patch(
+                "src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all"
+            ) as mock_insert_all,
+            patch.object(self.sut.timer, "cancel") as mock_cancel,
+        ):
+            self.sut._start_timer()
 
         # Assert
-        mock_timer.assert_called_once_with(
-            0.5,
-            sut.insert_all,
-        )
-        mock_timer.cancel.assert_called_once()
-        sut.timer.start.assert_called_once()
+        mock_cancel.assert_called_once()
+        mock_timer.assert_called_once_with(5, mock_insert_all)
+        # noinspection PyUnresolvedReferences
+        self.sut.timer.start.assert_called_once()

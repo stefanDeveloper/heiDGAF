@@ -29,7 +29,7 @@ jobs:
         python -m pip install -r requirements/requirements.dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
 
     - name: Cache pre-commit hooks
-      uses: actions/cache@v4.0.2
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pre-commit
         key: ${{ runner.os }}-precommit-${{ hashFiles('.pre-commit-config.yaml') }}
