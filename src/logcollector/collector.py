@@ -113,12 +113,11 @@ class LogCollector:
             )
             return
 
-        subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("client_ip")))
-
         additional_fields = fields.copy()
         for field in REQUIRED_FIELDS:
             additional_fields.pop(field)
 
+        subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("client_ip")))
         logline_id = uuid.uuid4()
 
         self.dns_loglines.insert(
