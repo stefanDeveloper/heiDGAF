@@ -10,6 +10,7 @@ API
     inspector
     logcollector
     logserver
+    monitoring
     prefilter
     train
     version

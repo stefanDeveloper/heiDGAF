@@ -1,12 +1,11 @@
 Pipeline
 ~~~~~~~~
 
-.. note::
-
-   This page is under active development.
-
 Overview
 ========
+
+The core component of the software's architecture is its data pipeline. It consists of five stages/modules, and data
+traverses through it using Apache Kafka.
 
 .. image:: media/pipeline_overview.png
 
@@ -14,25 +13,13 @@ Overview
 Stage 1: Log Storage
 ====================
 
-The primary goal of this stage is to temporarily store incoming loglines until they can be processed by subsequent
-stages of the pipeline. This buffering approach ensures that incoming log data is not lost and can be processed
-efficiently when the next stages are ready.
-
-Once the data is stored, it can be retrieved by the next stage of the pipeline, referred to as
-:ref:`Stage 2: Log Collection`, which connects to the server. This design allows multiple
-:ref:`Log Collection<Stage 2: Log Collection>` instances to connect simultaneously, enabling load balancing and
-efficient distribution of processing tasks.
+This stage serves as the central contact point for all data.
 
 Overview
 --------
 
-The :class:`LogServer` class is the core component of this stage. It opens two types of network ports:
-
-1. **Incoming Port** (``port_in``): Used to receive loglines from various sources.
-2. **Outgoing Port** (``port_out``): Used to send stored loglines to connected components.
-
-This setup facilitates the asynchronous handling of log data, allowing various input sources to transmit loglines and
-multiple processing components to retrieve them as needed.
+The :class:`LogServer` class is the core component of this stage. It reads from several input sources and sends the
+data to Kafka, where it can be obtained by the following module.
 
 Main Class
 ----------
@@ -40,45 +27,23 @@ Main Class
 .. py:currentmodule:: src.logserver.server
 .. autoclass:: LogServer
 
-Usage
------
+Usage and configuration
+-----------------------
 
-The :class:`LogServer` operates with two types of connections:
+Currently, the :class:`LogServer` reads from both an input file and a Kafka topic, simultaneously. The configuration
+allows changing the file name to read from.
 
-- **Incoming Connections** (``port_in``):
+- **Without Docker**:
 
-  - Components can connect to the incoming port to send loglines to the server. These components can include:
+  - To change the input file path, change ``pipeline.log_storage.logserver.input_file`` in the `config.yaml`. The
+    default setting is ``"/opt/file.txt"``.
 
-    - Direct APIs from systems generating log data.
-    - Mock logline generators for testing.
-    - File readers that parse log files and send individual log entries to the server.
+- **With Docker**:
 
-  - The server is designed to handle multiple concurrent sources, allowing diverse and simultaneous input streams.
-
-- **Outgoing Connections** (``port_out``):
-
-  - Components can connect to the outgoing port to retrieve the next available logline from the server.
-  - If no loglines are available at the time of the connection, the server will return ``None``.
-
-This dual-port architecture allows for flexibility and scalability in log data handling.
-
-Configuration
--------------
-
-Configuration settings for the :class:`LogServer` are managed in the `config.yaml` file (key: ``heidgaf.logserver``).
-The default settings include:
-
-- **Port Configuration**:
-
-  - ``port_in``: Default is ``9998``.
-  - ``port_out``: Default is ``9999``.
-
-- **Connection Limits**:
-
-  - ``max_number_of_connections``: The maximum number of simultaneous connections allowed. Default is set to ``1000``.
-
-These settings can be adjusted to meet specific deployment requirements, allowing customization of network ports and
-connection handling.
+  - Docker mounts the file specified in ``MOUNT_PATH`` in the file `docker/.env`. By default, this is set to
+    ``../../default.txt``, which refers to the file `docker/default.txt`.
+  - By changing this variable, the file to be mounted can be set. Please note that in this case, the variable specified
+    in the `config.yaml` must be set to the default value.
 
 
 Stage 2: Log Collection
@@ -150,7 +115,7 @@ validates. The logline is parsed into its respective fields, each checked for co
 
 - **Log Line Format**:
 
-  - Log lines have the format:
+  - By default, log lines have the following format:
 
     .. code-block::
 
@@ -194,6 +159,8 @@ validates. The logline is parsed into its respective fields, each checked for co
     |                      | bytes.                                         |
     +----------------------+------------------------------------------------+
 
+  - Users can change the format and field types, as described in the :ref:`Logline format configuration` section.
+
 BufferedBatch
 .............
 
@@ -224,31 +191,15 @@ The :class:`CollectorKafkaBatchSender` manages the sending of validated loglines
 Configuration
 -------------
 
-Configuration settings for the :class:`LogCollector` and :class:`CollectorKafkaBatchSender` are managed in the
-`config.yaml` file (keys: ``heidgaf.collector``, ``kafka.batch_sender`` and ``heidgaf.subnet``):
+The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format`` configured
+in the ``config.yaml``.
 
 - **LogCollector Analyzation Criteria**:
 
-  - ``valid_status_codes``: The accepted status codes for logline validation. Default list contains ``NOERROR``
-    and ``NXDOMAIN``.
-  - ``valid_record_types``: The accepted DNS record types for logline validation. Default list contains ``A`` and
-    ``AAAA``.
-
-- **Batch Configuration**:
-
-  - ``batch_size``: The maximum number of loglines per batch. Default is ``1000``.
-  - ``timeout_seconds``: The time interval (in seconds) after which the batch is sent, regardless of size. Default
-    is ``60``.
-
-- **Number of bits used in Subnet ID**:
-
-  - ``subnet_bits``: The number of bits, after which to cut off the client's IP address to use as ``subnet_id``. Default
-    is ``24``.
-
-- **Kafka Topics**:
-
-  - **Output Topic**: ``Prefilter`` - After collection, the processed log data is published to this topic for subsequent
-    stages.
+  - Valid status codes: The accepted status codes for logline validation. This is defined in the field with name
+    ``"status_code"`` in the ``logline_format`` list.
+  - Valid record types: The accepted DNS record types for logline validation. This is defined in the field with name
+    ``"record_type"`` in the ``logline_format`` list.
 
 Buffer Functionality
 --------------------
@@ -351,20 +302,13 @@ for further processing in subsequent stages.
 Configuration
 -------------
 
-To configure the :class:`Prefilter` and customize the filtering behavior, the following options are available:
+To customize the filtering behavior, the following options in the ``logline_format`` set
+in the ``config.yaml`` are used.
 
-- **Error Types**:
+- **Relevant Types**:
 
-  - When creating an instance of :class:`Prefilter`, a list of error types is passed as an argument. This list defines
-    the types of errors that should be retained in the filtering process.
-  - **Example**: If the filter is configured with the list ``["NXDOMAIN"]``, only logs with error status
-    ``NXDOMAIN`` will be processed and sent to the ``Inspect`` topic.
-
-- **Kafka Topics**:
-
-  - **Input Topic**: ``Prefilter`` - This is the Kafka topic from which the `Prefilter` loads the incoming log data.
-  - **Output Topic**: ``Inspect`` - After filtering, the processed log data is published to this topic for subsequent
-    stages.
+  - If the fourth entry of the field configuration with type ``ListItem`` in the ``logline_format`` list is defined for
+    any field name, the values in this list are the relevant values.
 
 
 Stage 4: Inspection

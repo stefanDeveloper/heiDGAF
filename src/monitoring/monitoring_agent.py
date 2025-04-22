@@ -6,7 +6,7 @@ from dataclasses import asdict
 import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
-from src.monitoring.clickhouse_connector import *
+from src.monitoring.clickhouse_batch_sender import *
 from src.base.kafka_handler import SimpleKafkaConsumeHandler
 from src.base.data_classes.clickhouse_connectors import TABLE_NAME_TO_TYPE
 from src.base.log_config import get_logger
@@ -41,28 +41,29 @@ def prepare_all_tables():
 
 class MonitoringAgent:
     def __init__(self):
-        self.connectors = {
-            "server_logs": ServerLogsConnector(),
-            "server_logs_timestamps": ServerLogsTimestampsConnector(),
-            "failed_dns_loglines": FailedDNSLoglinesConnector(),
-            "logline_to_batches": LoglineToBatchesConnector(),
-            "dns_loglines": DNSLoglinesConnector(),
-            "logline_timestamps": LoglineTimestampsConnector(),
-            "batch_timestamps": BatchTimestampsConnector(),
-            "suspicious_batches_to_batch": SuspiciousBatchesToBatchConnector(),
-            "suspicious_batch_timestamps": SuspiciousBatchTimestampsConnector(),
-            "alerts": AlertsConnector(),
-            "fill_levels": FillLevelsConnector(),
-        }
+        self.table_names = [
+            "server_logs",
+            "server_logs_timestamps",
+            "failed_dns_loglines",
+            "logline_to_batches",
+            "dns_loglines",
+            "logline_timestamps",
+            "batch_timestamps",
+            "suspicious_batches_to_batch",
+            "suspicious_batch_timestamps",
+            "alerts",
+            "fill_levels",
+        ]
 
-        self.topics = [f"clickhouse_{table_name}" for table_name in self.connectors]
+        self.topics = [f"clickhouse_{table_name}" for table_name in self.table_names]
         self.kafka_consumer = SimpleKafkaConsumeHandler(self.topics)
+        self.batch_sender = ClickHouseBatchSender()
 
     async def start(self):
         loop = asyncio.get_running_loop()
 
-        try:
-            while True:
+        while True:
+            try:
                 key, value, topic = await loop.run_in_executor(
                     None, self.kafka_consumer.consume
                 )
@@ -74,11 +75,12 @@ class MonitoringAgent:
                 )()
                 data = data_schema.loads(value)
 
-                self.connectors[table_name].insert(**asdict(data))
-        except KeyboardInterrupt:
-            logger.info("Stopped MonitoringAgent.")
-        except Exception as e:
-            logger.warning(e)
+                self.batch_sender.add(table_name, asdict(data))
+            except KeyboardInterrupt:
+                logger.info("Stopped MonitoringAgent.")
+                break
+            except Exception as e:
+                logger.warning(e)
 
 
 def main():
