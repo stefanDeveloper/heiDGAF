@@ -47,6 +47,9 @@ class ClickHouseBatchSender:
             self.batch.append(element)
 
         if any(isinstance(e, list) for e in data):
+            if not all(isinstance(e, list) for e in data):
+                raise TypeError
+
             for e in data:
                 _add_element(e)
         else:

@@ -184,6 +184,29 @@ class TestAdd(unittest.TestCase):
         mock_insert_all.assert_not_called()
         mock_start_timer.assert_not_called()
 
+    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender.insert_all")
+    @patch("src.monitoring.clickhouse_batch_sender.ClickHouseBatchSender._start_timer")
+    @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
+    def test_add_mixed_types(
+        self, mock_clickhouse_connect, mock_start_timer, mock_insert_all
+    ):
+        # Arrange
+        table_name = "test_table_name"
+        column_names = ["col_1"]
+        sut = ClickHouseBatchSender(table_name, column_names)
+
+        data = [["entry_1"], "entry_2"]
+
+        # Act
+        with self.assertRaises(TypeError):
+            sut.add(data)
+
+        # Assert
+        self.assertEqual([], sut.batch)
+
+        mock_insert_all.assert_not_called()
+        mock_start_timer.assert_not_called()
+
 
 class TestInsertAll(unittest.TestCase):
     @patch("src.monitoring.clickhouse_batch_sender.clickhouse_connect")
