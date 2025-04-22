@@ -3,7 +3,7 @@ import datetime
 import ipaddress
 import unittest
 import uuid
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch, AsyncMock, Mock
 
 from src.logcollector.collector import LogCollector, main
 
@@ -58,7 +58,6 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
     async def test_start_successful_execution(self):
         # Arrange
         self.sut.fetch = AsyncMock()
-        self.sut.send = AsyncMock()
 
         async def mock_gather(*args, **kwargs):
             return None
@@ -72,12 +71,10 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
             # Assert
             mock.assert_called_once()
             self.sut.fetch.assert_called_once()
-            self.sut.send.assert_called_once()
 
     async def test_start_handles_keyboard_interrupt(self):
         # Arrange
         self.sut.fetch = AsyncMock()
-        self.sut.send = AsyncMock()
 
         async def mock_gather(*args, **kwargs):
             raise KeyboardInterrupt
@@ -91,7 +88,6 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
             # Assert
             mock.assert_called_once()
             self.sut.fetch.assert_called_once()
-            self.sut.send.assert_called_once()
 
 
 class TestFetch(unittest.IsolatedAsyncioTestCase):
@@ -109,15 +105,15 @@ class TestFetch(unittest.IsolatedAsyncioTestCase):
         self.sut = LogCollector()
         self.sut.kafka_consume_handler = AsyncMock()
 
-    @patch("src.logcollector.collector.LogCollector.store")
+    @patch("src.logcollector.collector.LogCollector.send")
     @patch("src.logcollector.collector.logger")
     @patch("asyncio.get_running_loop")
     @patch("src.logcollector.collector.ClickHouseKafkaSender")
     async def test_handle_kafka_inputs(
-        self, mock_clickhouse, mock_get_running_loop, mock_logger, mock_store
+        self, mock_clickhouse, mock_get_running_loop, mock_logger, mock_send
     ):
-        mock_store_instance = AsyncMock()
-        mock_store.return_value = mock_store_instance
+        mock_send_instance = AsyncMock()
+        mock_send.return_value = mock_send_instance
         mock_loop = AsyncMock()
         mock_get_running_loop.return_value = mock_loop
         self.sut.kafka_consume_handler.consume.return_value = (
@@ -134,236 +130,69 @@ class TestFetch(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await self.sut.fetch()
 
-        mock_store.assert_called_once()
+        mock_send.assert_called_once()
 
 
-class TestSend(unittest.IsolatedAsyncioTestCase):
-    @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
-    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.logcollector.collector.BufferedBatchSender")
-    @patch("src.logcollector.collector.LoglineHandler")
-    @patch("src.logcollector.collector.uuid")
-    @patch("src.logcollector.collector.ClickHouseKafkaSender")
-    async def test_send_with_one_logline(
-        self,
-        mock_clickhouse,
-        mock_uuid,
-        mock_logline_handler,
-        mock_batch_handler,
-        mock_kafka_handler,
-        mock_logger,
-    ):
+class TestSend(unittest.TestCase):
+    def setUp(self):
+        with (
+            patch("src.logcollector.collector.asyncio.Queue"),
+            patch("src.logcollector.collector.BufferedBatchSender"),
+            patch("src.logcollector.collector.LoglineHandler"),
+            patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler"),
+            patch("src.logcollector.collector.ClickHouseKafkaSender"),
+        ):
+            self.sut = LogCollector()
+
+    def test_valid_logline(self):
+        timestamp = datetime.datetime(2026, 2, 14, 16, 38, 6, 184006)
+        message = "test_message"
+
         # Arrange
-        mock_batch_handler_instance = MagicMock()
-        mock_logline_handler_instance = MagicMock()
-        mock_batch_handler.return_value = mock_batch_handler_instance
-        mock_batch_handler_instance.add_message.side_effect = [
-            KeyboardInterrupt,
+        mock_logline_handler = Mock()
+        self.sut.logline_handler = mock_logline_handler.return_value
+        self.sut.logline_handler.validate_logline_and_get_fields_as_json.side_effect = [
+            ValueError
         ]
-        mock_logline_handler.return_value = mock_logline_handler_instance
-        mock_uuid.uuid4.return_value = uuid.UUID("8ac2e82b-9252-4e67-a691-4924f98bc605")
 
-        mock_logline_handler_instance.validate_logline_and_get_fields_as_json.return_value = {
-            "timestamp": "2024-05-21T08:31:28.119Z",
-            "status_code": "NOERROR",
-            "client_ip": "192.168.0.105",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.heidelberg-botanik.de",
-            "record_type": "A",
-            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-            "size": "150b",
+        # Act
+        self.sut.send(timestamp_in=timestamp, message=message)
+
+        # Assert
+        self.sut.batch_handler.add_message.assert_not_called()
+
+    def test_invalid_logline(self):
+        timestamp = datetime.datetime(2026, 2, 14, 16, 38, 6, 184006)
+        message = "test_message"
+
+        # Arrange
+        mock_logline_handler = Mock()
+        self.sut.logline_handler = mock_logline_handler.return_value
+        self.sut.logline_handler.validate_logline_and_get_fields_as_json.return_value = {
+            "timestamp": str(timestamp),
+            "status_code": "test_status",
+            "client_ip": "192.168.3.141",
+            "record_type": "test_record_type",
         }
-        expected_message = (
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status_code": "NOERROR", "client_ip": '
-            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", '
-            '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
-            '"size": "150b", "logline_id": "8ac2e82b-9252-4e67-a691-4924f98bc605"}'
-        )
-        input_logline = (
-            "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A "
-            "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b"
-        )
-
-        sut = LogCollector()
-        await sut.store(datetime.datetime.now(), input_logline)
 
         # Act
-        await sut.send()
-
-        mock_batch_handler_instance.add_message.assert_called_once_with(
-            "192.168.0.0_22", expected_message
-        )
-
-    @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
-    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.logcollector.collector.BufferedBatchSender")
-    @patch("src.logcollector.collector.LoglineHandler")
-    @patch("src.logcollector.collector.ClickHouseKafkaSender")
-    async def test_send_keyboard_interrupt(
-        self,
-        mock_clickhouse,
-        mock_logline_handler,
-        mock_batch_handler,
-        mock_kafka_handler,
-        mock_logger,
-    ):
-        # Arrange
-        mock_batch_handler_instance = MagicMock()
-        mock_logline_handler_instance = MagicMock()
-        mock_batch_handler.return_value = mock_batch_handler_instance
-        mock_batch_handler_instance.add_message.side_effect = [
-            None,
-            KeyboardInterrupt,
-            None,
-            None,  # KeyboardInterrupt between the messages
-        ]
-        mock_logline_handler.return_value = mock_logline_handler_instance
-
-        mock_logline_handler_instance.validate_logline_and_get_fields_as_json.return_value = {
-            "timestamp": "2024-05-21T08:31:28.119Z",
-            "status_code": "NOERROR",
-            "client_ip": "192.168.0.105",
-            "dns_ip": "8.8.8.8",
-            "host_domain_name": "www.heidelberg-botanik.de",
-            "record_type": "A",
-            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-            "size": "150b",
-        }
-        input_logline = (
-            "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A "
-            "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b"
-        )
-
-        sut = LogCollector()
-        await sut.store(datetime.datetime.now(), input_logline)
-        await sut.store(datetime.datetime.now(), input_logline)
-        await sut.store(datetime.datetime.now(), input_logline)
-        await sut.store(datetime.datetime.now(), input_logline)
-
-        # Act
-        await sut.send()
+        with (
+            patch(
+                "src.logcollector.collector.TIMESTAMP_FORMAT", "%Y-%m-%d %H:%M:%S.%f"
+            ),
+            patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24),
+            patch(
+                "src.logcollector.collector.uuid.uuid4",
+                return_value=uuid.UUID("da3aec7f-b355-4a2c-a2f4-2066d49431a5"),
+            ),
+        ):
+            self.sut.send(timestamp_in=timestamp, message=message)
 
         # Assert
-        self.assertEqual(4, mock_batch_handler_instance.add_message.call_count)
-
-    @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
-    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.logcollector.collector.BufferedBatchSender")
-    @patch("src.logcollector.collector.LoglineHandler")
-    @patch("src.logcollector.collector.asyncio.Queue")
-    @patch("src.logcollector.collector.ClickHouseKafkaSender")
-    async def test_send_empty(
-        self,
-        mock_clickhouse,
-        mock_queue,
-        mock_logline_handler,
-        mock_batch_handler,
-        mock_kafka_handler,
-        mock_logger,
-    ):
-        # Arrange
-        mock_queue_instance = MagicMock()
-        mock_queue.return_value = mock_queue_instance
-        mock_queue_instance.empty.side_effect = [True, KeyboardInterrupt, True]
-        mock_batch_handler_instance = MagicMock()
-        mock_batch_handler.return_value = mock_batch_handler_instance
-
-        sut = LogCollector()
-        sut.loglines = mock_queue_instance
-
-        # Act
-        await sut.send()
-
-        # Assert
-        mock_queue_instance.add_message.assert_not_called()
-
-    @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 22)
-    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.logcollector.collector.BufferedBatchSender")
-    @patch("src.logcollector.collector.LoglineHandler")
-    @patch("src.logcollector.collector.uuid")
-    @patch("src.logcollector.collector.ClickHouseKafkaSender")
-    async def test_send_value_error(
-        self,
-        mock_clickhouse,
-        mock_uuid,
-        mock_logline_handler,
-        mock_batch_handler,
-        mock_kafka_handler,
-        mock_logger,
-    ):
-        # Arrange
-        mock_batch_handler_instance = MagicMock()
-        mock_logline_handler_instance = MagicMock()
-        mock_batch_handler.return_value = mock_batch_handler_instance
-        mock_logline_handler.return_value = mock_logline_handler_instance
-        mock_uuid.uuid4.return_value = uuid.UUID("8ac2e82b-9252-4e67-a691-4924f98bc605")
-
-        mock_logline_handler_instance.validate_logline_and_get_fields_as_json.side_effect = [
-            ValueError,
-            {
-                "timestamp": "2024-05-21T08:31:28.119Z",
-                "status_code": "NOERROR",
-                "client_ip": "192.168.0.105",
-                "dns_ip": "8.8.8.8",
-                "host_domain_name": "www.heidelberg-botanik.de",
-                "record_type": "A",
-                "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
-                "size": "150b",
-            },
-            KeyboardInterrupt,
-        ]
-        expected_message = (
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status_code": "NOERROR", "client_ip": '
-            '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", '
-            '"record_type": "A", "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", '
-            '"size": "150b", "logline_id": "8ac2e82b-9252-4e67-a691-4924f98bc605"}'
+        self.sut.batch_handler.add_message.assert_called_once_with(
+            "192.168.3.0_24",
+            '{"timestamp": "2026-02-14 16:38:06.184006", "status_code": "test_status", "client_ip": "192.168.3.141", "record_type": "test_record_type", "logline_id": "da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
         )
-        input_logline = (
-            "2024-05-21T08:31:28.119Z NOERROR 192.168.0.105 8.8.8.8 www.heidelberg-botanik.de A "
-            "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1 150b"
-        )
-
-        sut = LogCollector()
-        await sut.store(datetime.datetime.now(), input_logline)
-        await sut.store(datetime.datetime.now(), input_logline)
-        await sut.store(datetime.datetime.now(), input_logline)
-
-        # Act
-        await sut.send()
-
-        mock_batch_handler_instance.add_message.assert_called_once_with(
-            "192.168.0.0_22", expected_message
-        )
-
-
-class TestStore(unittest.IsolatedAsyncioTestCase):
-    @patch("src.logcollector.collector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.logcollector.collector.BufferedBatchSender")
-    @patch("src.logcollector.collector.LoglineHandler")
-    @patch("src.logcollector.collector.ClickHouseKafkaSender")
-    async def test_store(
-        self,
-        mock_clickhouse,
-        mock_logline_handler,
-        mock_batch_handler,
-        mock_kafka_consume_handler,
-    ):
-        # Arrange
-        sut = LogCollector()
-        self.assertTrue(sut.loglines.empty())
-
-        # Act
-        await sut.store(datetime.datetime.now(), "test_message")
-
-        # Assert
-        stored_timestamp, stored_message = await sut.loglines.get()
-        self.assertEqual("test_message", stored_message)
-        self.assertTrue(sut.loglines.empty())
 
 
 class TestGetSubnetId(unittest.TestCase):

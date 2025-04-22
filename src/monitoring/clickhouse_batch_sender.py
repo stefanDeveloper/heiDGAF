@@ -188,7 +188,8 @@ class ClickHouseBatchSender:
 
         if len(self.batch.get(table_name)) >= self.max_batch_size:
             self.insert(table_name)
-        elif not self.timer:
+
+        if not self.timer:
             self._start_timer()
 
     def insert(self, table_name: str):
