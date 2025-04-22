@@ -448,7 +448,7 @@ class BufferedBatchSender:
         Send one batch based on the key
 
         Args:
-            key (str): Key to identify the batch        
+            key (str): Key to identify the batch
         """
         try:
             data = self.batch.complete_batch(key)

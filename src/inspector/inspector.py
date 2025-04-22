@@ -347,7 +347,9 @@ class Inspector:
         logger.debug(f"Load Model: {model['model']} from {model['module']}.")
         if not model["model"] in VALID_MULTIVARIATE_MODELS:
             logger.error(f"Model {model} is not a valid multivariate model.")
-            raise NotImplementedError(f"Model {model} is not a valid multivariate model.")
+            raise NotImplementedError(
+                f"Model {model} is not a valid multivariate model."
+            )
 
         module = importlib.import_module(model["module"])
         module_model = getattr(module, model["model"])

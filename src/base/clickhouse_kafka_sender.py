@@ -29,7 +29,7 @@ class ClickHouseKafkaSender:
     def insert(self, data: dict):
         """
         Produces the insert operation to Kafka.
-        
+
         Args:
             data (dict): content to write into the Kafka queue
         """

@@ -34,7 +34,7 @@ class Table:
     def verify(self, data: dict[str, Any]):
         """
         Verify if the data has the correct columns and types.
-        
+
         Args:
             data (dict): The values for each cell
         """
@@ -190,11 +190,11 @@ class ClickHouseBatchSender:
     def add(self, table_name: str, data: dict[str, Any]):
         """
         Adds the data to the batch for the table. Verifies the fields first.
-        
-        Args:   
+
+        Args:
             table_name (str): Name of the table to add data to
             data (dict): The values for each cell in the table
-        
+
         """
         self.tables.get(table_name).verify(data)
         self.batch.get(table_name).append(list(data.values()))
@@ -207,7 +207,7 @@ class ClickHouseBatchSender:
     def insert(self, table_name: str):
         """
         Inserts the batch for the given table.
-        
+
         Args:
             table_name (str): Name of the table to insert data to
         """

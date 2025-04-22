@@ -291,7 +291,7 @@ class KafkaConsumeHandler(KafkaHandler):
         Args:
             topics (list): List of topics to check
         Returns:
-            bool 
+            bool
         """
         number_of_retries_left = 30
         all_topics_created = False
