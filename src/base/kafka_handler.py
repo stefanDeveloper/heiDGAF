@@ -284,7 +284,15 @@ class KafkaConsumeHandler(KafkaHandler):
         except Exception:
             raise ValueError("Unknown data format")
 
-    def _all_topics_created(self, topics):
+    def _all_topics_created(self, topics) -> bool:
+        """
+        Checks whether each topic in a list of topics was created. If not, retries for a set amount of times
+
+        Args:
+            topics (list): List of topics to check
+        Returns:
+            bool
+        """
         number_of_retries_left = 30
         all_topics_created = False
         while not all_topics_created:  # try for 15 seconds

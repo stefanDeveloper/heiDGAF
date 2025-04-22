@@ -32,6 +32,12 @@ class Table:
     columns: dict[str, type]
 
     def verify(self, data: dict[str, Any]):
+        """
+        Verify if the data has the correct columns and types.
+
+        Args:
+            data (dict): The values for each cell
+        """
         if len(data) != len(self.columns):
             raise ValueError(
                 f"Wrong number of fields in data: Expected {len(self.columns)}, got {len(data)}"
@@ -182,7 +188,14 @@ class ClickHouseBatchSender:
         self.insert_all()
 
     def add(self, table_name: str, data: dict[str, Any]):
-        """Adds the data to the batch for the table. Verifies the fields first."""
+        """
+        Adds the data to the batch for the table. Verifies the fields first.
+
+        Args:
+            table_name (str): Name of the table to add data to
+            data (dict): The values for each cell in the table
+
+        """
         self.tables.get(table_name).verify(data)
         self.batch.get(table_name).append(list(data.values()))
 
@@ -193,7 +206,12 @@ class ClickHouseBatchSender:
             self._start_timer()
 
     def insert(self, table_name: str):
-        """Inserts the batch for the given table."""
+        """
+        Inserts the batch for the given table.
+
+        Args:
+            table_name (str): Name of the table to insert data to
+        """
         if self.batch[table_name]:
             with self.lock:
                 self._client.insert(
@@ -217,6 +235,7 @@ class ClickHouseBatchSender:
         self.timer = None
 
     def _start_timer(self):
+        """Set the timer for batch processing of data insertion"""
         if self.timer:
             self.timer.cancel()
 

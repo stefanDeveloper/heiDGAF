@@ -299,6 +299,7 @@ class Detector:
         return all_features.reshape(1, -1)
 
     def detect(self) -> None:  # pragma: no cover
+        """Method to detect malicious requests in the network flows"""
         logger.info("Start detecting malicious requests.")
         for message in self.messages:
             # TODO predict all messages
@@ -317,6 +318,7 @@ class Detector:
                 self.warnings.append(warning)
 
     def send_warning(self) -> None:
+        """Dispatch warnings saved to the object's warning list"""
         logger.info("Store alert.")
         if len(self.warnings) > 0:
             overall_score = median(

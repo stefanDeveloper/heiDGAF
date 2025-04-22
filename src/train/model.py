@@ -165,6 +165,16 @@ class XGBoostModel(Model):
         super().__init__(processor, x_train, y_train)
 
     def fdr_metric(self, preds: np.ndarray, dtrain: xgb.DMatrix) -> tuple[str, float]:
+        """
+        Custom FDR metric to evaluate model performance based on False Discovery Rate.
+
+        Args:
+            preds (np.ndarray): The predicted values.
+            dtrain (xgb.DMatrix): The training data matrix.
+
+        Returns:
+            tuple: A tuple containing the metric name ("fdr") and its value.
+        """
         # Get the true labels
         labels = dtrain.get_label()
 
@@ -188,6 +198,15 @@ class XGBoostModel(Model):
         )  # -1 is essentiell since XGBoost wants a scoring value (higher is better). However, FDR represents a loss function.
 
     def objective(self, trial):
+        """
+        Optimizes the XGBoost model hyperparameters using cross-validation.
+
+        Args:
+            trial: A trial object from the optimization framework (e.g., Optuna).
+
+        Returns:
+            float: The best FDR value after cross-validation.
+        """
         dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
 
         param = {
@@ -263,6 +282,13 @@ class XGBoostModel(Model):
         return self.clf.predict(x)
 
     def train(self, trial, output_path):
+        """
+        Trains the XGBoost model and saves the trained model to a file.
+
+        Args:
+            trial: A trial object from the optimization framework.
+            output_path (str): The directory path to save the trained model.
+        """
         logger.info("Number of estimators: {}".format(trial.user_attrs["n_estimators"]))
 
         # dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
@@ -300,6 +326,16 @@ class RandomForestModel(Model):
 
     # Define the custom FDR metric
     def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
+        """
+        Custom FDR metric to evaluate the performance of the Random Forest model.
+
+        Args:
+            y_true (np.ndarray): The true labels.
+            y_pred (np.ndarray): The predicted labels.
+
+        Returns:
+            float: The False Discovery Rate (FDR).
+        """
         # False Positives (FP): cases where the model predicted 1 but the actual label is 0
         FP = np.sum((y_pred == 1) & (y_true == 0))
 
@@ -315,6 +351,15 @@ class RandomForestModel(Model):
         return fdr
 
     def objective(self, trial):
+        """
+        Optimizes the Random Forest model hyperparameters using cross-validation.
+
+        Args:
+            trial: A trial object from the optimization framework (e.g., Optuna).
+
+        Returns:
+            float: The best FDR value after cross-validation.
+        """
         # Define hyperparameters to optimize
         n_estimators = trial.suggest_int("n_estimators", 50, 300)
         max_depth = trial.suggest_int("max_depth", 2, 20)
@@ -359,6 +404,13 @@ class RandomForestModel(Model):
         return self.clf.predict(x)
 
     def train(self, trial, output_path):
+        """
+        Trains the Random Forest model and saves the trained model to a file.
+
+        Args:
+            trial: A trial object from the optimization framework.
+            output_path (str): The directory path to save the trained model.
+        """
         self.clf = RandomForestClassifier(**trial.params)
         self.clf.fit(self.x_train, self.y_train)
 

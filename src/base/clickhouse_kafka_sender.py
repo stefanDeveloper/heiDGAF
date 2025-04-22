@@ -27,7 +27,12 @@ class ClickHouseKafkaSender:
         )()
 
     def insert(self, data: dict):
-        """Produces the insert operation to Kafka."""
+        """
+        Produces the insert operation to Kafka.
+
+        Args:
+            data (dict): content to write into the Kafka queue
+        """
         self.kafka_producer.produce(
             topic=f"clickhouse_{self.table_name}",
             data=self.data_schema.dumps(data),

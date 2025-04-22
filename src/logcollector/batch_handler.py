@@ -406,6 +406,12 @@ class BufferedBatchSender:
             self._reset_timer()
 
     def _send_all_batches(self, reset_timer: bool = True) -> None:
+        """
+        Dispatch all batches for the Kafka queue
+
+        Args:
+            reset_timer (bool): whether or not the timer should be reset
+        """
         number_of_keys = 0
         total_number_of_batch_messages = self.batch.get_message_count_for_batch()
         total_number_of_buffer_messages = self.batch.get_message_count_for_buffer()
@@ -438,6 +444,12 @@ class BufferedBatchSender:
             )
 
     def _send_batch_for_key(self, key: str) -> None:
+        """
+        Send one batch based on the key
+
+        Args:
+            key (str): Key to identify the batch
+        """
         try:
             data = self.batch.complete_batch(key)
         except ValueError as e:
@@ -447,6 +459,13 @@ class BufferedBatchSender:
         self._send_data_packet(key, data)
 
     def _send_data_packet(self, key: str, data: dict) -> None:
+        """
+        Sends a packet of a batch to the defined Kafka topic
+
+        Args:
+            key (str): key to identify the batch
+            data (dict): the batch data to send
+        """
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
         self.kafka_produce_handler.produce(
@@ -456,6 +475,7 @@ class BufferedBatchSender:
         )
 
     def _reset_timer(self) -> None:
+        """Restarts the internal timer of the object"""
         if self.timer:
             self.timer.cancel()
 
