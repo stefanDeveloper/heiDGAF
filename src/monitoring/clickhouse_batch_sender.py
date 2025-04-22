@@ -186,18 +186,9 @@ class ClickHouseBatchSender:
         self.tables.get(table_name).verify(data)
         self.batch.get(table_name).append(list(data.values()))
 
-        if any(isinstance(e, list) for e in data):
-            if not all(isinstance(e, list) for e in data):
-                raise TypeError
-
-            for e in data:
-                _add_element(e)
-        else:
-            _add_element(data)
-
         if len(self.batch.get(table_name)) >= self.max_batch_size:
             self.insert(table_name)
-        
+
         if not self.timer:
             self._start_timer()
 
