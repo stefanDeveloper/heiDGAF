@@ -459,8 +459,15 @@ class TestInspectFunction(unittest.TestCase):
         )
         models = sut.models
         sut.models = None
-        sut.inspect()
+        sut._get_models(
+            [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}]
+        )
         self.assertEqual(type(models), type(sut.models))
+        models = sut.models
+        sut._get_models(
+            [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}]
+        )
+        self.assertEqual(models, sut.models)
 
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
@@ -774,8 +781,10 @@ class TestInspectFunction(unittest.TestCase):
         sut._get_ensemble()
         ensemble = sut.ensemble
         sut.ensemble = None
-        sut.inspect()
-        self.assertEqual(type(ensemble), type(ensemble))
+        sut._get_ensemble()
+        self.assertEqual(type(ensemble), type(sut.ensemble))
+        sut._get_ensemble()
+        self.assertEqual(ensemble, ensemble)
 
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
