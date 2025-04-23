@@ -422,6 +422,47 @@ class TestInspectFunction(unittest.TestCase):
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch(
         "src.inspector.inspector.MODELS",
+        [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}],
+    )
+    @patch("src.inspector.inspector.TIME_TYPE", "ms")
+    @patch("src.inspector.inspector.TIME_RANGE", 1)
+    @patch("src.inspector.inspector.MODE", "univariate")
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    def test_inspect_univariate_model_init(
+        self,
+        mock_clickhouse,
+        mock_kafka_consume_handler,
+        mock_produce_handler,
+        mock_logger,
+    ):
+        test_batch = get_batch(None)
+        test_batch.begin_timestamp = datetime.now()
+        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
+        data = DEFAULT_DATA
+        data["timestamp"] = datetime.strftime(
+            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
+        )
+        test_batch.data = [data]
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
+            "test",
+            test_batch,
+        )
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+
+        sut = Inspector()
+        sut.get_and_fill_data()
+        models = sut._get_models()
+        sut.inspect()
+        self.assertEqual(models, sut.models)
+
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    @patch(
+        "src.inspector.inspector.MODELS",
         [
             {
                 "model": "ZScoreDetector",
@@ -700,7 +741,7 @@ class TestInspectFunction(unittest.TestCase):
     )
     @patch("src.inspector.inspector.MODE", "ensemble")
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_ensemble_model(
+    def test_inspect_ensemble_model_init(
         self,
         mock_clickhouse,
         mock_kafka_consume_handler,

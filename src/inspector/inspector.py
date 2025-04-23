@@ -70,6 +70,7 @@ VALID_ENSEMBLE_MODELS = ["WeightEnsemble", "VoteEnsemble"]
 STATIC_ZEROS_UNIVARIATE = np.zeros((100, 1))
 STATIC_ZEROS_MULTIVARIATE = np.zeros((100, 2))
 
+
 @unique
 class EnsembleModels(str, Enum):
     WEIGHT = "WeightEnsemble"
@@ -424,7 +425,7 @@ class Inspector:
                 self.anomalies.append(0)
 
     def _get_models(self, models):
-        if hasattr(self, 'models') and self.models != []:
+        if hasattr(self, "models") and self.models != []:
             logger.info("All models have been successfully loaded!")
             return
 
@@ -459,7 +460,7 @@ class Inspector:
                 f"Model {ENSEMBLE} is not a valid ensemble model."
             )
 
-        if hasattr(self, 'ensemble'):
+        if hasattr(self, "ensemble"):
             logger.info("Ensemble have been successfully loaded!")
             return
 
