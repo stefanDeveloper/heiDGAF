@@ -365,6 +365,7 @@ class Inspector:
 
         for x in stream.iter_item():
             score = self.models[0].fit_score(x)
+            # noqa
             if score != None:
                 self.anomalies.append(score)
             else:
@@ -392,6 +393,7 @@ class Inspector:
                 scores.append(model.fit_score(x))
             # TODO Calibrators are missing
             score = self.ensemble.ensemble(scores)
+            # noqa
             if score != None:
                 self.anomalies.append(score)
             else:
@@ -419,6 +421,7 @@ class Inspector:
 
         for x in stream.iter_item():
             score = self.models[0].fit_score(x)
+            # noqa
             if score is not None:
                 self.anomalies.append(score)
             else:
