@@ -425,7 +425,7 @@ class Inspector:
                 self.anomalies.append(0)
 
     def _get_models(self, models):
-        if hasattr(self, "models") and self.models != []:
+        if hasattr(self, "models") and self.models != None and self.models != []:
             logger.info("All models have been successfully loaded!")
             return
 
@@ -460,7 +460,7 @@ class Inspector:
                 f"Model {ENSEMBLE} is not a valid ensemble model."
             )
 
-        if hasattr(self, "ensemble"):
+        if hasattr(self, "ensemble") and self.ensemble != None:
             logger.info("Ensemble have been successfully loaded!")
             return
 
