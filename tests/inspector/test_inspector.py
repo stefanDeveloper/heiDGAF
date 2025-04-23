@@ -386,6 +386,7 @@ class TestInspectFunction(unittest.TestCase):
     )
     @patch("src.inspector.inspector.TIME_TYPE", "ms")
     @patch("src.inspector.inspector.TIME_RANGE", 1)
+    @patch("src.inspector.inspector.MODE", "univariate")
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     def test_inspect_univariate(
         self,
@@ -431,6 +432,7 @@ class TestInspectFunction(unittest.TestCase):
     )
     @patch("src.inspector.inspector.TIME_TYPE", "ms")
     @patch("src.inspector.inspector.TIME_RANGE", 1)
+    @patch("src.inspector.inspector.MODE", "univariate")
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     def test_inspect_univariate_2(
         self,
@@ -473,6 +475,7 @@ class TestInspectFunction(unittest.TestCase):
     )
     @patch("src.inspector.inspector.TIME_TYPE", "ms")
     @patch("src.inspector.inspector.TIME_RANGE", 1)
+    @patch("src.inspector.inspector.MODE", "univariate")
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     def test_inspect_univariate_two_models(
         self,
@@ -502,7 +505,7 @@ class TestInspectFunction(unittest.TestCase):
         sut.get_and_fill_data()
         sut.inspect()
         self.assertEqual([0, 0], sut.anomalies)
-        self.assertTrue(isinstance(sut.model, ZScoreDetector))
+        self.assertTrue(isinstance(sut.models[0], ZScoreDetector))
 
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
@@ -626,7 +629,7 @@ class TestInspectFunction(unittest.TestCase):
         sut.get_and_fill_data()
         sut.inspect()
         self.assertEqual([0, 0], sut.anomalies)
-        self.assertTrue(isinstance(sut.model, RShashDetector))
+        self.assertTrue(isinstance(sut.models[0], RShashDetector))
 
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
