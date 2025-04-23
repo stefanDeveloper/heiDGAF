@@ -454,7 +454,9 @@ class TestInspectFunction(unittest.TestCase):
 
         sut = Inspector()
         sut.get_and_fill_data()
-        sut._get_models([{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}])
+        sut._get_models(
+            [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}]
+        )
         models = sut.models
         sut.models = None
         sut.inspect()
