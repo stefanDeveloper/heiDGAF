@@ -783,8 +783,9 @@ class TestInspectFunction(unittest.TestCase):
         sut.ensemble = None
         sut._get_ensemble()
         self.assertEqual(type(ensemble), type(sut.ensemble))
+        ensemble = sut.ensemble
         sut._get_ensemble()
-        self.assertEqual(ensemble, ensemble)
+        self.assertEqual(ensemble, sut.ensemble)
 
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
