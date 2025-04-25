@@ -9,6 +9,7 @@ class PlotGenerator:
         self,
         datafiles_to_names: dict[str, str],
         title: str,
+        destination_file: str,
         start_time: Optional[pd.Timestamp] = None,
         x_label: str = "Time",
         y_label: str = "Latency",
@@ -17,6 +18,8 @@ class PlotGenerator:
         color_start_index: int = 0,
         intervals: Optional[list[int]] = None,
     ):
+        """Creates a figure and plots the given latency data as graphs. All graphs are plotted into the same figure,
+        which is then stored as a file."""
         plt.figure(figsize=(fig_width, fig_height))
 
         # initialize color palette
@@ -30,7 +33,7 @@ class PlotGenerator:
             df["time"] = (df["time"] - start_time).dt.total_seconds()
             dataframes[label] = df
 
-        x_unit = "s"
+        x_unit = "s"  # TODO: Calculate automatically
 
         y_scale = 10**3  # TODO: Calculate automatically
         y_unit = "ms"  # TODO: Calculate automatically
@@ -53,11 +56,11 @@ class PlotGenerator:
         # plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(60))
         # plt.gca().yaxis.set_major_formatter(ticker.FormatStrFormatter("%.1f"))
         plt.title(title)
-        plt.xlabel(f"Time [{x_unit}]")
-        plt.ylabel(f"Latency [{y_unit}]")
+        plt.xlabel(f"{x_label} [{x_unit}]")
+        plt.ylabel(f"{y_label} [{y_unit}]")
         plt.grid(color="lightgray")
 
         if len(datafiles_to_names) > 1:
             plt.legend()
 
-        plt.show()
+        plt.savefig(destination_file, dpi=300, bbox_inches="tight")
