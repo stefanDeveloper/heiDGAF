@@ -7,18 +7,18 @@ from matplotlib import pyplot as plt
 
 class PlotGenerator:
     def plot_latency(
-        self,
-        datafiles_to_names: dict[str, str],
-        title: str,
-        destination_file: str,
-        start_time: Optional[pd.Timestamp] = None,
-        x_label: str = "Time",
-        y_label: str = "Latency",
-        y_input_unit: str = "microseconds",
-        fig_width: int | float = 10,
-        fig_height: int | float = 5,
-        color_start_index: int = 0,
-        intervals: Optional[list[int]] = None,
+            self,
+            datafiles_to_names: dict[str, str],
+            title: str,
+            destination_file: str,
+            start_time: Optional[pd.Timestamp] = None,
+            x_label: str = "Time",
+            y_label: str = "Latency",
+            y_input_unit: str = "microseconds",
+            fig_width: int | float = 10,
+            fig_height: int | float = 5,
+            color_start_index: int = 0,
+            intervals_in_sec: Optional[list[int]] = None,
     ):
         """Creates a figure and plots the given latency data as graphs. All graphs are plotted into the same figure,
         which is then stored as a file."""
@@ -60,6 +60,14 @@ class PlotGenerator:
                 color=colors[cur_color_index],
             )
             cur_color_index += 1
+
+        # add interval lines
+        if intervals_in_sec is not None:
+            x_values = [0]
+            for i in intervals_in_sec:
+                x_values.append(x_values[-1] + i)
+            for x in x_values[1:]:
+                plt.axvline(x / 60, color="gray", linestyle="--", linewidth=1)
 
         # adjust settings
         plt.xlim(left=0)
