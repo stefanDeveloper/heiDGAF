@@ -1,8 +1,15 @@
+import datetime
 import re
 import unittest
 from unittest.mock import patch, MagicMock
 
-from src.base.logline_handler import LoglineHandler, RegEx, ListItem, IpAddress
+from src.base.logline_handler import (
+    LoglineHandler,
+    RegEx,
+    ListItem,
+    IpAddress,
+    Timestamp,
+)
 
 MOCK_REQUIRED_FIELDS = ["timestamp", "status_code"]
 
@@ -12,7 +19,8 @@ class TestInit(unittest.TestCase):
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
-            ["timestamp", "RegEx", r"^\d+b$"],
+            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
+            ["record_type", "RegEx", r"^\d+b$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["client_ip", "IpAddress"],
         ],
@@ -20,28 +28,33 @@ class TestInit(unittest.TestCase):
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
     def test_init_successful(self, mock_create):
         # Arrange
+        timestamp_instance = MagicMock()
+        timestamp_instance.name = "timestamp"
         regex_instance = MagicMock()
-        regex_instance.name = "timestamp"
+        regex_instance.name = "record_type"
         list_item_instance = MagicMock()
         list_item_instance.name = "status_code"
         ip_address_instance = MagicMock()
         ip_address_instance.name = "client_ip"
 
         mock_create.side_effect = [
+            timestamp_instance,
             regex_instance,
             list_item_instance,
             ip_address_instance,
         ]
 
         expected_instances_by_name = {
-            "timestamp": regex_instance,
+            "timestamp": timestamp_instance,
+            "record_type": regex_instance,
             "status_code": list_item_instance,
             "client_ip": ip_address_instance,
         }
         expected_instances_by_position = {
-            0: regex_instance,
-            1: list_item_instance,
-            2: ip_address_instance,
+            0: timestamp_instance,
+            1: regex_instance,
+            2: list_item_instance,
+            3: ip_address_instance,
         }
 
         # Act
@@ -50,13 +63,13 @@ class TestInit(unittest.TestCase):
         # Assert
         self.assertEqual(expected_instances_by_name, sut.instances_by_name)
         self.assertEqual(expected_instances_by_position, sut.instances_by_position)
-        self.assertEqual(3, sut.number_of_fields)
+        self.assertEqual(4, sut.number_of_fields)
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
-            ["timestamp", "RegEx", r"^\d+b$"],
+            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["status_code", "RegEx", r"^\d+b$"],
             ["client_ip", "IpAddress"],
@@ -154,7 +167,7 @@ class TestValidateLogline(unittest.TestCase):
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
-            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["client_ip", "IpAddress"],
         ],
@@ -172,7 +185,7 @@ class TestValidateLogline(unittest.TestCase):
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
-            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%f"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["client_ip", "IpAddress"],
             ["dns_server_ip", "IpAddress"],
@@ -193,7 +206,7 @@ class TestValidateLogline(unittest.TestCase):
         # Act and Assert
         self.assertTrue(
             sut.validate_logline(
-                "2024-07-28T14:45:30.123Z NXDOMAIN 127.0.0.2 126.24.5.20 domain.test A fe80::1 150b"
+                "2024-07-28T14:45:30.123 NXDOMAIN 127.0.0.2 126.24.5.20 domain.test A fe80::1 150b"
             )
         )
 
@@ -277,7 +290,7 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
-            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["client_ip", "IpAddress"],
             ["dns_server_ip", "IpAddress"],
@@ -294,7 +307,9 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
     def test_validate_true(self):
         # Arrange
         expected_result = {
-            "timestamp": "2024-07-28T14:45:30.123Z",
+            "timestamp": datetime.datetime.strptime(
+                "2024-07-28 14:45:30.123", "%Y-%m-%d %H:%M:%S.%f"
+            ),
             "status_code": "NXDOMAIN",
             "client_ip": "127.0.0.2",
             "dns_server_ip": "126.24.5.20",
@@ -401,6 +416,18 @@ class TestCheckRelevance(unittest.TestCase):
 
 
 class TestCreateInstanceFromListEntry(unittest.TestCase):
+
+    def test_create_timestamp_instance(self):
+        # Arrange
+        field_list = ["test_name", "Timestamp", "%Y-%m-%d %H:%M:%S.%fZ"]
+
+        # Act
+        instance = LoglineHandler._create_instance_from_list_entry(field_list)
+
+        # Assert
+        self.assertIsInstance(instance, Timestamp)
+        self.assertEqual("test_name", instance.name)
+        self.assertEqual("%Y-%m-%d %H:%M:%S.%fZ", instance.timestamp_format)
 
     def test_create_regex_instance(self):
         # Arrange
