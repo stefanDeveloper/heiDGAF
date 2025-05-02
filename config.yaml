@@ -23,7 +23,7 @@ pipeline:
   log_collection:
     collector:
       logline_format:
-        - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
+        - [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ" ]
         - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
         - [ "client_ip", IpAddress ]
         - [ "dns_server_ip", IpAddress ]
@@ -69,7 +69,6 @@ pipeline:
       batch_timeout: 2.0
 
 environment:
-  timestamp_format: "%Y-%m-%dT%H:%M:%S.%fZ"
   kafka_brokers:
     - hostname: kafka1
       port: 8097

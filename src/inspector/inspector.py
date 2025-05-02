@@ -33,7 +33,6 @@ ANOMALY_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"][
 SCORE_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["score_threshold"]
 TIME_TYPE = config["pipeline"]["data_inspection"]["inspector"]["time_type"]
 TIME_RANGE = config["pipeline"]["data_inspection"]["inspector"]["time_range"]
-TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "prefilter_to_inspector"
 ]
@@ -185,12 +184,7 @@ class Inspector:
             numpy.ndarray: 2-D numpy.ndarray including all steps.
         """
         logger.debug("Convert timestamps to numpy datetime64")
-        timestamps = np.array(
-            [
-                np.datetime64(datetime.strptime(item["timestamp"], TIMESTAMP_FORMAT))
-                for item in messages
-            ]
-        )
+        timestamps = np.array([np.datetime64(item["timestamp"]) for item in messages])
 
         # Extract and convert the size values from "111b" to integers
         sizes = np.array([int(str(item["size"]).replace("b", "")) for item in messages])
@@ -264,12 +258,7 @@ class Inspector:
             numpy.ndarray: 2-D numpy.ndarray including all steps.
         """
         logger.debug("Convert timestamps to numpy datetime64")
-        timestamps = np.array(
-            [
-                np.datetime64(datetime.strptime(item["timestamp"], TIMESTAMP_FORMAT))
-                for item in messages
-            ]
-        )
+        timestamps = np.array([np.datetime64(item["timestamp"]) for item in messages])
 
         logger.debug("Sort timestamps and count occurrences")
         sorted_indices = np.argsort(timestamps)

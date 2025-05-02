@@ -20,7 +20,6 @@ logger = get_logger(module_name)
 config = setup_config()
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
-TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "batch_sender_to_prefilter"
 ]
@@ -322,11 +321,8 @@ class BufferedBatch:
     @staticmethod
     def _sort_by_timestamp(
         data: list[tuple[str, str]],
-        timestamp_format: str = TIMESTAMP_FORMAT,
     ) -> list[str]:
-        sorted_data = sorted(
-            data, key=lambda x: datetime.datetime.strptime(x[0], timestamp_format)
-        )
+        sorted_data = sorted(data, key=lambda x: x[0])
         loglines = [message for _, message in sorted_data]
 
         return loglines
