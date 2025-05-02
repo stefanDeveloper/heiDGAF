@@ -7,18 +7,19 @@ from matplotlib import pyplot as plt
 
 class PlotGenerator:
     def plot_latency(
-            self,
-            datafiles_to_names: dict[str, str],
-            title: str,
-            destination_file: str,
-            start_time: Optional[pd.Timestamp] = None,
-            x_label: str = "Time",
-            y_label: str = "Latency",
-            y_input_unit: str = "microseconds",
-            fig_width: int | float = 10,
-            fig_height: int | float = 5,
-            color_start_index: int = 0,
-            intervals_in_sec: Optional[list[int]] = None,
+        self,
+        datafiles_to_names: dict[str, str],
+        title: str,
+        destination_file: str,
+        median_smooth: bool = False,
+        start_time: Optional[pd.Timestamp] = None,
+        x_label: str = "Time",
+        y_label: str = "Latency",
+        y_input_unit: str = "microseconds",
+        fig_width: int | float = 10,
+        fig_height: int | float = 5,
+        color_start_index: int = 0,
+        intervals_in_sec: Optional[list[int]] = None,
     ):
         """Creates a figure and plots the given latency data as graphs. All graphs are plotted into the same figure,
         which is then stored as a file."""
@@ -36,6 +37,11 @@ class PlotGenerator:
         for file, label in datafiles_to_names.items():
             df = pd.read_csv(file, parse_dates=["time"]).sort_values(by="time")
             df["time"] = (df["time"] - start_time).dt.total_seconds()
+
+            if median_smooth:
+                window_size = max(1, len(df) // 100)
+                df["value"] = df["value"].rolling(window=window_size, center=True, min_periods=1).median()
+
             dataframes[label] = df
 
             df_max_time = df["time"].max()
@@ -52,7 +58,7 @@ class PlotGenerator:
         # plot data
         for label, df in dataframes.items():
             plt.plot(
-                df["time"] / x_scale * 10**6,
+                df["time"] / x_scale * (10**6),
                 df["value"] / y_scale,
                 marker=None,
                 linestyle="-",
@@ -72,11 +78,17 @@ class PlotGenerator:
         # adjust settings
         plt.xlim(left=0)
         plt.ylim(bottom=0)
-        # plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(60))
-        # plt.gca().yaxis.set_major_formatter(ticker.FormatStrFormatter("%.1f"))
+
+        if x_unit == "s":
+            plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(30))
+
+        y_label_additions = ""
+        if median_smooth:
+            y_label_additions = " (median-smoothed)"
+
         plt.title(title)
         plt.xlabel(f"{x_label} [{x_unit}]")
-        plt.ylabel(f"{y_label} [{y_unit}]")
+        plt.ylabel(f"{y_label} [{y_unit}]" + y_label_additions)
         plt.grid(color="lightgray")
 
         if len(datafiles_to_names) > 1:
@@ -93,18 +105,18 @@ class PlotGenerator:
 
         units = [
             ("us", 1),
-            ("ms", 1_000),
-            ("s", 1_000_000),
-            ("min", 60_000_000),
-            ("h", 3_600_000_000),
-            ("d", 86_400_000_000),
+            ("ms", 10**3),
+            ("s", 10**6),
+            ("min", 60 * (10**6)),
+            ("h", 60 * 60 * (10**6)),
+            ("d", 24 * 60 * 60 * (10**6)),
         ]
         thresholds = [
-            1_400,  # ms for over 1.4 ms
-            1_400_000,  # s for over 1.4 s
-            300_000_000,  # min for over 5 min
-            5_000_000_000,  # h for over 5 min
-            112_320_000_000,  # d for over 1.3 d
+            1.3 * (10**3),  # ms for over 1.3 ms
+            1.3 * (10**6),  # s for over 1.3 s
+            5 * 60 * (10**6),  # min for over 5 min
+            3 * 60 * 60 * (10**6),  # h for over 3 h
+            3 * 24 * 60 * 60 * (10**6),  # d for over 3 d
             float("inf"),  # d for everything above
         ]
 
