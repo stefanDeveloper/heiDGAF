@@ -2,7 +2,7 @@ import datetime
 from typing import Optional
 
 import pandas as pd
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, ticker
 
 
 class PlotGenerator:
@@ -40,7 +40,11 @@ class PlotGenerator:
 
             if median_smooth:
                 window_size = max(1, len(df) // 100)
-                df["value"] = df["value"].rolling(window=window_size, center=True, min_periods=1).median()
+                df["value"] = (
+                    df["value"]
+                    .rolling(window=window_size, center=True, min_periods=1)
+                    .median()
+                )
 
             dataframes[label] = df
 
