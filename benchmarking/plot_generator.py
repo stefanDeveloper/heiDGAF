@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt, ticker
 
 
 class PlotGenerator:
+    """Plots given data and combines it into figures."""
+
     def plot_latency(
         self,
         datafiles_to_names: dict[str, str],
@@ -22,7 +24,22 @@ class PlotGenerator:
         intervals_in_sec: Optional[list[int]] = None,
     ):
         """Creates a figure and plots the given latency data as graphs. All graphs are plotted into the same figure,
-        which is then stored as a file."""
+        which is then stored as a file.
+
+        Args:
+            datafiles_to_names (dict[str, str]): Dictionary of file paths and their names to show in the legend
+            title (str): Title of the figure
+            destination_file (str): File path at which the figure should be stored
+            median_smooth (bool): True if the data should be smoothed, False by default
+            start_time (Optional[pd.Timestamp]): Optional time to set as t = 0. First value in the data is used if None
+            x_label (str): Label x-axis, "Time" by default
+            y_label (str): Label y-axis, "Latency" by default
+            y_input_unit (str): Unit of the data given as input, "microseconds" by default
+            fig_width (int | float): Width of the figure, 10 by default
+            fig_height (int | float): Height of the figure, 5 by default
+            color_start_index (int): First index of the color palette to be used, 0 by default
+            intervals_in_sec (Optional[list[int]]): Optional list of interval lengths in seconds
+        """
         plt.figure(figsize=(fig_width, fig_height))
 
         # initialize color palette
