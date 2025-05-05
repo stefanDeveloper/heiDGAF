@@ -7,3 +7,6 @@ pyarrow
 polars
 click
 optuna
+matplotlib
+te2rules
+seaborn

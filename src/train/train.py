@@ -1,4 +1,6 @@
 import argparse
+import pickle
+import re
 import sys
 import os
 from enum import Enum, unique
@@ -8,6 +10,7 @@ import numpy as np
 import polars as pl
 import torch
 from sklearn.metrics import classification_report
+from sklearn.preprocessing import StandardScaler
 
 sys.path.append(os.getcwd())
 from src.train.dataset import Dataset, DatasetLoader, Dataset
@@ -16,6 +19,7 @@ from src.train.model import (
     Pipeline,
 )
 from src.base.log_config import get_logger
+from src.train.explainer import PC
 
 logger = get_logger("train.train")
 
@@ -34,9 +38,16 @@ class ModelEnum(str, Enum):
     XG_BOOST_CLASSIFIER = "xg"
 
 
+@unique
+class TypeEnum(str, Enum):
+    EXPLAIN = "explain"
+    TRAIN = "train"
+
+
 class DetectorTraining:
     def __init__(
         self,
+        type: TypeEnum.TRAIN,
         model: ModelEnum.RANDOM_FOREST_CLASSIFIER,
         model_output_path: str = "./",
         dataset: DatasetEnum = DatasetEnum.ALL,
@@ -53,6 +64,7 @@ class DetectorTraining:
         logger.info("Get DatasetLoader.")
         self.datasets = DatasetLoader(base_path=data_base_path, max_rows=max_rows)
         self.model_output_path = model_output_path
+        self.type = type
         match dataset:
             case "all":
                 self.dataset = Dataset(
@@ -77,6 +89,25 @@ class DetectorTraining:
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
         self.model = model
+
+    def explain(self):
+        model_pipeline = Pipeline(
+            processor=Processor(
+                features_to_drop=[
+                    "query",
+                    "labels",
+                    "thirdleveldomain",
+                    "secondleveldomain",
+                    "fqdn",
+                    "tld",
+                ]
+            ),
+            model=self.model,
+            scaler=StandardScaler(),
+            dataset=self.dataset,
+            model_output_path=self.model_output_path,
+        )
+        model_pipeline.explain(model_pipeline.x_test, model_pipeline.y_test)
 
     def train(self, seed=42, output_path: str = "model.pkl"):
         """Starts training of the model. Checks prior if GPU is available.
@@ -104,23 +135,45 @@ class DetectorTraining:
             model=self.model,
             dataset=self.dataset,
             model_output_path=self.model_output_path,
+            scaler=StandardScaler(),
         )
 
         logger.info("Fit model.")
         model_pipeline.fit()
 
         logger.info("Validate test set")
-        y_pred = model_pipeline.predict(self.dataset.X_test)
+        y_pred = model_pipeline.predict(model_pipeline.x_test)
         y_pred = [round(value) for value in y_pred]
-        logger.info(classification_report(self.dataset.Y_test, y_pred, labels=[0, 1]))
+        logger.info(classification_report(model_pipeline.y_test, y_pred, labels=[0, 1]))
 
         logger.info("Test validation test.")
-        y_pred = model_pipeline.predict(self.dataset.X_val)
+        y_pred = model_pipeline.predict(model_pipeline.x_val)
         y_pred = [round(value) for value in y_pred]
-        logger.info(classification_report(self.dataset.Y_val, y_pred, labels=[0, 1]))
+        logger.info(classification_report(model_pipeline.y_val, y_pred, labels=[0, 1]))
+
+        logger.info("Interpret model.")
+        model_pipeline.explain(model_pipeline.x_val, model_pipeline.y_val)
+
+    def _save_scaler(scaler, model_type):
+        """
+        Save the scaler for future use.
+
+        Args:
+            scaler: Fitted StandardScaler object
+            model_type (str): Type of model being used
+        """
+        os.makedirs(f"./models/{model_type}", exist_ok=True)
+        with open(f"./models/{model_type}/scaler.pickle", "wb") as f:
+            pickle.dump(scaler, f)
 
 
 @click.command()
+@click.option(
+    "-t",
+    "--type",
+    type=click.Choice(["explain", "train"]),
+    help="Type to explain data or train classifier",
+)
 @click.option(
     "-m",
     "--model",
@@ -153,15 +206,19 @@ class DetectorTraining:
     type=click.Path(exists=True),
     help="Model output path. Stores model with {{MODEL}}_{{SHA256}}.pickle.",
 )
-def main(model, dataset, dataset_path, dataset_max_rows, model_output_path):
+def main(type, model, dataset, dataset_path, dataset_max_rows, model_output_path):
     trainer = DetectorTraining(
+        type=type,
         model=model,
         dataset=dataset,
         data_base_path=dataset_path,
         max_rows=dataset_max_rows,
         model_output_path=model_output_path,
     )
-    trainer.train()
+    if type == TypeEnum.TRAIN:
+        trainer.train()
+    elif type == TypeEnum.EXPLAIN:
+        trainer.explain()
 
 
 if __name__ == "__main__":  # pragma: no cover
