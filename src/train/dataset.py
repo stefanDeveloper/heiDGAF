@@ -1,3 +1,5 @@
+import pickle
+import re
 import sys
 import os
 from dataclasses import dataclass
@@ -10,7 +12,7 @@ from torch.utils.data.dataset import Dataset
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
 
-logger = get_logger("train.feature")
+logger = get_logger("train.dataset")
 
 
 def preprocess(x: pl.DataFrame):
@@ -432,10 +434,6 @@ class Dataset:
             logger.error("No data given!")
             raise NotImplementedError("No data given")
 
-        self.X_train, self.X_val, self.X_test, self.Y_train, self.Y_val, self.Y_test = (
-            self.__train_test_val_split()
-        )
-
     def __len__(self) -> int:
         """Returns the length of data set.
 
@@ -443,58 +441,3 @@ class Dataset:
             int: Length of the data set
         """
         return len(self.data)
-
-    def __train_test_val_split(
-        self, train_frac: float = 0.8, random_state: int = None
-    ) -> tuple[
-        pl.DataFrame,
-        pl.DataFrame,
-        pl.DataFrame,
-        pl.DataFrame,
-        pl.DataFrame,
-        pl.DataFrame,
-    ]:
-        """Splits data set in train, test, and validation set
-
-        Args:
-            train_frac (float, optional): Training fraction. Defaults to 0.8.
-            random_state (int, optional): Random state. Defaults to None.
-
-        Returns:
-            tuple[list, list, list, list, list, list]: X_train, X_val, X_test, Y_train, Y_val, Y_test
-        """
-
-        logger.info("Create train, validation, and test split.")
-
-        self.data = self.data.filter(pl.col("query").str.len_chars() > 0)
-        self.data = self.data.unique(subset="query")
-
-        X_train, X_tmp, Y_train, Y_tmp = sklearn.model_selection.train_test_split(
-            self.data.drop("class"),
-            self.data.select("class"),
-            train_size=train_frac,
-            random_state=random_state,
-        )
-
-        X_val, X_test, Y_val, Y_test = sklearn.model_selection.train_test_split(
-            X_tmp, Y_tmp, train_size=0.5, random_state=random_state
-        )
-
-        return X_train, X_val, X_test, Y_train, Y_val, Y_test
-
-    @property
-    def train(self) -> dict:
-        """Training set
-
-        Returns:
-            dict: dictionary with features and labels.
-        """
-        return {"X": self.X_train, "Y": self.Y_train}
-
-    @property
-    def test(self) -> dict:
-        return {"X": self.X_test, "Y": self.Y_test}
-
-    @property
-    def val(self) -> dict:
-        return {"X": self.X_val, "Y": self.Y_val}

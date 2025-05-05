@@ -1,0 +1,395 @@
+import sys
+import os
+from scipy.stats import ks_2samp
+from scipy.stats import wasserstein_distance
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+import pandas as pd
+import seaborn as sns
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import f1_score
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
+from te2rules.explainer import ModelExplainer
+
+sys.path.append(os.getcwd())
+from src.base.log_config import get_logger
+
+logger = get_logger("train.explainer")
+
+
+class PC:
+    def __init__(self, fig_output_path: str = "./"):
+        self.fig_output_path = fig_output_path
+
+    def pca_2d(self, X: np.ndarray, y: np.ndarray):
+        pca = PCA(n_components=2)
+
+        X_pca = pca.fit_transform(X)
+
+        Xax = X_pca[:, 0]
+        Yax = X_pca[:, 1]
+
+        cdict = {0: "red", 1: "green"}
+        labl = {0: "C1", 1: "C2"}
+        marker = {0: "*", 1: "o"}
+        alpha = {0: 0.3, 1: 0.5}
+
+        fig = plt.figure(figsize=(7, 5))
+        ax = fig.add_subplot(111)
+        fig.patch.set_facecolor("white")
+        # plt.scatter(X[:,0],X[:,1],c=y,cmap='plasma')
+        for l in np.unique(y):
+            ix = np.where(y == l)
+            ax.scatter(
+                Xax[ix],
+                Yax[ix],
+                c=cdict[l],
+                s=40,
+                label=labl[l],
+                marker=marker[l],
+                alpha=alpha[l],
+            )
+        plt.xlabel("First principal component")
+        plt.ylabel("Second Principal Component")
+        plt.savefig(f"{self.fig_output_path}/results/pca_2d.png")
+
+    def pca_3d(self, X: np.ndarray, y: np.ndarray):
+        pca = PCA(n_components=3)
+        pca.fit(X)
+        X_pca = pca.transform(X)
+
+        ex_variance = np.var(X_pca, axis=0)
+        ex_variance_ratio = ex_variance / np.sum(ex_variance)
+        ex_variance_ratio
+
+        Xax = X_pca[:, 0]
+        Yax = X_pca[:, 1]
+        Zax = X_pca[:, 2]
+
+        cdict = {0: "red", 1: "green"}
+        labl = {0: "C1", 1: "C2"}
+        marker = {0: "*", 1: "o"}
+        alpha = {0: 0.3, 1: 0.5}
+
+        fig = plt.figure(figsize=(7, 5))
+        ax = fig.add_subplot(111, projection="3d")
+
+        fig.patch.set_facecolor("white")
+        for l in np.unique(y):
+            ix = np.where(y == l)
+            ax.scatter(
+                Xax[ix],
+                Yax[ix],
+                Zax[ix],
+                c=cdict[l],
+                s=40,
+                label=labl[l],
+                marker=marker[l],
+                alpha=alpha[l],
+            )
+        # for loop ends
+        ax.set_xlabel("First Principal Component", fontsize=14)
+        ax.set_ylabel("Second Principal Component", fontsize=14)
+        ax.set_zlabel("Third Principal Component", fontsize=14)
+
+        ax.legend()
+        plt.savefig(f"{self.fig_output_path}/results/pca_3d.png")
+
+    def remove_feature(self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA):
+        # Remove PC1
+        Xmean = X - X.mean(axis=0)
+        value = Xmean @ pca.components_[component]
+        pc1 = value.reshape(-1, 1) @ pca.components_[component].reshape(1, -1)
+        Xremove = X - pc1
+        plt.figure(figsize=(8, 6))
+        plt.scatter(Xremove[:, 0], Xremove[:, 1], c=y)
+        plt.xlabel("0")
+        plt.ylabel("1")
+        plt.title("Two features from the dataset after removing PC1")
+        plt.savefig(f"{self.fig_output_path}/results/pca_pc{component + 1}.png")
+
+    def create_plots(self, X: np.ndarray, y: np.ndarray):
+        self.pca_2d(X=X, y=y)
+        self.pca_3d(X=X, y=y)
+
+        # Show the principal components
+        pca = PCA().fit(X)
+        logger.info("Principal components:")
+        logger.info(pca.components_)
+
+        # Remove PC1
+        self.remove_feature(0, X, y, pca)
+
+        # Remove PC2
+        self.remove_feature(1, X, y, pca)
+
+        # Remove PC3
+        self.remove_feature(2, X, y, pca)
+
+        # print the explained variance ratio
+        logger.info("Explainedd variance ratios:")
+        logger.info(pca.explained_variance_ratio_)
+
+        # Split data
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
+
+        # Run classifer on all features
+        clf = SVC(kernel="linear", gamma="auto").fit(X_train, y_train)
+        logger.info(f"Using all features, accuracy: {clf.score(X_test, y_test)}")
+        logger.info(
+            f"Using all features, F1: {f1_score(y_test, clf.predict(X_test), average='macro')}"
+        )
+
+        # Run classifier on PC1
+        mean = X_train.mean(axis=0)
+        X_train2 = X_train - mean
+        X_train2 = (X_train2 @ pca.components_[1]).reshape(-1, 1)
+        clf = SVC(kernel="linear", gamma="auto").fit(X_train2, y_train)
+        X_test2 = X_test - mean
+        X_test2 = (X_test2 @ pca.components_[1]).reshape(-1, 1)
+        logger.info(f"Using PC1, accuracy: {clf.score(X_test2, y_test)}")
+        logger.info(
+            f"Using PC1, F1: {f1_score(y_test, clf.predict(X_test2), average='macro')}"
+        )
+
+    def analyze_nerve_conduction(
+        data_condition1,
+        data_condition2,
+        measurements,
+        condition1_name="Condition 1",
+        condition2_name="Condition 2",
+        plot=True,
+        save_plots=True,
+        output_dir="plots",
+        exclude_outliers=True,
+        percentile=99,
+    ):
+        """
+        Analyzes the distributions of network traffic between two conditions.
+        Calculates the Kolmogorov-Smirnov (KS) statistic and Earth Mover's Distance (EMD)
+        for each measurement, and optionally plots the distributions with outlier exclusion.
+        Optionally saves plots to a directory.
+
+        Parameters:
+            data_condition1 (pd.DataFrame): Data for first condition
+            data_condition2 (pd.DataFrame): Data for second condition
+            measurements (list): List of measurement names to analyze
+            condition1_name (str): Name of first condition for plotting
+            condition2_name (str): Name of second condition for plotting
+            plot (bool): Whether to plot distributions for each measurement (default: True)
+            save_plots (bool): Whether to save plots as image files (default: True)
+            output_dir (str): Directory to save the plots (default: "plots")
+            exclude_outliers (bool): Whether to exclude outliers based on percentile (default: True)
+            percentile (int): Percentile threshold for outlier exclusion (default: 99)
+
+        Returns:
+            pd.DataFrame: Summary DataFrame with KS statistic and EMD for each measurement
+        """
+        import os
+
+        os.makedirs(output_dir, exist_ok=True)
+
+        results = []
+
+        # Calculate number of rows needed for subplots (6 columns)
+        n_rows = int(np.ceil(len(measurements) / 6))
+
+        # Create figures for density plots and histograms
+        if plot:
+            fig_density, axs_density = plt.subplots(n_rows, 6, figsize=(36, 8 * n_rows))
+            fig_hist, axs_hist = plt.subplots(n_rows, 6, figsize=(36, 8 * n_rows))
+
+            # Flatten axes arrays for easier indexing
+            axs_density = axs_density.flatten() if n_rows > 1 else [axs_density]
+            axs_hist = axs_hist.flatten() if n_rows > 1 else [axs_hist]
+
+        for i, measurement in enumerate(measurements):
+            # Extract measurement data for both conditions
+            arr1 = data_condition1[measurement].values
+            arr2 = data_condition2[measurement].values
+
+            # Replace inf values with NaN
+            arr1 = np.where(np.isinf(arr1), np.nan, arr1)
+            arr2 = np.where(np.isinf(arr2), np.nan, arr2)
+
+            # Exclude outliers if requested
+            if exclude_outliers:
+                threshold1 = np.nanpercentile(arr1, percentile)
+                threshold2 = np.nanpercentile(arr2, percentile)
+                arr1 = np.where(arr1 > threshold1, np.nan, arr1)
+                arr2 = np.where(arr2 > threshold2, np.nan, arr2)
+
+            # Remove NaN values for statistical calculations
+            arr1_clean = arr1[~np.isnan(arr1)]
+            arr2_clean = arr2[~np.isnan(arr2)]
+
+            # Calculate statistics if there's enough data
+            if len(arr1_clean) > 0 and len(arr2_clean) > 0:
+                ks_stat, ks_p_value = ks_2samp(arr1_clean, arr2_clean)
+                emd = wasserstein_distance(arr1_clean, arr2_clean)
+            else:
+                ks_stat = ks_p_value = emd = np.nan
+
+            # Store results
+            results.append(
+                {
+                    "Measurement": measurement,
+                    "KS_Statistic": ks_stat,
+                    "KS_p_value": ks_p_value,
+                    "EMD": emd,
+                    "N_condition1": len(arr1_clean),
+                    "N_condition2": len(arr2_clean),
+                }
+            )
+
+            if plot:
+                # Create density plot
+                ax_density = axs_density[i]
+                if len(arr1_clean) > 0:
+                    sns.kdeplot(
+                        arr1_clean,
+                        fill=True,
+                        color="blue",
+                        label=condition1_name,
+                        ax=ax_density,
+                    )
+                if len(arr2_clean) > 0:
+                    sns.kdeplot(
+                        arr2_clean,
+                        fill=True,
+                        color="orange",
+                        label=condition2_name,
+                        ax=ax_density,
+                    )
+                ax_density.set_title(f"{measurement}", fontsize=10)
+                ax_density.set_xlabel("Value", fontsize=8)
+                ax_density.set_ylabel("Density", fontsize=8)
+                ax_density.legend(fontsize=8)
+
+                # Create histogram
+                ax_hist = axs_hist[i]
+                if len(arr1_clean) > 0:
+                    ax_hist.hist(
+                        arr1_clean,
+                        bins=30,
+                        color="blue",
+                        alpha=0.5,
+                        label=condition1_name,
+                    )
+                if len(arr2_clean) > 0:
+                    ax_hist.hist(
+                        arr2_clean,
+                        bins=30,
+                        color="orange",
+                        alpha=0.5,
+                        label=condition2_name,
+                    )
+                ax_hist.set_title(f"{measurement}", fontsize=10)
+                ax_hist.set_xlabel("Value", fontsize=8)
+                ax_hist.set_ylabel("Frequency", fontsize=8)
+                ax_hist.legend(fontsize=8)
+
+        # Remove empty subplots if any
+        if plot:
+            for j in range(i + 1, len(axs_density)):
+                fig_density.delaxes(axs_density[j])
+                fig_hist.delaxes(axs_hist[j])
+
+            # Adjust layout and save plots
+            fig_density.tight_layout()
+            fig_density.subplots_adjust(hspace=0.4, wspace=0.3)
+            fig_hist.tight_layout()
+            fig_hist.subplots_adjust(hspace=0.4, wspace=0.3)
+
+            if save_plots:
+                density_plot_path = os.path.join(output_dir, "density_plots.png")
+                hist_plot_path = os.path.join(output_dir, "histogram_plots.png")
+                fig_density.savefig(density_plot_path, dpi=300)
+                fig_hist.savefig(hist_plot_path, dpi=300)
+                print(f"Density plots saved to: {density_plot_path}")
+                print(f"Histogram plots saved to: {hist_plot_path}")
+
+            # Show plots
+            plt.show()
+
+        # Return results as DataFrame
+        results_df = pd.DataFrame(results)
+        return
+
+
+def interpret_model(model, x_test, y_test, df_cols, model_name, scaler=None):
+    """
+    Generate model interpretation using TE2RULES and rescale rule values if necessary.
+
+    Args:
+        model (xgb.XGBClassifier): Trained model
+        x_test (np.ndarray): Test features
+        y_test (np.ndarray): Test labels
+        df_cols (list): Feature column names
+        model_name (str): Name of the model for saving outputs
+        scaler (any): Scaler with inverse_transform method (e.g., StandardScaler)
+    """
+    # Create TE2RULES explainer
+    explainer = ModelExplainer(model, feature_names=df_cols)
+
+    # Generate explanation
+    rules = explainer.explain(x_test, y_test.tolist())
+
+    # Function to rescale values in a rule if a scaler is provided
+    def rescale_rule(rule, scaler, feature_names):
+        if scaler is None:
+            return rule
+
+        # Parse the rule to extract numeric values
+        for i, feature in enumerate(feature_names):
+            # Replace scaled values with rescaled values
+            if feature in rule:
+                # Find the numeric value associated with this feature in the rule
+                # Example format: "feature > value" or "feature <= value"
+                parts = rule.split()
+                for j, part in enumerate(parts):
+                    if (
+                        part == feature
+                        and j + 2 < len(parts)
+                        and parts[j + 1] in {">", "<=", "=", ">=", "<"}
+                    ):
+                        # Extract and rescale the numeric value
+                        try:
+                            scaled_value = float(parts[j + 2])
+
+                            # Create a placeholder for the scaler with the same shape as x_test
+                            placeholder = [0] * len(feature_names)
+                            placeholder[i] = (
+                                scaled_value  # Set the scaled value for the current feature
+                            )
+
+                            # Inverse transform using the scaler
+                            original_value = scaler.inverse_transform([placeholder])[
+                                0, i
+                            ]
+
+                            # Round the rescaled value to 3 digits
+                            rounded_value = round(original_value, 3)
+
+                            # Replace the scaled value in the rule with the original value
+                            parts[j + 2] = str(rounded_value)
+                        except ValueError:
+                            continue  # Skip if the value is not numeric
+
+                # Reconstruct the rule with rescaled values
+                rule = " ".join(parts)
+        return rule
+
+    # Rescale values in rules if scaler is provided
+    if scaler is not None:
+        rules = [rescale_rule(rule, scaler, df_cols) for rule in rules]
+
+    # Save rules to file
+    output_path = f"./outputs/{model_name}/rules.txt"
+    with open(output_path, "w") as f:
+        f.write("Extracted Rules:\n\n")
+        for i, rule in enumerate(rules, 1):
+            f.write(f"Rule {i}: {rule}\n")

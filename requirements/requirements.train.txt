@@ -5,3 +5,6 @@ scipy
 torch
 pyarrow
 polars
+matplotlib
+te2rules
+seaborn

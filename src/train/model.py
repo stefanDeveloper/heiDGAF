@@ -1,23 +1,26 @@
 from abc import ABCMeta, abstractmethod
 import hashlib
 import pickle
+import re
 import sys
 import os
 import tempfile
 
+import sklearn.model_selection
 from sklearn.metrics import make_scorer
 import xgboost as xgb
 import optuna
 import torch
 import numpy as np
+import polars as pl
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
-
 
 sys.path.append(os.getcwd())
 from src.train.feature import Processor
 from src.base.log_config import get_logger
 from src.train.dataset import Dataset
+from src.train.explainer import PC, interpret_model
 
 logger = get_logger("train.model")
 
@@ -30,7 +33,12 @@ class Pipeline:
     """Pipeline for training models."""
 
     def __init__(
-        self, processor: Processor, model: str, dataset: Dataset, model_output_path: str
+        self,
+        processor: Processor,
+        model: str,
+        dataset: Dataset,
+        model_output_path: str,
+        scaler,
     ):
         """Initializes preprocessors, encoder, and model.
 
@@ -42,13 +50,36 @@ class Pipeline:
         """
         self.processor = processor
         self.dataset = dataset
+        self.pc = PC()
+        self.scaler = scaler
+
         self.model_output_path = model_output_path
         logger.info("Start data set transformation.")
-        x_train = self.processor.transform(x=self.dataset.X_train)
-        logger.info(f"End data set transformation with shape {x_train.shape}.")
+        data = self.processor.transform(x=self.dataset.data)
+        logger.info(f"End data set transformation with shape {data.shape}.")
 
-        self.x_train = x_train.to_numpy()
-        self.y_train = self.dataset.Y_train.to_numpy().ravel()
+        X = data.drop("class").to_numpy()
+        y = data.select("class").to_numpy().reshape(-1)
+
+        X = scaler.fit_transform(X)
+
+        # Clean column names
+        self.columns = [self._clean_column_name(col) for col in data.columns]
+
+        # Create and save feature mapping
+        self.feature_mapping = self._create_feature_mapping(self.columns)
+
+        # Store column names
+        self.feature_columns = data.columns
+        self.feature_columns.remove("class")
+        logger.info(f"Columns: {self.feature_columns}.")
+
+        self.pc.create_plots(X=X, y=y)
+
+        self.x_train, self.x_val, self.x_test, self.y_train, self.y_val, self.y_test = (
+            self.train_test_val_split(X=X, Y=y)
+        )
+
         match model:
             case "rf":
                 self.model = RandomForestModel(
@@ -60,6 +91,86 @@ class Pipeline:
                 )
             case _:
                 raise NotImplementedError(f"Model not implemented!")
+
+    def _clean_column_name(self, column):
+        """
+        Clean column names to be compatible with ML models.
+
+        Args:
+            column (str): Original column name
+
+        Returns:
+            str: Cleaned column name
+        """
+        # Replace spaces and hyphens with underscores
+        cleaned = re.sub(r"[\s\-]+", "_", column)
+        # Remove any remaining non-alphanumeric characters
+        cleaned = re.sub(r"[^A-Za-z0-9_]", "", cleaned)
+        # Ensure the column name doesn't start with a number
+        if cleaned[0].isdigit():
+            cleaned = "f_" + cleaned
+        return cleaned
+
+    def _create_feature_mapping(self, original_columns):
+        """
+        Create and save mapping between original and cleaned column names.
+
+        Args:
+            original_columns (list): Original column names
+
+        Returns:
+            dict: Mapping of cleaned names to original names
+        """
+        mapping = {self._clean_column_name(col): col for col in original_columns}
+
+        # Save mapping for future reference
+        os.makedirs("./metadata", exist_ok=True)
+        with open("./metadata/feature_mapping.pickle", "wb") as f:
+            pickle.dump(mapping, f)
+
+        # Also save as readable text file
+        with open("./metadata/feature_mapping.txt", "w") as f:
+            for clean, original in mapping.items():
+                f.write(f"{clean} -> {original}\n")
+
+    def train_test_val_split(
+        self,
+        X: np.ndarray,
+        Y=np.ndarray,
+        train_frac: float = 0.8,
+        random_state: int = None,
+    ) -> tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ]:
+        """Splits data set in train, test, and validation set
+
+        Args:
+            train_frac (float, optional): Training fraction. Defaults to 0.8.
+            random_state (int, optional): Random state. Defaults to None.
+
+        Returns:
+            tuple[list, list, list, list, list, list]: X_train, X_val, X_test, Y_train, Y_val, Y_test
+        """
+
+        logger.info("Create train, validation, and test split.")
+
+        X_train, X_tmp, Y_train, Y_tmp = sklearn.model_selection.train_test_split(
+            X,
+            Y,
+            train_size=train_frac,
+            random_state=random_state,
+        )
+
+        X_val, X_test, Y_val, Y_test = sklearn.model_selection.train_test_split(
+            X_tmp, Y_tmp, train_size=0.5, random_state=random_state
+        )
+
+        return X_train, X_val, X_test, Y_train, Y_val, Y_test
 
     def fit(self):
         """Fits models to training data.
@@ -95,6 +206,15 @@ class Pipeline:
             np.array: Model output.
         """
         return self.model.predict(x)
+
+    def explain(self, x, y):
+        """Explains models
+
+        Args:
+            x (np.array): X data
+            y (np.array): Y data
+        """
+        interpret_model(self.model.clf, x, y, self.feature_columns, "name", self.scaler)
 
 
 class Model(metaclass=ABCMeta):
@@ -277,7 +397,6 @@ class XGBoostModel(Model):
         Returns:
             np.array: Model output.
         """
-        x = self.processor.transform(x=x)
         # dtest = xgb.DMatrix(x.to_numpy())
         return self.clf.predict(x)
 
@@ -400,7 +519,6 @@ class RandomForestModel(Model):
         Returns:
             np.array: Model output.
         """
-        x = self.processor.transform(x=x)
         return self.clf.predict(x)
 
     def train(self, trial, output_path):
