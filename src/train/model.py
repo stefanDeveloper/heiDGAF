@@ -15,6 +15,7 @@ import numpy as np
 import polars as pl
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
+from sklearn.utils import class_weight
 
 sys.path.append(os.getcwd())
 from src.train.feature import Processor
@@ -343,6 +344,10 @@ class XGBoostModel(Model):
         Returns:
             float: The best FDR value after cross-validation.
         """
+        neg = np.sum(self.y_train == 0)
+        pos = np.sum(self.y_train == 1)
+        scale_pos_weight = neg / pos
+
         dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
 
         param = {
@@ -350,6 +355,7 @@ class XGBoostModel(Model):
             "objective": "binary:logistic",
             "eval_metric": "auc",
             "device": self.device,
+            "scale_pos_weight": scale_pos_weight,
             "booster": trial.suggest_categorical(
                 "booster", ["gbtree", "gblinear", "dart"]
             ),
@@ -413,7 +419,7 @@ class XGBoostModel(Model):
         Returns:
             np.array: Model output.
         """
-        # dtest = xgb.DMatrix(x.to_numpy())
+        # dtest = xgb.DMatrix(x)
         return self.clf.predict(x)
 
     def train(self, trial, output_path):
@@ -425,6 +431,9 @@ class XGBoostModel(Model):
             output_path (str): The directory path to save the trained model.
         """
         logger.info("Number of estimators: {}".format(trial.user_attrs["n_estimators"]))
+        neg = np.sum(self.y_train == 0)
+        pos = np.sum(self.y_train == 1)
+        scale_pos_weight = neg / pos
 
         # dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
 
@@ -433,12 +442,19 @@ class XGBoostModel(Model):
             "objective": "binary:logistic",
             "eval_metric": "auc",
             "device": self.device,
+            "scale_pos_weight": scale_pos_weight,
+            # **trial.params,
         }
 
         self.clf = xgb.XGBClassifier(
             n_estimators=trial.user_attrs["n_estimators"], **trial.params, **params
         )
-        self.clf.fit(self.x_train, self.y_train)
+        self.clf.fit(self.x_train, label=self.y_train)
+        # self.clf = xgb.train(
+        #     params=params,
+        #     dtrain=dtrain,
+        #     num_boost_round=trial.user_attrs["n_estimators"],
+        # )
 
         logger.info("Save trained model to a file.")
         with open(
