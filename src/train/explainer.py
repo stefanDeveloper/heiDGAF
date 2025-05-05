@@ -54,7 +54,7 @@ class PC:
             )
         plt.xlabel("First principal component")
         plt.ylabel("Second Principal Component")
-        plt.savefig(f"{self.fig_output_path}/results/pca_2d.png")
+        plt.savefig(f"{self.fig_output_path}/results/pca_2d.pdf")
 
     def pca_3d(self, X: np.ndarray, y: np.ndarray):
         pca = PCA(n_components=3)
@@ -96,7 +96,7 @@ class PC:
         ax.set_zlabel("Third Principal Component", fontsize=14)
 
         ax.legend()
-        plt.savefig(f"{self.fig_output_path}/results/pca_3d.png")
+        plt.savefig(f"{self.fig_output_path}/results/pca_3d.pdf")
 
     def remove_feature(self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA):
         # Remove PC1
@@ -109,7 +109,7 @@ class PC:
         plt.xlabel("0")
         plt.ylabel("1")
         plt.title("Two features from the dataset after removing PC1")
-        plt.savefig(f"{self.fig_output_path}/results/pca_pc{component + 1}.png")
+        plt.savefig(f"{self.fig_output_path}/results/pca_pc{component + 1}.pdf")
 
     def create_plots(self, X: np.ndarray, y: np.ndarray):
         self.pca_2d(X=X, y=y)
@@ -133,27 +133,27 @@ class PC:
         logger.info("Explainedd variance ratios:")
         logger.info(pca.explained_variance_ratio_)
 
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
+        # # Split data
+        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
 
-        # Run classifer on all features
-        clf = SVC(kernel="linear", gamma="auto").fit(X_train, y_train)
-        logger.info(f"Using all features, accuracy: {clf.score(X_test, y_test)}")
-        logger.info(
-            f"Using all features, F1: {f1_score(y_test, clf.predict(X_test), average='macro')}"
-        )
+        # # Run classifer on all features
+        # clf = SVC(kernel="linear", gamma="auto").fit(X_train, y_train)
+        # logger.info(f"Using all features, accuracy: {clf.score(X_test, y_test)}")
+        # logger.info(
+        #     f"Using all features, F1: {f1_score(y_test, clf.predict(X_test), average='macro')}"
+        # )
 
-        # Run classifier on PC1
-        mean = X_train.mean(axis=0)
-        X_train2 = X_train - mean
-        X_train2 = (X_train2 @ pca.components_[1]).reshape(-1, 1)
-        clf = SVC(kernel="linear", gamma="auto").fit(X_train2, y_train)
-        X_test2 = X_test - mean
-        X_test2 = (X_test2 @ pca.components_[1]).reshape(-1, 1)
-        logger.info(f"Using PC1, accuracy: {clf.score(X_test2, y_test)}")
-        logger.info(
-            f"Using PC1, F1: {f1_score(y_test, clf.predict(X_test2), average='macro')}"
-        )
+        # # Run classifier on PC1
+        # mean = X_train.mean(axis=0)
+        # X_train2 = X_train - mean
+        # X_train2 = (X_train2 @ pca.components_[1]).reshape(-1, 1)
+        # clf = SVC(kernel="linear", gamma="auto").fit(X_train2, y_train)
+        # X_test2 = X_test - mean
+        # X_test2 = (X_test2 @ pca.components_[1]).reshape(-1, 1)
+        # logger.info(f"Using PC1, accuracy: {clf.score(X_test2, y_test)}")
+        # logger.info(
+        #     f"Using PC1, F1: {f1_score(y_test, clf.predict(X_test2), average='macro')}"
+        # )
 
     def analyse_data(
         self,
@@ -305,10 +305,10 @@ class PC:
 
             if save_plots:
                 density_plot_path = os.path.join(
-                    self.fig_output_path, "density_plots.png"
+                    self.fig_output_path, "density_plots.pdf"
                 )
                 hist_plot_path = os.path.join(
-                    self.fig_output_path, "histogram_plots.png"
+                    self.fig_output_path, "histogram_plots.pdf"
                 )
                 fig_density.savefig(density_plot_path, dpi=300)
                 fig_hist.savefig(hist_plot_path, dpi=300)
