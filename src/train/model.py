@@ -75,6 +75,22 @@ class Pipeline:
         logger.info(f"Columns: {self.feature_columns}.")
 
         self.pc.create_plots(X=X, y=y)
+        df_data = data.to_pandas()
+        # Assuming your data is in a DataFrame called 'df' with a 'condition' column
+        condition1_data = df_data[df_data["class"] == 1]
+        condition2_data = df_data[df_data["class"] == 0]
+
+        # List of measurements (you can use all or a subset)
+        measurements = df_data.columns.tolist()[
+            1:
+        ]  # [1:] to drop the condition column in the beginning
+        self.pc.analyse_data(
+            data_condition1=condition1_data,
+            data_condition2=condition2_data,
+            measurements=measurements,
+            condition1_name="Benign",
+            condition2_name="Malicious",
+        )
 
         self.x_train, self.x_val, self.x_test, self.y_train, self.y_val, self.y_test = (
             self.train_test_val_split(X=X, Y=y)

@@ -155,7 +155,8 @@ class PC:
             f"Using PC1, F1: {f1_score(y_test, clf.predict(X_test2), average='macro')}"
         )
 
-    def analyze_nerve_conduction(
+    def analyse_data(
+        self,
         data_condition1,
         data_condition2,
         measurements,
@@ -163,7 +164,6 @@ class PC:
         condition2_name="Condition 2",
         plot=True,
         save_plots=True,
-        output_dir="plots",
         exclude_outliers=True,
         percentile=99,
     ):
@@ -188,9 +188,8 @@ class PC:
         Returns:
             pd.DataFrame: Summary DataFrame with KS statistic and EMD for each measurement
         """
-        import os
 
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(self.fig_output_path, exist_ok=True)
 
         results = []
 
@@ -305,12 +304,16 @@ class PC:
             fig_hist.subplots_adjust(hspace=0.4, wspace=0.3)
 
             if save_plots:
-                density_plot_path = os.path.join(output_dir, "density_plots.png")
-                hist_plot_path = os.path.join(output_dir, "histogram_plots.png")
+                density_plot_path = os.path.join(
+                    self.fig_output_path, "density_plots.png"
+                )
+                hist_plot_path = os.path.join(
+                    self.fig_output_path, "histogram_plots.png"
+                )
                 fig_density.savefig(density_plot_path, dpi=300)
                 fig_hist.savefig(hist_plot_path, dpi=300)
-                print(f"Density plots saved to: {density_plot_path}")
-                print(f"Histogram plots saved to: {hist_plot_path}")
+                logger.info(f"Density plots saved to: {density_plot_path}")
+                logger.info(f"Histogram plots saved to: {hist_plot_path}")
 
             # Show plots
             plt.show()
@@ -320,7 +323,9 @@ class PC:
         return
 
 
-def interpret_model(model, x_test, y_test, df_cols, model_name, scaler=None):
+def interpret_model(
+    model, x_test, y_test, df_cols, model_name, scaler=None, output_path="results"
+):
     """
     Generate model interpretation using TE2RULES and rescale rule values if necessary.
 
@@ -332,6 +337,8 @@ def interpret_model(model, x_test, y_test, df_cols, model_name, scaler=None):
         model_name (str): Name of the model for saving outputs
         scaler (any): Scaler with inverse_transform method (e.g., StandardScaler)
     """
+    os.makedirs(output_path, exist_ok=True)
+
     # Create TE2RULES explainer
     explainer = ModelExplainer(model, feature_names=df_cols)
 
@@ -388,7 +395,7 @@ def interpret_model(model, x_test, y_test, df_cols, model_name, scaler=None):
         rules = [rescale_rule(rule, scaler, df_cols) for rule in rules]
 
     # Save rules to file
-    output_path = f"./outputs/{model_name}/rules.txt"
+    output_path = f"{output_path}/{model_name}/rules.txt"
     with open(output_path, "w") as f:
         f.write("Extracted Rules:\n\n")
         for i, rule in enumerate(rules, 1):
