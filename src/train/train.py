@@ -12,6 +12,7 @@ import torch
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import StandardScaler
 
+
 sys.path.append(os.getcwd())
 from src.train.dataset import Dataset, DatasetLoader, Dataset
 from src.train.feature import Processor
@@ -20,6 +21,7 @@ from src.train.model import (
 )
 from src.base.log_config import get_logger
 from src.train.explainer import PC
+from src.train import RESULT_FOLDER
 
 logger = get_logger("train.train")
 
@@ -163,8 +165,9 @@ class DetectorTraining:
             scaler: Fitted StandardScaler object
             model_type (str): Type of model being used
         """
-        os.makedirs(f"./results/{model_type}", exist_ok=True)
-        with open(f"./results/{model_type}/scaler.pickle", "wb") as f:
+        scaler_path = os.path.join(RESULT_FOLDER, model_type)
+        os.makedirs(scaler_path, exist_ok=True)
+        with open(os.path.join(scaler_path, "scaler.pickle"), "wb") as f:
             pickle.dump(scaler, f)
 
 

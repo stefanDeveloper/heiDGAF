@@ -4,29 +4,46 @@ from scipy.stats import ks_2samp
 from scipy.stats import wasserstein_distance
 import numpy as np
 import matplotlib.pyplot as plt
+import sklearn
 from sklearn.decomposition import PCA
 import pandas as pd
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
+import sklearn.preprocessing
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from te2rules.explainer import ModelExplainer
+from xgboost import XGBClassifier
+import string
+
 
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
+from src.train import RESULT_FOLDER
 
 logger = get_logger("train.explainer")
 
-RESULT_FOLDER = "results"
-
 
 class PC:
-    def __init__(self, fig_output_path: str = f"./{RESULT_FOLDER}"):
-        self.fig_output_path = fig_output_path
+    def __init__(self, output_path: str = f"./{RESULT_FOLDER}"):
+        """
+        Initialize the PC class for PCA visualization.
 
-    def pca_2d(self, X: np.ndarray, y: np.ndarray):
+        Args:
+            output_path (str): Path to save the figures. Defaults to './results'.
+        """
+        self.output_path = output_path
+
+    def pca_2d(self, X: np.ndarray, y: np.ndarray) -> None:
+        """
+        Perform PCA and plot the first two principal components in 2D.
+
+        Args:
+            X (np.ndarray): Feature matrix.
+            y (np.ndarray): Label array.
+        """
         pca = PCA(n_components=2)
 
         X_pca = pca.fit_transform(X)
@@ -56,9 +73,16 @@ class PC:
             )
         plt.xlabel("First principal component")
         plt.ylabel("Second Principal Component")
-        plt.savefig(os.path.join(self.fig_output_path, RESULT_FOLDER, f"pca_2d.pdf"))
+        plt.savefig(os.path.join(self.output_path, f"pca_2d.pdf"))
 
-    def pca_3d(self, X: np.ndarray, y: np.ndarray):
+    def pca_3d(self, X: np.ndarray, y: np.ndarray) -> None:
+        """
+        Perform PCA and plot the first three principal components in 3D.
+
+        Args:
+            X (np.ndarray): Feature matrix.
+            y (np.ndarray): Label array.
+        """
         pca = PCA(n_components=3)
         pca.fit(X)
         X_pca = pca.transform(X)
@@ -98,9 +122,20 @@ class PC:
         ax.set_zlabel("Third Principal Component", fontsize=14)
 
         ax.legend()
-        plt.savefig(os.path.join(self.fig_output_path, RESULT_FOLDER, f"pca_3d.pdf"))
+        plt.savefig(os.path.join(self.output_path, f"pca_3d.pdf"))
 
-    def remove_feature(self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA):
+    def remove_feature(
+        self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA
+    ) -> None:
+        """
+        Visualize data after removing the projection onto a specific principal component.
+
+        Args:
+            component (int): Index of the principal component to remove (0-based).
+            X (np.ndarray): Feature matrix.
+            y (np.ndarray): Label array.
+            pca (PCA): Pre-fitted PCA object.
+        """
         # Remove PC1
         Xmean = X - X.mean(axis=0)
         value = Xmean @ pca.components_[component]
@@ -111,13 +146,16 @@ class PC:
         plt.xlabel("0")
         plt.ylabel("1")
         plt.title("Two features from the dataset after removing PC1")
-        plt.savefig(
-            os.path.join(
-                self.fig_output_path, RESULT_FOLDER, f"pca_pc{component + 1}.pdf"
-            )
-        )
+        plt.savefig(os.path.join(self.output_path, f"pca_pc{component + 1}.pdf"))
 
-    def create_plots(self, X: np.ndarray, y: np.ndarray):
+    def create_plots(self, X: np.ndarray, y: np.ndarray) -> None:
+        """
+        Generate 2D and 3D PCA plots, and visualizations after removing PC1, PC2, and PC3.
+
+        Args:
+            X (np.ndarray): Feature matrix.
+            y (np.ndarray): Label array.
+        """
         self.pca_2d(X=X, y=y)
         self.pca_3d(X=X, y=y)
 
@@ -146,16 +184,14 @@ class PC:
         measurements,
         condition1_name="Condition 1",
         condition2_name="Condition 2",
-        plot=True,
-        save_plots=True,
         exclude_outliers=True,
         percentile=99,
-    ):
+    ) -> None:
         """
         Analyzes the distributions of network traffic between two conditions.
         Calculates the Kolmogorov-Smirnov (KS) statistic and Earth Mover's Distance (EMD)
-        for each measurement, and optionally plots the distributions with outlier exclusion.
-        Optionally saves plots to a directory.
+        for each measurement, and plots the distributions with outlier exclusion.
+        Saves plots to a directory.
 
         Parameters:
             data_condition1 (pd.DataFrame): Data for first condition
@@ -163,17 +199,11 @@ class PC:
             measurements (list): List of measurement names to analyze
             condition1_name (str): Name of first condition for plotting
             condition2_name (str): Name of second condition for plotting
-            plot (bool): Whether to plot distributions for each measurement (default: True)
-            save_plots (bool): Whether to save plots as image files (default: True)
-            output_dir (str): Directory to save the plots (default: "plots")
             exclude_outliers (bool): Whether to exclude outliers based on percentile (default: True)
             percentile (int): Percentile threshold for outlier exclusion (default: 99)
-
-        Returns:
-            pd.DataFrame: Summary DataFrame with KS statistic and EMD for each measurement
         """
 
-        os.makedirs(self.fig_output_path, exist_ok=True)
+        os.makedirs(self.output_path, exist_ok=True)
 
         results = []
 
@@ -181,13 +211,12 @@ class PC:
         n_rows = int(np.ceil(len(measurements) / 6))
 
         # Create figures for density plots and histograms
-        if plot:
-            fig_density, axs_density = plt.subplots(n_rows, 6, figsize=(36, 8 * n_rows))
-            fig_hist, axs_hist = plt.subplots(n_rows, 6, figsize=(36, 8 * n_rows))
+        fig_density, axs_density = plt.subplots(n_rows, 6, figsize=(36, 8 * n_rows))
+        fig_hist, axs_hist = plt.subplots(n_rows, 6, figsize=(36, 8 * n_rows))
 
-            # Flatten axes arrays for easier indexing
-            axs_density = axs_density.flatten() if n_rows > 1 else [axs_density]
-            axs_hist = axs_hist.flatten() if n_rows > 1 else [axs_hist]
+        # Flatten axes arrays for easier indexing
+        axs_density = axs_density.flatten() if n_rows > 1 else [axs_density]
+        axs_hist = axs_hist.flatten() if n_rows > 1 else [axs_hist]
 
         for i, measurement in enumerate(measurements):
             # Extract measurement data for both conditions
@@ -228,108 +257,95 @@ class PC:
                 }
             )
 
-            if plot:
-                # Create density plot
-                ax_density = axs_density[i]
-                if len(arr1_clean) > 0:
-                    sns.kdeplot(
-                        arr1_clean,
-                        fill=True,
-                        color="blue",
-                        label=condition1_name,
-                        ax=ax_density,
-                        warn_singular=False,
-                    )
-                if len(arr2_clean) > 0:
-                    sns.kdeplot(
-                        arr2_clean,
-                        fill=True,
-                        color="orange",
-                        label=condition2_name,
-                        ax=ax_density,
-                        warn_singular=False,
-                    )
-                ax_density.set_title(f"{measurement}", fontsize=10)
-                ax_density.set_xlabel("Value", fontsize=8)
-                ax_density.set_ylabel("Density", fontsize=8)
-                ax_density.legend(fontsize=8)
+            # Create density plot
+            ax_density = axs_density[i]
+            if len(arr1_clean) > 0:
+                sns.kdeplot(
+                    arr1_clean,
+                    fill=True,
+                    color="blue",
+                    label=condition1_name,
+                    ax=ax_density,
+                    warn_singular=False,
+                )
+            if len(arr2_clean) > 0:
+                sns.kdeplot(
+                    arr2_clean,
+                    fill=True,
+                    color="orange",
+                    label=condition2_name,
+                    ax=ax_density,
+                    warn_singular=False,
+                )
+            ax_density.set_title(f"{measurement}", fontsize=10)
+            ax_density.set_xlabel("Value", fontsize=8)
+            ax_density.set_ylabel("Density", fontsize=8)
+            ax_density.legend(fontsize=8)
 
-                # Create histogram
-                ax_hist = axs_hist[i]
-                if len(arr1_clean) > 0:
-                    ax_hist.hist(
-                        arr1_clean,
-                        bins=30,
-                        color="blue",
-                        alpha=0.5,
-                        label=condition1_name,
-                    )
-                if len(arr2_clean) > 0:
-                    ax_hist.hist(
-                        arr2_clean,
-                        bins=30,
-                        color="orange",
-                        alpha=0.5,
-                        label=condition2_name,
-                    )
-                ax_hist.set_title(f"{measurement}", fontsize=10)
-                ax_hist.set_xlabel("Value", fontsize=8)
-                ax_hist.set_ylabel("Frequency", fontsize=8)
-                ax_hist.legend(fontsize=8)
+            # Create histogram
+            ax_hist = axs_hist[i]
+            if len(arr1_clean) > 0:
+                ax_hist.hist(
+                    arr1_clean,
+                    bins=30,
+                    color="blue",
+                    alpha=0.5,
+                    label=condition1_name,
+                )
+            if len(arr2_clean) > 0:
+                ax_hist.hist(
+                    arr2_clean,
+                    bins=30,
+                    color="orange",
+                    alpha=0.5,
+                    label=condition2_name,
+                )
+            ax_hist.set_title(f"{measurement}", fontsize=10)
+            ax_hist.set_xlabel("Value", fontsize=8)
+            ax_hist.set_ylabel("Frequency", fontsize=8)
+            ax_hist.legend(fontsize=8)
 
         # Remove empty subplots if any
-        if plot:
-            for j in range(i + 1, len(axs_density)):
-                fig_density.delaxes(axs_density[j])
-                fig_hist.delaxes(axs_hist[j])
+        for j in range(i + 1, len(axs_density)):
+            fig_density.delaxes(axs_density[j])
+            fig_hist.delaxes(axs_hist[j])
 
-            # Adjust layout and save plots
-            fig_density.tight_layout()
-            fig_density.subplots_adjust(hspace=0.4, wspace=0.3)
-            fig_hist.tight_layout()
-            fig_hist.subplots_adjust(hspace=0.4, wspace=0.3)
+        # Adjust layout and save plots
+        fig_density.tight_layout()
+        fig_density.subplots_adjust(hspace=0.4, wspace=0.3)
+        fig_hist.tight_layout()
+        fig_hist.subplots_adjust(hspace=0.4, wspace=0.3)
 
-            if save_plots:
-                density_plot_path = os.path.join(
-                    self.fig_output_path, "density_plots.pdf"
-                )
-                hist_plot_path = os.path.join(
-                    self.fig_output_path, "histogram_plots.pdf"
-                )
-                fig_density.savefig(density_plot_path, dpi=300)
-                fig_hist.savefig(hist_plot_path, dpi=300)
-                logger.info(f"Density plots saved to: {density_plot_path}")
-                logger.info(f"Histogram plots saved to: {hist_plot_path}")
+        density_plot_path = os.path.join(self.output_path, "density_plots.pdf")
+        hist_plot_path = os.path.join(self.output_path, "histogram_plots.pdf")
+        fig_density.savefig(density_plot_path, dpi=300)
+        fig_hist.savefig(hist_plot_path, dpi=300)
+        logger.info(f"Density plots saved to: {density_plot_path}")
+        logger.info(f"Histogram plots saved to: {hist_plot_path}")
 
-            # Show plots
-            plt.show()
+        # Show plots
+        plt.show()
 
 
-def interpret_model(
-    model, x_test, y_test, df_cols, model_name, scaler=None, output_path="results"
-):
-    """
-    Generate model interpretation using TE2RULES and rescale rule values if necessary.
+class Explainer:
+    """Explainer class to interpret sklearn.ensemble or XGBClassifier models after training."""
 
-    Args:
-        model (xgb.XGBClassifier): Trained model
-        x_test (np.ndarray): Test features
-        y_test (np.ndarray): Test labels
-        df_cols (list): Feature column names
-        model_name (str): Name of the model for saving outputs
-        scaler (any): Scaler with inverse_transform method (e.g., StandardScaler)
-    """
-    save_path = os.path.join(output_path, model_name)
-    os.makedirs(save_path, exist_ok=True)
+    def __init__(self, output_path: str = f"./{RESULT_FOLDER}"):
+        self.output_path = output_path
 
-    # Create TE2RULES explainer
-    explainer = ModelExplainer(model, feature_names=df_cols)
+    def __rescale_rule(self, rule: str, scaler, feature_names: list[str]) -> str:
+        """
+        Rescale feature thresholds in a rule back to their original (pre-scaled) values.
 
-    # Generate explanation
-    rules = explainer.explain(x_test, y_test.tolist())
+        Args:
+            rule (str): A rule string (e.g., "feature1 > 0.5 and feature2 <= 1.3").
+            scaler (sklearn.preprocessing): A fitted scaler object with an inverse_transform method.
+            feature_names (list[str]): List of original feature names.
 
-    # Function to rescale values in a rule if a scaler is provided
-    def rescale_rule(rule, scaler, feature_names):
+        Returns:
+            str: Rule with scaled thresholds replaced by original (unscaled) values.
+        """
+        # If scaler is none, no rescaling is needed
         if scaler is None:
             return rule
 
@@ -370,15 +386,46 @@ def interpret_model(
                             continue  # Skip if the value is not numeric
 
                 # Reconstruct the rule with rescaled values
-                rule = " ".join(parts)
+                rule = string.whitespace.join(parts)
         return rule
 
-    # Rescale values in rules if scaler is provided
-    if scaler is not None:
-        rules = [rescale_rule(rule, scaler, df_cols) for rule in rules]
+    def interpret_model(
+        self,
+        model,
+        x_test: np.ndarray,
+        y_test: np.ndarray,
+        df_cols: list[str],
+        model_name: str,
+        scaler=None,
+    ) -> None:
+        """
+        Interpret a trained model by extracting decision rules and optionally rescaling them.
 
-    # Save rules to file
-    with open(os.path.join(save_path, "rules.txt"), "w") as f:
-        f.write("Extracted Rules:\n\n")
-        for i, rule in enumerate(rules, 1):
-            f.write(f"Rule {i}: {rule}\n")
+        Args:
+            model (sklearn.ensemble.BaseEnsemble | XGBClassifier): Trained ML model.
+            x_test (np.ndarray): Test set features.
+            y_test (np.ndarray): Test set labels.
+            df_cols (list[str]): Column names of the features.
+            model_name (str): Name used for saving output files.
+            scaler (optional): Scaler used in preprocessing, e.g., StandardScaler. Defaults to None.
+        """
+        save_path = os.path.join(self.output_path, model_name)
+        os.makedirs(save_path, exist_ok=True)
+
+        # Create TE2RULES explainer
+        explainer = ModelExplainer(model, feature_names=df_cols)
+
+        # Generate explanation
+        rules = explainer.explain(x_test, y_test.tolist())
+
+        # Function to rescale values in a rule if a scaler is provided
+
+        # Rescale values in rules if scaler is provided
+        if scaler is not None:
+            rules = [self.__rescale_rule(rule, scaler, df_cols) for rule in rules]
+
+        # Save rules to file
+        with open(os.path.join(save_path, "rules.txt"), "w") as f:
+            f.write("Extracted Rules:\n\n")
+            for i, rule in enumerate(rules, 1):
+                f.write(f"Rule {i}: {rule}\n")
