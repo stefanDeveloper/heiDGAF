@@ -19,9 +19,11 @@ from src.base.log_config import get_logger
 
 logger = get_logger("train.explainer")
 
+RESULT_FOLDER = "results"
+
 
 class PC:
-    def __init__(self, fig_output_path: str = "./"):
+    def __init__(self, fig_output_path: str = f"./{RESULT_FOLDER}"):
         self.fig_output_path = fig_output_path
 
     def pca_2d(self, X: np.ndarray, y: np.ndarray):
@@ -54,7 +56,7 @@ class PC:
             )
         plt.xlabel("First principal component")
         plt.ylabel("Second Principal Component")
-        plt.savefig(f"{self.fig_output_path}/results/pca_2d.pdf")
+        plt.savefig(os.path.join(self.fig_output_path, RESULT_FOLDER, f"pca_2d.pdf"))
 
     def pca_3d(self, X: np.ndarray, y: np.ndarray):
         pca = PCA(n_components=3)
@@ -96,7 +98,7 @@ class PC:
         ax.set_zlabel("Third Principal Component", fontsize=14)
 
         ax.legend()
-        plt.savefig(f"{self.fig_output_path}/results/pca_3d.pdf")
+        plt.savefig(os.path.join(self.fig_output_path, RESULT_FOLDER, f"pca_3d.pdf"))
 
     def remove_feature(self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA):
         # Remove PC1
@@ -109,7 +111,11 @@ class PC:
         plt.xlabel("0")
         plt.ylabel("1")
         plt.title("Two features from the dataset after removing PC1")
-        plt.savefig(f"{self.fig_output_path}/results/pca_pc{component + 1}.pdf")
+        plt.savefig(
+            os.path.join(
+                self.fig_output_path, RESULT_FOLDER, f"pca_pc{component + 1}.pdf"
+            )
+        )
 
     def create_plots(self, X: np.ndarray, y: np.ndarray):
         self.pca_2d(X=X, y=y)
@@ -132,28 +138,6 @@ class PC:
         # print the explained variance ratio
         logger.info("Explainedd variance ratios:")
         logger.info(pca.explained_variance_ratio_)
-
-        # # Split data
-        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
-
-        # # Run classifer on all features
-        # clf = SVC(kernel="linear", gamma="auto").fit(X_train, y_train)
-        # logger.info(f"Using all features, accuracy: {clf.score(X_test, y_test)}")
-        # logger.info(
-        #     f"Using all features, F1: {f1_score(y_test, clf.predict(X_test), average='macro')}"
-        # )
-
-        # # Run classifier on PC1
-        # mean = X_train.mean(axis=0)
-        # X_train2 = X_train - mean
-        # X_train2 = (X_train2 @ pca.components_[1]).reshape(-1, 1)
-        # clf = SVC(kernel="linear", gamma="auto").fit(X_train2, y_train)
-        # X_test2 = X_test - mean
-        # X_test2 = (X_test2 @ pca.components_[1]).reshape(-1, 1)
-        # logger.info(f"Using PC1, accuracy: {clf.score(X_test2, y_test)}")
-        # logger.info(
-        #     f"Using PC1, F1: {f1_score(y_test, clf.predict(X_test2), average='macro')}"
-        # )
 
     def analyse_data(
         self,
@@ -254,6 +238,7 @@ class PC:
                         color="blue",
                         label=condition1_name,
                         ax=ax_density,
+                        warn_singular=False,
                     )
                 if len(arr2_clean) > 0:
                     sns.kdeplot(
@@ -262,6 +247,7 @@ class PC:
                         color="orange",
                         label=condition2_name,
                         ax=ax_density,
+                        warn_singular=False,
                     )
                 ax_density.set_title(f"{measurement}", fontsize=10)
                 ax_density.set_xlabel("Value", fontsize=8)
@@ -318,10 +304,6 @@ class PC:
             # Show plots
             plt.show()
 
-        # Return results as DataFrame
-        results_df = pd.DataFrame(results)
-        return
-
 
 def interpret_model(
     model, x_test, y_test, df_cols, model_name, scaler=None, output_path="results"
@@ -337,7 +319,8 @@ def interpret_model(
         model_name (str): Name of the model for saving outputs
         scaler (any): Scaler with inverse_transform method (e.g., StandardScaler)
     """
-    os.makedirs(output_path, exist_ok=True)
+    save_path = os.path.join(output_path, model_name)
+    os.makedirs(save_path, exist_ok=True)
 
     # Create TE2RULES explainer
     explainer = ModelExplainer(model, feature_names=df_cols)
@@ -395,8 +378,7 @@ def interpret_model(
         rules = [rescale_rule(rule, scaler, df_cols) for rule in rules]
 
     # Save rules to file
-    output_path = f"{output_path}/{model_name}/rules.txt"
-    with open(output_path, "w") as f:
+    with open(os.path.join(save_path, "rules.txt"), "w") as f:
         f.write("Extracted Rules:\n\n")
         for i, rule in enumerate(rules, 1):
             f.write(f"Rule {i}: {rule}\n")
