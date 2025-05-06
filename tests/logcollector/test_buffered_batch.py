@@ -637,10 +637,16 @@ class TestCompleteBatch(unittest.TestCase):
 
         # Assert
         self.assertEqual(
-            datetime.datetime(2024, 5, 21, 8, 31, 28, 119000), data["begin_timestamp"]
+            datetime.datetime(
+                2024, 5, 21, 8, 31, 28, 119000, tzinfo=datetime.timezone.utc
+            ),
+            data["begin_timestamp"],
         )
         self.assertEqual(
-            datetime.datetime(2024, 5, 21, 8, 31, 28, 249000), data["end_timestamp"]
+            datetime.datetime(
+                2024, 5, 21, 8, 31, 28, 249000, tzinfo=datetime.timezone.utc
+            ),
+            data["end_timestamp"],
         )
         self.assertEqual(expected_messages, data["data"])
 
@@ -682,16 +688,28 @@ class TestCompleteBatch(unittest.TestCase):
 
         # Assert
         self.assertEqual(
-            datetime.datetime(2024, 5, 21, 8, 31, 28, 119000), data_1["begin_timestamp"]
+            datetime.datetime(
+                2024, 5, 21, 8, 31, 28, 119000, tzinfo=datetime.timezone.utc
+            ),
+            data_1["begin_timestamp"],
         )
         self.assertEqual(
-            datetime.datetime(2024, 5, 21, 8, 31, 28, 249000), data_1["end_timestamp"]
+            datetime.datetime(
+                2024, 5, 21, 8, 31, 28, 249000, tzinfo=datetime.timezone.utc
+            ),
+            data_1["end_timestamp"],
         )
         self.assertEqual(
-            datetime.datetime(2024, 5, 21, 8, 31, 28, 119000), data_2["begin_timestamp"]
+            datetime.datetime(
+                2024, 5, 21, 8, 31, 28, 119000, tzinfo=datetime.timezone.utc
+            ),
+            data_2["begin_timestamp"],
         )
         self.assertEqual(
-            datetime.datetime(2024, 5, 21, 8, 31, 28, 749000), data_2["end_timestamp"]
+            datetime.datetime(
+                2024, 5, 21, 8, 31, 28, 749000, tzinfo=datetime.timezone.utc
+            ),
+            data_2["end_timestamp"],
         )
         self.assertEqual({key: [message_3, message_4]}, sut.buffer)
         self.assertEqual({}, sut.batch)

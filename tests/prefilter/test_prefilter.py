@@ -389,8 +389,8 @@ class TestSendFilteredData(unittest.TestCase):
         sut.begin_timestamp = datetime.datetime(2024, 5, 21, 8, 31, 27, 000000)
         sut.end_timestamp = datetime.datetime(2024, 5, 21, 8, 31, 29, 000000)
         expected_message = (
-            '{"batch_id": "5236b147-5b0d-44a8-981f-bd7da8c54733", "begin_timestamp": "2024-05-21T08:31:27.000000Z", '
-            '"end_timestamp": "2024-05-21T08:31:29.000000Z", "data": [{'
+            '{"batch_id": "5236b147-5b0d-44a8-981f-bd7da8c54733", "begin_timestamp": "2024-05-21T08:31:27", '
+            '"end_timestamp": "2024-05-21T08:31:29", "data": [{'
             '"timestamp": "2024-05-21T08:31:28.119Z", "status": "NXDOMAIN", "client_ip": "192.168.1.105", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}, {"timestamp": "2024-06-01T02:31:07.943Z", '
