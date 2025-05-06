@@ -90,17 +90,17 @@ class Timestamp(FieldType):
 
         return True
 
-    def get_timestamp(self, value) -> datetime.datetime:
+    def get_timestamp_as_str(self, value) -> str:
         """
-        Returns the timestamp object for a given timestamp with valid format.
+        Returns the timestamp as string for a given timestamp with valid format.
 
         Args:
             value: Correctly formatted timestamp according to self.timestamp_format
 
         Returns:
-            datetime.datetime object of the given timestamp
+            String of the given timestamp with standard format
         """
-        return datetime.datetime.strptime(value, self.timestamp_format)
+        return str(datetime.datetime.strptime(value, self.timestamp_format).isoformat())
 
 
 class IpAddress(FieldType):
@@ -271,7 +271,7 @@ class LoglineHandler:
                 return_dict[self.instances_by_position[i].name] = parts[i]
             else:
                 return_dict[self.instances_by_position[i].name] = (
-                    self.instances_by_position[i].get_timestamp(parts[i])
+                    self.instances_by_position[i].get_timestamp_as_str(parts[i])
                 )
 
         return return_dict.copy()

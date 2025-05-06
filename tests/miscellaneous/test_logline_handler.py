@@ -307,9 +307,7 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
     def test_validate_true(self):
         # Arrange
         expected_result = {
-            "timestamp": datetime.datetime.strptime(
-                "2024-07-28 14:45:30.123", "%Y-%m-%d %H:%M:%S.%f"
-            ),
+            "timestamp": "2024-07-28T14:45:30.123000",
             "status_code": "NXDOMAIN",
             "client_ip": "127.0.0.2",
             "dns_server_ip": "126.24.5.20",

@@ -184,7 +184,12 @@ class Inspector:
             numpy.ndarray: 2-D numpy.ndarray including all steps.
         """
         logger.debug("Convert timestamps to numpy datetime64")
-        timestamps = np.array([np.datetime64(item["timestamp"]) for item in messages])
+        timestamps = np.array(
+            [
+                np.datetime64(datetime.fromisoformat(item["timestamp"]))
+                for item in messages
+            ]
+        )
 
         # Extract and convert the size values from "111b" to integers
         sizes = np.array([int(str(item["size"]).replace("b", "")) for item in messages])
@@ -258,7 +263,12 @@ class Inspector:
             numpy.ndarray: 2-D numpy.ndarray including all steps.
         """
         logger.debug("Convert timestamps to numpy datetime64")
-        timestamps = np.array([np.datetime64(item["timestamp"]) for item in messages])
+        timestamps = np.array(
+            [
+                np.datetime64(datetime.fromisoformat(item["timestamp"]))
+                for item in messages
+            ]
+        )
 
         logger.debug("Sort timestamps and count occurrences")
         sorted_indices = np.argsort(timestamps)

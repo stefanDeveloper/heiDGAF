@@ -216,13 +216,9 @@ class BufferedBatch:
 
             data = {
                 "batch_id": batch_id,
-                "begin_timestamp": datetime.datetime.strptime(
-                    begin_timestamp,
-                    "%Y-%m-%dT%H:%M:%S.%fZ",
-                ),
-                "end_timestamp": datetime.datetime.strptime(
-                    _get_last_timestamp_of_batch(),
-                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                "begin_timestamp": datetime.datetime.fromisoformat(begin_timestamp),
+                "end_timestamp": datetime.datetime.fromisoformat(
+                    _get_last_timestamp_of_batch()
                 ),
                 "data": buffer_data + self.batch[key],
             }
@@ -406,7 +402,7 @@ class BufferedBatchSender:
         Dispatch all batches for the Kafka queue
 
         Args:
-            reset_timer (bool): whether or not the timer should be reset
+            reset_timer (bool): whether the timer should be reset
         """
         number_of_keys = 0
         total_number_of_batch_messages = self.batch.get_message_count_for_batch()
@@ -456,7 +452,7 @@ class BufferedBatchSender:
 
     def _send_data_packet(self, key: str, data: dict) -> None:
         """
-        Sends a packet of a batch to the defined Kafka topic
+        Sends a packet of a Batch to the defined Kafka topic
 
         Args:
             key (str): key to identify the batch

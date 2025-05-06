@@ -128,7 +128,7 @@ class LogCollector:
             dict(
                 logline_id=logline_id,
                 subnet_id=subnet_id,
-                timestamp=fields.get("timestamp"),
+                timestamp=datetime.datetime.fromisoformat(fields.get("timestamp")),
                 status_code=fields.get("status_code"),
                 client_ip=fields.get("client_ip"),
                 record_type=fields.get("record_type"),
