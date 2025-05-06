@@ -263,7 +263,7 @@ class DatasetLoader:
         self.dga_data = Dataset(
             data_path=f"{self.base_path}/360_dga_domain.csv",
             cast_dataset=cast_dga,
-            max_rows=self.max_rows,
+            max_rows=5000,  # self.max_rows,
         )
         return self.dga_data
 
@@ -389,7 +389,7 @@ class DatasetLoader:
                 f"{self.base_path}/dgarchive/xxhex_dga.csv",
             ],
             cast_dataset=cast_dgarchive,
-            max_rows=self.max_rows,
+            max_rows=5000,  # self.max_rows,
         )
         return self.dgarchive_data
 

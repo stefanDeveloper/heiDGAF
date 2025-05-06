@@ -4,7 +4,6 @@ import math
 from string import ascii_lowercase as alc
 from typing import List
 import polars as pl
-import numpy as np
 
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger

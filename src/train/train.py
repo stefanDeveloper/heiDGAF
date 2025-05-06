@@ -1,6 +1,4 @@
-import argparse
 import pickle
-import re
 import sys
 import os
 from enum import Enum, unique
@@ -20,7 +18,6 @@ from src.train.model import (
     Pipeline,
 )
 from src.base.log_config import get_logger
-from src.train.explainer import PC
 from src.train import RESULT_FOLDER
 
 logger = get_logger("train.train")
@@ -29,6 +26,7 @@ logger = get_logger("train.train")
 @unique
 class DatasetEnum(str, Enum):
     ALL = "all"
+    COMBINE = "combine"
     CIC = "cic"
     DGTA = "dgta"
     DGARCHIVE = "dgarchive"
@@ -60,35 +58,53 @@ class DetectorTraining:
         """Trainer class to fit models on data sets.
 
         Args:
-            model (torch.nn.Module): Fit model.
-            dataset (src.train.datasets.Dataset): Data set for training.
-            data_base_path(src.train.train.DatasetEnum):
+            type (TypeEnum.TRAIN): _description_
+            model (ModelEnum.RANDOM_FOREST_CLASSIFIER): _description_
+            model_output_path (str, optional): _description_. Defaults to "./".
+            dataset (DatasetEnum, optional): _description_. Defaults to DatasetEnum.ALL.
+            data_base_path (str, optional): _description_. Defaults to "./data".
+            max_rows (int, optional): _description_. Defaults to -1.
+
+        Raises:
+            NotImplementedError: _description_
         """
         logger.info("Get DatasetLoader.")
-        self.datasets = DatasetLoader(base_path=data_base_path, max_rows=max_rows)
+        self.dataset_loader = DatasetLoader(base_path=data_base_path, max_rows=max_rows)
         self.model_output_path = model_output_path
         self.type = type
+        self.dataset = []
         match dataset:
+            # We do not recommend to run combine mode because models do not converge!!!
             case "all":
-                self.dataset = Dataset(
-                    data_path="",
-                    data=pl.concat(
-                        [
-                            self.datasets.dgta_dataset.data,
-                            self.datasets.cic_dataset.data,
-                            self.datasets.bambenek_dataset.data,
-                            self.datasets.dga_dataset.data,
-                            self.datasets.dgarchive_dataset.data,
-                        ]
-                    ),
-                    max_rows=max_rows,
+                self.dataset.append(
+                    Dataset(
+                        data_path="",
+                        data=pl.concat(
+                            [
+                                self.dataset_loader.dgta_dataset.data,
+                                self.dataset_loader.cic_dataset.data,
+                                self.dataset_loader.bambenek_dataset.data,
+                                self.dataset_loader.dga_dataset.data,
+                                self.dataset_loader.dgarchive_dataset.data,
+                            ]
+                        ),
+                        max_rows=max_rows,
+                    )
                 )
+            case "combine":
+                self.dataset.append(self.dataset_loader.dgta_dataset)
+                self.dataset.append(self.dataset_loader.bambenek_dataset)
+                self.dataset.append(self.dataset_loader.dgarchive_dataset)
+                self.dataset.append(self.dataset_loader.dga_dataset)
+                # CIC DNS does work in practice and data is not clean.
+                # self.dataset.append(self.datasets.cic_dataset)
+            # CIC DNS does work in practice and data is not clean.
             case "cic":
-                self.dataset = self.datasets.cic_dataset
+                self.dataset.append(self.dataset_loader.cic_dataset)
             case "dgta":
-                self.dataset = self.datasets.dgta_dataset
+                self.dataset.append(self.dataset_loader.dgta_dataset)
             case "dgarchive":
-                self.dataset = self.datasets.dgarchive_data
+                self.dataset.append(self.dataset_loader.dgarchive_data)
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
         self.model = model
@@ -107,7 +123,7 @@ class DetectorTraining:
             ),
             model=self.model,
             scaler=StandardScaler(),
-            dataset=self.dataset,
+            datasets=self.dataset,
             model_output_path=self.model_output_path,
         )
         model_pipeline.explain(model_pipeline.x_test, model_pipeline.y_test)
@@ -136,7 +152,7 @@ class DetectorTraining:
                 ]
             ),
             model=self.model,
-            dataset=self.dataset,
+            datasets=self.dataset,
             model_output_path=self.model_output_path,
             scaler=StandardScaler(),
         )
@@ -149,10 +165,11 @@ class DetectorTraining:
         y_pred = [round(value) for value in y_pred]
         logger.info(classification_report(model_pipeline.y_test, y_pred, labels=[0, 1]))
 
-        logger.info("Test validation test.")
-        y_pred = model_pipeline.predict(model_pipeline.X)
-        y_pred = [round(value) for value in y_pred]
-        logger.info(classification_report(model_pipeline.y, y_pred, labels=[0, 1]))
+        for X, y in zip(model_pipeline.ds_X, model_pipeline.ds_y):
+            logger.info("Test validation test.")
+            y_pred = model_pipeline.predict(X)
+            y_pred = [round(value) for value in y_pred]
+            logger.info(classification_report(y, y_pred, labels=[0, 1]))
 
         logger.info("Interpret model.")
         model_pipeline.explain(model_pipeline.x_val, model_pipeline.y_val)
@@ -187,8 +204,8 @@ class DetectorTraining:
 @click.option(
     "-ds",
     "--dataset",
-    default="all",
-    type=click.Choice(["all", "dgarchive", "cic", "dgta"]),
+    default="combine",
+    type=click.Choice(["all", "combine", "dgarchive", "cic", "dgta"]),
     help="Data set to train model, choose between all available datasets, DGArchive, CIC and DGTA.",
 )
 @click.option(

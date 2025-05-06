@@ -5,19 +5,12 @@ import re
 import sys
 import os
 import tempfile
-from imblearn.over_sampling import SMOTE
-from sklearn.cluster import MiniBatchKMeans
-from imblearn.under_sampling import ClusterCentroids
-from sklearn.decomposition import PCA
 import sklearn.model_selection
 from sklearn.metrics import make_scorer
-from collections import Counter
 import xgboost as xgb
 import optuna
 import torch
-import hdbscan
 import numpy as np
-import polars as pl
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.utils import class_weight
@@ -44,7 +37,7 @@ class Pipeline:
         self,
         processor: Processor,
         model: str,
-        dataset: Dataset,
+        datasets: list[Dataset],
         model_output_path: str,
         scaler,
     ) -> None:
@@ -57,22 +50,26 @@ class Pipeline:
             clf (torch.nn.Modul): torch.nn.Modul for training.
         """
         self.processor = processor
-        self.dataset = dataset
+        self.datasets = datasets
         self.pc = PC()
         self.explainer = Explainer()
         self.scaler = scaler
-
         self.model_output_path = model_output_path
+
+        self.ds_X = []
+        self.ds_y = []
         logger.info("Start data set transformation.")
-        data = self.processor.transform(x=self.dataset.data)
+        for ds in self.datasets:
+            data = self.processor.transform(x=ds.data)
+            X = data.drop("class").to_numpy()
+            y = data.select("class").to_numpy().reshape(-1)
+            X = scaler.fit_transform(X)
+            self.ds_X.append(X)
+            self.ds_y.append(y)
         logger.info(f"End data set transformation with shape {data.shape}.")
 
-        X = data.drop("class").to_numpy()
-        y = data.select("class").to_numpy().reshape(-1)
-
-        X = scaler.fit_transform(X)
-        self.X = X
-        self.y = y
+        X = self.ds_X[0]
+        y = self.ds_y[0]
 
         # Clean column names
         self.columns = [self._clean_column_name(col) for col in data.columns]
@@ -103,7 +100,7 @@ class Pipeline:
         #     condition2_name="Malicious",
         # )
 
-        # Under-sampling to lower data
+        # lower data
         logger.info(X.shape)
         X, _, y, _ = train_test_split(
             X, y, train_size=0.1, stratify=y, random_state=SEED
