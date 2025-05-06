@@ -36,6 +36,7 @@ class DatasetEnum(str, Enum):
 class ModelEnum(str, Enum):
     RANDOM_FOREST_CLASSIFIER = "rf"
     XG_BOOST_CLASSIFIER = "xg"
+    GBM_CLASSIFIER = "gbm"
 
 
 @unique
@@ -147,9 +148,9 @@ class DetectorTraining:
         logger.info(classification_report(model_pipeline.y_test, y_pred, labels=[0, 1]))
 
         logger.info("Test validation test.")
-        y_pred = model_pipeline.predict(model_pipeline.x_val)
+        y_pred = model_pipeline.predict(model_pipeline.X)
         y_pred = [round(value) for value in y_pred]
-        logger.info(classification_report(model_pipeline.y_val, y_pred, labels=[0, 1]))
+        logger.info(classification_report(model_pipeline.y, y_pred, labels=[0, 1]))
 
         logger.info("Interpret model.")
         model_pipeline.explain(model_pipeline.x_val, model_pipeline.y_val)
@@ -162,8 +163,8 @@ class DetectorTraining:
             scaler: Fitted StandardScaler object
             model_type (str): Type of model being used
         """
-        os.makedirs(f"./models/{model_type}", exist_ok=True)
-        with open(f"./models/{model_type}/scaler.pickle", "wb") as f:
+        os.makedirs(f"./results/{model_type}", exist_ok=True)
+        with open(f"./results/{model_type}/scaler.pickle", "wb") as f:
             pickle.dump(scaler, f)
 
 
@@ -177,7 +178,7 @@ class DetectorTraining:
 @click.option(
     "-m",
     "--model",
-    type=click.Choice(["xg", "rf"]),
+    type=click.Choice(["xg", "rf", "gbm"]),
     help="Model to train, choose between XGBoost and RandomForest classifier",
 )
 @click.option(
