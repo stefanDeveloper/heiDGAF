@@ -522,6 +522,17 @@ class TestCreateInstanceFromListEntry(unittest.TestCase):
         # Assert
         self.assertEqual(str(context.exception), "Invalid RegEx parameters")
 
+    def test_invalid_timestamp_parameters(self):
+        # Arrange
+        field_list = ["test_name", "Timestamp"]
+
+        # Act & Assert
+        with self.assertRaises(ValueError) as context:
+            LoglineHandler._create_instance_from_list_entry(field_list)
+
+        # Assert
+        self.assertEqual(str(context.exception), "Invalid Timestamp parameters")
+
     def test_invalid_list_item_parameters(self):
         # Arrange
         field_list = ["test_name", "ListItem", "not_a_list"]
