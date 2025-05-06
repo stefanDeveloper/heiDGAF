@@ -6,16 +6,20 @@ import sys
 import os
 import tempfile
 from imblearn.over_sampling import SMOTE
+from sklearn.cluster import MiniBatchKMeans
 from imblearn.under_sampling import ClusterCentroids
+from sklearn.decomposition import PCA
 import sklearn.model_selection
 from sklearn.metrics import make_scorer
+from collections import Counter
 import xgboost as xgb
 import optuna
 import torch
+import hdbscan
 import numpy as np
 import polars as pl
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.utils import class_weight
 import lightgbm as lgb
 
@@ -23,13 +27,14 @@ sys.path.append(os.getcwd())
 from src.train.feature import Processor
 from src.base.log_config import get_logger
 from src.train.dataset import Dataset
-from src.train.explainer import PC, interpret_model
+from src.train.explainer import PC, Explainer
+from src.train import RESULT_FOLDER
 
 logger = get_logger("train.model")
 
 SEED = 108
 N_FOLDS = 5
-CV_RESULT_DIR = "./results"
+CV_RESULT_DIR = f"./{RESULT_FOLDER}"
 
 
 class Pipeline:
@@ -42,7 +47,7 @@ class Pipeline:
         dataset: Dataset,
         model_output_path: str,
         scaler,
-    ):
+    ) -> None:
         """Initializes preprocessors, encoder, and model.
 
         Args:
@@ -54,6 +59,7 @@ class Pipeline:
         self.processor = processor
         self.dataset = dataset
         self.pc = PC()
+        self.explainer = Explainer()
         self.scaler = scaler
 
         self.model_output_path = model_output_path
@@ -65,6 +71,8 @@ class Pipeline:
         y = data.select("class").to_numpy().reshape(-1)
 
         X = scaler.fit_transform(X)
+        self.X = X
+        self.y = y
 
         # Clean column names
         self.columns = [self._clean_column_name(col) for col in data.columns]
@@ -77,7 +85,7 @@ class Pipeline:
         self.feature_columns.remove("class")
         logger.info(f"Columns: {self.feature_columns}.")
 
-        self.pc.create_plots(X=X, y=y)
+        # self.pc.create_plots(X=X, y=y)
         df_data = data.to_pandas()
         # Assuming your data is in a DataFrame called 'df' with a 'condition' column
         condition1_data = df_data[df_data["class"] == 1]
@@ -87,27 +95,57 @@ class Pipeline:
         measurements = df_data.columns.tolist()[
             1:
         ]  # [1:] to drop the condition column in the beginning
-        self.pc.analyse_data(
-            data_condition1=condition1_data,
-            data_condition2=condition2_data,
-            measurements=measurements,
-            condition1_name="Benign",
-            condition2_name="Malicious",
-        )
+        # self.pc.analyse_data(
+        #     data_condition1=condition1_data,
+        #     data_condition2=condition2_data,
+        #     measurements=measurements,
+        #     condition1_name="Benign",
+        #     condition2_name="Malicious",
+        # )
 
+        # Under-sampling to lower data
         logger.info(X.shape)
-        # oversample = SMOTE()
-        # over_X, over_y = oversample.fit_resample(X, y)
-        cc = ClusterCentroids(random_state=SEED)
-        X_resampled, y_resampled = cc.fit_resample(X, y)
-        self.X = X
-        self.y = y
+        X, _, y, _ = train_test_split(
+            X, y, train_size=0.1, stratify=y, random_state=SEED
+        )
+        logger.info(X.shape)
 
-        logger.info(X_resampled.shape)
+        # pca = PCA(n_components=20)  # Adjust n_components as needed
+        # X_reduced = pca.fit_transform(X)
+
+        # # Step 3: Initialize and fit HDBSCAN
+        # clusterer = hdbscan.HDBSCAN(min_cluster_size=100, prediction_data=True, core_dist_n_jobs=-1)
+        # cluster_labels = clusterer.fit_predict(X_reduced)
+
+        # # Use MiniBatchKMeans as the clustering estimator
+        # # mini_batch_kmeans = MiniBatchKMeans(n_init=1, max_iter=100, batch_size=10_000, random_state=SEED)
+        # # cc = ClusterCentroids(estimator=mini_batch_kmeans, sampling_strategy='auto', random_state=SEED)
+        # # X, y = cc.fit_resample(X, y)
+
+        # # Step 4: Identify majority class (assuming class 0 is the majority)
+        # majority_class_indices = np.where(y == 0)[0]
+
+        # # Step 5: Select one sample per cluster in the majority class
+        # selected_indices = []
+        # for cluster in np.unique(cluster_labels):
+        #     if cluster != -1:  # Exclude noise points
+        #         cluster_indices = majority_class_indices[cluster_labels[majority_class_indices] == cluster]
+        #         if len(cluster_indices) > 0:
+        #             selected_indices.append(cluster_indices[0])  # Select the first sample in each cluster
+
+        # # Step 6: Combine selected indices with all minority class indices
+        # minority_class_indices = np.where(y == 1)[0]
+        # undersampled_indices = np.concatenate([selected_indices, minority_class_indices])
+
+        # # Step 7: Create undersampled dataset
+        # X = X[undersampled_indices]
+        # y = y[undersampled_indices]
 
         self.x_train, self.x_val, self.x_test, self.y_train, self.y_val, self.y_test = (
-            self.train_test_val_split(X=X_resampled, Y=y_resampled)
+            self.train_test_val_split(X=X, Y=y)
         )
+
+        logger.info(self.x_train.shape)
 
         match model:
             case "rf":
@@ -125,7 +163,7 @@ class Pipeline:
             case _:
                 raise NotImplementedError(f"Model not implemented!")
 
-    def _clean_column_name(self, column):
+    def _clean_column_name(self, column: str) -> str:
         """
         Clean column names to be compatible with ML models.
 
@@ -144,7 +182,7 @@ class Pipeline:
             cleaned = "f_" + cleaned
         return cleaned
 
-    def _create_feature_mapping(self, original_columns):
+    def _create_feature_mapping(self, original_columns: list[str]) -> None:
         """
         Create and save mapping between original and cleaned column names.
 
@@ -157,12 +195,16 @@ class Pipeline:
         mapping = {self._clean_column_name(col): col for col in original_columns}
 
         # Save mapping for future reference
-        os.makedirs("./results", exist_ok=True)
-        with open("./results/feature_mapping.pickle", "wb") as f:
+        os.makedirs(os.path.join(CV_RESULT_DIR, "metadata"), exist_ok=True)
+        with open(
+            os.path.join(CV_RESULT_DIR, "metadata", "feature_mapping.pickle"), "wb"
+        ) as f:
             pickle.dump(mapping, f)
 
         # Also save as readable text file
-        with open("./results/metadata/feature_mapping.txt", "w") as f:
+        with open(
+            os.path.join(CV_RESULT_DIR, "metadata", "feature_mapping.txt"), "w"
+        ) as f:
             for clean, original in mapping.items():
                 f.write(f"{clean} -> {original}\n")
 
@@ -244,7 +286,14 @@ class Pipeline:
             x (np.array): X data
             y (np.array): Y data
         """
-        interpret_model(self.model.clf, x, y, self.feature_columns, "name", self.scaler)
+        self.explainer.interpret_model(
+            self.model.clf,
+            x,
+            y,
+            self.feature_columns,
+            self.model.model_name,
+            self.scaler,
+        )
 
 
 class Model(metaclass=ABCMeta):
@@ -313,6 +362,7 @@ class XGBoostModel(Model):
         self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
     ) -> None:
         super().__init__(processor, x_train, y_train)
+        self.model_name = "xgboost"
 
     def fdr_metric(self, preds: np.ndarray, dtrain: xgb.DMatrix) -> tuple[str, float]:
         """
@@ -432,7 +482,6 @@ class XGBoostModel(Model):
         Returns:
             np.array: Model output.
         """
-        # dtest = xgb.DMatrix(x)
         return self.clf.predict(x)
 
     def train(self, trial, output_path):
@@ -448,26 +497,18 @@ class XGBoostModel(Model):
         pos = np.sum(self.y_train == 1)
         scale_pos_weight = neg / pos
 
-        # dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
-
         params = {
             "verbosity": 0,
             "objective": "binary:logistic",
             "eval_metric": "auc",
             "device": self.device,
             "scale_pos_weight": scale_pos_weight,
-            # **trial.params,
         }
 
         self.clf = xgb.XGBClassifier(
             n_estimators=trial.user_attrs["n_estimators"], **trial.params, **params
         )
         self.clf.fit(self.x_train, self.y_train)
-        # self.clf = xgb.train(
-        #     params=params,
-        #     dtrain=dtrain,
-        #     num_boost_round=trial.user_attrs["n_estimators"],
-        # )
 
         logger.info("Save trained model to a file.")
         with open(
@@ -487,8 +528,8 @@ class RandomForestModel(Model):
         self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
     ) -> None:
         super().__init__(processor, x_train, y_train)
+        self.model_name = "rf"
 
-    # Define the custom FDR metric
     def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
         """
         Custom FDR metric to evaluate the performance of the Random Forest model.
@@ -598,8 +639,8 @@ class LightGBMModel(Model):
         self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
     ) -> None:
         super().__init__(processor, x_train, y_train)
+        self.model_name = "gbm"
 
-    # Define the custom FDR metric
     def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
         """
         Custom FDR metric to evaluate the performance of the Random Forest model.
@@ -662,7 +703,7 @@ class LightGBMModel(Model):
             self.y_train,
             n_jobs=-1,
             cv=N_FOLDS,
-            scoring=fdr_scorer,
+            # scoring=fdr_scorer,
         )
         fdr = score.mean()
         return fdr
