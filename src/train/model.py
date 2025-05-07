@@ -9,6 +9,7 @@ import sklearn.model_selection
 from sklearn.metrics import make_scorer
 import xgboost as xgb
 import optuna
+from imblearn.under_sampling import ClusterCentroids
 import torch
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -82,7 +83,7 @@ class Pipeline:
         self.feature_columns.remove("class")
         logger.info(f"Columns: {self.feature_columns}.")
 
-        # self.pc.create_plots(X=X, y=y)
+        self.pc.create_plots(X=X, y=y)
         df_data = data.to_pandas()
         # Assuming your data is in a DataFrame called 'df' with a 'condition' column
         condition1_data = df_data[df_data["class"] == 1]
@@ -92,13 +93,13 @@ class Pipeline:
         measurements = df_data.columns.tolist()[
             1:
         ]  # [1:] to drop the condition column in the beginning
-        # self.pc.analyse_data(
-        #     data_condition1=condition1_data,
-        #     data_condition2=condition2_data,
-        #     measurements=measurements,
-        #     condition1_name="Benign",
-        #     condition2_name="Malicious",
-        # )
+        self.pc.analyse_data(
+            data_condition1=condition1_data,
+            data_condition2=condition2_data,
+            measurements=measurements,
+            condition1_name="Benign",
+            condition2_name="Malicious",
+        )
 
         # lower data
         logger.info(X.shape)
@@ -107,36 +108,8 @@ class Pipeline:
         )
         logger.info(X.shape)
 
-        # pca = PCA(n_components=20)  # Adjust n_components as needed
-        # X_reduced = pca.fit_transform(X)
-
-        # # Step 3: Initialize and fit HDBSCAN
-        # clusterer = hdbscan.HDBSCAN(min_cluster_size=100, prediction_data=True, core_dist_n_jobs=-1)
-        # cluster_labels = clusterer.fit_predict(X_reduced)
-
-        # # Use MiniBatchKMeans as the clustering estimator
-        # # mini_batch_kmeans = MiniBatchKMeans(n_init=1, max_iter=100, batch_size=10_000, random_state=SEED)
-        # # cc = ClusterCentroids(estimator=mini_batch_kmeans, sampling_strategy='auto', random_state=SEED)
-        # # X, y = cc.fit_resample(X, y)
-
-        # # Step 4: Identify majority class (assuming class 0 is the majority)
-        # majority_class_indices = np.where(y == 0)[0]
-
-        # # Step 5: Select one sample per cluster in the majority class
-        # selected_indices = []
-        # for cluster in np.unique(cluster_labels):
-        #     if cluster != -1:  # Exclude noise points
-        #         cluster_indices = majority_class_indices[cluster_labels[majority_class_indices] == cluster]
-        #         if len(cluster_indices) > 0:
-        #             selected_indices.append(cluster_indices[0])  # Select the first sample in each cluster
-
-        # # Step 6: Combine selected indices with all minority class indices
-        # minority_class_indices = np.where(y == 1)[0]
-        # undersampled_indices = np.concatenate([selected_indices, minority_class_indices])
-
-        # # Step 7: Create undersampled dataset
-        # X = X[undersampled_indices]
-        # y = y[undersampled_indices]
+        cc = ClusterCentroids(random_state=SEED)
+        X, y = cc.fit_resample(X, y)
 
         self.x_train, self.x_val, self.x_test, self.y_train, self.y_val, self.y_test = (
             self.train_test_val_split(X=X, Y=y)
