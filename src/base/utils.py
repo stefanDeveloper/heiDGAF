@@ -103,11 +103,7 @@ def normalize_ipv4_address(
     address: ipaddress.IPv4Address, prefix_length: int
 ) -> tuple[ipaddress.IPv4Address, int]:
     """
-    Returns the first part of an IPv4 address, the rest is filled with 0. For example:
-    >>> normalize_ipv4_address(ipaddress.IPv4Address("255.255.255.255"), 23)
-    (IPv4Address('255.255.254.0'), 23)
-    >>> normalize_ipv4_address(ipaddress.IPv4Address("172.126.15.3"), 8)
-    (IPv4Address('172.0.0.0'), 8)
+    Returns the first part of an IPv4 address, the rest is filled with 0.
 
     Args:
         address (ipaddress.IPv4Address): The IPv4 address to get the subnet ID of
