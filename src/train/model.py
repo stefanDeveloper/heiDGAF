@@ -40,7 +40,7 @@ class Pipeline:
         model: str,
         datasets: list[Dataset],
         model_output_path: str,
-        scaler,
+        scaler=None,
     ) -> None:
         """Initializes preprocessors, encoder, and model.
 
@@ -64,7 +64,8 @@ class Pipeline:
             data = self.processor.transform(x=ds.data)
             X = data.drop("class").to_numpy()
             y = data.select("class").to_numpy().reshape(-1)
-            X = scaler.fit_transform(X)
+            # if scaler:
+            #     X = scaler.fit_transform(X)
             self.ds_X.append(X)
             self.ds_y.append(y)
         logger.info(f"End data set transformation with shape {data.shape}.")
@@ -83,7 +84,7 @@ class Pipeline:
         self.feature_columns.remove("class")
         logger.info(f"Columns: {self.feature_columns}.")
 
-        self.pc.create_plots(X=X, y=y)
+        # self.pc.create_plots(X=X, y=y)
         df_data = data.to_pandas()
         # Assuming your data is in a DataFrame called 'df' with a 'condition' column
         condition1_data = df_data[df_data["class"] == 1]
@@ -93,13 +94,13 @@ class Pipeline:
         measurements = df_data.columns.tolist()[
             1:
         ]  # [1:] to drop the condition column in the beginning
-        self.pc.analyse_data(
-            data_condition1=condition1_data,
-            data_condition2=condition2_data,
-            measurements=measurements,
-            condition1_name="Benign",
-            condition2_name="Malicious",
-        )
+        # self.pc.analyse_data(
+        #     data_condition1=condition1_data,
+        #     data_condition2=condition2_data,
+        #     measurements=measurements,
+        #     condition1_name="Benign",
+        #     condition2_name="Malicious",
+        # )
 
         # lower data
         logger.info(X.shape)
@@ -108,8 +109,8 @@ class Pipeline:
         )
         logger.info(X.shape)
 
-        cc = ClusterCentroids(random_state=SEED)
-        X, y = cc.fit_resample(X, y)
+        # cc = ClusterCentroids(random_state=SEED)
+        # X, y = cc.fit_resample(X, y)
 
         self.x_train, self.x_val, self.x_test, self.y_train, self.y_val, self.y_test = (
             self.train_test_val_split(X=X, Y=y)
@@ -429,7 +430,7 @@ class XGBoostModel(Model):
             early_stopping_rounds=100,
             seed=SEED,
             verbose_eval=False,
-            custom_metric=self.fdr_metric,
+            # custom_metric=self.fdr_metric,
         )
 
         # Set n_estimators as a trial attribute; Accessible via study.trials_dataframe().

@@ -8,3 +8,5 @@ polars
 matplotlib
 te2rules
 seaborn
+lightgbm
+imblearn

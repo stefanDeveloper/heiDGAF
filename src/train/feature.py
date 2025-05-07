@@ -32,8 +32,6 @@ class Processor:
             np.ndarray: Preprocessed dataframe.
         """
         logger.debug("Start data transformation")
-        x = x.filter(pl.col("query").str.len_chars() > 0)
-        x = x.unique(subset="query")
         x = x.with_columns(
             [
                 (pl.col("query").str.split(".").list.len().alias("label_length")),
