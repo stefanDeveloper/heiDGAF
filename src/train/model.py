@@ -1,37 +1,47 @@
 from abc import ABCMeta, abstractmethod
 import hashlib
 import pickle
+import re
 import sys
 import os
 import tempfile
-
+import sklearn.model_selection
 from sklearn.metrics import make_scorer
 import xgboost as xgb
 import optuna
+from imblearn.under_sampling import ClusterCentroids
 import torch
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
-
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.utils import class_weight
+import lightgbm as lgb
 
 sys.path.append(os.getcwd())
 from src.train.feature import Processor
 from src.base.log_config import get_logger
 from src.train.dataset import Dataset
+from src.train.explainer import PC, Explainer
+from src.train import RESULT_FOLDER
 
 logger = get_logger("train.model")
 
 SEED = 108
 N_FOLDS = 5
-CV_RESULT_DIR = "./results"
+CV_RESULT_DIR = f"./{RESULT_FOLDER}"
 
 
 class Pipeline:
     """Pipeline for training models."""
 
     def __init__(
-        self, processor: Processor, model: str, dataset: Dataset, model_output_path: str
-    ):
+        self,
+        processor: Processor,
+        model: str,
+        datasets: list[Dataset],
+        model_output_path: str,
+        scaler,
+    ) -> None:
         """Initializes preprocessors, encoder, and model.
 
         Args:
@@ -41,14 +51,72 @@ class Pipeline:
             clf (torch.nn.Modul): torch.nn.Modul for training.
         """
         self.processor = processor
-        self.dataset = dataset
+        self.datasets = datasets
+        self.pc = PC()
+        self.explainer = Explainer()
+        self.scaler = scaler
         self.model_output_path = model_output_path
-        logger.info("Start data set transformation.")
-        x_train = self.processor.transform(x=self.dataset.X_train)
-        logger.info(f"End data set transformation with shape {x_train.shape}.")
 
-        self.x_train = x_train.to_numpy()
-        self.y_train = self.dataset.Y_train.to_numpy().ravel()
+        self.ds_X = []
+        self.ds_y = []
+        logger.info("Start data set transformation.")
+        for ds in self.datasets:
+            data = self.processor.transform(x=ds.data)
+            X = data.drop("class").to_numpy()
+            y = data.select("class").to_numpy().reshape(-1)
+            X = scaler.fit_transform(X)
+            self.ds_X.append(X)
+            self.ds_y.append(y)
+        logger.info(f"End data set transformation with shape {data.shape}.")
+
+        X = self.ds_X[0]
+        y = self.ds_y[0]
+
+        # Clean column names
+        self.columns = [self._clean_column_name(col) for col in data.columns]
+
+        # Create and save feature mapping
+        self.feature_mapping = self._create_feature_mapping(self.columns)
+
+        # Store column names
+        self.feature_columns = data.columns
+        self.feature_columns.remove("class")
+        logger.info(f"Columns: {self.feature_columns}.")
+
+        self.pc.create_plots(X=X, y=y)
+        df_data = data.to_pandas()
+        # Assuming your data is in a DataFrame called 'df' with a 'condition' column
+        condition1_data = df_data[df_data["class"] == 1]
+        condition2_data = df_data[df_data["class"] == 0]
+
+        # List of measurements (you can use all or a subset)
+        measurements = df_data.columns.tolist()[
+            1:
+        ]  # [1:] to drop the condition column in the beginning
+        self.pc.analyse_data(
+            data_condition1=condition1_data,
+            data_condition2=condition2_data,
+            measurements=measurements,
+            condition1_name="Benign",
+            condition2_name="Malicious",
+        )
+
+        # lower data
+        logger.info(X.shape)
+        X, _, y, _ = train_test_split(
+            X, y, train_size=0.1, stratify=y, random_state=SEED
+        )
+        logger.info(X.shape)
+
+        cc = ClusterCentroids(random_state=SEED)
+        X, y = cc.fit_resample(X, y)
+
+        self.x_train, self.x_val, self.x_test, self.y_train, self.y_val, self.y_test = (
+            self.train_test_val_split(X=X, Y=y)
+        )
+
+        logger.info(self.x_train.shape)
+
         match model:
             case "rf":
                 self.model = RandomForestModel(
@@ -58,8 +126,93 @@ class Pipeline:
                 self.model = XGBoostModel(
                     processor=self.processor, x_train=self.x_train, y_train=self.y_train
                 )
+            case "gbm":
+                self.model = LightGBMModel(
+                    processor=self.processor, x_train=self.x_train, y_train=self.y_train
+                )
             case _:
                 raise NotImplementedError(f"Model not implemented!")
+
+    def _clean_column_name(self, column: str) -> str:
+        """
+        Clean column names to be compatible with ML models.
+
+        Args:
+            column (str): Original column name
+
+        Returns:
+            str: Cleaned column name
+        """
+        # Replace spaces and hyphens with underscores
+        cleaned = re.sub(r"[\s\-]+", "_", column)
+        # Remove any remaining non-alphanumeric characters
+        cleaned = re.sub(r"[^A-Za-z0-9_]", "", cleaned)
+        # Ensure the column name doesn't start with a number
+        if cleaned[0].isdigit():
+            cleaned = "f_" + cleaned
+        return cleaned
+
+    def _create_feature_mapping(self, original_columns: list[str]) -> None:
+        """
+        Create and save mapping between original and cleaned column names.
+
+        Args:
+            original_columns (list): Original column names
+
+        Returns:
+            dict: Mapping of cleaned names to original names
+        """
+        mapping = {self._clean_column_name(col): col for col in original_columns}
+
+        # Save mapping for future reference
+        os.makedirs(os.path.join(CV_RESULT_DIR, "metadata"), exist_ok=True)
+        with open(
+            os.path.join(CV_RESULT_DIR, "metadata", "feature_mapping.pickle"), "wb"
+        ) as f:
+            pickle.dump(mapping, f)
+
+        # Also save as readable text file
+        with open(
+            os.path.join(CV_RESULT_DIR, "metadata", "feature_mapping.txt"), "w"
+        ) as f:
+            for clean, original in mapping.items():
+                f.write(f"{clean} -> {original}\n")
+
+    def train_test_val_split(
+        self,
+        X: np.ndarray,
+        Y=np.ndarray,
+        train_frac: float = 0.8,
+        random_state: int = SEED,
+    ) -> tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ]:
+        """Splits data set in train, test, and validation set
+
+        Args:
+            train_frac (float, optional): Training fraction. Defaults to 0.8.
+            random_state (int, optional): Random state. Defaults to None.
+
+        Returns:
+            tuple[list, list, list, list, list, list]: X_train, X_val, X_test, Y_train, Y_val, Y_test
+        """
+
+        logger.info("Create train, validation, and test split.")
+
+        X_train, X_tmp, Y_train, Y_tmp = sklearn.model_selection.train_test_split(
+            X, Y, train_size=train_frac, random_state=random_state, stratify=Y
+        )
+
+        X_val, X_test, Y_val, Y_test = sklearn.model_selection.train_test_split(
+            X_tmp, Y_tmp, train_size=0.5, random_state=random_state, stratify=Y_tmp
+        )
+
+        return X_train, X_val, X_test, Y_train, Y_val, Y_test
 
     def fit(self):
         """Fits models to training data.
@@ -95,6 +248,22 @@ class Pipeline:
             np.array: Model output.
         """
         return self.model.predict(x)
+
+    def explain(self, x, y):
+        """Explains models
+
+        Args:
+            x (np.array): X data
+            y (np.array): Y data
+        """
+        self.explainer.interpret_model(
+            self.model.clf,
+            x,
+            y,
+            self.feature_columns,
+            self.model.model_name,
+            self.scaler,
+        )
 
 
 class Model(metaclass=ABCMeta):
@@ -163,6 +332,7 @@ class XGBoostModel(Model):
         self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
     ) -> None:
         super().__init__(processor, x_train, y_train)
+        self.model_name = "xgboost"
 
     def fdr_metric(self, preds: np.ndarray, dtrain: xgb.DMatrix) -> tuple[str, float]:
         """
@@ -207,6 +377,10 @@ class XGBoostModel(Model):
         Returns:
             float: The best FDR value after cross-validation.
         """
+        neg = np.sum(self.y_train == 0)
+        pos = np.sum(self.y_train == 1)
+        scale_pos_weight = neg / pos
+
         dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
 
         param = {
@@ -214,6 +388,7 @@ class XGBoostModel(Model):
             "objective": "binary:logistic",
             "eval_metric": "auc",
             "device": self.device,
+            "scale_pos_weight": scale_pos_weight,
             "booster": trial.suggest_categorical(
                 "booster", ["gbtree", "gblinear", "dart"]
             ),
@@ -277,8 +452,6 @@ class XGBoostModel(Model):
         Returns:
             np.array: Model output.
         """
-        x = self.processor.transform(x=x)
-        # dtest = xgb.DMatrix(x.to_numpy())
         return self.clf.predict(x)
 
     def train(self, trial, output_path):
@@ -290,14 +463,16 @@ class XGBoostModel(Model):
             output_path (str): The directory path to save the trained model.
         """
         logger.info("Number of estimators: {}".format(trial.user_attrs["n_estimators"]))
-
-        # dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
+        neg = np.sum(self.y_train == 0)
+        pos = np.sum(self.y_train == 1)
+        scale_pos_weight = neg / pos
 
         params = {
             "verbosity": 0,
             "objective": "binary:logistic",
             "eval_metric": "auc",
             "device": self.device,
+            "scale_pos_weight": scale_pos_weight,
         }
 
         self.clf = xgb.XGBClassifier(
@@ -323,8 +498,8 @@ class RandomForestModel(Model):
         self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
     ) -> None:
         super().__init__(processor, x_train, y_train)
+        self.model_name = "rf"
 
-    # Define the custom FDR metric
     def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
         """
         Custom FDR metric to evaluate the performance of the Random Forest model.
@@ -386,7 +561,7 @@ class RandomForestModel(Model):
             self.y_train,
             n_jobs=-1,
             cv=N_FOLDS,
-            scoring=fdr_scorer,
+            # scoring=fdr_scorer,
         )
         fdr = score.mean()
         return fdr
@@ -400,7 +575,6 @@ class RandomForestModel(Model):
         Returns:
             np.array: Model output.
         """
-        x = self.processor.transform(x=x)
         return self.clf.predict(x)
 
     def train(self, trial, output_path):
@@ -411,8 +585,124 @@ class RandomForestModel(Model):
             trial: A trial object from the optimization framework.
             output_path (str): The directory path to save the trained model.
         """
+        classes_weights = class_weight.compute_sample_weight(
+            class_weight="balanced", y=self.y_train
+        )
         self.clf = RandomForestClassifier(**trial.params)
-        self.clf.fit(self.x_train, self.y_train)
+        self.clf.fit(self.x_train, self.y_train, sample_weight=classes_weights)
+
+        logger.info("Save trained model to a file.")
+        with open(
+            os.path.join(tempfile.gettempdir(), f"rf_{trial.number}.pickle"), "wb"
+        ) as fout:
+            pickle.dump(self.clf, fout)
+
+        sha256sum = self.sha256sum(
+            os.path.join(tempfile.gettempdir(), f"rf_{trial.number}.pickle")
+        )
+        with open(os.path.join(output_path, f"rf_{sha256sum}.pickle"), "wb") as fout:
+            pickle.dump(self.clf, fout)
+
+
+class LightGBMModel(Model):
+    def __init__(
+        self, processor: Processor, x_train: np.ndarray, y_train: np.ndarray
+    ) -> None:
+        super().__init__(processor, x_train, y_train)
+        self.model_name = "gbm"
+
+    def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
+        """
+        Custom FDR metric to evaluate the performance of the Random Forest model.
+
+        Args:
+            y_true (np.ndarray): The true labels.
+            y_pred (np.ndarray): The predicted labels.
+
+        Returns:
+            float: The False Discovery Rate (FDR).
+        """
+        # False Positives (FP): cases where the model predicted 1 but the actual label is 0
+        FP = np.sum((y_pred == 1) & (y_true == 0))
+
+        # True Positives (TP): cases where the model correctly predicted 1
+        TP = np.sum((y_pred == 1) & (y_true == 1))
+
+        # Compute FDR, avoiding division by zero
+        if FP + TP == 0:
+            fdr = 0.0
+        else:
+            fdr = FP / (FP + TP)
+
+        return fdr
+
+    def objective(self, trial):
+        """
+        Optimizes the Random Forest model hyperparameters using cross-validation.
+
+        Args:
+            trial: A trial object from the optimization framework (e.g., Optuna).
+
+        Returns:
+            float: The best FDR value after cross-validation.
+        """
+        # Define hyperparameters to optimize
+        num_leaves = trial.suggest_int("num_leaves", 20, 200)
+        max_depth = trial.suggest_int("max_depth", 3, 12)
+        learning_rate = trial.suggest_float("learning_rate", 0.5, 5)
+        n_estimators = trial.suggest_float("n_estimators", 50, 300)
+        subsample = trial.suggest_float("subsample", 0.1, 1.0)
+        colsample_bytree = trial.suggest_float("colsample_bytree", 0.1, 1.0)
+
+        # Create model with suggested hyperparameters
+        classifier_obj = lgb.LGBMClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            learning_rate=learning_rate,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            num_leaves=num_leaves,
+        )
+
+        # Create a scorer using make_scorer, setting greater_is_better to False since lower FDR is better
+        fdr_scorer = make_scorer(self.fdr_metric, greater_is_better=False)
+
+        score = cross_val_score(
+            classifier_obj,
+            self.x_train,
+            self.y_train,
+            n_jobs=-1,
+            cv=N_FOLDS,
+            # scoring=fdr_scorer,
+        )
+        fdr = score.mean()
+        return fdr
+
+    def predict(self, x):
+        """Predicts given X.
+
+        Args:
+            x (np.array): X data
+
+        Returns:
+            np.array: Model output.
+        """
+        return self.clf.predict(x)
+
+    def train(self, trial, output_path):
+        """
+        Trains the Random Forest model and saves the trained model to a file.
+
+        Args:
+            trial: A trial object from the optimization framework.
+            output_path (str): The directory path to save the trained model.
+        """
+        classes_weights = class_weight.compute_sample_weight(
+            class_weight="balanced", y=self.y_train
+        )
+        self.clf = lgb.LGBMClassifier(**trial.params)
+
+        self.clf.fit(self.x_train, self.y_train, sample_weight=classes_weights)
 
         logger.info("Save trained model to a file.")
         with open(
