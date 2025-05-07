@@ -1,3 +1,4 @@
+import json
 import pickle
 import sys
 import os
@@ -18,9 +19,18 @@ from src.train.model import (
     Pipeline,
 )
 from src.base.log_config import get_logger
-from src.train import RESULT_FOLDER
+from src.train import CONTEXT_SETTINGS, RESULT_FOLDER
 
 logger = get_logger("train.train")
+
+
+def add_options(options):
+    def _add_options(func):
+        for option in reversed(options):
+            func = option(func)
+        return func
+
+    return _add_options
 
 
 @unique
@@ -39,18 +49,12 @@ class ModelEnum(str, Enum):
     GBM_CLASSIFIER = "gbm"
 
 
-@unique
-class TypeEnum(str, Enum):
-    EXPLAIN = "explain"
-    TRAIN = "train"
-
-
 class DetectorTraining:
     def __init__(
         self,
-        type: TypeEnum.TRAIN,
-        model: ModelEnum.RANDOM_FOREST_CLASSIFIER,
+        model_name: ModelEnum.RANDOM_FOREST_CLASSIFIER,
         model_output_path: str = "./",
+        model_path: str = None,
         dataset: DatasetEnum = DatasetEnum.ALL,
         data_base_path: str = "./data",
         max_rows: int = -1,
@@ -58,8 +62,7 @@ class DetectorTraining:
         """Trainer class to fit models on data sets.
 
         Args:
-            type (TypeEnum.TRAIN): _description_
-            model (ModelEnum.RANDOM_FOREST_CLASSIFIER): _description_
+            model_name (ModelEnum.RANDOM_FOREST_CLASSIFIER): _description_
             model_output_path (str, optional): _description_. Defaults to "./".
             dataset (DatasetEnum, optional): _description_. Defaults to DatasetEnum.ALL.
             data_base_path (str, optional): _description_. Defaults to "./data".
@@ -71,7 +74,6 @@ class DetectorTraining:
         logger.info("Get DatasetLoader.")
         self.dataset_loader = DatasetLoader(base_path=data_base_path, max_rows=max_rows)
         self.model_output_path = model_output_path
-        self.type = type
         self.dataset = []
         match dataset:
             # We do not recommend to run combine mode because models do not converge!!!
@@ -93,9 +95,10 @@ class DetectorTraining:
                 )
             case "combine":
                 self.dataset.append(self.dataset_loader.dgta_dataset)
-                self.dataset.append(self.dataset_loader.bambenek_dataset)
-                self.dataset.append(self.dataset_loader.dgarchive_dataset)
-                self.dataset.append(self.dataset_loader.dga_dataset)
+                # self.dataset.append(self.dataset_loader.bambenek_dataset)
+                # self.dataset.append(self.dataset_loader.dgarchive_dataset)
+                # self.dataset.append(self.dataset_loader.dga_dataset)
+                # self.dataset.append(self.dataset_loader.heicloud_dataset)
                 # CIC DNS does work in practice and data is not clean.
                 # self.dataset.append(self.datasets.cic_dataset)
             # CIC DNS does work in practice and data is not clean.
@@ -107,10 +110,8 @@ class DetectorTraining:
                 self.dataset.append(self.dataset_loader.dgarchive_data)
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
-        self.model = model
-
-    def explain(self):
-        model_pipeline = Pipeline(
+        logger.info(f"Set up Pipeline.")
+        self.model_pipeline = Pipeline(
             processor=Processor(
                 features_to_drop=[
                     "query",
@@ -121,12 +122,48 @@ class DetectorTraining:
                     "tld",
                 ]
             ),
-            model=self.model,
-            scaler=StandardScaler(),
+            model=model_name,
             datasets=self.dataset,
             model_output_path=self.model_output_path,
+            scaler=StandardScaler(),
         )
-        model_pipeline.explain(model_pipeline.x_test, model_pipeline.y_test)
+        if os.path.exists(model_path):
+            with open(model_path, "rb") as input_file:
+                self.model_pipeline.model.clf = pickle.load(input_file)
+
+    def explain(self):
+        self.model_pipeline.explain(
+            self.model_pipeline.x_val, self.model_pipeline.y_val
+        )
+
+    def test(self):
+        for X, y, ds in zip(
+            self.model_pipeline.ds_X,
+            self.model_pipeline.ds_y,
+            self.model_pipeline.datasets,
+        ):
+            logger.info("Test validation test.")
+            y_pred = self.model_pipeline.predict(X)
+            y_pred = [round(value) for value in y_pred]
+            logger.info(classification_report(y, y_pred, labels=[0, 1]))
+
+            # Get indices of mispredictions
+            mispredicted_indices = [
+                i for i, (true, pred) in enumerate(zip(y, y_pred)) if true != pred
+            ]
+            mispredictions = []
+            # Print or log the mispredicted data points
+            for idx in mispredicted_indices:
+                logger.info(
+                    f"Index: {idx}, True label: {y[idx]}, Predicted: {y_pred[idx]}, Data: {ds.data[idx].get_column('query').to_list()}"
+                )
+                error = dict()
+                error["y"] = y[idx]
+                error["y_pred"] = y_pred[idx]
+                error["query"] = ds.data[idx].get_column("query").to_list()
+                mispredictions.append(error)
+            with open(f"errors_{ds.name}.json", "a+") as f:
+                f.write(json.dumps(mispredictions) + "\n")
 
     def train(self, seed=42, output_path: str = "model.pkl"):
         """Starts training of the model. Checks prior if GPU is available.
@@ -139,40 +176,21 @@ class DetectorTraining:
             torch.manual_seed(seed)
 
         # Training model
-        logger.info(f"Set up Pipeline.")
-        model_pipeline = Pipeline(
-            processor=Processor(
-                features_to_drop=[
-                    "query",
-                    "labels",
-                    "thirdleveldomain",
-                    "secondleveldomain",
-                    "fqdn",
-                    "tld",
-                ]
-            ),
-            model=self.model,
-            datasets=self.dataset,
-            model_output_path=self.model_output_path,
-            scaler=StandardScaler(),
-        )
-
         logger.info("Fit model.")
-        model_pipeline.fit()
+        self.model_pipeline.fit()
 
         logger.info("Validate test set")
-        y_pred = model_pipeline.predict(model_pipeline.x_test)
+        y_pred = self.model_pipeline.predict(self.model_pipeline.x_test)
         y_pred = [round(value) for value in y_pred]
-        logger.info(classification_report(model_pipeline.y_test, y_pred, labels=[0, 1]))
+        logger.info(
+            classification_report(self.model_pipeline.y_test, y_pred, labels=[0, 1])
+        )
 
-        for X, y in zip(model_pipeline.ds_X, model_pipeline.ds_y):
-            logger.info("Test validation test.")
-            y_pred = model_pipeline.predict(X)
-            y_pred = [round(value) for value in y_pred]
-            logger.info(classification_report(y, y_pred, labels=[0, 1]))
+        logger.info("Test model.")
+        self.test()
 
         logger.info("Interpret model.")
-        model_pipeline.explain(model_pipeline.x_val, model_pipeline.y_val)
+        self.explain()
 
     def _save_scaler(scaler, model_type):
         """
@@ -188,59 +206,128 @@ class DetectorTraining:
             pickle.dump(scaler, f)
 
 
-@click.command()
+_ds_options = [
+    click.option(
+        "--dataset",
+        "dataset",
+        default="combine",
+        type=click.Choice(["all", "combine", "dgarchive", "cic", "dgta"]),
+        help="Data set to train model, choose between all available datasets, DGArchive, CIC and DGTA.",
+    ),
+    click.option(
+        "--dataset_path",
+        "dataset_path",
+        type=click.Path(exists=True),
+        help="Dataset path, follow folder structure.",
+    ),
+    click.option(
+        "--dataset_max_rows",
+        "dataset_max_rows",
+        default=-1,
+        type=int,
+        help="Maximum rows to load from each dataset.",
+    ),
+]
+
+
+@click.group()
+@click.pass_context
+def cli(ctx):
+    click.secho("Train heiDGAF CLI")
+
+
+@cli.command()
+@add_options(_ds_options)
 @click.option(
-    "-t",
-    "--type",
-    type=click.Choice(["explain", "train"]),
-    help="Type to explain data or train classifier",
-)
-@click.option(
-    "-m",
     "--model",
+    "model",
     type=click.Choice(["xg", "rf", "gbm"]),
     help="Model to train, choose between XGBoost and RandomForest classifier",
 )
 @click.option(
-    "-ds",
-    "--dataset",
-    default="combine",
-    type=click.Choice(["all", "combine", "dgarchive", "cic", "dgta"]),
-    help="Data set to train model, choose between all available datasets, DGArchive, CIC and DGTA.",
-)
-@click.option(
-    "-ds_path",
-    "--dataset_path",
-    type=click.Path(exists=True),
-    help="Dataset path, follow folder structure.",
-)
-@click.option(
-    "-ds_max_rows",
-    "--dataset_max_rows",
-    default=-1,
-    type=int,
-    help="Maximum rows to load from each dataset.",
-)
-@click.option(
-    "-m_output_path",
     "--model_output_path",
+    "model_output_path",
     type=click.Path(exists=True),
     help="Model output path. Stores model with {{MODEL}}_{{SHA256}}.pickle.",
 )
-def main(type, model, dataset, dataset_path, dataset_max_rows, model_output_path):
+def train(
+    dataset: str,
+    dataset_path: str,
+    dataset_max_rows: int,
+    model: str,
+    model_output_path: str,
+) -> None:
     trainer = DetectorTraining(
-        type=type,
-        model=model,
+        model_name=model,
         dataset=dataset,
         data_base_path=dataset_path,
         max_rows=dataset_max_rows,
         model_output_path=model_output_path,
     )
-    if type == TypeEnum.TRAIN:
-        trainer.train()
-    elif type == TypeEnum.EXPLAIN:
-        trainer.explain()
+    trainer.train()
+
+
+@cli.command()
+@add_options(_ds_options)
+@click.option(
+    "--model",
+    "model",
+    type=click.Choice(["xg", "rf", "gbm"]),
+    help="Model to train, choose between XGBoost and RandomForest classifier",
+)
+@click.option(
+    "--model_path",
+    "model_path",
+    type=click.Path(exists=True),
+    help="Model path.",
+)
+def test(
+    dataset: str,
+    dataset_path: str,
+    dataset_max_rows: int,
+    model: str,
+    model_path: str,
+) -> None:
+    trainer = DetectorTraining(
+        dataset=dataset,
+        data_base_path=dataset_path,
+        max_rows=dataset_max_rows,
+        model_path=model_path,
+        model_name=model,
+    )
+    trainer.test()
+
+
+@cli.command()
+@add_options(_ds_options)
+@click.option(
+    "--model",
+    "model",
+    type=click.Choice(["xg", "rf", "gbm"]),
+    help="Model to train, choose between XGBoost and RandomForest classifier",
+)
+@click.option(
+    "--model_path",
+    "model_path",
+    type=click.Path(exists=True),
+    help="Model path.",
+)
+def explain(
+    dataset: str,
+    dataset_path: str,
+    dataset_max_rows: int,
+    model: str,
+    model_path: str,
+) -> None:
+    trainer = DetectorTraining(
+        dataset=dataset,
+        data_base_path=dataset_path,
+        max_rows=dataset_max_rows,
+        model_path=model_path,
+        model_name=model,
+    )
+    trainer.explain()
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    cli()
