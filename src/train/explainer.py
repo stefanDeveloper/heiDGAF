@@ -412,7 +412,7 @@ class Explainer:
                             continue  # Skip if the value is not numeric
 
                 # Reconstruct the rule with rescaled values
-                rule = string.whitespace.join(parts)
+                rule = " ".join(parts)
         return rule
 
     def interpret_model(
