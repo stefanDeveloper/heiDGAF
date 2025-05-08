@@ -8,13 +8,16 @@ from sklearn.decomposition import PCA
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 from te2rules.explainer import ModelExplainer
 import string
+import polars as pl
 
 
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
-from src.train import RESULT_FOLDER
+from src.train import RESULT_FOLDER, SEED
+from src.train.dataset import Dataset
 
 logger = get_logger("train.explainer")
 
@@ -117,6 +120,31 @@ class PC:
         ax.legend()
         plt.savefig(os.path.join(self.output_path, f"pca_3d.pdf"))
 
+    def plot_tsne(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        ds_name: str,
+        title: str = "t-SNE Plot",
+        random_state: int = SEED,
+    ):
+        # Reduce dimensionality to 2D with t-SNE
+        tsne = TSNE(n_components=2, random_state=random_state)
+        X_tsne = tsne.fit_transform(X)
+
+        # Plot
+        plt.figure(figsize=(10, 8))
+        scatter = plt.scatter(
+            X_tsne[:, 0], X_tsne[:, 1], c=y, cmap="viridis", alpha=0.7
+        )
+        plt.colorbar(scatter, label="Class Label")
+        plt.title(title)
+        plt.xlabel("t-SNE Component 1")
+        plt.ylabel("t-SNE Component 2")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.output_path, f"tsne.pdf"))
+
     def remove_feature(
         self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA
     ) -> None:
@@ -141,7 +169,9 @@ class PC:
         plt.title("Two features from the dataset after removing PC1")
         plt.savefig(os.path.join(self.output_path, f"pca_pc{component + 1}.pdf"))
 
-    def create_plots(self, X: np.ndarray, y: np.ndarray) -> None:
+    def create_plots(
+        self, ds_X: list[np.ndarray], ds_y: list[np.ndarray], data: list[Dataset]
+    ) -> None:
         """
         Generate 2D and 3D PCA plots, and visualizations after removing PC1, PC2, and PC3.
 
@@ -149,26 +179,29 @@ class PC:
             X (np.ndarray): Feature matrix.
             y (np.ndarray): Label array.
         """
-        self.pca_2d(X=X, y=y)
-        self.pca_3d(X=X, y=y)
 
-        # Show the principal components
-        pca = PCA().fit(X)
-        logger.info("Principal components:")
-        logger.info(pca.components_)
+        self.plot_tsne(X, y)
 
-        # Remove PC1
-        self.remove_feature(0, X, y, pca)
+        for X, y in zip(ds_X, ds_y):
+            self.pca_2d(X=X, y=y)
+            self.pca_3d(X=X, y=y)
+            # Show the principal components
+            pca = PCA().fit(X)
+            logger.info("Principal components:")
+            logger.info(pca.components_)
 
-        # Remove PC2
-        self.remove_feature(1, X, y, pca)
+            # Remove PC1
+            self.remove_feature(0, X, y, pca)
 
-        # Remove PC3
-        self.remove_feature(2, X, y, pca)
+            # Remove PC2
+            self.remove_feature(1, X, y, pca)
 
-        # print the explained variance ratio
-        logger.info("Explainedd variance ratios:")
-        logger.info(pca.explained_variance_ratio_)
+            # Remove PC3
+            self.remove_feature(2, X, y, pca)
+
+            # print the explained variance ratio
+            logger.info("Explainedd variance ratios:")
+            logger.info(pca.explained_variance_ratio_)
 
     def analyse_data(
         self,

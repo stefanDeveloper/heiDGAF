@@ -22,11 +22,10 @@ from src.train.feature import Processor
 from src.base.log_config import get_logger
 from src.train.dataset import Dataset
 from src.train.explainer import PC, Explainer
-from src.train import RESULT_FOLDER
+from src.train import RESULT_FOLDER, SEED
 
 logger = get_logger("train.model")
 
-SEED = 108
 N_FOLDS = 5
 CV_RESULT_DIR = f"./{RESULT_FOLDER}"
 
@@ -73,27 +72,26 @@ class Pipeline:
         X = self.ds_X[0]
         y = self.ds_y[0]
 
-        # Clean column names
-        self.columns = [self._clean_column_name(col) for col in data.columns]
+        # self.pc.create_plots(X=self.ds_X, y=self.ds_y, self.datasets)
+        # # Clean column names
+        # self.columns = [self._clean_column_name(col) for col in data.columns]
 
-        # Create and save feature mapping
-        self.feature_mapping = self._create_feature_mapping(self.columns)
+        # # Create and save feature mapping
+        # self.feature_mapping = self._create_feature_mapping(self.columns)
 
-        # Store column names
-        self.feature_columns = data.columns
-        self.feature_columns.remove("class")
-        logger.info(f"Columns: {self.feature_columns}.")
-
-        # self.pc.create_plots(X=X, y=y)
-        df_data = data.to_pandas()
-        # Assuming your data is in a DataFrame called 'df' with a 'condition' column
-        condition1_data = df_data[df_data["class"] == 1]
-        condition2_data = df_data[df_data["class"] == 0]
+        # # Store column names
+        # self.feature_columns = data.columns
+        # self.feature_columns.remove("class")
+        # logger.info(f"Columns: {self.feature_columns}.")
+        # df_data = data.to_pandas()
+        # # Assuming your data is in a DataFrame called 'df' with a 'condition' column
+        # condition1_data = df_data[df_data["class"] == 1]
+        # condition2_data = df_data[df_data["class"] == 0]
 
         # List of measurements (you can use all or a subset)
-        measurements = df_data.columns.tolist()[
-            1:
-        ]  # [1:] to drop the condition column in the beginning
+        # measurements = df_data.columns.tolist()[
+        #     1:
+        # ]  # [1:] to drop the condition column in the beginning
         # self.pc.analyse_data(
         #     data_condition1=condition1_data,
         #     data_condition2=condition2_data,
