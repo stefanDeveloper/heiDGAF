@@ -97,7 +97,6 @@ class Pipeline:
         self.feature_columns.remove("class")
         logger.info(f"Columns: {self.feature_columns}.")
 
-        # self.pc.create_plots(X=self.ds_X, y=self.ds_y, self.datasets)
         # df_data = data.to_pandas()
         # # Assuming your data is in a DataFrame called 'df' with a 'condition' column
         # condition1_data = df_data[df_data["class"] == 1]
@@ -123,9 +122,13 @@ class Pipeline:
         logger.info(X.shape)
 
         y[y != 0] = 1
+
         # Change all ds_y types.
         for y1 in self.ds_y:
             y1[y1 != 0] = 1
+        logger.info(y)
+
+        # self.pc.create_plots(ds_X=self.ds_X, ds_y=self.ds_y, data=self.datasets)
 
         self.x_train, self.x_val, self.x_test, self.y_train, self.y_val, self.y_test = (
             self.train_test_val_split(X=X, Y=y)
@@ -265,8 +268,8 @@ class Pipeline:
         if not os.path.exists(CV_RESULT_DIR):
             os.mkdir(CV_RESULT_DIR)
 
-        study = optuna.create_study(direction="maximize")
-        study.optimize(self.model.objective, n_trials=20, timeout=600)
+        study = optuna.create_study(direction="minimize")
+        study.optimize(self.model.objective, n_trials=1, timeout=600)
 
         logger.info(f"Number of finished trials: {len(study.trials)}")
         logger.info("Best trial:")
@@ -277,7 +280,12 @@ class Pipeline:
         for key, value in trial.params.items():
             logger.info(f"    {key}: {value}")
 
-        self.model.train(trial, self.model_output_path)
+        self.model.train(
+            trial=trial,
+            output_path=self.model_output_path,
+            X=self.x_train,
+            y=self.y_train,
+        )
 
     def predict(self, x):
         """Predicts given X.
@@ -428,7 +436,7 @@ class XGBoostModel(Model):
         param = {
             "verbosity": 0,
             "objective": "binary:logistic",
-            "eval_metric": "auc",
+            "eval_metric": "logloss",
             "device": self.device,
             "scale_pos_weight": scale_pos_weight,
             "booster": trial.suggest_categorical(
@@ -471,6 +479,7 @@ class XGBoostModel(Model):
             early_stopping_rounds=100,
             seed=SEED,
             verbose_eval=False,
+            metrics="logloss",
             # custom_metric=self.fdr_metric,
         )
 
@@ -512,7 +521,7 @@ class XGBoostModel(Model):
         params = {
             "verbosity": 0,
             "objective": "binary:logistic",
-            "eval_metric": "auc",
+            "eval_metric": "logloss",
             "device": self.device,
             "scale_pos_weight": scale_pos_weight,
         }
@@ -609,6 +618,7 @@ class RandomForestModel(Model):
             self.obj.y,
             n_jobs=-1,
             cv=N_FOLDS,
+            scoring="neg_log_loss",
             # scoring=fdr_scorer,
         )
         fdr = score.mean()
@@ -700,19 +710,20 @@ class LightGBMModel(Model):
         # Define hyperparameters to optimize
         param = {
             "objective": "binary",
-            "metric": "auc",
+            "verbosity": -1,
+            "metric": "binary_logloss",
             "boosting_type": "gbdt",
             "device": self.device,
             "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.2, log=True),
             "num_leaves": trial.suggest_int("num_leaves", 16, 256),
             "max_depth": trial.suggest_int("max_depth", 3, 12),
-            "min_child_samples": trial.suggest_int("min_child_samples", 5, 100),
+            "min_child_samples": trial.suggest_int("min_child_samples", 10, 100),
             "subsample": trial.suggest_float("subsample", 0.5, 1.0),
             "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
             "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
             "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
             "scale_pos_weight": scale_pos_weight,
-            "n_estimators": trial.suggest_int("n_estimators", 10, 1000),
+            "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
             "max_bin": trial.suggest_categorical("max_bin", [63, 127, 255]),
         }
 
@@ -728,7 +739,7 @@ class LightGBMModel(Model):
             self.obj.y,
             n_jobs=-1,
             cv=N_FOLDS,
-            scoring="roc_auc",
+            scoring="neg_log_loss",
             # scoring=fdr_scorer,
         )
         fdr = score.mean()
@@ -756,6 +767,7 @@ class LightGBMModel(Model):
         classes_weights = class_weight.compute_sample_weight(
             class_weight="balanced", y=y
         )
+
         self.clf = lgb.LGBMClassifier(**trial.params)
 
         self.clf.fit(X, y, sample_weight=classes_weights)

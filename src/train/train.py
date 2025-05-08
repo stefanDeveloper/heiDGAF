@@ -78,9 +78,9 @@ class DetectorTraining:
             case "combine":
                 self.dataset.append(self.dataset_loader.dgta_dataset)
                 self.dataset.append(self.dataset_loader.bambenek_dataset)
-                self.dataset = self.dataset + self.dataset_loader.dgarchive_dataset
                 self.dataset.append(self.dataset_loader.dga_dataset)
                 self.dataset.append(self.dataset_loader.heicloud_dataset)
+                self.dataset = self.dataset + self.dataset_loader.dgarchive_dataset
             # CIC DNS does work in practice and data is not clean.
             case "cic":
                 self.dataset.append(self.dataset_loader.cic_dataset)
@@ -140,7 +140,9 @@ class DetectorTraining:
                 mispredictions.append(error)
 
             if len(mispredictions) > 0:
-                with open(f"errors_{ds.name}.json", "w") as f:
+                with open(
+                    f"errors_{self.model_pipeline.model.model_name}_{ds.name}.json", "w"
+                ) as f:
                     f.write(json.dumps(mispredictions) + "\n")
 
             with open(
