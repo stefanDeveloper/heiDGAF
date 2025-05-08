@@ -345,7 +345,7 @@ class DatasetLoader:
         for dgarchive_file in dgarchive_files:
             self.dgarchive_data.append(
                 Dataset(
-                    name=f"{dgarchive_file.split('.')[0]}",
+                    name=f"dgarchive_{dgarchive_file.split('.')[0]}",
                     data_path=f"{self.base_path}/dgarchive/{dgarchive_file}",
                     cast_dataset=cast_dgarchive,
                     max_rows=10000,  # self.max_rows,

@@ -32,7 +32,7 @@ class PC:
         """
         self.output_path = output_path
 
-    def pca_2d(self, X: np.ndarray, y: np.ndarray) -> None:
+    def pca_2d(self, X: np.ndarray, y: np.ndarray, name: str) -> None:
         """
         Perform PCA and plot the first two principal components in 2D.
 
@@ -69,9 +69,9 @@ class PC:
             )
         plt.xlabel("First principal component")
         plt.ylabel("Second Principal Component")
-        plt.savefig(os.path.join(self.output_path, f"pca_2d.pdf"))
+        plt.savefig(os.path.join(self.output_path, f"pca_2d_{name}.pdf"))
 
-    def pca_3d(self, X: np.ndarray, y: np.ndarray) -> None:
+    def pca_3d(self, X: np.ndarray, y: np.ndarray, name: str) -> None:
         """
         Perform PCA and plot the first three principal components in 3D.
 
@@ -118,7 +118,7 @@ class PC:
         ax.set_zlabel("Third Principal Component", fontsize=14)
 
         ax.legend()
-        plt.savefig(os.path.join(self.output_path, f"pca_3d.pdf"))
+        plt.savefig(os.path.join(self.output_path, f"pca_3d_{name}.pdf"))
 
     def plot_tsne(
         self,
@@ -134,19 +134,24 @@ class PC:
 
         # Plot
         plt.figure(figsize=(10, 8))
-        scatter = plt.scatter(
-            X_tsne[:, 0], X_tsne[:, 1], c=y, cmap="viridis", alpha=0.7
-        )
-        plt.colorbar(scatter, label="Class Label")
+        for label, color, name in zip(
+            [0, 1], ["blue", "orange"], ["Benign", "Malicious"]
+        ):
+            idx = y == label
+            plt.scatter(X_tsne[idx, 0], X_tsne[idx, 1], c=color, label=name, alpha=0.7)
         plt.title(title)
         plt.xlabel("t-SNE Component 1")
         plt.ylabel("t-SNE Component 2")
-        plt.grid(True)
+        plt.xticks([])  # Remove x-axis numbers
+        plt.yticks([])  # Remove y-axis numbers
+        plt.grid(False)
+        plt.legend()
         plt.tight_layout()
-        plt.savefig(os.path.join(self.output_path, f"tsne.pdf"))
+        plt.show()
+        plt.savefig(os.path.join(self.output_path, f"tsne_{ds_name}.pdf"))
 
     def remove_feature(
-        self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA
+        self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA, name: str
     ) -> None:
         """
         Visualize data after removing the projection onto a specific principal component.
@@ -167,7 +172,7 @@ class PC:
         plt.xlabel("0")
         plt.ylabel("1")
         plt.title("Two features from the dataset after removing PC1")
-        plt.savefig(os.path.join(self.output_path, f"pca_pc{component + 1}.pdf"))
+        plt.savefig(os.path.join(self.output_path, f"pca_pc{component + 1}_{name}.pdf"))
 
     def create_plots(
         self, ds_X: list[np.ndarray], ds_y: list[np.ndarray], data: list[Dataset]
@@ -179,26 +184,31 @@ class PC:
             X (np.ndarray): Feature matrix.
             y (np.ndarray): Label array.
         """
+        for X, y, ds in zip(ds_X, ds_y, data):
+            if "heicloud" in ds.name:
+                tsne_x = X
+                tsne_y = y
+        for X, y, ds in zip(ds_X, ds_y, data):
+            if "dgarchive" in ds.name:
+                self.plot_tsne(
+                    np.concatenate((X, tsne_x), axis=0),
+                    np.concatenate((y, tsne_y), axis=0),
+                    ds_name=ds.name,
+                )
 
-        self.plot_tsne(X, y)
-
-        for X, y in zip(ds_X, ds_y):
-            self.pca_2d(X=X, y=y)
-            self.pca_3d(X=X, y=y)
+        for X, y, ds in zip(ds_X, ds_y, data):
+            self.pca_2d(X=X, y=y, name=ds.name)
+            self.pca_3d(X=X, y=y, name=ds.name)
             # Show the principal components
             pca = PCA().fit(X)
             logger.info("Principal components:")
             logger.info(pca.components_)
-
             # Remove PC1
-            self.remove_feature(0, X, y, pca)
-
+            self.remove_feature(0, X, y, pca, name=ds.name)
             # Remove PC2
-            self.remove_feature(1, X, y, pca)
-
+            self.remove_feature(1, X, y, pca, name=ds.name)
             # Remove PC3
-            self.remove_feature(2, X, y, pca)
-
+            self.remove_feature(2, X, y, pca, name=ds.name)
             # print the explained variance ratio
             logger.info("Explainedd variance ratios:")
             logger.info(pca.explained_variance_ratio_)
@@ -443,8 +453,6 @@ class Explainer:
 
         # Generate explanation
         rules = explainer.explain(x_test, y_test.tolist())
-
-        # Function to rescale values in a rule if a scaler is provided
 
         # Rescale values in rules if scaler is provided
         if scaler is not None:
