@@ -75,18 +75,6 @@ def preprocess(x: pl.DataFrame):
             ),
         ]
     )
-    logger.debug("Start preprocessing class.")
-    x = x.with_columns(
-        [
-            (
-                pl.when(pl.col("class") == "legit")
-                .then(pl.lit(0))
-                .otherwise(pl.lit(1))
-                .alias("class")
-            )
-        ]
-    )
-    logger.debug("End preprocessing data.")
     return x
 
 
@@ -107,11 +95,11 @@ def cast_dga(data_path: str, max_rows: int) -> pl.DataFrame:
     df = df.with_columns([pl.lit("malicious").alias("class")])
     df = preprocess(df)
 
-    df_legit = df.filter(pl.col("class").eq(0))[:max_rows]
-    df_malicious = df.filter(pl.col("class").eq(1))[:max_rows]
+    # df_legit = df.filter(pl.col("class").eq(0))[:max_rows]
+    # df_malicious = df.filter(pl.col("class").eq(1))[:max_rows]
 
     logger.info(f"Data loaded with shape {df.shape}")
-    return pl.concat([df_legit, df_malicious])
+    return df  # pl.concat([df_legit, df_malicious])
 
 
 def cast_bambenek(data_path: str, max_rows: int) -> pl.DataFrame:
@@ -131,11 +119,11 @@ def cast_bambenek(data_path: str, max_rows: int) -> pl.DataFrame:
     df = df.with_columns([pl.lit("malicious").alias("class")])
     df = preprocess(df)
 
-    df_legit = df.filter(pl.col("class").eq(0))[:max_rows]
-    df_malicious = df.filter(pl.col("class").eq(1))[:max_rows]
+    # df_legit = df.filter(pl.col("class").eq(0))[:max_rows]
+    # df_malicious = df.filter(pl.col("class").eq(1))[:max_rows]
 
     logger.info(f"Data loaded with shape {df.shape}")
-    return pl.concat([df_legit, df_malicious])
+    return df  # pl.concat([df_legit, df_malicious])
 
 
 def cast_cic(data_path: List[str], max_rows: int) -> pl.DataFrame:
@@ -228,11 +216,11 @@ def cast_dgta(data_path: str, max_rows: int) -> pl.DataFrame:
         pl.col("query").map_elements(__custom_decode, return_dtype=pl.Utf8)
     )
     df = preprocess(df)
-    df_legit = df.filter(pl.col("class").eq(0))[:max_rows]
-    df_malicious = df.filter(pl.col("class").eq(1))[:max_rows]
+    # df_legit = df.filter(pl.col("class").eq(0))[:max_rows]
+    # df_malicious = df.filter(pl.col("class").eq(1))[:max_rows]
 
     logger.info(f"Data loaded with shape {df.shape}")
-    return pl.concat([df_legit, df_malicious])
+    return df  # pl.concat([df_legit, df_malicious])
 
 
 def cast_heicloud(data_path: str, max_rows: int) -> pl.DataFrame:
@@ -271,7 +259,7 @@ def cast_heicloud(data_path: str, max_rows: int) -> pl.DataFrame:
         }
     )
     df = df.select("query")
-    df = df.with_columns([pl.lit("0").alias("class")])
+    df = df.with_columns([pl.lit("legit").alias("class")])
     df = preprocess(df)
     logger.info(f"Data loaded with shape {df.shape}")
     dataframes.append(df)

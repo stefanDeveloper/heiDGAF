@@ -6,20 +6,19 @@ from enum import Enum, unique
 
 import click
 import numpy as np
-import polars as pl
 import torch
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import StandardScaler
 
 
 sys.path.append(os.getcwd())
-from src.train.dataset import Dataset, DatasetLoader, Dataset
+from src.train.dataset import DatasetLoader
 from src.train.feature import Processor
 from src.train.model import (
     Pipeline,
 )
 from src.base.log_config import get_logger
-from src.train import CONTEXT_SETTINGS, RESULT_FOLDER
+from src.train import CONTEXT_SETTINGS, RESULT_FOLDER, SEED
 
 logger = get_logger("train.train")
 
@@ -76,23 +75,6 @@ class DetectorTraining:
         self.model_output_path = model_output_path
         self.dataset = []
         match dataset:
-            # We do not recommend to run combine mode because models do not converge!!!
-            # case "all":
-            #     self.dataset.append(
-            #         Dataset(
-            #             data_path="",
-            #             data=pl.concat(
-            #                 [
-            #                     self.dataset_loader.dgta_dataset.data,
-            #                     self.dataset_loader.cic_dataset.data,
-            #                     self.dataset_loader.bambenek_dataset.data,
-            #                     self.dataset_loader.dga_dataset.data,
-            #                     self.dataset_loader.dgarchive_dataset,
-            #                 ]
-            #             ),
-            #             max_rows=max_rows,
-            #         )
-            #     )
             case "combine":
                 self.dataset.append(self.dataset_loader.dgta_dataset)
                 self.dataset.append(self.dataset_loader.bambenek_dataset)
@@ -109,21 +91,13 @@ class DetectorTraining:
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
         logger.info(f"Set up Pipeline.")
+        # TODO load scaler
+        self.scaler = StandardScaler()
         self.model_pipeline = Pipeline(
-            processor=Processor(
-                features_to_drop=[
-                    "query",
-                    "labels",
-                    "thirdleveldomain",
-                    "secondleveldomain",
-                    "fqdn",
-                    "tld",
-                ]
-            ),
             model=model_name,
             datasets=self.dataset,
             model_output_path=self.model_output_path,
-            scaler=StandardScaler(),
+            scaler=self.scaler,
         )
         try:
             if model_path and os.path.exists(model_path):
@@ -143,15 +117,14 @@ class DetectorTraining:
             self.model_pipeline.ds_y,
             self.model_pipeline.datasets,
         ):
-            results = dict()
             logger.info("Test validation test.")
             y_pred = self.model_pipeline.predict(X)
             y_pred = [round(value) for value in y_pred]
+            y_labels = np.unique(y).tolist()
             report = classification_report(
-                y, y_pred, labels=[0, 1] if len(np.unique(y)) > 0 else [1]
+                y, y_pred, output_dict=True, labels=y_labels, zero_division=0
             )
             logger.info(report)
-            results["report"] = report
 
             # Get indices of mispredictions
             mispredicted_indices = [
@@ -165,12 +138,20 @@ class DetectorTraining:
                 error["y_pred"] = str(y_pred[idx])
                 error["query"] = str(ds.data[idx].get_column("query").to_list()[0])
                 mispredictions.append(error)
-            if mispredicted_indices != []:
-                results["mispredictions"] = mispredictions
-            with open(f"errors_{ds.name}.json", "a+") as f:
-                f.write(json.dumps(report) + "\n")
 
-    def train(self, seed=42):
+            if len(mispredictions) > 0:
+                with open(f"errors_{ds.name}.json", "w") as f:
+                    f.write(json.dumps(mispredictions) + "\n")
+
+            with open(
+                f"results_{self.model_pipeline.model.model_name}.json", "a+"
+            ) as f:
+                results = dict()
+                results["ds"] = ds.name
+                results["results"] = report
+                f.write(json.dumps(results) + "\n")
+
+    def train(self, seed=SEED):
         """Starts training of the model. Checks prior if GPU is available.
 
         Args:
@@ -216,7 +197,7 @@ _ds_options = [
         "--dataset",
         "dataset",
         default="combine",
-        type=click.Choice(["all", "combine", "dgarchive", "cic", "dgta"]),
+        type=click.Choice(["combine", "dgarchive", "cic", "dgta"]),
         help="Data set to train model, choose between all available datasets, DGArchive, CIC and DGTA.",
     ),
     click.option(
