@@ -168,7 +168,7 @@ def cast_cic(data_path: List[str], max_rows: int) -> pl.DataFrame:
     return pl.concat(dataframes)
 
 
-def cast_dgarchive(data_path: List[str], max_rows: int) -> pl.DataFrame:
+def cast_dgarchive(data_path: str, max_rows: int) -> pl.DataFrame:
     """Cast DGArchive data set.
 
     Args:
@@ -179,20 +179,19 @@ def cast_dgarchive(data_path: List[str], max_rows: int) -> pl.DataFrame:
         pl.DataFrame: Loaded pl.DataFrame.
     """
     dataframes = []
-    for data in data_path:
-        logger.info(f"Start casting data set {data}.")
-        df = pl.read_csv(
-            data,
-            has_header=False,
-            separator=",",
-            n_rows=max_rows if max_rows > 0 else None,
-        )
-        df = df.rename({"column_1": "query"})
-        df = df.select("query")
-        df = df.with_columns([pl.lit("1").alias("class")])
-        df = preprocess(df)
-        logger.info(f"Data loaded with shape {df.shape}")
-        dataframes.append(df)
+    logger.info(f"Start casting data set {data_path}.")
+    df = pl.read_csv(
+        data_path,
+        has_header=False,
+        separator=",",
+        n_rows=max_rows if max_rows > 0 else None,
+    )
+    df = df.rename({"column_1": "query"})
+    df = df.select("query")
+    df = df.with_columns([pl.lit("1").alias("class")])
+    df = preprocess(df)
+    logger.info(f"Data loaded with shape {df.shape}")
+    dataframes.append(df)
     return pl.concat(dataframes)
 
 
@@ -247,32 +246,35 @@ def cast_heicloud(data_path: str, max_rows: int) -> pl.DataFrame:
         pl.DataFrame: Loaded pl.DataFrame.
     """
     dataframes = []
-    for data in data_path:
-        logger.info(f"Start casting data set {data}.")
-        df = pl.read_csv(
-            data, separator=" ", try_parse_dates=False, has_header=False
-        ).with_columns(
-            [
-                (pl.col("column_1").str.strptime(pl.Datetime).cast(pl.Datetime)),
-            ]
-        )
-        df = df.rename(
-            {
-                "column_1": "timestamp",
-                "column_2": "return_code",
-                "column_3": "client_ip",
-                "column_4": "dns_server",
-                "column_5": "query",
-                "column_6": "type",
-                "column_7": "answer",
-                "column_8": "size",
-            }
-        )
-        df = df.select("query")
-        df = df.with_columns([pl.lit("1").alias("class")])
-        df = preprocess(df)
-        logger.info(f"Data loaded with shape {df.shape}")
-        dataframes.append(df)
+    logger.info(f"Start casting data set {data_path}.")
+    df = pl.read_csv(
+        data_path,
+        separator=" ",
+        try_parse_dates=False,
+        has_header=False,
+        n_rows=max_rows if max_rows > 0 else None,
+    ).with_columns(
+        [
+            (pl.col("column_1").str.strptime(pl.Datetime).cast(pl.Datetime)),
+        ]
+    )
+    df = df.rename(
+        {
+            "column_1": "timestamp",
+            "column_2": "return_code",
+            "column_3": "client_ip",
+            "column_4": "dns_server",
+            "column_5": "query",
+            "column_6": "type",
+            "column_7": "answer",
+            "column_8": "size",
+        }
+    )
+    df = df.select("query")
+    df = df.with_columns([pl.lit("0").alias("class")])
+    df = preprocess(df)
+    logger.info(f"Data loaded with shape {df.shape}")
+    dataframes.append(df)
     return pl.concat(dataframes)
 
 
@@ -323,14 +325,11 @@ class DatasetLoader:
 
     @property
     def heicloud_dataset(self) -> Dataset:
-        heicloud_files = [
-            f for f in os.listdir(f"{self.base_path}/heicloud") if f.endswith(".txt")
-        ]
         self.heicloud_data = Dataset(
             name="heicloud",
-            data_path=[f"{self.base_path}/heicloud/{f}" for f in heicloud_files],
+            data_path=f"{self.base_path}/heicloud/*.txt",
             cast_dataset=cast_heicloud,
-            max_rows=self.max_rows,
+            max_rows=10000,  # self.max_rows,
         )
         return self.heicloud_data
 
@@ -350,7 +349,7 @@ class DatasetLoader:
         return self.cic_data
 
     @property
-    def dgarchive_dataset(self) -> Dataset:
+    def dgarchive_dataset(self) -> list[Dataset]:
         dgarchive_files = [
             f for f in os.listdir(f"{self.base_path}/dgarchive") if f.endswith(".csv")
         ]
@@ -358,10 +357,10 @@ class DatasetLoader:
         for dgarchive_file in dgarchive_files:
             self.dgarchive_data.append(
                 Dataset(
-                    name=f"{dgarchive_file.split['.'][0]}",
+                    name=f"{dgarchive_file.split('.')[0]}",
                     data_path=f"{self.base_path}/dgarchive/{dgarchive_file}",
                     cast_dataset=cast_dgarchive,
-                    max_rows=self.max_rows,
+                    max_rows=10000,  # self.max_rows,
                 )
             )
         return self.dgarchive_data

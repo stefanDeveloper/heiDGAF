@@ -77,30 +77,28 @@ class DetectorTraining:
         self.dataset = []
         match dataset:
             # We do not recommend to run combine mode because models do not converge!!!
-            case "all":
-                self.dataset.append(
-                    Dataset(
-                        data_path="",
-                        data=pl.concat(
-                            [
-                                self.dataset_loader.dgta_dataset.data,
-                                self.dataset_loader.cic_dataset.data,
-                                self.dataset_loader.bambenek_dataset.data,
-                                self.dataset_loader.dga_dataset.data,
-                                self.dataset_loader.dgarchive_dataset.data,
-                            ]
-                        ),
-                        max_rows=max_rows,
-                    )
-                )
+            # case "all":
+            #     self.dataset.append(
+            #         Dataset(
+            #             data_path="",
+            #             data=pl.concat(
+            #                 [
+            #                     self.dataset_loader.dgta_dataset.data,
+            #                     self.dataset_loader.cic_dataset.data,
+            #                     self.dataset_loader.bambenek_dataset.data,
+            #                     self.dataset_loader.dga_dataset.data,
+            #                     self.dataset_loader.dgarchive_dataset,
+            #                 ]
+            #             ),
+            #             max_rows=max_rows,
+            #         )
+            #     )
             case "combine":
                 self.dataset.append(self.dataset_loader.dgta_dataset)
-                # self.dataset.append(self.dataset_loader.bambenek_dataset)
-                # self.dataset.append(self.dataset_loader.dgarchive_dataset)
-                # self.dataset.append(self.dataset_loader.dga_dataset)
-                # self.dataset.append(self.dataset_loader.heicloud_dataset)
-                # CIC DNS does work in practice and data is not clean.
-                # self.dataset.append(self.datasets.cic_dataset)
+                self.dataset.append(self.dataset_loader.bambenek_dataset)
+                self.dataset = self.dataset + self.dataset_loader.dgarchive_dataset
+                self.dataset.append(self.dataset_loader.dga_dataset)
+                self.dataset.append(self.dataset_loader.heicloud_dataset)
             # CIC DNS does work in practice and data is not clean.
             case "cic":
                 self.dataset.append(self.dataset_loader.cic_dataset)
@@ -127,9 +125,12 @@ class DetectorTraining:
             model_output_path=self.model_output_path,
             scaler=StandardScaler(),
         )
-        if os.path.exists(model_path):
-            with open(model_path, "rb") as input_file:
-                self.model_pipeline.model.clf = pickle.load(input_file)
+        try:
+            if model_path and os.path.exists(model_path):
+                with open(model_path, "rb") as input_file:
+                    self.model_pipeline.model.clf = pickle.load(input_file)
+        except:
+            logger.warning("Model could not be loaded.")
 
     def explain(self):
         self.model_pipeline.explain(
@@ -142,10 +143,15 @@ class DetectorTraining:
             self.model_pipeline.ds_y,
             self.model_pipeline.datasets,
         ):
+            results = dict()
             logger.info("Test validation test.")
             y_pred = self.model_pipeline.predict(X)
             y_pred = [round(value) for value in y_pred]
-            logger.info(classification_report(y, y_pred, labels=[0, 1]))
+            report = classification_report(
+                y, y_pred, labels=[0, 1] if len(np.unique(y)) > 0 else [1]
+            )
+            logger.info(report)
+            results["report"] = report
 
             # Get indices of mispredictions
             mispredicted_indices = [
@@ -154,18 +160,17 @@ class DetectorTraining:
             mispredictions = []
             # Print or log the mispredicted data points
             for idx in mispredicted_indices:
-                logger.info(
-                    f"Index: {idx}, True label: {y[idx]}, Predicted: {y_pred[idx]}, Data: {ds.data[idx].get_column('query').to_list()}"
-                )
                 error = dict()
-                error["y"] = y[idx]
-                error["y_pred"] = y_pred[idx]
-                error["query"] = ds.data[idx].get_column("query").to_list()
+                error["y"] = str(y[idx])
+                error["y_pred"] = str(y_pred[idx])
+                error["query"] = str(ds.data[idx].get_column("query").to_list()[0])
                 mispredictions.append(error)
+            if mispredicted_indices != []:
+                results["mispredictions"] = mispredictions
             with open(f"errors_{ds.name}.json", "a+") as f:
-                f.write(json.dumps(mispredictions) + "\n")
+                f.write(json.dumps(report) + "\n")
 
-    def train(self, seed=42, output_path: str = "model.pkl"):
+    def train(self, seed=42):
         """Starts training of the model. Checks prior if GPU is available.
 
         Args:
@@ -230,9 +235,8 @@ _ds_options = [
 ]
 
 
-@click.group()
-@click.pass_context
-def cli(ctx):
+@click.group(context_settings=CONTEXT_SETTINGS)
+def cli():
     click.secho("Train heiDGAF CLI")
 
 
