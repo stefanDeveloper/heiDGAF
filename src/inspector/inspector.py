@@ -33,7 +33,6 @@ ANOMALY_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"][
 SCORE_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["score_threshold"]
 TIME_TYPE = config["pipeline"]["data_inspection"]["inspector"]["time_type"]
 TIME_RANGE = config["pipeline"]["data_inspection"]["inspector"]["time_range"]
-TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "prefilter_to_inspector"
 ]
@@ -187,7 +186,7 @@ class Inspector:
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
             [
-                np.datetime64(datetime.strptime(item["timestamp"], TIMESTAMP_FORMAT))
+                np.datetime64(datetime.fromisoformat(item["timestamp"]))
                 for item in messages
             ]
         )
@@ -266,7 +265,7 @@ class Inspector:
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
             [
-                np.datetime64(datetime.strptime(item["timestamp"], TIMESTAMP_FORMAT))
+                np.datetime64(datetime.fromisoformat(item["timestamp"]))
                 for item in messages
             ]
         )

@@ -177,9 +177,6 @@ class TestSend(unittest.TestCase):
 
         # Act
         with (
-            patch(
-                "src.logcollector.collector.TIMESTAMP_FORMAT", "%Y-%m-%d %H:%M:%S.%f"
-            ),
             patch("src.logcollector.collector.IPV4_PREFIX_LENGTH", 24),
             patch(
                 "src.logcollector.collector.uuid.uuid4",

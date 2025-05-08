@@ -24,7 +24,6 @@ IPV4_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subn
 IPV6_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
     "ipv6_prefix_length"
 ]
-TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 REQUIRED_FIELDS = [
     "timestamp",
     "status_code",
@@ -129,9 +128,7 @@ class LogCollector:
             dict(
                 logline_id=logline_id,
                 subnet_id=subnet_id,
-                timestamp=datetime.datetime.strptime(
-                    fields.get("timestamp"), TIMESTAMP_FORMAT
-                ),
+                timestamp=datetime.datetime.fromisoformat(fields.get("timestamp")),
                 status_code=fields.get("status_code"),
                 client_ip=fields.get("client_ip"),
                 record_type=fields.get("record_type"),

@@ -2,7 +2,7 @@ import ipaddress
 import re
 import unittest
 
-from src.base.logline_handler import FieldType, RegEx, IpAddress, ListItem
+from src.base.logline_handler import FieldType, RegEx, IpAddress, ListItem, Timestamp
 
 
 class TestFieldType(unittest.TestCase):
@@ -21,6 +21,38 @@ class TestFieldType(unittest.TestCase):
 
         with self.assertRaises(NotImplementedError):
             sut.validate(value="test")
+
+
+class TestTimestamp(unittest.TestCase):
+    def test_init(self):
+        # Arrange
+        name = "test_name"
+        timestamp_format = "%Y-%m-%dT%H:%M:%S.%fZ"
+
+        # Act
+        sut = Timestamp(name=name, timestamp_format=timestamp_format)
+
+        # Assert
+        self.assertEqual(name, sut.name)
+        self.assertEqual(timestamp_format, sut.timestamp_format)
+
+    def test_validate_successful(self):
+        # Arrange
+        name = "test_name"
+        timestamp_format = "%Y-%m-%dT%H:%M:%S.%fZ"
+        sut = Timestamp(name=name, timestamp_format=timestamp_format)
+
+        # Act and Assert
+        self.assertTrue(sut.validate(value="2024-07-28T14:45:30.123Z"))
+
+    def test_validate_unsuccessful(self):
+        # Arrange
+        name = "test_name"
+        timestamp_format = "%Y-%m-%d %H:%M:%S.%f"
+        sut = Timestamp(name=name, timestamp_format=timestamp_format)
+
+        # Act and Assert
+        self.assertFalse(sut.validate(value="2024-07-28T14:45:30.123Z"))
 
 
 class TestRegEx(unittest.TestCase):

@@ -10,11 +10,11 @@ class TestClearData(unittest.TestCase):
     def test_clear_data_with_existing_data(self):
         json_data = {
             "batch_id": str(uuid.uuid4()),
-            "begin_timestamp": "2024-05-21T08:31:27.000000Z",
-            "end_timestamp": "2024-05-21T08:31:29.000000Z",
+            "begin_timestamp": "2024-05-21T08:31:27",
+            "end_timestamp": "2024-05-21T08:31:29",
             "data": [
                 {
-                    "timestamp": "2024-05-21T08:31:28.119Z",
+                    "timestamp": "2024-05-21T08:31:28.119",
                     "status": "NOERROR",
                     "client_ip": "192.168.0.105",
                     "dns_ip": "8.8.8.8",

@@ -20,7 +20,6 @@ logger = get_logger(module_name)
 config = setup_config()
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
-TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "batch_sender_to_prefilter"
 ]
@@ -217,13 +216,9 @@ class BufferedBatch:
 
             data = {
                 "batch_id": batch_id,
-                "begin_timestamp": datetime.datetime.strptime(
-                    begin_timestamp,
-                    "%Y-%m-%dT%H:%M:%S.%fZ",
-                ),
-                "end_timestamp": datetime.datetime.strptime(
-                    _get_last_timestamp_of_batch(),
-                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                "begin_timestamp": datetime.datetime.fromisoformat(begin_timestamp),
+                "end_timestamp": datetime.datetime.fromisoformat(
+                    _get_last_timestamp_of_batch()
                 ),
                 "data": buffer_data + self.batch[key],
             }
@@ -322,11 +317,8 @@ class BufferedBatch:
     @staticmethod
     def _sort_by_timestamp(
         data: list[tuple[str, str]],
-        timestamp_format: str = TIMESTAMP_FORMAT,
     ) -> list[str]:
-        sorted_data = sorted(
-            data, key=lambda x: datetime.datetime.strptime(x[0], timestamp_format)
-        )
+        sorted_data = sorted(data, key=lambda x: x[0])
         loglines = [message for _, message in sorted_data]
 
         return loglines
@@ -410,7 +402,7 @@ class BufferedBatchSender:
         Dispatch all batches for the Kafka queue
 
         Args:
-            reset_timer (bool): whether or not the timer should be reset
+            reset_timer (bool): whether the timer should be reset
         """
         number_of_keys = 0
         total_number_of_batch_messages = self.batch.get_message_count_for_batch()
@@ -460,7 +452,7 @@ class BufferedBatchSender:
 
     def _send_data_packet(self, key: str, data: dict) -> None:
         """
-        Sends a packet of a batch to the defined Kafka topic
+        Sends a packet of a Batch to the defined Kafka topic
 
         Args:
             key (str): key to identify the batch

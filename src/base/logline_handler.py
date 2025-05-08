@@ -1,3 +1,4 @@
+import datetime
 import re
 
 from src.base.log_config import get_logger
@@ -61,6 +62,45 @@ class RegEx(FieldType):
             True if the value is valid, False otherwise
         """
         return True if re.match(self.pattern, value) else False
+
+
+class Timestamp(FieldType):
+    """
+    A :cls:`Timestamp` object takes a name, and a timestamp format, which a value needs to have.
+    """
+
+    def __init__(self, name: str, timestamp_format: str):
+        super().__init__(name)
+        self.timestamp_format = timestamp_format
+
+    def validate(self, value) -> bool:
+        """
+        Validates the input value.
+
+        Args:
+            value: The value to be validated
+
+        Returns:
+            True if the value is valid, False otherwise
+        """
+        try:
+            datetime.datetime.strptime(value, self.timestamp_format)
+        except ValueError:
+            return False
+
+        return True
+
+    def get_timestamp_as_str(self, value) -> str:
+        """
+        Returns the timestamp as string for a given timestamp with valid format.
+
+        Args:
+            value: Correctly formatted timestamp according to self.timestamp_format
+
+        Returns:
+            String of the given timestamp with standard format
+        """
+        return str(datetime.datetime.strptime(value, self.timestamp_format).isoformat())
 
 
 class IpAddress(FieldType):
@@ -227,7 +267,12 @@ class LoglineHandler:
         return_dict = {}
 
         for i in range(self.number_of_fields):
-            return_dict[self.instances_by_position[i].name] = parts[i]
+            if not isinstance(self.instances_by_position[i], Timestamp):
+                return_dict[self.instances_by_position[i].name] = parts[i]
+            else:
+                return_dict[self.instances_by_position[i].name] = (
+                    self.instances_by_position[i].get_timestamp_as_str(parts[i])
+                )
 
         return return_dict.copy()
 
@@ -296,6 +341,11 @@ class LoglineHandler:
             if len_of_field_list != 3 or not isinstance(field_list[2], str):
                 raise ValueError("Invalid RegEx parameters")
             instance = cls(name=name, pattern=field_list[2])
+
+        elif cls_name == "Timestamp":
+            if len_of_field_list != 3 or not isinstance(field_list[2], str):
+                raise ValueError("Invalid Timestamp parameters")
+            instance = cls(name=name, timestamp_format=field_list[2])
 
         elif cls_name == "ListItem":
             if len_of_field_list not in [3, 4] or not isinstance(field_list[2], list):

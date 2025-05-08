@@ -383,7 +383,7 @@ class TestSendDataPacket(unittest.TestCase):
         mock_produce_handler_instance.produce.assert_called_once_with(
             topic="test_topic",
             data='{"batch_id": "b4b6f13e-d064-4ab7-94ed-d02b46063308", "begin_timestamp": '
-            '"2024-12-06T13:12:30.324015Z", "end_timestamp": "2024-12-06T13:12:31.832173Z", '
+            '"2024-12-06T13:12:30.324015", "end_timestamp": "2024-12-06T13:12:31.832173", '
             '"data": ["test_data"]}',
             key=key,
         )

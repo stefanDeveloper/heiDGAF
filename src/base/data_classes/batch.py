@@ -16,13 +16,9 @@ class Batch:
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
     begin_timestamp: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%dT%H:%M:%S.%fZ")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}  # uses ISO format
     )
     end_timestamp: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%dT%H:%M:%S.%fZ")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}  # uses ISO format
     )
     data: List = field(default_factory=list)
