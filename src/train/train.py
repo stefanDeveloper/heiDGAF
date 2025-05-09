@@ -1,8 +1,10 @@
+import hashlib
 import json
 import pickle
 import sys
 import os
 from enum import Enum, unique
+import tempfile
 
 import click
 import joblib
@@ -53,7 +55,7 @@ class DetectorTraining:
     def __init__(
         self,
         model_name: ModelEnum.RANDOM_FOREST_CLASSIFIER,
-        model_output_path: str = "./",
+        model_output_path: str = f"./{RESULT_FOLDER}/model",
         model_path: str = None,
         dataset: DatasetEnum = DatasetEnum.ALL,
         data_base_path: str = "./data",
@@ -92,21 +94,18 @@ class DetectorTraining:
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
         logger.info(f"Set up Pipeline.")
-        # TODO load scaler
-        self.scaler = StandardScaler()
         self.model_name = model_name
+        self.model_path = model_path
+        if model_path:
+            self.model_checksum = self.model_path.split("/")[-1]
+        self.scaler = self._load_scaler()
         self.model_pipeline = Pipeline(
             model=self.model_name,
             datasets=self.dataset,
             model_output_path=self.model_output_path,
             scaler=self.scaler,
         )
-        try:
-            if model_path and os.path.exists(model_path):
-                with open(model_path, "rb") as input_file:
-                    self.model_pipeline.model.clf = pickle.load(input_file)
-        except:
-            logger.warning("Model could not be loaded.")
+        self._load_model()
 
     def explain(self):
         self.model_pipeline.explain(
@@ -141,6 +140,9 @@ class DetectorTraining:
                 error["query"] = str(ds.data[idx].get_column("query").to_list()[0])
                 mispredictions.append(error)
 
+            model_path = os.path.join(self.model_path, self.model_checksum)
+            os.makedirs(model_path, exist_ok=True)
+
             if len(mispredictions) > 0:
                 with open(f"errors_{self.model_name}_{ds.name}.json", "w") as f:
                     f.write(json.dumps(mispredictions) + "\n")
@@ -163,10 +165,12 @@ class DetectorTraining:
 
         # Training model
         logger.info("Fit model.")
-        self.model_pipeline.fit()
+        self.model_pipeline.hyperparam_fit()
 
         logger.info("Save scaler")
-        self._save_scaler(self.scaler, self.model_name)
+        self._save_scaler()
+        logger.info("Save model")
+        self._save_model()
 
         logger.info("Validate test set")
         y_pred = self.model_pipeline.predict(self.model_pipeline.x_test)
@@ -181,27 +185,77 @@ class DetectorTraining:
         logger.info("Interpret model.")
         self.explain()
 
-    def _load_scaler(self, scaler, model_name: str):
+    def _load_model(self):
         try:
-            scaler = joblib.load(path)
-            print("Scaler loaded successfully.")
-            return scaler
-        except FileNotFoundError:
-            print(f"Scaler file not found: {path}")
-            return None
+            model_path = os.path.join(self.model_path, f"{self.model_name}.pickle")
+            with open(model_path, "rb") as input_file:
+                self.model_pipeline.model.clf = pickle.load(input_file)
+        except:
+            logger.warning(
+                f"Model could not be loaded. Model path is '{self.model_path}' or path incorrect."
+            )
 
-    def _save_scaler(self, scaler, model_name: str):
+    def _save_model(self):
+        logger.info("Save trained model to a file.")
+        with open(
+            os.path.join(
+                tempfile.gettempdir(), f"rf_{self.model_pipeline.trial.number}.pickle"
+            ),
+            "wb",
+        ) as fout:
+            pickle.dump(self.model_pipeline.model.clf, fout)
+
+        self.model_checksum = self.sha256sum(
+            os.path.join(
+                tempfile.gettempdir(), f"rf_{self.model_pipeline.trial.number}.pickle"
+            )
+        )
+        model_path = os.path.join(self.model_path, self.model_checksum)
+        os.makedirs(model_path, exist_ok=True)
+        with open(os.path.join(model_path, f"{self.model_name}.pickle"), "wb") as fout:
+            pickle.dump(self.model_pipeline.model.clf, fout)
+
+    def _load_scaler(self):
+        try:
+            scaler_path = os.path.join(self.model_path, "scaler.pickle")
+            scaler = joblib.load(scaler_path)
+            logger.info("Scaler loaded successfully.")
+            return scaler
+        except:
+            logger.warning(
+                f"Scaler file not found. Model path is '{self.model_path}' or path incorrect."
+            )
+            return StandardScaler()
+
+    def _save_scaler(self):
         """
         Save the scaler for future use.
-
-        Args:
-            scaler: Fitted StandardScaler object
-            model_type (str): Type of model being used
         """
-        scaler_path = os.path.join(RESULT_FOLDER, model_name)
+        scaler_path = os.path.join(RESULT_FOLDER, self.model_name)
         os.makedirs(scaler_path, exist_ok=True)
         with open(os.path.join(scaler_path, "scaler.pickle"), "wb") as f:
-            pickle.dump(scaler, f)
+            pickle.dump(self.scaler, f)
+
+    def sha256sum(self, file_path: str) -> str:
+        """Return a SHA265 sum check to validate the model.
+
+        Args:
+            file_path (str): File path of model.
+
+        Returns:
+            str: SHA256 sum
+        """
+        h = hashlib.sha256()
+
+        with open(file_path, "rb") as file:
+            while True:
+                # Reading is buffered, so we can read smaller chunks.
+                chunk = file.read(h.block_size)
+                if not chunk:
+                    break
+                h.update(chunk)
+
+        return h.hexdigest()
 
 
 _ds_options = [
@@ -245,6 +299,7 @@ def cli():
     "--model_output_path",
     "model_output_path",
     type=click.Path(exists=True),
+    default=f"./{RESULT_FOLDER}/data",
     help="Model output path. Stores model with {{MODEL}}_{{SHA256}}.pickle.",
 )
 def train(

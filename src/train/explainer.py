@@ -23,7 +23,7 @@ logger = get_logger("train.explainer")
 
 
 class Plotter:
-    def __init__(self, output_path: str = f"./{RESULT_FOLDER}"):
+    def __init__(self, output_path: str = f"./{RESULT_FOLDER}/data"):
         """
         Initialize the Plotter class for PCA visualization.
 
@@ -69,8 +69,13 @@ class Plotter:
             )
         plt.xlabel("First principal component")
         plt.ylabel("Second Principal Component")
+        plt.show()
+
         output_path = os.path.join(self.output_path, name)
+        os.makedirs(output_path, exist_ok=True)
         plt.savefig(os.path.join(output_path, f"pca_2d.pdf"))
+
+        plt.close()
 
     def _plot_pca_3d(self, X: np.ndarray, y: np.ndarray, name: str) -> None:
         """
@@ -117,10 +122,13 @@ class Plotter:
         ax.set_xlabel("First Principal Component", fontsize=14)
         ax.set_ylabel("Second Principal Component", fontsize=14)
         ax.set_zlabel("Third Principal Component", fontsize=14)
-
         ax.legend()
+        plt.show()
+
         output_path = os.path.join(self.output_path, name)
+        os.makedirs(output_path, exist_ok=True)
         plt.savefig(os.path.join(output_path, f"pca_3d.pdf"))
+        plt.close()
 
     def _plot_tsne(
         self,
@@ -150,8 +158,11 @@ class Plotter:
         plt.legend()
         plt.tight_layout()
         plt.show()
-        output_path = os.path.join(self.output_path, name)
+
+        output_path = os.path.join(self.output_path, ds_name)
+        os.makedirs(output_path, exist_ok=True)
         plt.savefig(os.path.join(output_path, f"tsne.pdf"))
+        plt.close()
 
     def _plot_label_distribution(self, data: pl.DataFrame, name: str) -> None:
         """Plots label distribution.
@@ -180,7 +191,9 @@ class Plotter:
         plt.show()
 
         output_path = os.path.join(self.output_path, name)
+        os.makedirs(output_path, exist_ok=True)
         plt.savefig(os.path.join(output_path, f"label_distribution.pdf"))
+        plt.close()
 
     def _remove_feature(
         self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA, name: str
@@ -204,8 +217,12 @@ class Plotter:
         plt.xlabel("0")
         plt.ylabel("1")
         plt.title("Two features from the dataset after removing PC1")
+        plt.show()
+
         output_path = os.path.join(self.output_path, name)
+        os.makedirs(output_path, exist_ok=True)
         plt.savefig(os.path.join(output_path, f"pca_pc{component + 1}.pdf"))
+        plt.close()
 
     def create_plots(
         self, ds_X: list[np.ndarray], ds_y: list[np.ndarray], data: list[Dataset]
@@ -224,31 +241,35 @@ class Plotter:
 
         for X, y, ds in zip(ds_X, ds_y, data):
             if "dgarchive" in ds.name:
+                logger.info(f"Plot data for {ds.name}")
                 self._plot_tsne(
                     np.concatenate((X, tsne_x), axis=0),
                     np.concatenate((y, tsne_y), axis=0),
-                    ds_name=ds.name,
+                    ds_name=f"{ds.name}",
                 )
 
         for X, y, ds in zip(ds_X, ds_y, data):
-            self._plot_pca_2d(X=X, y=y, name=ds.name)
-            self._plot_pca_3d(X=X, y=y, name=ds.name)
-            # Show the principal components
-            pca = PCA().fit(X)
-            logger.info("Principal components:")
-            logger.info(pca.components_)
-            # Remove PC1
-            self._remove_feature(0, X, y, pca, name=ds.name)
-            # Remove PC2
-            self._remove_feature(1, X, y, pca, name=ds.name)
-            # Remove PC3
-            self._remove_feature(2, X, y, pca, name=ds.name)
-            # print the explained variance ratio
-            logger.info("Explainedd variance ratios:")
-            logger.info(pca.explained_variance_ratio_)
-
             if not "dgarchive" in ds.name:
+                print(X)
+                logger.info(f"Plot data for {ds.name}")
+                self._plot_pca_2d(X=X, y=y, name=ds.name)
+                self._plot_pca_3d(X=X, y=y, name=ds.name)
+                # Show the principal components
+                pca = PCA().fit(X)
+                logger.info("Principal components:")
+                logger.info(pca.components_)
+                # Remove PC1
+                self._remove_feature(0, X, y, pca, name=ds.name)
+                # Remove PC2
+                self._remove_feature(1, X, y, pca, name=ds.name)
+                # Remove PC3
+                self._remove_feature(2, X, y, pca, name=ds.name)
+                # print the explained variance ratio
+                logger.info("Explainedd variance ratios:")
+                logger.info(pca.explained_variance_ratio_)
+
                 self._plot_label_distribution(data, name=ds.name)
+                self._plot_tsne(X, y, ds.name)
 
             # df_data = data.to_pandas()
             # # Assuming your data is in a DataFrame called 'df' with a 'condition' column
@@ -281,7 +302,7 @@ class Plotter:
         data_condition1,
         data_condition2,
         measurements,
-        name,
+        ds_name,
         condition1_name="Condition 1",
         condition2_name="Condition 2",
         exclude_outliers=True,
@@ -415,16 +436,17 @@ class Plotter:
         fig_density.subplots_adjust(hspace=0.4, wspace=0.3)
         fig_hist.tight_layout()
         fig_hist.subplots_adjust(hspace=0.4, wspace=0.3)
+        plt.show()
 
-        density_plot_path = os.path.join(self.output_path, name, "density_plots.pdf")
-        hist_plot_path = os.path.join(self.output_path, name, "histogram_plots.pdf")
+        output_path = os.path.join(self.output_path, ds_name)
+        os.makedirs(output_path, exist_ok=True)
+        density_plot_path = os.path.join(output_path, "density_plots.pdf")
+        hist_plot_path = os.path.join(output_path, "histogram_plots.pdf")
         fig_density.savefig(density_plot_path, dpi=300)
         fig_hist.savefig(hist_plot_path, dpi=300)
         logger.info(f"Density plots saved to: {density_plot_path}")
         logger.info(f"Histogram plots saved to: {hist_plot_path}")
-
-        # Show plots
-        plt.show()
+        plt.close()
 
 
 class Explainer:
