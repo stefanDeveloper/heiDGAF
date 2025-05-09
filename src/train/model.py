@@ -283,7 +283,7 @@ class Pipeline:
         self.model.X = self.x_train
         self.model.y = self.y_train
         study = optuna.create_study(direction="maximize")
-        study.optimize(self.model.objective, n_trials=1, timeout=600)
+        study.optimize(self.model.objective, n_trials=50, timeout=600)
 
         logger.info(f"Number of finished trials: {len(study.trials)}")
         logger.info("Best trial:")
