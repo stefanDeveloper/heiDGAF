@@ -6,7 +6,7 @@ import joblib
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
 import sklearn.model_selection
-from sklearn.metrics import make_scorer
+from sklearn.metrics import confusion_matrix, make_scorer
 import xgboost as xgb
 import optuna
 import torch
@@ -282,7 +282,7 @@ class Pipeline:
 
         self.model.X = self.x_train
         self.model.y = self.y_train
-        study = optuna.create_study(direction="maximize")
+        study = optuna.create_study(direction="minimize")
         study.optimize(self.model.objective, n_trials=50, timeout=600)
 
         logger.info(f"Number of finished trials: {len(study.trials)}")
@@ -296,7 +296,6 @@ class Pipeline:
 
         self.model.train(
             trial=self.trial,
-            output_path=self.model_output_path,
             X=self.x_train,
             y=self.y_train,
         )
@@ -361,7 +360,7 @@ class Model(metaclass=ABCMeta):
         self.y = None
         self.clf = None
 
-    def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
+    def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
         """
         Custom FDR metric to evaluate the performance of the Random Forest model.
 
@@ -373,10 +372,14 @@ class Model(metaclass=ABCMeta):
             float: The False Discovery Rate (FDR).
         """
         # False Positives (FP): cases where the model predicted 1 but the actual label is 0
-        FP = np.sum((y_pred == 1) & (y_true == 0))
+        # FP = np.sum((y_pred == 1) & (y_true == 0))
 
         # True Positives (TP): cases where the model correctly predicted 1
-        TP = np.sum((y_pred == 1) & (y_true == 1))
+        # TP = np.sum((y_pred == 1) & (y_true == 1))
+
+        cm = confusion_matrix(y_true, y_pred)
+        TP = cm[1, 1]
+        FP = cm[0, 1]
 
         # Compute FDR, avoiding division by zero
         if FP + TP == 0:
@@ -402,7 +405,7 @@ class Model(metaclass=ABCMeta):
         return self.clf.predict(X)
 
     @abstractmethod
-    def train(self, trial, X: np.ndarray, y: np.ndarray, output_path: str):
+    def train(self, trial, X: np.ndarray, y: np.ndarray):
         pass
 
 
@@ -429,8 +432,12 @@ class XGBoostModel(Model):
         preds_binary = (preds > 0.5).astype(int)
 
         # Calculate False Positives (FP) and True Positives (TP)
-        FP = np.sum((preds_binary == 1) & (labels == 0))
-        TP = np.sum((preds_binary == 1) & (labels == 1))
+        # FP = np.sum((preds_binary == 1) & (labels == 0))
+        # TP = np.sum((preds_binary == 1) & (labels == 1))
+
+        cm = confusion_matrix(labels, preds_binary)
+        TP = cm[1, 1]
+        FP = cm[0, 1]
 
         # Avoid division by zero
         if FP + TP == 0:
@@ -439,10 +446,11 @@ class XGBoostModel(Model):
             fdr = FP / (FP + TP)
 
         # Return the result in the format (name, value)
-        return (
-            "fdr",
-            1 - fdr,
-        )  # -1 is essentiell since XGBoost wants a scoring value (higher is better). However, FDR represents a loss function.
+        # return (
+        #     "fdr",
+        #     1 - fdr,
+        # )  # -1 is essentiell since XGBoost wants a scoring value (higher is better). However, FDR represents a loss function.
+        return "fdr", fdr
 
     def objective(self, trial):
         """
@@ -506,28 +514,28 @@ class XGBoostModel(Model):
             early_stopping_rounds=100,
             seed=SEED,
             verbose_eval=False,
-            metrics="roc_auc",
-            # custom_metric=self.fdr_metric,
+            custom_metric=self.fdr_metric,
         )
 
-        # Set n_estimators as a trial attribute; Accessible via study.trials_dataframe().
-        trial.set_user_attr("n_estimators", len(xgb_cv_results))
+        # # Set n_estimators as a trial attribute; Accessible via study.trials_dataframe().
+        # trial.set_user_attr("n_estimators", len(xgb_cv_results))
 
-        # Save cross-validation results.
-        filepath = os.path.join(CV_RESULT_DIR, "{}.csv".format(trial.number))
-        xgb_cv_results.to_csv(filepath, index=False)
+        # # Save cross-validation results.
+        # filepath = os.path.join(CV_RESULT_DIR, "{}.csv".format(trial.number))
+        # xgb_cv_results.to_csv(filepath, index=False)
 
         # Extract the best score.
-        best_fdr = xgb_cv_results["test-auc-mean"].values[-1]
-        return best_fdr
+        # best_fdr = xgb_cv_results["test-auc-mean"].values[-1]
+        # return best_fdr
 
-    def train(self, trial, X: np.ndarray, y: np.ndarray, output_path: str):
+        return xgb_cv_results["test-fdr-mean"].min()
+
+    def train(self, trial, X: np.ndarray, y: np.ndarray):
         """
         Trains the XGBoost model and saves the trained model to a file.
 
         Args:
             trial: A trial object from the optimization framework.
-            output_path (str): The directory path to save the trained model.
         """
         logger.info("Number of estimators: {}".format(trial.user_attrs["n_estimators"]))
         neg = np.sum(y == 0)
@@ -596,13 +604,12 @@ class RandomForestModel(Model):
             self.y,
             n_jobs=-1,
             cv=N_FOLDS,
-            scoring="roc_auc",
-            # scoring=fdr_scorer,
+            scoring=fdr_scorer,
         )
         fdr = score.mean()
         return fdr
 
-    def train(self, trial, X: np.ndarray, y: np.ndarray, output_path: str):
+    def train(self, trial, X: np.ndarray, y: np.ndarray):
         """
         Trains the Random Forest model and saves the trained model to a file.
 
@@ -674,7 +681,7 @@ class LightGBMModel(Model):
         fdr = score.mean()
         return fdr
 
-    def train(self, trial, X: np.ndarray, y: np.ndarray, output_path: str):
+    def train(self, trial, X: np.ndarray, y: np.ndarray):
         """
         Trains the Random Forest model and saves the trained model to a file.
 
