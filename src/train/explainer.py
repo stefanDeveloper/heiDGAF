@@ -204,7 +204,8 @@ class Plotter:
         plt.xlabel("0")
         plt.ylabel("1")
         plt.title("Two features from the dataset after removing PC1")
-        plt.savefig(os.path.join(self.output_path, f"pca_pc{component + 1}_{name}.pdf"))
+        output_path = os.path.join(self.output_path, name)
+        plt.savefig(os.path.join(output_path, f"pca_pc{component + 1}.pdf"))
 
     def create_plots(
         self, ds_X: list[np.ndarray], ds_y: list[np.ndarray], data: list[Dataset]
