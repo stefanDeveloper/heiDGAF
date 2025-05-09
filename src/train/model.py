@@ -6,6 +6,8 @@ import sys
 import os
 import tempfile
 from matplotlib import pyplot as plt
+from sklearn.exceptions import NotFittedError
+from sklearn.utils.validation import check_is_fitted
 import sklearn.model_selection
 from sklearn.metrics import make_scorer
 import xgboost as xgb
@@ -49,6 +51,7 @@ class Pipeline:
             target_encoder (TargetEncoder): Target encoder for non-numeric values.
             clf (torch.nn.Modul): torch.nn.Modul for training.
         """
+        self.plotting = False
         self.processor = Processor(
             features_to_drop=[
                 "query",
@@ -69,35 +72,50 @@ class Pipeline:
         self.ds_y = []
         logger.info("Start data set transformation.")
         for ds in self.datasets:
-            data = self.processor.transform(x=ds.data)
-            X = data.drop("class").to_numpy()
-            encoded, _, _ = self._label_encoder(data["class"].to_list())
-            y = np.asarray(encoded).reshape(-1)
+            try:
+                X, y = self._load_npy(ds.name)
+            except FileNotFoundError:
+                data = self.processor.transform(x=ds.data)
+                X = data.drop("class").to_numpy()
+                encoded, _, _ = self._label_encoder(data["class"].to_list())
+                y = np.asarray(encoded).reshape(-1)
+
+                self._save_npy(X, y, ds.name)
             self.ds_X.append(X)
             self.ds_y.append(y)
-        logger.info(f"End data set transformation with shape {data.shape}.")
+        logger.info(f"End data set transformation.")
 
         X = self.ds_X[0]
-        y = self.ds_y[0]
-
         if scaler:
-            scaler.fit(X)
+            try:
+                check_is_fitted(scaler)
+                scaler.transform(X)
+            except NotFittedError:
+                scaler.fit(X)
 
         for X1 in self.ds_X:
             X1 = scaler.transform(X1)
 
-        logger.info("Start plotting.")
-        self.plotter.create_plots(ds_X=self.ds_X, ds_y=self.ds_y, data=self.datasets)
-        logger.info(f"End plotting.")
+        for y1 in self.ds_y:
+            y1[y1 != 0] = 1
+        y = self.ds_y[0]
+
+        if self.plotting:
+            logger.info("Start plotting.")
+            self.plotter.create_plots(
+                ds_X=self.ds_X, ds_y=self.ds_y, data=self.datasets
+            )
+            logger.info(f"End plotting.")
 
         # Clean column names
-        self.columns = [self._clean_column_name(col) for col in self.ds_X[0]]
-
+        self.columns = [
+            self._clean_column_name(col)
+            for col in self.datasets[0].data.to_pandas().columns
+        ]
         # Create and save feature mapping
         self.feature_mapping = self._create_feature_mapping(self.columns)
-
         # Store column names
-        self.feature_columns = self.ds_X[0]
+        self.feature_columns = self.datasets[0].data.to_pandas().columns.tolist()
         self.feature_columns.remove("class")
         logger.info(f"Columns: {self.feature_columns}.")
 
@@ -107,12 +125,6 @@ class Pipeline:
             X, y, train_size=0.1, stratify=y, random_state=SEED
         )
         logger.info(X.shape)
-
-        y[y != 0] = 1
-
-        # Change all ds_y types.
-        for y1 in self.ds_y:
-            y1[y1 != 0] = 1
 
         self.x_train, self.x_val, self.x_test, self.y_train, self.y_val, self.y_test = (
             self.train_test_val_split(X=X, Y=y)
@@ -128,6 +140,30 @@ class Pipeline:
                 self.model = LightGBMModel()
             case _:
                 raise NotImplementedError(f"Model not implemented!")
+
+    def _load_npy(
+        self, ds_name: str, output_path: str = f"./{RESULT_FOLDER}/data"
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if os.path.exists(
+            os.path.join(output_path, ds_name, "X.npy")
+        ) and os.path.exists(os.path.join(output_path, ds_name, "y.npy")):
+            X = np.load(os.path.join(output_path, ds_name, "X.npy"))
+            y = np.load(os.path.join(output_path, ds_name, "y.npy"))
+            return X, y
+        else:
+            logger.warning(f"Data for {ds_name} not loaded yet.")
+            raise FileNotFoundError("Data does not exist")
+
+    def _save_npy(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        ds_name: str,
+        output_path: str = f"./{RESULT_FOLDER}/data",
+    ) -> None:
+        os.makedirs(os.path.join(output_path, ds_name), exist_ok=True)
+        np.save(os.path.join(output_path, ds_name, "X.npy"), X)
+        np.save(os.path.join(output_path, ds_name, "y.npy"), y)
 
     def _label_encoder(
         self, labels: list[str], legit_label: str = "legit"
@@ -241,7 +277,7 @@ class Pipeline:
 
         return X_train, X_val, X_test, Y_train, Y_val, Y_test
 
-    def fit(self):
+    def hyperparam_fit(self):
         """Fits models to training data.
 
         Args:
@@ -258,15 +294,15 @@ class Pipeline:
 
         logger.info(f"Number of finished trials: {len(study.trials)}")
         logger.info("Best trial:")
-        trial = study.best_trial
+        self.trial = study.best_trial
 
-        logger.info(f"  Value: {trial.value}")
+        logger.info(f"  Value: {self.trial.value}")
         logger.info(f"  Params: ")
-        for key, value in trial.params.items():
+        for key, value in self.trial.params.items():
             logger.info(f"    {key}: {value}")
 
         self.model.train(
-            trial=trial,
+            trial=self.trial,
             output_path=self.model_output_path,
             X=self.x_train,
             y=self.y_train,
@@ -331,35 +367,47 @@ class Model(metaclass=ABCMeta):
 
         self.X = None
         self.y = None
+        self.clf = None
 
-    def sha256sum(self, file_path: str) -> str:
-        """Return a SHA265 sum check to validate the model.
+    def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
+        """
+        Custom FDR metric to evaluate the performance of the Random Forest model.
 
         Args:
-            file_path (str): File path of model.
+            y_true (np.ndarray): The true labels.
+            y_pred (np.ndarray): The predicted labels.
 
         Returns:
-            str: SHA256 sum
+            float: The False Discovery Rate (FDR).
         """
-        h = hashlib.sha256()
+        # False Positives (FP): cases where the model predicted 1 but the actual label is 0
+        FP = np.sum((y_pred == 1) & (y_true == 0))
 
-        with open(file_path, "rb") as file:
-            while True:
-                # Reading is buffered, so we can read smaller chunks.
-                chunk = file.read(h.block_size)
-                if not chunk:
-                    break
-                h.update(chunk)
+        # True Positives (TP): cases where the model correctly predicted 1
+        TP = np.sum((y_pred == 1) & (y_true == 1))
 
-        return h.hexdigest()
+        # Compute FDR, avoiding division by zero
+        if FP + TP == 0:
+            fdr = 0.0
+        else:
+            fdr = FP / (FP + TP)
+
+        return fdr
 
     @abstractmethod
     def objective(self, trial):
         pass
 
-    @abstractmethod
     def predict(self, X: np.ndarray):
-        pass
+        """Predicts given X.
+
+        Args:
+            x (np.array): X data
+
+        Returns:
+            np.array: Model output.
+        """
+        return self.clf.predict(X)
 
     @abstractmethod
     def train(self, trial, X: np.ndarray, y: np.ndarray, output_path: str):
@@ -481,17 +529,6 @@ class XGBoostModel(Model):
         best_fdr = xgb_cv_results["test-auc-mean"].values[-1]
         return best_fdr
 
-    def predict(self, X: np.ndarray):
-        """Predicts given X.
-
-        Args:
-            x (np.array): X data
-
-        Returns:
-            np.array: Model output.
-        """
-        return self.clf.predict(X)
-
     def train(self, trial, X: np.ndarray, y: np.ndarray, output_path: str):
         """
         Trains the XGBoost model and saves the trained model to a file.
@@ -518,48 +555,11 @@ class XGBoostModel(Model):
         )
         self.clf.fit(X, y)
 
-        logger.info("Save trained model to a file.")
-        with open(
-            os.path.join(tempfile.gettempdir(), f"xg_{trial.number}.pickle"), "wb"
-        ) as fout:
-            pickle.dump(self.clf, fout)
-
-        sha256sum = self.sha256sum(
-            os.path.join(tempfile.gettempdir(), f"xg_{trial.number}.pickle")
-        )
-        with open(os.path.join(output_path, f"xg_{sha256sum}.pickle"), "wb") as fout:
-            pickle.dump(self.clf, fout)
-
 
 class RandomForestModel(Model):
     def __init__(self) -> None:
         super().__init__()
         self.model_name = "rf"
-
-    def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
-        """
-        Custom FDR metric to evaluate the performance of the Random Forest model.
-
-        Args:
-            y_true (np.ndarray): The true labels.
-            y_pred (np.ndarray): The predicted labels.
-
-        Returns:
-            float: The False Discovery Rate (FDR).
-        """
-        # False Positives (FP): cases where the model predicted 1 but the actual label is 0
-        FP = np.sum((y_pred == 1) & (y_true == 0))
-
-        # True Positives (TP): cases where the model correctly predicted 1
-        TP = np.sum((y_pred == 1) & (y_true == 1))
-
-        # Compute FDR, avoiding division by zero
-        if FP + TP == 0:
-            fdr = 0.0
-        else:
-            fdr = FP / (FP + TP)
-
-        return fdr
 
     def objective(self, trial):
         """
@@ -610,17 +610,6 @@ class RandomForestModel(Model):
         fdr = score.mean()
         return fdr
 
-    def predict(self, X: np.ndarray):
-        """Predicts given X.
-
-        Args:
-            x (np.array): X data
-
-        Returns:
-            np.array: Model output.
-        """
-        return self.clf.predict(X)
-
     def train(self, trial, X: np.ndarray, y: np.ndarray, output_path: str):
         """
         Trains the Random Forest model and saves the trained model to a file.
@@ -635,48 +624,11 @@ class RandomForestModel(Model):
         self.clf = RandomForestClassifier(**trial.params)
         self.clf.fit(X, y, sample_weight=classes_weights)
 
-        logger.info("Save trained model to a file.")
-        with open(
-            os.path.join(tempfile.gettempdir(), f"rf_{trial.number}.pickle"), "wb"
-        ) as fout:
-            pickle.dump(self.clf, fout)
-
-        sha256sum = self.sha256sum(
-            os.path.join(tempfile.gettempdir(), f"rf_{trial.number}.pickle")
-        )
-        with open(os.path.join(output_path, f"rf_{sha256sum}.pickle"), "wb") as fout:
-            pickle.dump(self.clf, fout)
-
 
 class LightGBMModel(Model):
     def __init__(self) -> None:
         super().__init__()
         self.model_name = "gbm"
-
-    def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
-        """
-        Custom FDR metric to evaluate the performance of the Random Forest model.
-
-        Args:
-            y_true (np.ndarray): The true labels.
-            y_pred (np.ndarray): The predicted labels.
-
-        Returns:
-            float: The False Discovery Rate (FDR).
-        """
-        # False Positives (FP): cases where the model predicted 1 but the actual label is 0
-        FP = np.sum((y_pred == 1) & (y_true == 0))
-
-        # True Positives (TP): cases where the model correctly predicted 1
-        TP = np.sum((y_pred == 1) & (y_true == 1))
-
-        # Compute FDR, avoiding division by zero
-        if FP + TP == 0:
-            fdr = 0.0
-        else:
-            fdr = FP / (FP + TP)
-
-        return fdr
 
     def objective(self, trial):
         """
@@ -730,17 +682,6 @@ class LightGBMModel(Model):
         fdr = score.mean()
         return fdr
 
-    def predict(self, X: np.ndarray):
-        """Predicts given X.
-
-        Args:
-            X (np.array): X data
-
-        Returns:
-            np.array: Model output.
-        """
-        return self.clf.predict(X)
-
     def train(self, trial, X: np.ndarray, y: np.ndarray, output_path: str):
         """
         Trains the Random Forest model and saves the trained model to a file.
@@ -756,15 +697,3 @@ class LightGBMModel(Model):
         self.clf = lgb.LGBMClassifier(**trial.params)
 
         self.clf.fit(X, y, sample_weight=classes_weights)
-
-        logger.info("Save trained model to a file.")
-        with open(
-            os.path.join(tempfile.gettempdir(), f"rf_{trial.number}.pickle"), "wb"
-        ) as fout:
-            pickle.dump(self.clf, fout)
-
-        sha256sum = self.sha256sum(
-            os.path.join(tempfile.gettempdir(), f"rf_{trial.number}.pickle")
-        )
-        with open(os.path.join(output_path, f"rf_{sha256sum}.pickle"), "wb") as fout:
-            pickle.dump(self.clf, fout)
