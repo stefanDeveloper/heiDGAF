@@ -5,6 +5,7 @@ import re
 import sys
 import os
 import tempfile
+from matplotlib import pyplot as plt
 import sklearn.model_selection
 from sklearn.metrics import make_scorer
 import xgboost as xgb
@@ -22,7 +23,7 @@ sys.path.append(os.getcwd())
 from src.train.feature import Processor
 from src.base.log_config import get_logger
 from src.train.dataset import Dataset
-from src.train.explainer import PC, Explainer
+from src.train.explainer import Plotter, Explainer
 from src.train import RESULT_FOLDER, SEED
 
 logger = get_logger("train.model")
@@ -59,7 +60,7 @@ class Pipeline:
             ]
         )
         self.datasets = datasets
-        self.pc = PC()
+        self.plotter = Plotter()
         self.explainer = Explainer()
         self.scaler = scaler
         self.model_output_path = model_output_path
@@ -72,7 +73,6 @@ class Pipeline:
             X = data.drop("class").to_numpy()
             encoded, _, _ = self._label_encoder(data["class"].to_list())
             y = np.asarray(encoded).reshape(-1)
-
             self.ds_X.append(X)
             self.ds_y.append(y)
         logger.info(f"End data set transformation with shape {data.shape}.")
@@ -86,33 +86,20 @@ class Pipeline:
         for X1 in self.ds_X:
             X1 = scaler.transform(X1)
 
+        logger.info("Start plotting.")
+        self.plotter.create_plots(ds_X=self.ds_X, ds_y=self.ds_y, data=self.datasets)
+        logger.info(f"End plotting.")
+
         # Clean column names
-        self.columns = [self._clean_column_name(col) for col in data.columns]
+        self.columns = [self._clean_column_name(col) for col in self.ds_X[0]]
 
         # Create and save feature mapping
         self.feature_mapping = self._create_feature_mapping(self.columns)
 
         # Store column names
-        self.feature_columns = data.columns
+        self.feature_columns = self.ds_X[0]
         self.feature_columns.remove("class")
         logger.info(f"Columns: {self.feature_columns}.")
-
-        # df_data = data.to_pandas()
-        # # Assuming your data is in a DataFrame called 'df' with a 'condition' column
-        # condition1_data = df_data[df_data["class"] == 1]
-        # condition2_data = df_data[df_data["class"] == 0]
-
-        # List of measurements (you can use all or a subset)
-        # measurements = df_data.columns.tolist()[
-        #     1:
-        # ]  # [1:] to drop the condition column in the beginning
-        # self.pc.analyse_data(
-        #     data_condition1=condition1_data,
-        #     data_condition2=condition2_data,
-        #     measurements=measurements,
-        #     condition1_name="Benign",
-        #     condition2_name="Malicious",
-        # )
 
         # lower data
         logger.info(X.shape)
@@ -126,23 +113,19 @@ class Pipeline:
         # Change all ds_y types.
         for y1 in self.ds_y:
             y1[y1 != 0] = 1
-        logger.info(y)
-
-        # self.pc.create_plots(ds_X=self.ds_X, ds_y=self.ds_y, data=self.datasets)
 
         self.x_train, self.x_val, self.x_test, self.y_train, self.y_val, self.y_test = (
             self.train_test_val_split(X=X, Y=y)
         )
         logger.info(f"Final data size for training {self.x_train.shape}")
 
-        objective = Objective(X=self.x_train, y=self.y_train)
         match model:
             case "rf":
-                self.model = RandomForestModel(objective)
+                self.model = RandomForestModel()
             case "xg":
-                self.model = XGBoostModel(objective)
+                self.model = XGBoostModel()
             case "gbm":
-                self.model = LightGBMModel(objective)
+                self.model = LightGBMModel()
             case _:
                 raise NotImplementedError(f"Model not implemented!")
 
@@ -268,8 +251,10 @@ class Pipeline:
         if not os.path.exists(CV_RESULT_DIR):
             os.mkdir(CV_RESULT_DIR)
 
-        study = optuna.create_study(direction="minimize")
-        study.optimize(self.model.objective, n_trials=1, timeout=600)
+        self.model.X = self.x_train
+        self.model.y = self.y_train
+        study = optuna.create_study(direction="maximize")
+        study.optimize(self.model.objective, n_trials=10, timeout=600)
 
         logger.info(f"Number of finished trials: {len(study.trials)}")
         logger.info("Best trial:")
@@ -305,21 +290,21 @@ class Pipeline:
             x (np.array): X data
             y (np.array): Y data
         """
-        self.explainer.interpret_model(
-            self.model.clf,
-            x,
-            y,
-            self.feature_columns,
-            self.model.model_name,
-            self.scaler,
-        )
-
-
-class Objective(object):
-    def __init__(self, X, y):
-        # Hold this implementation specific arguments as the fields of the class.
-        self.y = y
-        self.X = X
+        if isinstance(self.model.clf, xgb.XGBClassifier) or isinstance(
+            self.model.clf, RandomForestClassifier
+        ):
+            self.explainer.interpret_model(
+                self.model.clf,
+                x,
+                y,
+                self.feature_columns,
+                self.model.model_name,
+                self.scaler,
+            )
+        else:
+            logger.warning(
+                f"Model of instance {type(self.model.clf)} is not supported!"
+            )
 
 
 class Model(metaclass=ABCMeta):
@@ -343,6 +328,9 @@ class Model(metaclass=ABCMeta):
             self.device = "gpu"
         else:
             self.device = "cpu"
+
+        self.X = None
+        self.y = None
 
     def sha256sum(self, file_path: str) -> str:
         """Return a SHA265 sum check to validate the model.
@@ -379,10 +367,9 @@ class Model(metaclass=ABCMeta):
 
 
 class XGBoostModel(Model):
-    def __init__(self, objective: Objective) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.model_name = "xgboost"
-        self.obj = objective
 
     def fdr_metric(self, preds: np.ndarray, dtrain: xgb.DMatrix) -> tuple[str, float]:
         """
@@ -427,11 +414,11 @@ class XGBoostModel(Model):
         Returns:
             float: The best FDR value after cross-validation.
         """
-        neg = np.sum(self.obj.y == 0)
-        pos = np.sum(self.obj.y == 1)
+        neg = np.sum(self.y == 0)
+        pos = np.sum(self.y == 1)
         scale_pos_weight = neg / pos
 
-        dtrain = xgb.DMatrix(self.obj.X, label=self.obj.y)
+        dtrain = xgb.DMatrix(self.X, label=self.y)
 
         param = {
             "verbosity": 0,
@@ -479,7 +466,7 @@ class XGBoostModel(Model):
             early_stopping_rounds=100,
             seed=SEED,
             verbose_eval=False,
-            metrics="logloss",
+            metrics="roc_auc",
             # custom_metric=self.fdr_metric,
         )
 
@@ -545,10 +532,9 @@ class XGBoostModel(Model):
 
 
 class RandomForestModel(Model):
-    def __init__(self, objective: Objective) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.model_name = "rf"
-        self.obj = objective
 
     def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
         """
@@ -585,8 +571,8 @@ class RandomForestModel(Model):
         Returns:
             float: The best FDR value after cross-validation.
         """
-        neg = np.sum(self.obj.y == 0)
-        pos = np.sum(self.obj.y == 1)
+        neg = np.sum(self.y == 0)
+        pos = np.sum(self.y == 1)
         total = pos + neg
 
         class_weights = {0: total / (2 * neg), 1: total / (2 * pos)}
@@ -614,11 +600,11 @@ class RandomForestModel(Model):
 
         score = cross_val_score(
             classifier_obj,
-            self.obj.X,
-            self.obj.y,
+            self.X,
+            self.y,
             n_jobs=-1,
             cv=N_FOLDS,
-            scoring="neg_log_loss",
+            scoring="roc_auc",
             # scoring=fdr_scorer,
         )
         fdr = score.mean()
@@ -663,10 +649,9 @@ class RandomForestModel(Model):
 
 
 class LightGBMModel(Model):
-    def __init__(self, objective: Objective) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.model_name = "gbm"
-        self.obj = objective
 
     def fdr_metric(self, y_true: np.ndarray, y_pred: np.ndarray):
         """
@@ -703,15 +688,15 @@ class LightGBMModel(Model):
         Returns:
             float: The best FDR value after cross-validation.
         """
-        neg = np.sum(self.obj.y == 0)
-        pos = np.sum(self.obj.y == 1)
+        neg = np.sum(self.y == 0)
+        pos = np.sum(self.y == 1)
         scale_pos_weight = neg / pos
 
         # Define hyperparameters to optimize
         param = {
             "objective": "binary",
             "verbosity": -1,
-            "metric": "binary_logloss",
+            "metric": "auc",
             "boosting_type": "gbdt",
             "device": self.device,
             "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.2, log=True),
@@ -735,11 +720,11 @@ class LightGBMModel(Model):
 
         score = cross_val_score(
             classifier_obj,
-            self.obj.X,
-            self.obj.y,
+            self.X,
+            self.y,
             n_jobs=-1,
             cv=N_FOLDS,
-            scoring="neg_log_loss",
+            scoring="roc_auc",
             # scoring=fdr_scorer,
         )
         fdr = score.mean()

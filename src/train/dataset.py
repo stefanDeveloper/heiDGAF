@@ -3,6 +3,7 @@ import os
 from dataclasses import dataclass
 from typing import Callable, List
 
+from matplotlib import pyplot as plt
 import polars as pl
 from torch.utils.data.dataset import Dataset
 
@@ -348,7 +349,7 @@ class DatasetLoader:
                     name=f"dgarchive_{dgarchive_file.split('.')[0]}",
                     data_path=f"{self.base_path}/dgarchive/{dgarchive_file}",
                     cast_dataset=cast_dgarchive,
-                    max_rows=10000,  # self.max_rows,
+                    max_rows=self.max_rows,
                 )
             )
         return self.dgarchive_data
@@ -380,6 +381,7 @@ class Dataset:
             NotImplementedError: _description_
         """
         self.name = name
+        self.data_path = data_path
         if cast_dataset != None and data_path != "":
             logger.info("Cast function provided, load data set.")
             self.data = cast_dataset(data_path, max_rows)

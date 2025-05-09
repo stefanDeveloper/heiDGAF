@@ -22,17 +22,17 @@ from src.train.dataset import Dataset
 logger = get_logger("train.explainer")
 
 
-class PC:
+class Plotter:
     def __init__(self, output_path: str = f"./{RESULT_FOLDER}"):
         """
-        Initialize the PC class for PCA visualization.
+        Initialize the Plotter class for PCA visualization.
 
         Args:
             output_path (str): Path to save the figures. Defaults to './results'.
         """
         self.output_path = output_path
 
-    def pca_2d(self, X: np.ndarray, y: np.ndarray, name: str) -> None:
+    def _plot_pca_2d(self, X: np.ndarray, y: np.ndarray, name: str) -> None:
         """
         Perform PCA and plot the first two principal components in 2D.
 
@@ -69,9 +69,10 @@ class PC:
             )
         plt.xlabel("First principal component")
         plt.ylabel("Second Principal Component")
-        plt.savefig(os.path.join(self.output_path, f"pca_2d_{name}.pdf"))
+        output_path = os.path.join(self.output_path, name)
+        plt.savefig(os.path.join(output_path, f"pca_2d.pdf"))
 
-    def pca_3d(self, X: np.ndarray, y: np.ndarray, name: str) -> None:
+    def _plot_pca_3d(self, X: np.ndarray, y: np.ndarray, name: str) -> None:
         """
         Perform PCA and plot the first three principal components in 3D.
 
@@ -118,9 +119,10 @@ class PC:
         ax.set_zlabel("Third Principal Component", fontsize=14)
 
         ax.legend()
-        plt.savefig(os.path.join(self.output_path, f"pca_3d_{name}.pdf"))
+        output_path = os.path.join(self.output_path, name)
+        plt.savefig(os.path.join(output_path, f"pca_3d.pdf"))
 
-    def plot_tsne(
+    def _plot_tsne(
         self,
         X: np.ndarray,
         y: np.ndarray,
@@ -142,15 +144,45 @@ class PC:
         plt.title(title)
         plt.xlabel("t-SNE Component 1")
         plt.ylabel("t-SNE Component 2")
-        plt.xticks([])  # Remove x-axis numbers
-        plt.yticks([])  # Remove y-axis numbers
+        plt.xticks([])
+        plt.yticks([])
         plt.grid(False)
         plt.legend()
         plt.tight_layout()
         plt.show()
-        plt.savefig(os.path.join(self.output_path, f"tsne_{ds_name}.pdf"))
+        output_path = os.path.join(self.output_path, name)
+        plt.savefig(os.path.join(output_path, f"tsne.pdf"))
 
-    def remove_feature(
+    def _plot_label_distribution(self, data: pl.DataFrame, name: str) -> None:
+        """Plots label distribution.
+
+        Args:
+            data (pl.DataFrame): DataFrame with all features.
+        """
+        label_counts = data["class"].value_counts()
+        logger.info(label_counts)
+        label_distribution = dict(zip(label_counts["class"], label_counts["count"]))
+        logger.info(label_distribution)
+
+        # Plot using matplotlib
+        labels = list(label_distribution.keys())
+        counts = list(label_distribution.values())
+
+        plt.figure(figsize=(6, 4))
+        plt.bar(labels, counts, color=["skyblue", "salmon"])
+        plt.xlabel("Label", labelpad=30)
+        plt.ylabel("Count")
+        plt.yscale("log")
+        plt.title("Label Distribution")
+        plt.xticks(rotation=90, ha="center")
+        plt.grid(axis="y", linestyle="--", alpha=0.6)
+        plt.tight_layout()
+        plt.show()
+
+        output_path = os.path.join(self.output_path, name)
+        plt.savefig(os.path.join(output_path, f"label_distribution.pdf"))
+
+    def _remove_feature(
         self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA, name: str
     ) -> None:
         """
@@ -188,36 +220,67 @@ class PC:
             if "heicloud" in ds.name:
                 tsne_x = X
                 tsne_y = y
+
         for X, y, ds in zip(ds_X, ds_y, data):
             if "dgarchive" in ds.name:
-                self.plot_tsne(
+                self._plot_tsne(
                     np.concatenate((X, tsne_x), axis=0),
                     np.concatenate((y, tsne_y), axis=0),
                     ds_name=ds.name,
                 )
 
         for X, y, ds in zip(ds_X, ds_y, data):
-            self.pca_2d(X=X, y=y, name=ds.name)
-            self.pca_3d(X=X, y=y, name=ds.name)
+            self._plot_pca_2d(X=X, y=y, name=ds.name)
+            self._plot_pca_3d(X=X, y=y, name=ds.name)
             # Show the principal components
             pca = PCA().fit(X)
             logger.info("Principal components:")
             logger.info(pca.components_)
             # Remove PC1
-            self.remove_feature(0, X, y, pca, name=ds.name)
+            self._remove_feature(0, X, y, pca, name=ds.name)
             # Remove PC2
-            self.remove_feature(1, X, y, pca, name=ds.name)
+            self._remove_feature(1, X, y, pca, name=ds.name)
             # Remove PC3
-            self.remove_feature(2, X, y, pca, name=ds.name)
+            self._remove_feature(2, X, y, pca, name=ds.name)
             # print the explained variance ratio
             logger.info("Explainedd variance ratios:")
             logger.info(pca.explained_variance_ratio_)
 
-    def analyse_data(
+            if not "dgarchive" in ds.name:
+                self._plot_label_distribution(data, name=ds.name)
+
+            # df_data = data.to_pandas()
+            # # Assuming your data is in a DataFrame called 'df' with a 'condition' column
+            # condition1_data = df_data[df_data["class"] == 1]
+            # condition2_data = df_data[df_data["class"] == 0]
+
+            # # List of measurements (you can use all or a subset)
+            # measurements = df_data.columns.tolist()[
+            #     1:
+            # ]  # [1:] to drop the condition column in the beginning
+            # self._plot_data_distribution(
+            #     data_condition1=condition1_data,
+            #     data_condition2=condition2_data,
+            #     measurements=measurements,
+            #     condition1_name="Benign",
+            #     condition2_name="Malicious",
+            #     name=ds.name
+            # )
+
+        # Plot label distribution from DGArchive
+        df_dgarchive_list = []
+        for X, y, ds in zip(ds_X, ds_y, data):
+            if "dgarchive" in ds.name:
+                df_dgarchive_list.append(data)
+        df_dgarchive = pl.concat(df_dgarchive_list)
+        self._plot_label_distribution(df_dgarchive, name="dgarchive")
+
+    def _plot_data_distribution(
         self,
         data_condition1,
         data_condition2,
         measurements,
+        name,
         condition1_name="Condition 1",
         condition2_name="Condition 2",
         exclude_outliers=True,
@@ -352,8 +415,8 @@ class PC:
         fig_hist.tight_layout()
         fig_hist.subplots_adjust(hspace=0.4, wspace=0.3)
 
-        density_plot_path = os.path.join(self.output_path, "density_plots.pdf")
-        hist_plot_path = os.path.join(self.output_path, "histogram_plots.pdf")
+        density_plot_path = os.path.join(self.output_path, name, "density_plots.pdf")
+        hist_plot_path = os.path.join(self.output_path, name, "histogram_plots.pdf")
         fig_density.savefig(density_plot_path, dpi=300)
         fig_hist.savefig(hist_plot_path, dpi=300)
         logger.info(f"Density plots saved to: {density_plot_path}")
