@@ -170,15 +170,13 @@ class Plotter:
             data (pl.DataFrame): DataFrame with all features.
         """
         label_counts = data["class"].value_counts()
-        logger.info(label_counts)
         label_distribution = dict(zip(label_counts["class"], label_counts["count"]))
-        logger.info(label_distribution)
 
         # Plot using matplotlib
         labels = list(label_distribution.keys())
         counts = list(label_distribution.values())
 
-        plt.figure(figsize=(6, 4))
+        plt.figure(figsize=(18, 9))
         plt.bar(labels, counts, color=["skyblue", "salmon"])
         plt.xlabel("Label", labelpad=30)
         plt.ylabel("Count")
@@ -301,7 +299,7 @@ class Plotter:
         df_dgarchive_list = []
         for X, y, ds in zip(ds_X, ds_y, data):
             if "dgarchive" in ds.name:
-                df_dgarchive_list.append(data)
+                df_dgarchive_list.append(ds.data)
         df_dgarchive = pl.concat(df_dgarchive_list)
         self._plot_label_distribution(df_dgarchive, name="dgarchive")
 
