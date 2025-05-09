@@ -122,7 +122,7 @@ class Pipeline:
         # lower data
         logger.info(X.shape)
         X, _, y, _ = train_test_split(
-            X, y, train_size=0.1, stratify=y, random_state=SEED
+            X, y, train_size=0.25, stratify=y, random_state=SEED
         )
         logger.info(X.shape)
 
