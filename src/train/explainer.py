@@ -224,7 +224,7 @@ class Plotter:
         plt.savefig(os.path.join(output_path, f"pca_pc{component + 1}.pdf"))
         plt.close()
 
-    def create_plots(
+    def create_plots_binary(
         self, ds_X: list[np.ndarray], ds_y: list[np.ndarray], data: list[Dataset]
     ) -> None:
         """
@@ -250,7 +250,6 @@ class Plotter:
 
         for X, y, ds in zip(ds_X, ds_y, data):
             if not "dgarchive" in ds.name:
-                print(X)
                 logger.info(f"Plot data for {ds.name}")
                 self._plot_pca_2d(X=X, y=y, name=ds.name)
                 self._plot_pca_3d(X=X, y=y, name=ds.name)
@@ -289,6 +288,16 @@ class Plotter:
             #     name=ds.name
             # )
 
+    def create_plots_multiclass(
+        self, ds_X: list[np.ndarray], ds_y: list[np.ndarray], data: list[Dataset]
+    ) -> None:
+        """Create Plots for multiclass.
+
+        Args:
+            ds_X (list[np.ndarray]): X
+            ds_y (list[np.ndarray]): y
+            data (list[Dataset]): pl.DataFrame
+        """
         # Plot label distribution from DGArchive
         df_dgarchive_list = []
         for X, y, ds in zip(ds_X, ds_y, data):
@@ -517,9 +526,8 @@ class Explainer:
         x_test: np.ndarray,
         y_test: np.ndarray,
         df_cols: list[str],
-        model_name: str,
         scaler=None,
-    ) -> None:
+    ) -> list[str]:
         """
         Interpret a trained model by extracting decision rules and optionally rescaling them.
 
@@ -531,9 +539,7 @@ class Explainer:
             model_name (str): Name used for saving output files.
             scaler (optional): Scaler used in preprocessing, e.g., StandardScaler. Defaults to None.
         """
-        save_path = os.path.join(self.output_path, model_name)
-        os.makedirs(save_path, exist_ok=True)
-
+        print(df_cols)
         # Create TE2RULES explainer
         explainer = ModelExplainer(model, feature_names=df_cols)
 
@@ -544,8 +550,4 @@ class Explainer:
         if scaler is not None:
             rules = [self.__rescale_rule(rule, scaler, df_cols) for rule in rules]
 
-        # Save rules to file
-        with open(os.path.join(save_path, "rules.txt"), "w") as f:
-            f.write("Extracted Rules:\n\n")
-            for i, rule in enumerate(rules, 1):
-                f.write(f"Rule {i}: {rule}\n")
+        return rules

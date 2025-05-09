@@ -56,7 +56,6 @@ class DetectorTraining:
         self,
         model_name: ModelEnum.RANDOM_FOREST_CLASSIFIER,
         model_output_path: str = f"./{RESULT_FOLDER}/model",
-        model_path: str = None,
         dataset: DatasetEnum = DatasetEnum.ALL,
         data_base_path: str = "./data",
         max_rows: int = -1,
@@ -75,7 +74,23 @@ class DetectorTraining:
         """
         logger.info("Get DatasetLoader.")
         self.dataset_loader = DatasetLoader(base_path=data_base_path, max_rows=max_rows)
-        self.model_output_path = model_output_path
+        try:
+            model_checksum = self._sha256sum(
+                os.path.join(model_output_path, f"{model_name}.pickle")
+            )
+            if model_checksum in model_output_path:
+                self.model_checksum = model_checksum
+                self.model_output_path = model_output_path
+                self.model_output_path = self.model_output_path.replace(
+                    self.model_checksum, ""
+                )
+                self.model_output_path = self.model_output_path.replace(model_name, "")
+                self.model_output_path = self.model_output_path.replace("//", "/")
+        except:
+            logger.warning("Model not found, training starts!")
+            self.model_output_path = model_output_path
+
+        logger.info(self.model_output_path)
         self.dataset = []
         match dataset:
             case "combine":
@@ -95,9 +110,6 @@ class DetectorTraining:
                 raise NotImplementedError(f"Dataset not implemented!")
         logger.info(f"Set up Pipeline.")
         self.model_name = model_name
-        self.model_path = model_path
-        if model_path:
-            self.model_checksum = self.model_path.split("/")[-1]
         self.scaler = self._load_scaler()
         self.model_pipeline = Pipeline(
             model=self.model_name,
@@ -108,9 +120,19 @@ class DetectorTraining:
         self._load_model()
 
     def explain(self):
-        self.model_pipeline.explain(
+        rules = self.model_pipeline.explain(
             self.model_pipeline.x_val, self.model_pipeline.y_val
         )
+        save_path = os.path.join(
+            self.model_output_path, self.model_name, self.model_checksum
+        )
+        os.makedirs(save_path, exist_ok=True)
+
+        # Save rules to file
+        with open(os.path.join(save_path, "rules.txt"), "w") as f:
+            f.write("Extracted Rules:\n\n")
+            for i, rule in enumerate(rules, 1):
+                f.write(f"Rule {i}: {rule}\n")
 
     def test(self):
         for X, y, ds in zip(
@@ -132,22 +154,31 @@ class DetectorTraining:
                 i for i, (true, pred) in enumerate(zip(y, y_pred)) if true != pred
             ]
             mispredictions = []
+            false_pred = []
             # Print or log the mispredicted data points
             for idx in mispredicted_indices:
                 error = dict()
                 error["y"] = str(y[idx])
                 error["y_pred"] = str(y_pred[idx])
-                error["query"] = str(ds.data[idx].get_column("query").to_list()[0])
+                query = str(ds.data[idx].get_column("query").to_list()[0])
+                error["query"] = query
+                false_pred.append(query)
                 mispredictions.append(error)
 
-            model_path = os.path.join(self.model_path, self.model_checksum)
+            # Get matching rows
+            matching_rows = ds.data[ds.data["query"].isin(false_pred)]
+            logger.info(matching_rows["class"].unique())
+
+            model_path = os.path.join(
+                self.model_output_path, self.model_name, self.model_checksum
+            )
             os.makedirs(model_path, exist_ok=True)
 
             if len(mispredictions) > 0:
-                with open(f"errors_{self.model_name}_{ds.name}.json", "w") as f:
+                with open(os.path.join(model_path, f"errors_{ds.name}.json"), "w") as f:
                     f.write(json.dumps(mispredictions) + "\n")
 
-            with open(f"results_{self.model_name}.json", "a+") as f:
+            with open(os.path.join(model_path, f"results.json"), "a+") as f:
                 results = dict()
                 results["ds"] = ds.name
                 results["results"] = report
@@ -167,10 +198,10 @@ class DetectorTraining:
         logger.info("Fit model.")
         self.model_pipeline.hyperparam_fit()
 
-        logger.info("Save scaler")
-        self._save_scaler()
         logger.info("Save model")
         self._save_model()
+        logger.info("Save scaler")
+        self._save_scaler()
 
         logger.info("Validate test set")
         y_pred = self.model_pipeline.predict(self.model_pipeline.x_test)
@@ -187,12 +218,17 @@ class DetectorTraining:
 
     def _load_model(self):
         try:
-            model_path = os.path.join(self.model_path, f"{self.model_name}.pickle")
+            model_path = os.path.join(
+                self.model_output_path,
+                self.model_name,
+                self.model_checksum,
+                f"{self.model_name}.pickle",
+            )
             with open(model_path, "rb") as input_file:
                 self.model_pipeline.model.clf = pickle.load(input_file)
         except:
             logger.warning(
-                f"Model could not be loaded. Model path is '{self.model_path}' or path incorrect."
+                f"Model could not be loaded. Model path is '{self.model_output_path}' or path incorrect."
             )
 
     def _save_model(self):
@@ -205,25 +241,32 @@ class DetectorTraining:
         ) as fout:
             pickle.dump(self.model_pipeline.model.clf, fout)
 
-        self.model_checksum = self.sha256sum(
+        self.model_checksum = self._sha256sum(
             os.path.join(
                 tempfile.gettempdir(), f"rf_{self.model_pipeline.trial.number}.pickle"
             )
         )
-        model_path = os.path.join(self.model_path, self.model_checksum)
+        model_path = os.path.join(
+            self.model_output_path, self.model_name, self.model_checksum
+        )
         os.makedirs(model_path, exist_ok=True)
         with open(os.path.join(model_path, f"{self.model_name}.pickle"), "wb") as fout:
             pickle.dump(self.model_pipeline.model.clf, fout)
 
     def _load_scaler(self):
         try:
-            scaler_path = os.path.join(self.model_path, "scaler.pickle")
+            scaler_path = os.path.join(
+                self.model_output_path,
+                self.model_name,
+                self.model_checksum,
+                "scaler.pickle",
+            )
             scaler = joblib.load(scaler_path)
             logger.info("Scaler loaded successfully.")
             return scaler
         except:
             logger.warning(
-                f"Scaler file not found. Model path is '{self.model_path}' or path incorrect."
+                f"Scaler file not found. Model path is '{self.model_output_path}' or path incorrect."
             )
             return StandardScaler()
 
@@ -231,12 +274,14 @@ class DetectorTraining:
         """
         Save the scaler for future use.
         """
-        scaler_path = os.path.join(RESULT_FOLDER, self.model_name)
+        scaler_path = os.path.join(
+            self.model_output_path, self.model_name, self.model_checksum
+        )
         os.makedirs(scaler_path, exist_ok=True)
         with open(os.path.join(scaler_path, "scaler.pickle"), "wb") as f:
             pickle.dump(self.scaler, f)
 
-    def sha256sum(self, file_path: str) -> str:
+    def _sha256sum(self, file_path: str) -> str:
         """Return a SHA265 sum check to validate the model.
 
         Args:
@@ -298,8 +343,8 @@ def cli():
 @click.option(
     "--model_output_path",
     "model_output_path",
-    type=click.Path(exists=True),
-    default=f"./{RESULT_FOLDER}/data",
+    type=click.Path(),
+    default=f"./{RESULT_FOLDER}/model",
     help="Model output path. Stores model with {{MODEL}}_{{SHA256}}.pickle.",
 )
 def train(
@@ -344,7 +389,7 @@ def test(
         dataset=dataset,
         data_base_path=dataset_path,
         max_rows=dataset_max_rows,
-        model_path=model_path,
+        model_output_path=model_path,
         model_name=model,
     )
     trainer.test()
@@ -375,7 +420,7 @@ def explain(
         dataset=dataset,
         data_base_path=dataset_path,
         max_rows=dataset_max_rows,
-        model_path=model_path,
+        model_output_path=model_path,
         model_name=model,
     )
     trainer.explain()
