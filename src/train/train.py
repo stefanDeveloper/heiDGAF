@@ -12,11 +12,11 @@ import numpy as np
 import torch
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import StandardScaler
+import polars as pl
 
 
 sys.path.append(os.getcwd())
 from src.train.dataset import DatasetLoader
-from src.train.feature import Processor
 from src.train.model import (
     Pipeline,
 )
@@ -166,8 +166,8 @@ class DetectorTraining:
                 mispredictions.append(error)
 
             # Get matching rows
-            matching_rows = ds.data[ds.data["query"].isin(false_pred)]
-            logger.info(matching_rows["class"].unique())
+            matches = ds.data.filter(pl.col("query").is_in(false_pred))
+            unique_mispredicton_classes = matches["class"].unique().to_list()
 
             model_path = os.path.join(
                 self.model_output_path, self.model_name, self.model_checksum
@@ -175,8 +175,11 @@ class DetectorTraining:
             os.makedirs(model_path, exist_ok=True)
 
             if len(mispredictions) > 0:
+                error_report = dict()
+                error_report["classes"] = unique_mispredicton_classes
+                error_report["mispredictions"] = mispredictions
                 with open(os.path.join(model_path, f"errors_{ds.name}.json"), "w") as f:
-                    f.write(json.dumps(mispredictions) + "\n")
+                    f.write(json.dumps(error_report) + "\n")
 
             with open(os.path.join(model_path, f"results.json"), "a+") as f:
                 results = dict()
