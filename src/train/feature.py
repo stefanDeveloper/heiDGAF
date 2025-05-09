@@ -25,22 +25,6 @@ class Processor:
         """
         self.features_to_drop = features_to_drop
 
-    def entropy(self, s: str) -> float:
-        counts = Counter(s)
-        probs = [count / len(s) for count in counts.values()]
-        return -sum(p * np.log2(p) for p in probs if p > 0)
-
-    def max_seq(self, s: str, chars: str) -> int:
-        max_len = 0
-        current = 0
-        for c in s:
-            if c in chars:
-                current += 1
-                max_len = max(max_len, current)
-            else:
-                current = 0
-        return max_len
-
     def transform(self, x: pl.DataFrame) -> pl.DataFrame:
         """Transform our dataset with new features.
 
@@ -227,7 +211,6 @@ class Processor:
 
             x = x.with_columns(
                 [
-                    # - sum([ p * math.log(p) / math.log(2.0) for p in prob ])
                     (
                         pl.col("prob")
                         .list.eval(-pl.element() * pl.element().log() / t)
@@ -246,6 +229,6 @@ class Processor:
 
         logger.debug("Finished data transformation")
 
-        return x
+        logger.info("Finished data transformation")
 
-        # return np.asarray(ds_x), ds_y
+        return x
