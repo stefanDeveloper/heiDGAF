@@ -1,9 +1,12 @@
+import re
 import sys
 import os
 import math
 from string import ascii_lowercase as alc
-from typing import List
+from typing import Counter, List
+import numpy as np
 import polars as pl
+import tldextract
 
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
@@ -21,6 +24,22 @@ class Processor:
             feature_to_drop (list): List of feature to drop
         """
         self.features_to_drop = features_to_drop
+
+    def entropy(self, s: str) -> float:
+        counts = Counter(s)
+        probs = [count / len(s) for count in counts.values()]
+        return -sum(p * np.log2(p) for p in probs if p > 0)
+
+    def max_seq(self, s: str, chars: str) -> int:
+        max_len = 0
+        current = 0
+        for c in s:
+            if c in chars:
+                current += 1
+                max_len = max(max_len, current)
+            else:
+                current = 0
+        return max_len
 
     def transform(self, x: pl.DataFrame) -> pl.DataFrame:
         """Transform our dataset with new features.
@@ -105,88 +124,88 @@ class Processor:
                 ]
             )
 
-        logger.debug("Get frequency standard deviation, median, variance, and mean.")
-        x = x.with_columns(
-            [
-                (
-                    pl.concat_list([f"freq_{i}" for i in alc])
-                    .list.eval(pl.element().std())
-                    .list.get(0)
-                ).alias(f"freq_std"),
-                (
-                    pl.concat_list([f"freq_{i}" for i in alc])
-                    .list.eval(pl.element().var())
-                    .list.get(0)
-                ).alias(f"freq_var"),
-                (
-                    pl.concat_list([f"freq_{i}" for i in alc])
-                    .list.eval(pl.element().median())
-                    .list.get(0)
-                ).alias(f"freq_median"),
-                (
-                    pl.concat_list([f"freq_{i}" for i in alc])
-                    .list.eval(pl.element().mean())
-                    .list.get(0)
-                ).alias(f"freq_mean"),
-            ]
-        )
+        # logger.debug("Get frequency standard deviation, median, variance, and mean.")
+        # x = x.with_columns(
+        #     [
+        #         (
+        #             pl.concat_list([f"freq_{i}" for i in alc])
+        #             .list.eval(pl.element().std())
+        #             .list.get(0)
+        #         ).alias(f"freq_std"),
+        #         (
+        #             pl.concat_list([f"freq_{i}" for i in alc])
+        #             .list.eval(pl.element().var())
+        #             .list.get(0)
+        #         ).alias(f"freq_var"),
+        #         (
+        #             pl.concat_list([f"freq_{i}" for i in alc])
+        #             .list.eval(pl.element().median())
+        #             .list.get(0)
+        #         ).alias(f"freq_median"),
+        #         (
+        #             pl.concat_list([f"freq_{i}" for i in alc])
+        #             .list.eval(pl.element().mean())
+        #             .list.get(0)
+        #         ).alias(f"freq_mean"),
+        #     ]
+        # )
 
-        logger.debug(
-            "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
-        )
-        for level in ["thirdleveldomain", "secondleveldomain", "fqdn"]:
-            x = x.with_columns(
-                [
-                    (
-                        pl.concat_list(
-                            [
-                                f"{level}_full_count",
-                                f"{level}_alpha_count",
-                                f"{level}_numeric_count",
-                                f"{level}_special_count",
-                            ]
-                        )
-                        .list.eval(pl.element().std())
-                        .list.get(0)
-                    ).alias(f"{level}_std"),
-                    (
-                        pl.concat_list(
-                            [
-                                f"{level}_full_count",
-                                f"{level}_alpha_count",
-                                f"{level}_numeric_count",
-                                f"{level}_special_count",
-                            ]
-                        )
-                        .list.eval(pl.element().var())
-                        .list.get(0)
-                    ).alias(f"{level}_var"),
-                    (
-                        pl.concat_list(
-                            [
-                                f"{level}_full_count",
-                                f"{level}_alpha_count",
-                                f"{level}_numeric_count",
-                                f"{level}_special_count",
-                            ]
-                        )
-                        .list.eval(pl.element().median())
-                        .list.get(0)
-                    ).alias(f"{level}_median"),
-                    (
-                        pl.concat_list(
-                            [
-                                f"{level}_full_count",
-                                f"{level}_alpha_count",
-                                f"{level}_numeric_count",
-                                f"{level}_special_count",
-                            ]
-                        )
-                        .list.eval(pl.element().mean())
-                        .list.get(0)
-                    ).alias(f"{level}_mean"),
-                ]
-            )
+        # logger.debug(
+        #     "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
+        # )
+        # for level in ["thirdleveldomain", "secondleveldomain", "fqdn"]:
+        #     x = x.with_columns(
+        #         [
+        #             (
+        #                 pl.concat_list(
+        #                     [
+        #                         f"{level}_full_count",
+        #                         f"{level}_alpha_count",
+        #                         f"{level}_numeric_count",
+        #                         f"{level}_special_count",
+        #                     ]
+        #                 )
+        #                 .list.eval(pl.element().std())
+        #                 .list.get(0)
+        #             ).alias(f"{level}_std"),
+        #             (
+        #                 pl.concat_list(
+        #                     [
+        #                         f"{level}_full_count",
+        #                         f"{level}_alpha_count",
+        #                         f"{level}_numeric_count",
+        #                         f"{level}_special_count",
+        #                     ]
+        #                 )
+        #                 .list.eval(pl.element().var())
+        #                 .list.get(0)
+        #             ).alias(f"{level}_var"),
+        #             (
+        #                 pl.concat_list(
+        #                     [
+        #                         f"{level}_full_count",
+        #                         f"{level}_alpha_count",
+        #                         f"{level}_numeric_count",
+        #                         f"{level}_special_count",
+        #                     ]
+        #                 )
+        #                 .list.eval(pl.element().median())
+        #                 .list.get(0)
+        #             ).alias(f"{level}_median"),
+        #             (
+        #                 pl.concat_list(
+        #                     [
+        #                         f"{level}_full_count",
+        #                         f"{level}_alpha_count",
+        #                         f"{level}_numeric_count",
+        #                         f"{level}_special_count",
+        #                     ]
+        #                 )
+        #                 .list.eval(pl.element().mean())
+        #                 .list.get(0)
+        #             ).alias(f"{level}_mean"),
+        #         ]
+        #     )
 
         logger.debug("Start entropy calculation")
         for ent in ["fqdn", "thirdleveldomain", "secondleveldomain"]:
@@ -228,3 +247,5 @@ class Processor:
         logger.debug("Finished data transformation")
 
         return x
+
+        # return np.asarray(ds_x), ds_y

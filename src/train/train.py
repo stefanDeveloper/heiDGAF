@@ -5,6 +5,7 @@ import os
 from enum import Enum, unique
 
 import click
+import joblib
 import numpy as np
 import torch
 from sklearn.metrics import classification_report
@@ -93,8 +94,9 @@ class DetectorTraining:
         logger.info(f"Set up Pipeline.")
         # TODO load scaler
         self.scaler = StandardScaler()
+        self.model_name = model_name
         self.model_pipeline = Pipeline(
-            model=model_name,
+            model=self.model_name,
             datasets=self.dataset,
             model_output_path=self.model_output_path,
             scaler=self.scaler,
@@ -140,14 +142,10 @@ class DetectorTraining:
                 mispredictions.append(error)
 
             if len(mispredictions) > 0:
-                with open(
-                    f"errors_{self.model_pipeline.model.model_name}_{ds.name}.json", "w"
-                ) as f:
+                with open(f"errors_{self.model_name}_{ds.name}.json", "w") as f:
                     f.write(json.dumps(mispredictions) + "\n")
 
-            with open(
-                f"results_{self.model_pipeline.model.model_name}.json", "a+"
-            ) as f:
+            with open(f"results_{self.model_name}.json", "a+") as f:
                 results = dict()
                 results["ds"] = ds.name
                 results["results"] = report
@@ -167,6 +165,9 @@ class DetectorTraining:
         logger.info("Fit model.")
         self.model_pipeline.fit()
 
+        logger.info("Save scaler")
+        self._save_scaler(self.scaler, self.model_name)
+
         logger.info("Validate test set")
         y_pred = self.model_pipeline.predict(self.model_pipeline.x_test)
         y_pred = [round(value) for value in y_pred]
@@ -180,7 +181,16 @@ class DetectorTraining:
         logger.info("Interpret model.")
         self.explain()
 
-    def _save_scaler(scaler, model_type):
+    def _load_scaler(self, scaler, model_name: str):
+        try:
+            scaler = joblib.load(path)
+            print("Scaler loaded successfully.")
+            return scaler
+        except FileNotFoundError:
+            print(f"Scaler file not found: {path}")
+            return None
+
+    def _save_scaler(self, scaler, model_name: str):
         """
         Save the scaler for future use.
 
@@ -188,7 +198,7 @@ class DetectorTraining:
             scaler: Fitted StandardScaler object
             model_type (str): Type of model being used
         """
-        scaler_path = os.path.join(RESULT_FOLDER, model_type)
+        scaler_path = os.path.join(RESULT_FOLDER, model_name)
         os.makedirs(scaler_path, exist_ok=True)
         with open(os.path.join(scaler_path, "scaler.pickle"), "wb") as f:
             pickle.dump(scaler, f)
