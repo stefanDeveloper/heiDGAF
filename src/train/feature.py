@@ -1,12 +1,9 @@
-import re
 import sys
 import os
 import math
 from string import ascii_lowercase as alc
-from typing import Counter, List
-import numpy as np
+from typing import List
 import polars as pl
-import tldextract
 
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger

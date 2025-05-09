@@ -3,7 +3,6 @@ import os
 from dataclasses import dataclass
 from typing import Callable, List
 
-from matplotlib import pyplot as plt
 import polars as pl
 from torch.utils.data.dataset import Dataset
 
