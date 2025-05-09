@@ -348,7 +348,7 @@ class DatasetLoader:
                     name=f"dgarchive_{dgarchive_file.split('.')[0]}",
                     data_path=f"{self.base_path}/dgarchive/{dgarchive_file}",
                     cast_dataset=cast_dgarchive,
-                    max_rows=1000,  # self.max_rows,
+                    max_rows=10000,  # self.max_rows,
                 )
             )
         return self.dgarchive_data
