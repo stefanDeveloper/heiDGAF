@@ -384,13 +384,13 @@ class Dataset:
         self.data_path = data_path
         if cast_dataset != None and data_path != "":
             logger.info("Cast function provided, load data set.")
-            self.data = cast_dataset(data_path, max_rows)
+            self.data: pl.DataFrame = cast_dataset(data_path, max_rows)
         elif data_path != "":
             logger.info("Data path provided, load data set.")
-            self.data = pl.read_csv(data_path)
+            self.data: pl.DataFrame = pl.read_csv(data_path)
         elif not data is None:
             logger.info("Data set provided, load data set.")
-            self.data = data
+            self.data: pl.DataFrame = data
         else:
             logger.error("No data given!")
             raise NotImplementedError("No data given")

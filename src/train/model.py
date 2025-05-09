@@ -5,6 +5,7 @@ import re
 import sys
 import os
 import tempfile
+import joblib
 from matplotlib import pyplot as plt
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
@@ -86,6 +87,12 @@ class Pipeline:
         logger.info(f"End data set transformation.")
 
         X = self.ds_X[0]
+        try:
+            columns = self._load_column_list()
+        except FileNotFoundError:
+            columns = data.columns
+            self._save_column_list(columns)
+
         if scaler:
             try:
                 check_is_fitted(scaler)
@@ -96,27 +103,26 @@ class Pipeline:
         for X1 in self.ds_X:
             X1 = scaler.transform(X1)
 
+        if self.plotting:
+            logger.info("Start plotting.")
+            self.plotter.create_plots_multiclass(
+                ds_X=self.ds_X, ds_y=self.ds_y, data=self.datasets
+            )
+            logger.info(f"End plotting.")
+
         for y1 in self.ds_y:
             y1[y1 != 0] = 1
         y = self.ds_y[0]
 
         if self.plotting:
             logger.info("Start plotting.")
-            self.plotter.create_plots(
+            self.plotter.create_plots_binary(
                 ds_X=self.ds_X, ds_y=self.ds_y, data=self.datasets
             )
             logger.info(f"End plotting.")
 
         # Clean column names
-        self.columns = [
-            self._clean_column_name(col)
-            for col in self.datasets[0].data.to_pandas().columns
-        ]
-        # Create and save feature mapping
-        self.feature_mapping = self._create_feature_mapping(self.columns)
-        # Store column names
-        self.feature_columns = self.datasets[0].data.to_pandas().columns.tolist()
-        self.feature_columns.remove("class")
+        self.feature_columns = [self._clean_column_name(col) for col in columns]
         logger.info(f"Columns: {self.feature_columns}.")
 
         # lower data
@@ -196,6 +202,25 @@ class Pipeline:
 
         return encoded, label_to_index, index_to_label
 
+    def _save_column_list(
+        self, column_list: list, output_path: str = f"./{RESULT_FOLDER}/data"
+    ) -> None:
+        try:
+            joblib.dump(column_list, os.path.join(output_path, "columns.pickle"))
+            logger.info("Column list saved.")
+        except Exception as e:
+            logger.info(f"Failed to save column list: {e}")
+
+    def _load_column_list(self, output_path: str = f"./{RESULT_FOLDER}/data"):
+        try:
+            column_list = joblib.load(os.path.join(output_path, "columns.pickle"))
+            logger.info("Column list loaded.")
+            logger.warning(column_list)
+            return column_list
+        except Exception as e:
+            logger.info(f"Failed to load column list: {e}")
+            raise FileNotFoundError("Columns does not exist")
+
     def _clean_column_name(self, column: str) -> str:
         """
         Clean column names to be compatible with ML models.
@@ -214,32 +239,6 @@ class Pipeline:
         if cleaned[0].isdigit():
             cleaned = "f_" + cleaned
         return cleaned
-
-    def _create_feature_mapping(self, original_columns: list[str]) -> None:
-        """
-        Create and save mapping between original and cleaned column names.
-
-        Args:
-            original_columns (list): Original column names
-
-        Returns:
-            dict: Mapping of cleaned names to original names
-        """
-        mapping = {self._clean_column_name(col): col for col in original_columns}
-
-        # Save mapping for future reference
-        os.makedirs(os.path.join(CV_RESULT_DIR, "metadata"), exist_ok=True)
-        with open(
-            os.path.join(CV_RESULT_DIR, "metadata", "feature_mapping.pickle"), "wb"
-        ) as f:
-            pickle.dump(mapping, f)
-
-        # Also save as readable text file
-        with open(
-            os.path.join(CV_RESULT_DIR, "metadata", "feature_mapping.txt"), "w"
-        ) as f:
-            for clean, original in mapping.items():
-                f.write(f"{clean} -> {original}\n")
 
     def train_test_val_split(
         self,
@@ -290,7 +289,7 @@ class Pipeline:
         self.model.X = self.x_train
         self.model.y = self.y_train
         study = optuna.create_study(direction="maximize")
-        study.optimize(self.model.objective, n_trials=10, timeout=600)
+        study.optimize(self.model.objective, n_trials=1, timeout=600)
 
         logger.info(f"Number of finished trials: {len(study.trials)}")
         logger.info("Best trial:")
@@ -319,7 +318,7 @@ class Pipeline:
         """
         return self.model.predict(x)
 
-    def explain(self, x, y):
+    def explain(self, x, y) -> list[str]:
         """Explains models
 
         Args:
@@ -329,12 +328,11 @@ class Pipeline:
         if isinstance(self.model.clf, xgb.XGBClassifier) or isinstance(
             self.model.clf, RandomForestClassifier
         ):
-            self.explainer.interpret_model(
+            return self.explainer.interpret_model(
                 self.model.clf,
                 x,
                 y,
                 self.feature_columns,
-                self.model.model_name,
                 self.scaler,
             )
         else:
