@@ -517,8 +517,8 @@ class XGBoostModel(Model):
             custom_metric=self.fdr_metric,
         )
 
-        # # Set n_estimators as a trial attribute; Accessible via study.trials_dataframe().
-        # trial.set_user_attr("n_estimators", len(xgb_cv_results))
+        # Set n_estimators as a trial attribute; Accessible via study.trials_dataframe().
+        trial.set_user_attr("n_estimators", len(xgb_cv_results))
 
         # # Save cross-validation results.
         # filepath = os.path.join(CV_RESULT_DIR, "{}.csv".format(trial.number))
