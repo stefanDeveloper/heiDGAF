@@ -70,6 +70,44 @@ docker compose -f docker/docker-compose.yml up
 
 ![Terminal example](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true)
 
+### Configuration
+
+The following table lists the most important configuration parameters with their default values.
+The configuration options can be set in the ![config.yaml](./config.yaml) in the root directory.
+
+| Path                                       | Description                                                                 | Default Value                                                                                                |
+| :----------------------------------------- | :-------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- |
+| **logging**                                | Global and module-specific logging configurations.                          |                                                                                                              |
+| `logging.base.debug`                       | Default debug logging level for all modules if not overridden.              | `false`                                                                                                      |
+| `logging.modules.<module_name>.debug`      | Specific debug logging level for a given module (e.g., `log_storage.logserver`). | `false` (for all listed modules)                                                                             |
+| **pipeline**                               | Configuration for the data processing pipeline stages.                      |                                                                                                              |
+| `pipeline.log_storage.logserver.input_file` | Path to the input file for the log server.                                  | `"/opt/file.txt"`                                                                                            |
+| `pipeline.log_collection.collector.logline_format` | Defines the format of incoming log lines, specifying field name, type, and parsing rules/values. | Array of field definitions (e.g., `["timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"]`)                     |
+| `pipeline.log_collection.batch_handler.batch_size` | Number of log lines to collect before sending a batch.                      | `10000`                                                                                                      |
+| `pipeline.log_collection.batch_handler.batch_timeout` | Maximum time (in seconds) to wait before sending a partially filled batch.  | `30.0`                                                                                                       |
+| `pipeline.log_collection.batch_handler.subnet_id.ipv4_prefix_length` | IPv4 prefix length for subnet identification.                             | `24`                                                                                                         |
+| `pipeline.log_collection.batch_handler.subnet_id.ipv6_prefix_length` | IPv6 prefix length for subnet identification.                             | `64`                                                                                                         |
+| `pipeline.data_inspection.inspector.mode`  | Mode of operation for the data inspector.                                   | `univariate` (options: `multivariate`, `ensemble`)                                                           |
+| `pipeline.data_inspection.inspector.ensemble.model` | Model to use when inspector mode is `ensemble`.                             | `WeightEnsemble`                                                                                             |
+| `pipeline.data_inspection.inspector.ensemble.module` | Python module for the ensemble model.                                       | `streamad.process`                                                                                           |
+| `pipeline.data_inspection.inspector.ensemble.model_args` | Arguments for the ensemble model.                                           | (empty by default) TODO: describe in more detail                                                                                           |
+| `pipeline.data_inspection.inspector.models` | List of models to use for data inspection (e.g., anomaly detection).      | Array of model definitions (e.g., `{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {"is_global": false}}`) TODO: more details!|
+| `pipeline.data_inspection.inspector.anomaly_threshold` | Threshold for classifying an observation as an anomaly.                     | `0.01`   TODO: elaborate                                                                                                    |
+| `pipeline.data_inspection.inspector.score_threshold` | Threshold for the anomaly score.                                            | `0.5`               <TODO: elaborate>                                                                                         |
+| `pipeline.data_inspection.inspector.time_type` | Unit of time used in time range calculations.                               | `ms`                                                                                                         |
+| `pipeline.data_inspection.inspector.time_range` | Time range for inspection.                                                  | `20`                                                                                                         |
+| `pipeline.data_analysis.detector.model`    | Model to use for data analysis (e.g., DGA detection).                       | `rf` (Random Forest) option: `XGBoost`                                                    |
+| `pipeline.data_analysis.detector.checksum` | Checksum for the model file to ensure integrity.                            | `ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06`    TODO: elaborate                                       |
+| `pipeline.data_analysis.detector.base_url` | Base URL for downloading the model if not present locally.                  | `https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/`                                                  |
+| `pipeline.data_analysis.detector.threshold` | Threshold for the detector's classification.                                | `0.5`          TODO elaborate                                                                                              |
+| `pipeline.monitoring.clickhouse_connector.batch_size` | Batch size for sending data to ClickHouse.                                | `50`                                                                                                         |
+| `pipeline.monitoring.clickhouse_connector.batch_timeout` | Batch timeout (in seconds) for sending data to ClickHouse.                | `2.0`                                                                                                        |
+| **environment**                            | Configuration for external services and infrastructure.                     |                                                                                                              |
+| `environment.kafka_brokers`                | List of Kafka broker hostnames and ports.                                   | `[{"hostname": "kafka1", "port": 8097}, {"hostname": "kafka2", "port": 8098}, {"hostname": "kafka3", "port": 8099}]` |
+| `environment.kafka_topics.pipeline.<topic_name>` | Kafka topic names for various stages in the pipeline.                     | e.g., `logserver_in: "pipeline-logserver_in"`                                                                |
+| `environment.monitoring.clickhouse_server.hostname` | Hostname of the ClickHouse server for monitoring data.                      | `clickhouse-server`                                                                                          |
+
+
 ### Developing
 
 > [!IMPORTANT]
@@ -118,6 +156,13 @@ However, we compute all feature separately and only rely on the `domain` and `cl
 Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+To retrain the existing models you can simply run: 
+```
+echo "adapt me!"
+```
+
 
 ### Data
 
