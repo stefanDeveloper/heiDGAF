@@ -264,7 +264,7 @@ class Plotter:
                 logger.info("Explainedd variance ratios:")
                 logger.info(pca.explained_variance_ratio_)
 
-                self._plot_label_distribution(ds, name=ds.name)
+                self._plot_label_distribution(ds.data, name=ds.name)
                 self._plot_tsne(X, y, ds.name)
 
             # df_data = data.to_pandas()
