@@ -176,7 +176,9 @@ def cast_dgarchive(data_path: str, max_rows: int) -> pl.DataFrame:
     )
     df = df.rename({"column_1": "query"})
     df = df.select("query")
-    df = df.with_columns([pl.lit(data_path.split("/")[-1].split("_")[0]).alias("class")])
+    df = df.with_columns(
+        [pl.lit(data_path.split("/")[-1].split("_")[0]).alias("class")]
+    )
     df = preprocess(df)
     logger.info(f"Data loaded with shape {df.shape}")
     dataframes.append(df)

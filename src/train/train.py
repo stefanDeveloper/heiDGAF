@@ -185,6 +185,8 @@ class DetectorTraining:
                 results = dict()
                 results["ds"] = ds.name
                 results["results"] = report
+                results["fdr"] = self._fdr(y, y_pred)
+                results["fttar"] = self._fttar(y, y_pred)
                 f.write(json.dumps(results) + "\n")
 
     def train(self, seed=SEED):
@@ -218,6 +220,67 @@ class DetectorTraining:
 
         logger.info("Interpret model.")
         self.explain()
+
+    def _perf_measure(
+        self, y_actual: list[int], y_pred: list[int]
+    ) -> tuple[int, int, int, int]:
+        """Calculates TP, FP, TN, FN values for confusion matrix
+
+        Args:
+            y_actual (list[int]): y true labels
+            y_pred (list[int]): y pred
+
+        Returns:
+            tuple[int, int, int,int]: TP, FP, TN, FN
+        """
+        TP = 0
+        FP = 0
+        TN = 0
+        FN = 0
+
+        for i in range(len(y_pred)):
+            if y_actual[i] == y_pred[i] == 1:
+                TP += 1
+            if y_pred[i] == 1 and y_actual[i] != y_pred[i]:
+                FP += 1
+            if y_actual[i] == y_pred[i] == 0:
+                TN += 1
+            if y_pred[i] == 0 and y_actual[i] != y_pred[i]:
+                FN += 1
+
+        return TP, FP, TN, FN
+
+    def _fttar(self, y_actual: list[int], y_pred: list[int]) -> float:
+        """FTTAR metric
+
+        Args:
+            y_actual (list[int]): y true labels
+            y_pred (list[int]): y preds
+
+        Returns:
+            float: FTTAR
+        """
+        TP, FP, _, _ = self._perf_measure(y_actual, y_pred)
+        if (TP) == 0:
+            logger.debug("WARNING: TP = 0")
+            return 0
+        return FP / TP
+
+    def _fdr(self, y_actual: list[int], y_pred: list[int]) -> float:
+        """Returns False Discovery Rate
+
+        Args:
+            y_actual (list[int]): y true labels
+            y_pred (list[int]): y preds
+
+        Returns:
+            float: FDR
+        """
+        TP, FP, TN, FN = self._perf_measure(y_actual, y_pred)
+        if (FP + TP) == 0:
+            logger.debug("WARNING: FP + TP = 0")
+            return 0
+        return FP / (FP + TP)
 
     def _load_model(self):
         try:
