@@ -1,6 +1,8 @@
 services:
   benchmark_test_run:
-    image: benchmark_test_run
+    image: localhost:5000/benchmark_test_run
+    environment:
+      - TEST_TYPE_NR=3
     networks:
       heidgaf:
     deploy:
