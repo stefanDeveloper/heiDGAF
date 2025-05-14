@@ -10,8 +10,8 @@ COPY src/base ./src/base
 COPY src/train ./src/train
 COPY config.yaml .
 COPY docker/benchmark_tests .
-COPY data ./data
+COPY data/dgta ./data/dgta
 
 RUN rm -rf /root/.cache
 
-CMD [ "python", "run_test.py"]
+CMD [ "python", "run_test.py" ]
