@@ -10,7 +10,7 @@ import click
 import joblib
 import numpy as np
 import torch
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import StandardScaler
 import polars as pl
 
@@ -221,35 +221,6 @@ class DetectorTraining:
         logger.info("Interpret model.")
         self.explain()
 
-    def _perf_measure(
-        self, y_actual: list[int], y_pred: list[int]
-    ) -> tuple[int, int, int, int]:
-        """Calculates TP, FP, TN, FN values for confusion matrix
-
-        Args:
-            y_actual (list[int]): y true labels
-            y_pred (list[int]): y pred
-
-        Returns:
-            tuple[int, int, int,int]: TP, FP, TN, FN
-        """
-        TP = 0
-        FP = 0
-        TN = 0
-        FN = 0
-
-        for i in range(len(y_pred)):
-            if y_actual[i] == y_pred[i] == 1:
-                TP += 1
-            if y_pred[i] == 1 and y_actual[i] != y_pred[i]:
-                FP += 1
-            if y_actual[i] == y_pred[i] == 0:
-                TN += 1
-            if y_pred[i] == 0 and y_actual[i] != y_pred[i]:
-                FN += 1
-
-        return TP, FP, TN, FN
-
     def _fttar(self, y_actual: list[int], y_pred: list[int]) -> float:
         """FTTAR metric
 
@@ -260,7 +231,7 @@ class DetectorTraining:
         Returns:
             float: FTTAR
         """
-        TP, FP, _, _ = self._perf_measure(y_actual, y_pred)
+        _, FP, _, TP = confusion_matrix(y_actual, y_pred).ravel()
         if (TP) == 0:
             logger.debug("WARNING: TP = 0")
             return 0
@@ -276,7 +247,7 @@ class DetectorTraining:
         Returns:
             float: FDR
         """
-        TP, FP, TN, FN = self._perf_measure(y_actual, y_pred)
+        _, FP, _, TP = confusion_matrix(y_actual, y_pred).ravel()
         if (FP + TP) == 0:
             logger.debug("WARNING: FP + TP = 0")
             return 0

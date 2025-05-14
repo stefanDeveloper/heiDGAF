@@ -371,15 +371,7 @@ class Model(metaclass=ABCMeta):
         Returns:
             float: The False Discovery Rate (FDR).
         """
-        # False Positives (FP): cases where the model predicted 1 but the actual label is 0
-        # FP = np.sum((y_pred == 1) & (y_true == 0))
-
-        # True Positives (TP): cases where the model correctly predicted 1
-        # TP = np.sum((y_pred == 1) & (y_true == 1))
-
-        cm = confusion_matrix(y_true, y_pred)
-        TP = cm[1, 1]
-        FP = cm[0, 1]
+        _, FP, _, TP = confusion_matrix(y_true, y_pred).ravel()
 
         # Compute FDR, avoiding division by zero
         if FP + TP == 0:
@@ -560,6 +552,8 @@ class RandomForestModel(Model):
     def __init__(self) -> None:
         super().__init__()
         self.model_name = "rf"
+        # Create a scorer using make_scorer, setting greater_is_better to False since lower FDR is better
+        self.fdr_scorer = make_scorer(self.fdr_metric, greater_is_better=False)
 
     def objective(self, trial):
         """
@@ -595,16 +589,13 @@ class RandomForestModel(Model):
             class_weight=class_weights,
         )
 
-        # Create a scorer using make_scorer, setting greater_is_better to False since lower FDR is better
-        fdr_scorer = make_scorer(self.fdr_metric, greater_is_better=False)
-
         score = cross_val_score(
             classifier_obj,
             self.X,
             self.y,
             n_jobs=-1,
             cv=N_FOLDS,
-            scoring=fdr_scorer,
+            scoring=self.fdr_scorer,
         )
         fdr = score.mean()
         return fdr
