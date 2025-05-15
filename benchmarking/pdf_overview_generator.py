@@ -67,9 +67,6 @@ class PDFOverviewGenerator:
             y1 = y0 + row_heights[0] * usable_height
 
             self.boxes["overview_page"][0].append(pymupdf.Rect(x0, y0, x1, y1))
-            page.draw_rect(
-                self.boxes["overview_page"][0][0], color=(0, 0, 0), width=0.5
-            )  # TODO: Remove
 
         def __add_metadata_box():
             x0 = page_margin.get("left")
