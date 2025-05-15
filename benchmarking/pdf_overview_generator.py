@@ -193,6 +193,27 @@ class PDFOverviewGenerator:
         __add_bottom_right_graph_title_box()
         __add_bottom_right_graph_box()
 
+    def insert_title(self):
+        """Inserts the title into the existing first box."""
+        title = "Ramp-Up Test"
+        subtitle = "Benchmarking Report"
+
+        page = self.document[0]  # first page
+        title_box = self.boxes.get("overview_page")[0][0]
+
+        page.insert_htmlbox(
+            title_box,
+            title,
+            css="* {font-weight: bold; font-size: 16px; text-align: center; padding: 5px 0}",
+        )
+        page.insert_htmlbox(
+            title_box,
+            subtitle,
+            css="* {"
+            "font-weight: bold; font-style: italic; font-size: 12px;"
+            "text-align: center; padding: 16px 0}",
+        )
+
     def save_file(self):
         """Stores the document as a file."""
         file_path_and_name = os.path.join(self.output_file_path, self.output_file_name)
@@ -210,4 +231,5 @@ if __name__ == "__main__":
     generator = PDFOverviewGenerator()
 
     generator.setup_first_page_layout()
+    generator.insert_title()
     generator.save_file()
