@@ -16,20 +16,26 @@ class PDFOverviewGenerator:
         self.output_file_path = "./output/"
         self.output_file_name = "test_for_now"
 
+        self.page_width, self.page_height = 595, 842  # page dimension: A4 portrait
+        self.standard_page_margin = {"left": 50, "right": 50, "top": 50, "bottom": 80}
+
         self.document = pymupdf.open()
 
     def setup_first_page_layout(self):
         """Adds the first page and configures its layout."""
-        page_width, page_height = 595, 842  # page dimension: A4 portrait
-        page_margin = {"left": 50, "right": 50, "top": 50, "bottom": 80}
+        page_margin = self.standard_page_margin.copy()
 
-        usable_width = page_width - page_margin.get("left") - page_margin.get("right")
-        usable_height = page_height - page_margin.get("top") - page_margin.get("bottom")
+        usable_width = (
+            self.page_width - page_margin.get("left") - page_margin.get("right")
+        )
+        usable_height = (
+            self.page_height - page_margin.get("top") - page_margin.get("bottom")
+        )
 
         page = self.document.new_page(
             0,  # insertion point: begin of document
-            width=page_width,
-            height=page_height,
+            width=self.page_width,
+            height=self.page_height,
         )
 
         row_heights = [
