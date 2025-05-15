@@ -46,18 +46,20 @@ class PDFOverviewGenerator:
             [],  # 4th content row
             [],  # 5th content row
             [],  # 6th content row
+            [],  # 7th content row
         ]
 
         row_heights = [
             0.08,  # 1st content row
             0.02,  # space
-            0.30,  # 2nd content row
+            0.04,  # 2nd content row
+            0.26,  # 3rd content row
             0.04,  # space
-            0.04,  # 3rd content row
-            0.22,  # 4th content row
+            0.04,  # 4th content row
+            0.22,  # 5th content row
             0.04,  # space
-            0.04,  # 5th content row
-            0.22,  # 6th content row
+            0.04,  # 6th content row
+            0.22,  # 7th content row
         ]  # relative of usable height, top to bottom
 
         def __add_title_box():
@@ -68,7 +70,7 @@ class PDFOverviewGenerator:
 
             self.boxes["overview_page"][0].append(pymupdf.Rect(x0, y0, x1, y1))
 
-        def __add_metadata_box():
+        def __add_metadata_title_box():
             x0 = page_margin.get("left")
             y0 = page_margin.get("top") + sum(row_heights[:2]) * usable_height
             x1 = x0 + usable_width / 3  # left third
@@ -79,7 +81,29 @@ class PDFOverviewGenerator:
                 self.boxes["overview_page"][1][0], color=(0, 0, 0), width=0.5
             )  # TODO: Remove
 
+        def __add_metadata_box():
+            x0 = page_margin.get("left")
+            y0 = page_margin.get("top") + sum(row_heights[:3]) * usable_height
+            x1 = x0 + usable_width / 3  # left third
+            y1 = y0 + row_heights[3] * usable_height
+
+            self.boxes["overview_page"][2].append(pymupdf.Rect(x0, y0, x1, y1))
+            page.draw_rect(
+                self.boxes["overview_page"][2][0], color=(0, 0, 0), width=0.5
+            )  # TODO: Remove
+
         def __add_main_graph_box():
+            x0 = page_margin.get("left") + usable_width / 3
+            y0 = page_margin.get("top") + sum(row_heights[:3]) * usable_height
+            x1 = x0 + (2 / 3) * usable_width  # right two thirds
+            y1 = y0 + row_heights[3] * usable_height
+
+            self.boxes["overview_page"][2].append(pymupdf.Rect(x0, y0, x1, y1))
+            page.draw_rect(
+                self.boxes["overview_page"][2][1], color=(0, 0, 0), width=0.5
+            )  # TODO: Remove
+
+        def __add_main_graph_title_box():
             x0 = page_margin.get("left") + usable_width / 3
             y0 = page_margin.get("top") + sum(row_heights[:2]) * usable_height
             x1 = x0 + (2 / 3) * usable_width  # right two thirds
@@ -92,28 +116,6 @@ class PDFOverviewGenerator:
 
         def __add_top_left_graph_title_box():
             x0 = page_margin.get("left")
-            y0 = page_margin.get("top") + sum(row_heights[:4]) * usable_height
-            x1 = x0 + usable_width / 2  # left half
-            y1 = y0 + row_heights[4] * usable_height
-
-            self.boxes["overview_page"][2].append(pymupdf.Rect(x0, y0, x1, y1))
-            page.draw_rect(
-                self.boxes["overview_page"][2][0], color=(0, 0, 0), width=0.5
-            )  # TODO: Remove
-
-        def __add_top_right_graph_title_box():
-            x0 = page_margin.get("left") + usable_width / 2
-            y0 = page_margin.get("top") + sum(row_heights[:4]) * usable_height
-            x1 = x0 + usable_width / 2  # right half
-            y1 = y0 + row_heights[4] * usable_height
-
-            self.boxes["overview_page"][2].append(pymupdf.Rect(x0, y0, x1, y1))
-            page.draw_rect(
-                self.boxes["overview_page"][2][1], color=(0, 0, 0), width=0.5
-            )  # TODO: Remove
-
-        def __add_top_left_graph_box():
-            x0 = page_margin.get("left")
             y0 = page_margin.get("top") + sum(row_heights[:5]) * usable_height
             x1 = x0 + usable_width / 2  # left half
             y1 = y0 + row_heights[5] * usable_height
@@ -123,7 +125,7 @@ class PDFOverviewGenerator:
                 self.boxes["overview_page"][3][0], color=(0, 0, 0), width=0.5
             )  # TODO: Remove
 
-        def __add_top_right_graph_box():
+        def __add_top_right_graph_title_box():
             x0 = page_margin.get("left") + usable_width / 2
             y0 = page_margin.get("top") + sum(row_heights[:5]) * usable_height
             x1 = x0 + usable_width / 2  # right half
@@ -134,29 +136,29 @@ class PDFOverviewGenerator:
                 self.boxes["overview_page"][3][1], color=(0, 0, 0), width=0.5
             )  # TODO: Remove
 
-        def __add_bottom_left_graph_title_box():
+        def __add_top_left_graph_box():
             x0 = page_margin.get("left")
-            y0 = page_margin.get("top") + sum(row_heights[:7]) * usable_height
+            y0 = page_margin.get("top") + sum(row_heights[:6]) * usable_height
             x1 = x0 + usable_width / 2  # left half
-            y1 = y0 + row_heights[7] * usable_height
+            y1 = y0 + row_heights[6] * usable_height
 
             self.boxes["overview_page"][4].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][4][0], color=(0, 0, 0), width=0.5
             )  # TODO: Remove
 
-        def __add_bottom_right_graph_title_box():
+        def __add_top_right_graph_box():
             x0 = page_margin.get("left") + usable_width / 2
-            y0 = page_margin.get("top") + sum(row_heights[:7]) * usable_height
+            y0 = page_margin.get("top") + sum(row_heights[:6]) * usable_height
             x1 = x0 + usable_width / 2  # right half
-            y1 = y0 + row_heights[7] * usable_height
+            y1 = y0 + row_heights[6] * usable_height
 
             self.boxes["overview_page"][4].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][4][1], color=(0, 0, 0), width=0.5
             )  # TODO: Remove
 
-        def __add_bottom_left_graph_box():
+        def __add_bottom_left_graph_title_box():
             x0 = page_margin.get("left")
             y0 = page_margin.get("top") + sum(row_heights[:8]) * usable_height
             x1 = x0 + usable_width / 2  # left half
@@ -167,7 +169,7 @@ class PDFOverviewGenerator:
                 self.boxes["overview_page"][5][0], color=(0, 0, 0), width=0.5
             )  # TODO: Remove
 
-        def __add_bottom_right_graph_box():
+        def __add_bottom_right_graph_title_box():
             x0 = page_margin.get("left") + usable_width / 2
             y0 = page_margin.get("top") + sum(row_heights[:8]) * usable_height
             x1 = x0 + usable_width / 2  # right half
@@ -178,8 +180,32 @@ class PDFOverviewGenerator:
                 self.boxes["overview_page"][5][1], color=(0, 0, 0), width=0.5
             )  # TODO: Remove
 
+        def __add_bottom_left_graph_box():
+            x0 = page_margin.get("left")
+            y0 = page_margin.get("top") + sum(row_heights[:9]) * usable_height
+            x1 = x0 + usable_width / 2  # left half
+            y1 = y0 + row_heights[9] * usable_height
+
+            self.boxes["overview_page"][6].append(pymupdf.Rect(x0, y0, x1, y1))
+            page.draw_rect(
+                self.boxes["overview_page"][6][0], color=(0, 0, 0), width=0.5
+            )  # TODO: Remove
+
+        def __add_bottom_right_graph_box():
+            x0 = page_margin.get("left") + usable_width / 2
+            y0 = page_margin.get("top") + sum(row_heights[:9]) * usable_height
+            x1 = x0 + usable_width / 2  # right half
+            y1 = y0 + row_heights[9] * usable_height
+
+            self.boxes["overview_page"][6].append(pymupdf.Rect(x0, y0, x1, y1))
+            page.draw_rect(
+                self.boxes["overview_page"][6][1], color=(0, 0, 0), width=0.5
+            )  # TODO: Remove
+
         __add_title_box()
+        __add_metadata_title_box()
         __add_metadata_box()
+        __add_main_graph_title_box()
         __add_main_graph_box()
         __add_top_left_graph_title_box()
         __add_top_left_graph_box()
