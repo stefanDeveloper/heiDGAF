@@ -145,42 +145,33 @@ functionality of the modules.
    * - Parameter
      - Default Value
      - Description
-   * - mode
+   * - ``mode``
      - ``univariate``
-     - TODO
-   * - ensemble.model
+     - Mode of operation (options: ``multivariate``, ``ensemble``).
+   * - ``ensemble.model``
      - ``WeightEnsemble``
-     - TODO
-   * - ensemble.module
+     - Ensemble model used when ``mode`` is set to ``ensemble``.
+   * - ``ensemble.module``
      - ``streamad.process``
-     - TODO
-   * - ensemble.model_args
+     - Python module that provides the ensemble model.
+   * - ``ensemble.model_args``
      -
-     - TODO
-   * - models.model
-     - ``ZScoreDetector``
-     - TODO
-   * - models.module
-     - ``streamad.model``
-     - TODO
-   * - models.model_args
+     - Additional arguments for the ensemble model.
+   * - ``models``
      -
-     - TODO
-   * - models.model_args.is_global
-     - ``false``
-     - TODO
-   * - anomaly_threshold
+     - List of models for data inspection. Example: ``{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {"is_global": false}}``.
+   * - ``anomaly_threshold``
      - ``0.01``
-     - TODO
-   * - score_threshold
+     - Threshold for classifying observations as anomalies.
+   * - ``score_threshold``
      - ``0.5``
-     - TODO
-   * - time_type
+     - Threshold for the anomaly score.
+   * - ``time_type``
      - ``ms``
-     - TODO
-   * - time_range
+     - Time unit used in time range calculation.
+   * - ``time_range``
      - ``20``
-     - TODO
+     - Duration of the time window used for inspection.
 
 ``pipeline.data_analysis``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -192,18 +183,18 @@ functionality of the modules.
    * - Parameter
      - Default Value
      - Description
-   * - model
+   * - ``model``
      - ``rf``
-     - TODO
-   * - checksum
-     - Not given here
-     - TODO
-   * - base_url
-     - https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
-     - TODO
-   * - threshold
+     - Model used for analysis (e.g., ``rf`` for Random Forest or ``XGBoost``).
+   * - ``checksum``
+     - ``ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06``
+     - Checksum for verifying the model file integrity.
+   * - ``base_url``
+     - ``https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/``
+     - URL to download the model from if not found locally.
+   * - ``threshold``
      - ``0.5``
-     - TODO
+     - Classification threshold used by the model.
 
 Environment Configuration
 .........................
