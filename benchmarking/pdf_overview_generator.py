@@ -77,9 +77,6 @@ class PDFOverviewGenerator:
             y1 = y0 + row_heights[2] * usable_height
 
             self.boxes["overview_page"][1].append(pymupdf.Rect(x0, y0, x1, y1))
-            page.draw_rect(
-                self.boxes["overview_page"][1][0], color=(0, 0, 0), width=0.5
-            )  # TODO: Remove
 
         def __add_metadata_box():
             x0 = page_margin.get("left")
@@ -110,9 +107,6 @@ class PDFOverviewGenerator:
             y1 = y0 + row_heights[2] * usable_height
 
             self.boxes["overview_page"][1].append(pymupdf.Rect(x0, y0, x1, y1))
-            page.draw_rect(
-                self.boxes["overview_page"][1][1], color=(0, 0, 0), width=0.5
-            )  # TODO: Remove
 
         def __add_top_left_graph_title_box():
             x0 = page_margin.get("left")
@@ -121,9 +115,6 @@ class PDFOverviewGenerator:
             y1 = y0 + row_heights[5] * usable_height
 
             self.boxes["overview_page"][3].append(pymupdf.Rect(x0, y0, x1, y1))
-            page.draw_rect(
-                self.boxes["overview_page"][3][0], color=(0, 0, 0), width=0.5
-            )  # TODO: Remove
 
         def __add_top_right_graph_title_box():
             x0 = page_margin.get("left") + usable_width / 2
@@ -132,9 +123,6 @@ class PDFOverviewGenerator:
             y1 = y0 + row_heights[5] * usable_height
 
             self.boxes["overview_page"][3].append(pymupdf.Rect(x0, y0, x1, y1))
-            page.draw_rect(
-                self.boxes["overview_page"][3][1], color=(0, 0, 0), width=0.5
-            )  # TODO: Remove
 
         def __add_top_left_graph_box():
             x0 = page_margin.get("left")
@@ -161,13 +149,10 @@ class PDFOverviewGenerator:
         def __add_bottom_left_graph_title_box():
             x0 = page_margin.get("left")
             y0 = page_margin.get("top") + sum(row_heights[:8]) * usable_height
-            x1 = x0 + usable_width / 2  # left half
+            x1 = x0 + usable_width  # caution: uses full width to show long title
             y1 = y0 + row_heights[8] * usable_height
 
             self.boxes["overview_page"][5].append(pymupdf.Rect(x0, y0, x1, y1))
-            page.draw_rect(
-                self.boxes["overview_page"][5][0], color=(0, 0, 0), width=0.5
-            )  # TODO: Remove
 
         def __add_bottom_right_graph_title_box():
             x0 = page_margin.get("left") + usable_width / 2
@@ -176,9 +161,6 @@ class PDFOverviewGenerator:
             y1 = y0 + row_heights[8] * usable_height
 
             self.boxes["overview_page"][5].append(pymupdf.Rect(x0, y0, x1, y1))
-            page.draw_rect(
-                self.boxes["overview_page"][5][1], color=(0, 0, 0), width=0.5
-            )  # TODO: Remove
 
         def __add_bottom_left_graph_box():
             x0 = page_margin.get("left")
@@ -237,6 +219,53 @@ class PDFOverviewGenerator:
             "text-align: center; padding: 16px 0}",
         )
 
+    def insert_box_titles(self):
+        page = self.document[0]  # first page
+        title_css = "* {font-size: 12px; text-align: left}"
+        subtitle_css = "* {font-size: 8px; text-align: left; padding: 7px 0}"
+
+        def __add_metadata_title(text: str, subtext: str):
+            box = self.boxes.get("overview_page")[1][0]
+            page.insert_htmlbox(box, text, css=title_css)
+            page.insert_htmlbox(box, subtext, css=subtitle_css)
+
+        def __add_main_graph_title(text: str, subtext: str):
+            box = self.boxes.get("overview_page")[1][1]
+            page.insert_htmlbox(box, text, css=title_css)
+            page.insert_htmlbox(box, subtext, css=subtitle_css)
+
+        def __add_top_left_graph_title(text: str, subtext: str):
+            box = self.boxes.get("overview_page")[3][0]
+            page.insert_htmlbox(box, text, css=title_css)
+            page.insert_htmlbox(box, subtext, css=subtitle_css)
+
+        def __add_top_right_graph_title(text: str, subtext: str):
+            box = self.boxes.get("overview_page")[3][1]
+            page.insert_htmlbox(box, text, css=title_css)
+            page.insert_htmlbox(box, subtext, css=subtitle_css)
+
+        def __add_bottom_left_graph_title(text: str, subtext: str):
+            box = self.boxes.get("overview_page")[5][0]
+            page.insert_htmlbox(box, text, css=title_css)
+            page.insert_htmlbox(box, subtext, css=subtitle_css)
+
+        def __add_bottom_right_graph_title(text: str, subtext: str):
+            box = self.boxes.get("overview_page")[5][1]
+            page.insert_htmlbox(box, text, css=title_css)
+            page.insert_htmlbox(box, subtext, css=subtitle_css)
+
+        __add_metadata_title("Metadata", "Additional parameters")
+        __add_main_graph_title("Latencies", "Comparison of all modules")
+        __add_top_left_graph_title(
+            "Latency Comparison (Boxplot)", "Min/max/median per module"
+        )
+        __add_top_right_graph_title("Fill Levels", "Comparison of all modules")
+        __add_bottom_left_graph_title(
+            "Total number of incoming and completely processed entries",
+            "Sum of entries until point in time",
+        )
+        __add_bottom_right_graph_title("", "Entries per time")
+
     def save_file(self):
         """Stores the document as a file."""
         file_path_and_name = os.path.join(self.output_file_path, self.output_file_name)
@@ -255,4 +284,5 @@ if __name__ == "__main__":
 
     generator.setup_first_page_layout()
     generator.insert_title()
+    generator.insert_box_titles()
     generator.save_file()
