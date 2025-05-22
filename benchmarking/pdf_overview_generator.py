@@ -14,7 +14,7 @@ class PDFOverviewGenerator:
 
     def __init__(self):
         self.output_file_path = "./output/"
-        self.output_file_name = "test_for_now"
+        self.output_file_name = "example_overview"
 
         self.page_width, self.page_height = 595, 842  # page dimension: A4 portrait
         self.standard_page_margin = {"left": 50, "right": 50, "top": 50, "bottom": 80}
@@ -55,16 +55,16 @@ class PDFOverviewGenerator:
         row_heights = [
             0.08,  # title row
             0.02,  # space
-            0.02,  # 2nd content row
-            0.02,  # 3rd content row
+            0.025,  # 2nd content row
+            0.015,  # 3rd content row
             0.26,  # 4th content row
             0.04,  # space
-            0.02,  # 5th content row
-            0.02,  # 6th content row
+            0.025,  # 5th content row
+            0.015,  # 6th content row
             0.22,  # 7th content row
             0.04,  # space
-            0.02,  # 8th content row
-            0.02,  # 9th content row
+            0.025,  # 8th content row
+            0.015,  # 9th content row
             0.22,  # 10th content row
         ]  # relative of usable height, top to bottom
 
@@ -85,7 +85,7 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][1].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][1][0],
-                fill=(0, 0, 0, 0.2),
+                fill=(0, 0, 0, 0.1),
                 color=(0, 0, 0, 0.2),
                 width=1,
             )
@@ -99,8 +99,8 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][2].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][2][0],
-                fill=(0, 0, 0, 0.2),
-                color=(0, 0, 0, 0.2),
+                fill=(0.7, 0, 0, 0.2),
+                color=(0.7, 0, 0, 0.2),
                 width=1,
             )
 
@@ -124,7 +124,7 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][1].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][1][1],
-                fill=(0, 0, 0, 0.2),
+                fill=(0, 0, 0, 0.1),
                 color=(0, 0, 0, 0.2),
                 width=1,
             )
@@ -138,8 +138,8 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][2].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][2][1],
-                fill=(0, 0, 0, 0.2),
-                color=(0, 0, 0, 0.2),
+                fill=(0.7, 0, 0, 0.2),
+                color=(0.7, 0, 0, 0.2),
                 width=1,
             )
 
@@ -163,7 +163,7 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][4].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][4][0],
-                fill=(0, 0, 0, 0.2),
+                fill=(0, 0, 0, 0.1),
                 color=(0, 0, 0, 0.2),
                 width=1,
             )
@@ -177,8 +177,8 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][5].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][5][0],
-                fill=(0, 0, 0, 0.2),
-                color=(0, 0, 0, 0.2),
+                fill=(0.7, 0, 0, 0.2),
+                color=(0.7, 0, 0, 0.2),
                 width=1,
             )
 
@@ -202,7 +202,7 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][4].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][4][1],
-                fill=(0, 0, 0, 0.2),
+                fill=(0, 0, 0, 0.1),
                 color=(0, 0, 0, 0.2),
                 width=1,
             )
@@ -216,8 +216,8 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][5].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][5][1],
-                fill=(0, 0, 0, 0.2),
-                color=(0, 0, 0, 0.2),
+                fill=(0.7, 0, 0, 0.2),
+                color=(0.7, 0, 0, 0.2),
                 width=1,
             )
 
@@ -241,7 +241,7 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][7].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][7][0],
-                fill=(0, 0, 0, 0.2),
+                fill=(0, 0, 0, 0.1),
                 color=(0, 0, 0, 0.2),
                 width=1,
             )
@@ -255,8 +255,8 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][8].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][8][0],
-                fill=(0, 0, 0, 0.2),
-                color=(0, 0, 0, 0.2),
+                fill=(0.7, 0, 0, 0.2),
+                color=(0.7, 0, 0, 0.2),
                 width=1,
             )
 
@@ -280,7 +280,7 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][7].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][7][1],
-                fill=(0, 0, 0, 0.2),
+                fill=(0, 0, 0, 0.1),
                 color=(0, 0, 0, 0.2),
                 width=1,
             )
@@ -294,8 +294,8 @@ class PDFOverviewGenerator:
             self.boxes["overview_page"][8].append(pymupdf.Rect(x0, y0, x1, y1))
             page.draw_rect(
                 self.boxes["overview_page"][8][1],
-                fill=(0, 0, 0, 0.2),
-                color=(0, 0, 0, 0.2),
+                fill=(0.7, 0, 0, 0.2),
+                color=(0.7, 0, 0, 0.2),
                 width=1,
             )
 
@@ -311,24 +311,24 @@ class PDFOverviewGenerator:
             )
 
         __add_title_box()
+        __add_metadata_box()
         __add_metadata_title_box()
         __add_metadata_subtitle_box()
-        __add_metadata_box()
+        __add_main_graph_box()
         __add_main_graph_title_box()
         __add_main_graph_subtitle_box()
-        __add_main_graph_box()
+        __add_top_left_graph_box()
         __add_top_left_graph_title_box()
         __add_top_left_graph_subtitle_box()
-        __add_top_left_graph_box()
+        __add_top_right_graph_box()
         __add_top_right_graph_title_box()
         __add_top_right_graph_subtitle_box()
-        __add_top_right_graph_box()
+        __add_bottom_left_graph_box()
         __add_bottom_left_graph_title_box()
         __add_bottom_left_graph_subtitle_box()
-        __add_bottom_left_graph_box()
-        __add_bottom_right_graph_title_box()
-        __add_bottom_right_graph_subtitle_box()
         __add_bottom_right_graph_box()
+        # __add_bottom_right_graph_title_box()  # uncommented because left title box is enlarged
+        __add_bottom_right_graph_subtitle_box()
 
     def insert_title(self):
         """Inserts the title into the existing first box."""
@@ -354,8 +354,24 @@ class PDFOverviewGenerator:
     def insert_box_titles(self):
         """Inserts the titles and subtitles for each box."""
         page = self.document[0]  # first page
-        title_css = "* {font-family: Arial, Helvetica, sans-serif; font-size: 10px; text-align: left; padding: 1px 2px}"
-        subtitle_css = "* {font-family: Arial, Helvetica, sans-serif; font-size: 7px; text-align: left; padding: 1px 2px}"
+        title_css = (
+            "* {"
+            "font-family: Arial, Helvetica, sans-serif;"
+            "color: #5e5e5e;"
+            "font-size: 9px;"
+            "text-align: left;"
+            "padding: 1.4px 3px"
+            "}"
+        )
+        subtitle_css = (
+            "* {"
+            "font-family: Arial, Helvetica, sans-serif;"
+            "color: white;"
+            "font-size: 5px;"
+            "text-align: left;"
+            "padding: 0.7px 3px"
+            "}"
+        )
 
         def __add_metadata_title(text: str, subtext: str):
             box = self.boxes.get("overview_page")[1][0]
@@ -393,8 +409,8 @@ class PDFOverviewGenerator:
             page.insert_htmlbox(box, subtext, css=subtitle_css)
 
         def __add_bottom_right_graph_title(text: str, subtext: str):
-            box = self.boxes.get("overview_page")[7][1]
-            page.insert_htmlbox(box, text, css=title_css)
+            # box = self.boxes.get("overview_page")[7][1]  # uncommented because left box is enlarged
+            # page.insert_htmlbox(box, text, css=title_css)
 
             box = self.boxes.get("overview_page")[8][1]
             page.insert_htmlbox(box, subtext, css=subtitle_css)
@@ -416,7 +432,7 @@ class PDFOverviewGenerator:
         page = self.document[0]  # first page
         main_graph_box = self.boxes.get("overview_page")[3][1]
         page.insert_image(
-            self.__get_padded_rect(main_graph_box, 2), filename=f"graphs/{file_name}"
+            self.__get_padded_rect(main_graph_box, 4), filename=f"graphs/{file_name}"
         )
 
     def insert_top_left_graph(self, file_name: str):
@@ -424,7 +440,7 @@ class PDFOverviewGenerator:
         page = self.document[0]  # first page
         top_left_graph_box = self.boxes.get("overview_page")[6][0]
         page.insert_image(
-            self.__get_padded_rect(top_left_graph_box, 2),
+            self.__get_padded_rect(top_left_graph_box, 4),
             filename=f"graphs/{file_name}",
         )
 
@@ -433,7 +449,7 @@ class PDFOverviewGenerator:
         page = self.document[0]  # first page
         top_right_graph_box = self.boxes.get("overview_page")[6][1]
         page.insert_image(
-            self.__get_padded_rect(top_right_graph_box, 2),
+            self.__get_padded_rect(top_right_graph_box, 4),
             filename=f"graphs/{file_name}",
         )
 
@@ -442,7 +458,7 @@ class PDFOverviewGenerator:
         page = self.document[0]  # first page
         bottom_left_graph_box = self.boxes.get("overview_page")[9][0]
         page.insert_image(
-            self.__get_padded_rect(bottom_left_graph_box, 2),
+            self.__get_padded_rect(bottom_left_graph_box, 4),
             filename=f"graphs/{file_name}",
         )
 
@@ -451,7 +467,7 @@ class PDFOverviewGenerator:
         page = self.document[0]  # first page
         bottom_right_graph_box = self.boxes.get("overview_page")[9][1]
         page.insert_image(
-            self.__get_padded_rect(bottom_right_graph_box, 2),
+            self.__get_padded_rect(bottom_right_graph_box, 4),
             filename=f"graphs/{file_name}",
         )
 
