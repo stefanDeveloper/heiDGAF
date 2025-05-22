@@ -477,7 +477,7 @@ class PDFOverviewGenerator:
         os.makedirs(self.output_file_path, exist_ok=True)
 
         try:
-            self.document.save(f"{file_path_and_name}.pdf")
+            self.document.save(f"{file_path_and_name}.pdf", garbage=4, deflate=True)
             logger.info(f"Successfully stored document as {file_path_and_name}.pdf")
         except ValueError as err:  # includes zero page error
             logger.error(err)
