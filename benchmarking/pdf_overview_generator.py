@@ -415,7 +415,27 @@ class PDFOverviewGenerator:
         """Inserts the main graph plot into the box."""
         page = self.document[0]  # first page
         main_graph_box = self.boxes.get("overview_page")[3][1]
-        page.insert_image(self.__get_padded_rect(main_graph_box, 2), filename=f"graphs/{file_name}")
+        page.insert_image(
+            self.__get_padded_rect(main_graph_box, 2), filename=f"graphs/{file_name}"
+        )
+
+    def insert_top_left_graph(self, file_name: str):
+        """Inserts the top left graph plot into the box."""
+        page = self.document[0]  # first page
+        top_left_graph_box = self.boxes.get("overview_page")[6][0]
+        page.insert_image(
+            self.__get_padded_rect(top_left_graph_box, 2),
+            filename=f"graphs/{file_name}",
+        )
+
+    def insert_top_right_graph(self, file_name: str):
+        """Inserts the top right graph plot into the box."""
+        page = self.document[0]  # first page
+        top_right_graph_box = self.boxes.get("overview_page")[6][1]
+        page.insert_image(
+            self.__get_padded_rect(top_right_graph_box, 2),
+            filename=f"graphs/{file_name}",
+        )
 
     def save_file(self):
         """Stores the document as a file."""
@@ -431,10 +451,7 @@ class PDFOverviewGenerator:
     @staticmethod
     def __get_padded_rect(rect, padding):
         return pymupdf.Rect(
-            rect.x0 + padding,
-            rect.y0 + padding,
-            rect.x1 - padding,
-            rect.y1 - padding
+            rect.x0 + padding, rect.y0 + padding, rect.x1 - padding, rect.y1 - padding
         )
 
 
@@ -446,5 +463,6 @@ if __name__ == "__main__":
     generator.insert_title()
     generator.insert_box_titles()
     generator.insert_main_graph("latencies_comparison.png")
+    generator.insert_top_left_graph("latencies_boxplot.png")
 
     generator.save_file()
