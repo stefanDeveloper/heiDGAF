@@ -354,8 +354,8 @@ class PDFOverviewGenerator:
     def insert_box_titles(self):
         """Inserts the titles and subtitles for each box."""
         page = self.document[0]  # first page
-        title_css = "* {font-size: 10px; text-align: left; padding: 1px 2px}"
-        subtitle_css = "* {font-size: 7px; text-align: left; padding: 1px 2px}"
+        title_css = "* {font-family: Arial, Helvetica, sans-serif; font-size: 10px; text-align: left; padding: 1px 2px}"
+        subtitle_css = "* {font-family: Arial, Helvetica, sans-serif; font-size: 7px; text-align: left; padding: 1px 2px}"
 
         def __add_metadata_title(text: str, subtext: str):
             box = self.boxes.get("overview_page")[1][0]
@@ -437,6 +437,24 @@ class PDFOverviewGenerator:
             filename=f"graphs/{file_name}",
         )
 
+    def insert_bottom_left_graph(self, file_name: str):
+        """Inserts the bottom left graph plot into the box."""
+        page = self.document[0]  # first page
+        bottom_left_graph_box = self.boxes.get("overview_page")[9][0]
+        page.insert_image(
+            self.__get_padded_rect(bottom_left_graph_box, 2),
+            filename=f"graphs/{file_name}",
+        )
+
+    def insert_bottom_right_graph(self, file_name: str):
+        """Inserts the bottom left graph plot into the box."""
+        page = self.document[0]  # first page
+        bottom_right_graph_box = self.boxes.get("overview_page")[9][1]
+        page.insert_image(
+            self.__get_padded_rect(bottom_right_graph_box, 2),
+            filename=f"graphs/{file_name}",
+        )
+
     def save_file(self):
         """Stores the document as a file."""
         file_path_and_name = os.path.join(self.output_file_path, self.output_file_name)
@@ -464,5 +482,8 @@ if __name__ == "__main__":
     generator.insert_box_titles()
     generator.insert_main_graph("latencies_comparison.png")
     generator.insert_top_left_graph("latencies_boxplot.png")
+    generator.insert_top_right_graph("fill_levels_comparison.png")
+    generator.insert_bottom_left_graph("entering_processed_sum_at_time.png")
+    generator.insert_bottom_right_graph("entering_processed_bars.png")
 
     generator.save_file()
