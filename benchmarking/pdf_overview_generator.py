@@ -411,6 +411,12 @@ class PDFOverviewGenerator:
         )
         __add_bottom_right_graph_title("", "Entries per time")
 
+    def insert_main_graph(self, file_name: str):
+        """Inserts the main graph plot into the box."""
+        page = self.document[0]  # first page
+        main_graph_box = self.boxes.get("overview_page")[3][1]
+        page.insert_image(self.__get_padded_rect(main_graph_box, 2), filename=f"graphs/{file_name}")
+
     def save_file(self):
         """Stores the document as a file."""
         file_path_and_name = os.path.join(self.output_file_path, self.output_file_name)
@@ -422,6 +428,15 @@ class PDFOverviewGenerator:
         except ValueError as err:  # includes zero page error
             logger.error(err)
 
+    @staticmethod
+    def __get_padded_rect(rect, padding):
+        return pymupdf.Rect(
+            rect.x0 + padding,
+            rect.y0 + padding,
+            rect.x1 - padding,
+            rect.y1 - padding
+        )
+
 
 # Only for testing
 if __name__ == "__main__":
@@ -430,4 +445,6 @@ if __name__ == "__main__":
     generator.setup_first_page_layout()
     generator.insert_title()
     generator.insert_box_titles()
+    generator.insert_main_graph("latencies_comparison.png")
+
     generator.save_file()
