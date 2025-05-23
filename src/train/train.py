@@ -37,7 +37,6 @@ def add_options(options):
 
 @unique
 class DatasetEnum(str, Enum):
-    ALL = "all"
     COMBINE = "combine"
     CIC = "cic"
     DGTA = "dgta"
@@ -56,7 +55,7 @@ class DetectorTraining:
         self,
         model_name: ModelEnum.RANDOM_FOREST_CLASSIFIER,
         model_output_path: str = f"./{RESULT_FOLDER}/model",
-        dataset: DatasetEnum = DatasetEnum.ALL,
+        dataset: DatasetEnum = DatasetEnum.COMBINE,
         data_base_path: str = "./data",
         max_rows: int = -1,
     ) -> None:
@@ -65,7 +64,7 @@ class DetectorTraining:
         Args:
             model_name (ModelEnum.RANDOM_FOREST_CLASSIFIER): _description_
             model_output_path (str, optional): _description_. Defaults to "./".
-            dataset (DatasetEnum, optional): _description_. Defaults to DatasetEnum.ALL.
+            dataset (DatasetEnum, optional): _description_. Defaults to DatasetEnum.COMBINE.
             data_base_path (str, optional): _description_. Defaults to "./data".
             max_rows (int, optional): _description_. Defaults to -1.
 
@@ -231,7 +230,7 @@ class DetectorTraining:
         Returns:
             float: FTTAR
         """
-        _, FP, _, TP = confusion_matrix(y_actual, y_pred).ravel()
+        _, FP, _, TP = confusion_matrix(y_actual, y_pred, labels=[0, 1]).ravel()
         if (TP) == 0:
             logger.debug("WARNING: TP = 0")
             return 0
@@ -247,7 +246,7 @@ class DetectorTraining:
         Returns:
             float: FDR
         """
-        _, FP, _, TP = confusion_matrix(y_actual, y_pred).ravel()
+        _, FP, _, TP = confusion_matrix(y_actual, y_pred, labels=[0, 1]).ravel()
         if (FP + TP) == 0:
             logger.debug("WARNING: FP + TP = 0")
             return 0

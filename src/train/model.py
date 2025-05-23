@@ -282,7 +282,7 @@ class Pipeline:
 
         self.model.X = self.x_train
         self.model.y = self.y_train
-        study = optuna.create_study(direction="minimize")
+        study = optuna.create_study(direction="maximize")
         study.optimize(self.model.objective, n_trials=50, timeout=600)
 
         logger.info(f"Number of finished trials: {len(study.trials)}")
@@ -378,8 +378,7 @@ class Model(metaclass=ABCMeta):
             fdr = 0.0
         else:
             fdr = FP / (FP + TP)
-
-        return fdr
+        return fdr - 1  # Important: negative because lower FDR is better
 
     @abstractmethod
     def objective(self, trial):
@@ -423,10 +422,6 @@ class XGBoostModel(Model):
         # Threshold predictions to get binary outcomes (assuming binary classification with 0.5 threshold)
         preds_binary = (preds > 0.5).astype(int)
 
-        # Calculate False Positives (FP) and True Positives (TP)
-        # FP = np.sum((preds_binary == 1) & (labels == 0))
-        # TP = np.sum((preds_binary == 1) & (labels == 1))
-
         cm = confusion_matrix(labels, preds_binary)
         TP = cm[1, 1]
         FP = cm[0, 1]
@@ -438,11 +433,10 @@ class XGBoostModel(Model):
             fdr = FP / (FP + TP)
 
         # Return the result in the format (name, value)
-        # return (
-        #     "fdr",
-        #     1 - fdr,
-        # )  # -1 is essentiell since XGBoost wants a scoring value (higher is better). However, FDR represents a loss function.
-        return "fdr", fdr
+        return (
+            "fdr",
+            1 - fdr,
+        )  # -1 is essentiell since XGBoost wants a scoring value (higher is better). However, FDR represents a loss function.
 
     def objective(self, trial):
         """
@@ -511,14 +505,6 @@ class XGBoostModel(Model):
 
         # Set n_estimators as a trial attribute; Accessible via study.trials_dataframe().
         trial.set_user_attr("n_estimators", len(xgb_cv_results))
-
-        # # Save cross-validation results.
-        # filepath = os.path.join(CV_RESULT_DIR, "{}.csv".format(trial.number))
-        # xgb_cv_results.to_csv(filepath, index=False)
-
-        # Extract the best score.
-        # best_fdr = xgb_cv_results["test-auc-mean"].values[-1]
-        # return best_fdr
 
         return xgb_cv_results["test-fdr-mean"].min()
 
@@ -619,6 +605,8 @@ class LightGBMModel(Model):
     def __init__(self) -> None:
         super().__init__()
         self.model_name = "gbm"
+        # Create a scorer using make_scorer, setting greater_is_better to False since lower FDR is better
+        self.fdr_scorer = make_scorer(self.fdr_metric, greater_is_better=False)
 
     def objective(self, trial):
         """
@@ -638,7 +626,7 @@ class LightGBMModel(Model):
         param = {
             "objective": "binary",
             "verbosity": -1,
-            "metric": "auc",
+            "metric": "logloss",
             "boosting_type": "gbdt",
             "device": self.device,
             "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.2, log=True),
@@ -657,17 +645,13 @@ class LightGBMModel(Model):
         # Create model with suggested hyperparameters
         classifier_obj = lgb.LGBMClassifier(**param)
 
-        # Create a scorer using make_scorer, setting greater_is_better to False since lower FDR is better
-        fdr_scorer = make_scorer(self.fdr_metric, greater_is_better=False)
-
         score = cross_val_score(
             classifier_obj,
             self.X,
             self.y,
             n_jobs=-1,
             cv=N_FOLDS,
-            scoring="roc_auc",
-            # scoring=fdr_scorer,
+            scoring=self.fdr_scorer,
         )
         fdr = score.mean()
         return fdr
