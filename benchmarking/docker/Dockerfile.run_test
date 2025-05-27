@@ -9,7 +9,7 @@ RUN pip --disable-pip-version-check install --no-cache-dir --no-compile marshmal
 COPY src/base ./src/base
 COPY src/train ./src/train
 COPY config.yaml .
-COPY docker/benchmark_tests .
+COPY benchmarking/src/run_test ./run_test
 COPY data ./data
 
 RUN rm -rf /root/.cache

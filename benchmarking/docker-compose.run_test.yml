@@ -2,7 +2,7 @@ services:
   benchmark_test_run:
     build:
       context: ../..
-      dockerfile: docker/benchmark_tests/Dockerfile.run_test
+      dockerfile: benchmarking/docker/Dockerfile.run_test
       network: host
     networks:
       docker_heidgaf:
