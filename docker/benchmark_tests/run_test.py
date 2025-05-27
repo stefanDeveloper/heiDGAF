@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import ipaddress
 import os
@@ -27,6 +28,7 @@ class DatasetGenerator:
         datasets = DatasetLoader(base_path=data_base_path, max_rows=10000)
 
         dataset = Dataset(
+            name="",
             data_path="",
             data=pl.concat(
                 [
@@ -262,7 +264,32 @@ class MaximumThroughputTest(LongTermTest):
         super().__init__(full_length_in_min=length_in_min, msg_per_sec=msg_per_sec)
 
 
-def main(test_type_nr):
+def main():
+    # Get the environment variable, default to 1 if not set
+    env_test_type_nr = int(os.getenv("TEST_TYPE_NR", 1))
+
+    parser = argparse.ArgumentParser(
+        description="Example script with test_type_nr argument."
+    )
+
+    parser.add_argument(
+        "--test_type_nr",
+        type=int,
+        choices=[1, 2, 3, 4],
+        default=env_test_type_nr,
+        help="""
+        1 - Ramp-up test
+        2 - Burst test
+        3 - Maximum throughput test
+        4 - Long-term test
+        """,
+    )
+
+    args = parser.parse_args()
+
+    print(f"Selected test type number: {args.test_type_nr}")
+    test_type_nr = args.test_type_nr
+
     """Creates the test instance and executes the test."""
     match test_type_nr:
         case 1:
@@ -300,10 +327,5 @@ def main(test_type_nr):
 
 
 if __name__ == "__main__":
-    """
-    1 - Ramp-up test
-    2 - Burst test
-    3 - Maximum throughput test
-    4 - Long-term test
-    """
-    main(3)
+    """ """
+    main()
