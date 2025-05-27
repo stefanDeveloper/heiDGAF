@@ -4,7 +4,7 @@ set -euo pipefail
 # Configuration
 CONTAINER="fafd2d59cf6e"
 CLICKHOUSE_CLIENT="clickhouse-client"
-BASE_DIR="benchmark_results/test_run"
+BASE_DIR="../benchmark_results/test_run"
 SQL_DIR="sql"
 
 # Create output directories

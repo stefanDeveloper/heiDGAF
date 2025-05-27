@@ -13,7 +13,7 @@ class PDFOverviewGenerator:
     """Combines multiple plots and test information in a PDF document."""
 
     def __init__(self):
-        self.output_file_path = "./output/"
+        self.output_file_path = "../output/"
         self.output_file_name = "example_overview"
 
         self.page_width, self.page_height = 595, 842  # page dimension: A4 portrait
