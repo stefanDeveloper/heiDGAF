@@ -24,5 +24,5 @@ per_hour AS (
 )
 SELECT time_bucket,
     sum(number) AS count
-FROM per_hour
+FROM per_second
 GROUP BY time_bucket FORMAT CSVWithNames
