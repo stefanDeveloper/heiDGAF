@@ -23,3 +23,4 @@ if __name__ == "__main__":
     maximum_throughput_test = MaximumThroughputTest(
         length_in_min=maximum_throughput_test_config["length"] / 60,
     )
+    maximum_throughput_test.execute()

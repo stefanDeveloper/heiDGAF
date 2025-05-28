@@ -46,3 +46,4 @@ if __name__ == "__main__":
         msg_per_sec_in_intervals=data_rates,
         interval_length_in_sec=interval_lengths,
     )
+    ramp_up_test.execute()

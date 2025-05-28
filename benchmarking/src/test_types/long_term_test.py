@@ -66,3 +66,4 @@ if __name__ == "__main__":
         full_length_in_min=long_term_test_config["length"],
         msg_per_sec=long_term_test_config["data_rate"],
     )
+    long_term_test.execute()
