@@ -4,15 +4,16 @@ set -euo pipefail
 # Configuration
 CONTAINER="clickhouse-server"
 CLICKHOUSE_CLIENT="clickhouse-client"
-BASE_DIR="../benchmark_results/test_run"
-SQL_DIR="../sql"
+CURRENT_TIME=$(date +'%Y-%d-%m_%H-%M-%S')
+BASE_DIR="benchmark_results/test_run_$CURRENT_TIME"
+SQL_DIR="sql"
 
 # Create output directories
 declare -a SUBDIRS=("entering_processed" "latencies" "log_volumes" "full_tables")
 for dir in "${SUBDIRS[@]}"; do
     mkdir -p "$BASE_DIR/$dir"
 done
-echo "✅ Created output folders under $BASE_DIR"
+echo "✅   Created output folders under $BASE_DIR"
 
 # Function to run query from file
 run_query_file() {
@@ -31,4 +32,4 @@ for subdir in "${SUBDIRS[@]}"; do
     done
 done
 
-echo "✅ All SQL scripts executed successfully."
+echo "✅   All SQL scripts executed successfully."
