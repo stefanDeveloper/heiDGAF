@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Configuration
-CONTAINER="fafd2d59cf6e"
+CONTAINER="clickhouse-server"
 CLICKHOUSE_CLIENT="clickhouse-client"
 BASE_DIR="../benchmark_results/test_run"
-SQL_DIR="sql"
+SQL_DIR="../sql"
 
 # Create output directories
 declare -a SUBDIRS=("entering_processed" "latencies" "log_volumes" "full_tables")

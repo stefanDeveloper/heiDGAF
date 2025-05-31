@@ -1,7 +1,7 @@
 services:
   benchmark_test_run:
     build:
-      context: ../..
+      context: ..
       dockerfile: benchmarking/docker/Dockerfile.run_test
       network: host
     networks:

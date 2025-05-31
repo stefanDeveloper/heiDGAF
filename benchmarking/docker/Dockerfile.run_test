@@ -9,9 +9,10 @@ RUN pip --disable-pip-version-check install --no-cache-dir --no-compile marshmal
 COPY src/base ./src/base
 COPY src/train ./src/train
 COPY config.yaml .
-COPY benchmarking/src/run_test ./run_test
+COPY benchmarking/src ./benchmarking/src
+COPY benchmarking/benchmark_test_config.yaml ./benchmarking/benchmark_test_config.yaml
 COPY data ./data
 
 RUN rm -rf /root/.cache
 
-CMD [ "python", "run_test.py"]
+CMD [ "python", "benchmarking/src/test_types/ramp_up_test.py"]
