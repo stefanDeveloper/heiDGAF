@@ -127,6 +127,7 @@ Now, you can start each stage, e.g. the inspector:
 ```sh
 python src/inspector/main.py
 ```
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Configuration
 
@@ -143,6 +144,9 @@ The full list of configuration parameters is available at the [documentation](ht
 | `pipeline.data_analysis.detector.model`    | Model to use for data analysis (e.g., DGA detection).                       | `rf` (Random Forest) option: `XGBoost`                                                    |
 | `pipeline.data_analysis.detector.checksum` | Checksum for the model file to ensure integrity.                            | `ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06`                                       |
 | `pipeline.data_analysis.detector.base_url` | Base URL for downloading the model if not present locally.                  | `https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/`                                                  |
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Insert test data
 
 >[!IMPORTANT]
@@ -163,6 +167,9 @@ After downloading the dataset and storing it under `<project-root>/data` you can
 docker compose -f docker/docker-compose.send-real-logs.yml up
 ```
 to start inserting the dataset traffic.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 ### Train your own models
 > [!IMPORTANT]
@@ -222,11 +229,11 @@ loglines:
     - [ "size", RegEx, '^\d+b$' ]
 ```
 
+
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 <!-- CONTRIBUTING -->
-
-
-
-
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any
