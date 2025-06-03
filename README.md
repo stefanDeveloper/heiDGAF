@@ -77,37 +77,58 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 <details>
   <summary>📊 <strong>Overview Dashboard</strong></summary>
 
-  [<img src="./assets/readme_assets/overview.png" alt="Overview Dashboard" width="80%"/>](./assets/readme_assets/overview.png)
+  <p align="center">
+    <a href="./assets/readme_assets/overview.png">
+      <img src="./assets/readme_assets/overview.png" alt="Overview Dashboard" width="80%"/>
+    </a>
+  </p>
 
 </details>
 
 <details>
   <summary>📈 <strong>Latencies Dashboard</strong></summary>
 
-  [<img src="./assets/readme_assets/latencies.jpeg" alt="Latencies Dashboard" width="80%"/>](./assets/readme_assets/latencies.jpeg)
+  <p align="center">
+    <a href="./assets/readme_assets/latencies.jpeg">
+      <img src="./assets/readme_assets/latencies.jpeg" alt="Latencies Dashboard" width="80%"/>
+    </a>
+  </p>
 
 </details>
 
 <details>
   <summary>📉 <strong>Log Volumes Dashboard</strong></summary>
 
-  [<img src="./assets/readme_assets/log_volumes.jpeg" alt="Log Volumes Dashboard" width="80%"/>](./assets/readme_assets/log_volumes.jpeg)
+  <p align="center">
+    <a href="./assets/readme_assets/log_volumes.jpeg">
+      <img src="./assets/readme_assets/log_volumes.jpeg" alt="Log Volumes Dashboard" width="80%"/>
+    </a>
+  </p>
 
 </details>
 
 <details>
   <summary>🚨 <strong>Alerts Dashboard</strong></summary>
 
-  [<img src="./assets/readme_assets/alerts.png" alt="Alerts Dashboard" width="80%"/>](./assets/readme_assets/alerts.png)
+  <p align="center">
+    <a href="./assets/readme_assets/alerts.png">
+      <img src="./assets/readme_assets/alerts.png" alt="Alerts Dashboard" width="80%"/>
+    </a>
+  </p>
 
 </details>
 
 <details>
   <summary>🧪 <strong>Dataset Dashboard</strong></summary>
 
-  [<img src="./assets/readme_assets/datatests.png" alt="Dataset Dashboard" width="80%"/>](./assets/readme_assets/datatests.png)
+  <p align="center">
+    <a href="./assets/readme_assets/datatests.png">
+      <img src="./assets/readme_assets/datatests.png" alt="Dataset Dashboard" width="80%"/>
+    </a>
+  </p>
 
 </details>
+
 
 ### Developing
 
