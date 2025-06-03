@@ -67,10 +67,9 @@ If you want to use heiDGAF, just use the provided Docker compose to quickly boot
 ```
 docker compose -f docker/docker-compose.yml up
 ```
-
-![Terminal example](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true)
-
-
+<p align="center">
+  <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
+</p>
 
 ## Examplary Dashboards
 In the below summary you will find examplary views of the grafana dashboards. The metrics were obtained using the [mock-generator](./docker/docker-compose.send-real-logs.yml)
@@ -79,7 +78,7 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 
   <p align="center">
     <a href="./assets/readme_assets/overview.png">
-      <img src="./assets/readme_assets/overview.png" alt="Overview Dashboard" width="80%"/>
+      <img src="./assets/readme_assets/overview.png" alt="Overview Dashboard" width="90%"/>
     </a>
   </p>
 
@@ -90,7 +89,7 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 
   <p align="center">
     <a href="./assets/readme_assets/latencies.jpeg">
-      <img src="./assets/readme_assets/latencies.jpeg" alt="Latencies Dashboard" width="80%"/>
+      <img src="./assets/readme_assets/latencies.jpeg" alt="Latencies Dashboard" width="90%"/>
     </a>
   </p>
 
@@ -101,7 +100,7 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 
   <p align="center">
     <a href="./assets/readme_assets/log_volumes.jpeg">
-      <img src="./assets/readme_assets/log_volumes.jpeg" alt="Log Volumes Dashboard" width="80%"/>
+      <img src="./assets/readme_assets/log_volumes.jpeg" alt="Log Volumes Dashboard" width="90%"/>
     </a>
   </p>
 
@@ -112,7 +111,7 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 
   <p align="center">
     <a href="./assets/readme_assets/alerts.png">
-      <img src="./assets/readme_assets/alerts.png" alt="Alerts Dashboard" width="80%"/>
+      <img src="./assets/readme_assets/alerts.png" alt="Alerts Dashboard" width="90%"/>
     </a>
   </p>
 
