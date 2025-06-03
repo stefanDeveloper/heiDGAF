@@ -4,7 +4,7 @@ set -euo pipefail
 # Configuration
 CONTAINER="clickhouse-server"
 CLICKHOUSE_CLIENT="clickhouse-client"
-CURRENT_TIME=$(date +'%Y-%d-%m_%H-%M-%S')
+CURRENT_TIME=$(date +'%Y-%m-%d_%H-%M-%S')
 BASE_DIR="benchmark_results/test_run_$CURRENT_TIME"
 SQL_DIR="sql"
 
