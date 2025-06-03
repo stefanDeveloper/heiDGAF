@@ -70,119 +70,9 @@ docker compose -f docker/docker-compose.yml up
 
 ![Terminal example](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true)
 
-### Configuration
-
-The following table lists the most important configuration parameters with their respective default values.
-The full list of configuration parameters is available at the [documentation](https://heidgaf.readthedocs.io/en/latest/usage.html)
-
-| Path                                       | Description                                                                 | Default Value                                                                                                |
-| :----------------------------------------- | :-------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- |
-| `pipeline.data_inspection.inspector.mode`  | Mode of operation for the data inspector.                                   | `univariate` (options: `multivariate`, `ensemble`)                                                           |
-| `pipeline.data_inspection.inspector.ensemble.model` | Model to use when inspector mode is `ensemble`.                             | `WeightEnsemble`                                                                                             |
-| `pipeline.data_inspection.inspector.ensemble.module` | Module name for the ensemble model.                                       | `streamad.process`                                                                                           |
-| `pipeline.data_inspection.inspector.models` | List of models to use for data inspection (e.g., anomaly detection).      | Array of model definitions (e.g., `{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {"is_global": false}}`)|
-| `pipeline.data_inspection.inspector.anomaly_threshold` | Threshold for classifying an observation as an anomaly.                     | `0.01`                                                                                                     |
-| `pipeline.data_analysis.detector.model`    | Model to use for data analysis (e.g., DGA detection).                       | `rf` (Random Forest) option: `XGBoost`                                                    |
-| `pipeline.data_analysis.detector.checksum` | Checksum for the model file to ensure integrity.                            | `ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06`                                       |
-| `pipeline.data_analysis.detector.base_url` | Base URL for downloading the model if not present locally.                  | `https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/`                                                  |
 
 
-### Developing
-
-Install all Python requirements:
-
-```sh
-python -m venv .venv
-source .venv/bin/activate
-
-sh install_requirements.sh
-```
-
-Alternatively, you can use `pip install` and enter all needed requirements individually with `-r requirements.*.txt`.
-
-Now, you can start each stage, e.g. the inspector:
-
-```sh
-python src/inspector/main.py
-```
-
-### Insert test data
-
->[!IMPORTANT]
-> To be able to train and test our or your own models, you will need to download the datasets.
-
-For training our models, we currently rely on the following data sets:
-- [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)
-- [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
-- [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
-- [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
-- [Real-CyberSecurity-Datasets](https://github.com/gfek/Real-CyberSecurity-Datasets/)
-
-However, we compute all feature separately and only rely on the `domain` and `class`.
-Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
-
-After downloading the dataset and storing it under `<project-root>/data` you can run
-```
-docker compose -f docker/docker-compose.send-real-logs.yml up
-```
-to start inserting the dataset traffic.
-
-### Train your own models
-> [!IMPORTANT]
-> This is only a brief wrap-up of a custom training process.
-> We highly encourage you to have a look at the [documentation](https://heidgaf.readthedocs.io/en/latest/training.html)
-> for a full description and explanation of the configuration parameters.
-
-Currently, we enable two trained models, namely XGBoost and RandomForest.
-
-```sh
-python -m venv .venv
-source .venv/bin/activate
-
-pip install -r requirements/requirements.train.txt
-```
-
-After setting up the [dataset directories](#insert-test-data) (and adding the code for your model class if applicable), simply run:
-
-```
-python src/train/train.py train  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name>
-```
-to start the training process. The results will be saved per default to `./results`, if not configured otherwise.
-To test your model's performance, run:
-```
-python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
-```
-To get an overview over the internals of your models decisionmaking, run
-```
-python src/train/train.py explain  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
-```
-This will create a rules.txt file containing the innards of the model, explaining the rules it created.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-### Data
-
-> [!IMPORTANT]
-> We support custom schemes.
-
-```yml
-loglines:
-  fields:
-    - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
-    - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
-    - [ "client_ip", IpAddress ]
-    - [ "dns_server_ip", IpAddress ]
-    - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
-    - [ "record_type", ListItem, [ "A", "AAAA" ] ]
-    - [ "response_ip", IpAddress ]
-    - [ "size", RegEx, '^\d+b$' ]
-```
-
-<!-- CONTRIBUTING -->
-
-
-### Examplary Dashboards
+## Examplary Dashboards
 In the below summary you will find examplary views of the grafana dashboards. The metrics were obtained using the [mock-generator](./docker/docker-compose.send-real-logs.yml)
 <details>
   <summary>📊 <strong>Overview Dashboard</strong></summary>
@@ -218,6 +108,123 @@ In the below summary you will find examplary views of the grafana dashboards. Th
   [<img src="./assets/readme_assets/datatests.png" alt="Dataset Dashboard" width="80%"/>](./assets/readme_assets/datatests.png)
 
 </details>
+
+### Developing
+
+Install all Python requirements:
+
+```sh
+python -m venv .venv
+source .venv/bin/activate
+
+sh install_requirements.sh
+```
+
+Alternatively, you can use `pip install` and enter all needed requirements individually with `-r requirements.*.txt`.
+
+Now, you can start each stage, e.g. the inspector:
+
+```sh
+python src/inspector/main.py
+```
+
+### Configuration
+
+The following table lists the most important configuration parameters with their respective default values.
+The full list of configuration parameters is available at the [documentation](https://heidgaf.readthedocs.io/en/latest/usage.html)
+
+| Path                                       | Description                                                                 | Default Value                                                                                                |
+| :----------------------------------------- | :-------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- |
+| `pipeline.data_inspection.inspector.mode`  | Mode of operation for the data inspector.                                   | `univariate` (options: `multivariate`, `ensemble`)                                                           |
+| `pipeline.data_inspection.inspector.ensemble.model` | Model to use when inspector mode is `ensemble`.                             | `WeightEnsemble`                                                                                             |
+| `pipeline.data_inspection.inspector.ensemble.module` | Module name for the ensemble model.                                       | `streamad.process`                                                                                           |
+| `pipeline.data_inspection.inspector.models` | List of models to use for data inspection (e.g., anomaly detection).      | Array of model definitions (e.g., `{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {"is_global": false}}`)|
+| `pipeline.data_inspection.inspector.anomaly_threshold` | Threshold for classifying an observation as an anomaly.                     | `0.01`                                                                                                     |
+| `pipeline.data_analysis.detector.model`    | Model to use for data analysis (e.g., DGA detection).                       | `rf` (Random Forest) option: `XGBoost`                                                    |
+| `pipeline.data_analysis.detector.checksum` | Checksum for the model file to ensure integrity.                            | `ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06`                                       |
+| `pipeline.data_analysis.detector.base_url` | Base URL for downloading the model if not present locally.                  | `https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/`                                                  |
+### Insert test data
+
+>[!IMPORTANT]
+> To be able to train and test our or your own models, you will need to download the datasets.
+
+For training our models, we currently rely on the following data sets:
+- [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)
+- [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
+- [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
+- [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
+- [Real-CyberSecurity-Datasets](https://github.com/gfek/Real-CyberSecurity-Datasets/)
+
+However, we compute all feature separately and only rely on the `domain` and `class`.
+Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
+
+After downloading the dataset and storing it under `<project-root>/data` you can run
+```
+docker compose -f docker/docker-compose.send-real-logs.yml up
+```
+to start inserting the dataset traffic.
+
+### Train your own models
+> [!IMPORTANT]
+> This is only a brief wrap-up of a custom training process.
+> We highly encourage you to have a look at the [documentation](https://heidgaf.readthedocs.io/en/latest/training.html)
+> for a full description and explanation of the configuration parameters.
+
+Currently, we feature two trained models, namely XGBoost and RandomForest.
+
+```sh
+python -m venv .venv
+source .venv/bin/activate
+
+pip install -r requirements/requirements.train.txt
+```
+
+After setting up the [dataset directories](#insert-test-data) (and adding the code for your model class if applicable), you can start the training process by running the following commands:
+
+**Model Training**
+```
+python src/train/train.py train  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name>
+```
+The results will be saved per default to `./results`, if not configured otherwise. <br>
+
+**Model Tests**
+```
+python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
+```
+
+**Model Explain**
+```
+python src/train/train.py explain  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
+```
+This will create a rules.txt file containing the innards of the model, explaining the rules it created.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+### Data
+
+> [!IMPORTANT]
+> We support custom schemes.
+
+Depending on your data and usecase, you can customize the data scheme to fit your needs.
+The below configuration is part of the [main configuration file](./config.yaml) which is detailed in our [documentation](https://heidgaf.readthedocs.io/en/latest/usage.html#id2)
+
+```yml
+loglines:
+  fields:
+    - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
+    - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+    - [ "client_ip", IpAddress ]
+    - [ "dns_server_ip", IpAddress ]
+    - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+    - [ "record_type", ListItem, [ "A", "AAAA" ] ]
+    - [ "response_ip", IpAddress ]
+    - [ "size", RegEx, '^\d+b$' ]
+```
+
+<!-- CONTRIBUTING -->
+
+
 
 
 ## Contributing
