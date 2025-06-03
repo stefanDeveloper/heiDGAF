@@ -17,3 +17,7 @@ It supports various data sets:
 
 For hyperparameter optimisation we use ``optuna``.
 It offers GPU support to get the best parameters.
+
+
+TODO: add configuration parameters for the training, test and explanation process
+------------------------------------------------------------------------------------

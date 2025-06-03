@@ -11,7 +11,7 @@ COPY src/mock ./src/mock
 COPY src/train ./src/train
 COPY config.yaml .
 COPY docker/real_logs.dev.py .
-COPY data ./data
+COPY data/dgta/dgta-benchmark.parquet ./data/dgta/dgta-benchmark.parquet
 
 RUN rm -rf /root/.cache
 

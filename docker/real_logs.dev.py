@@ -21,6 +21,7 @@ if __name__ == "__main__":
         datasets = DatasetLoader(base_path=data_base_path, max_rows=10000)
         dataset = Dataset(
             data_path="",
+            name="",
             data=pl.concat(
                 [
                     datasets.dgta_dataset.data,
