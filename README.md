@@ -184,51 +184,41 @@ loglines:
 
 ### Examplary Dashboards
 In the below summary you will find examplary views of the grafana dashboards. The metrics were obtained using the [mock-generator](./docker/docker-compose.send-real-logs.yml)
-
 <details>
-  <summary>Overview Dashboard</summary>
-    <div style="text-align: center">
-      <a href="./assets/readme_assets/overview.png">
-        <img src="./assets/readme_assets/overview.png" width="80%"/>
-      </a>
-    </div>
+  <summary>📊 <strong>Overview Dashboard</strong></summary>
+
+  [<img src="./assets/readme_assets/overview.png" alt="Overview Dashboard" width="80%"/>](./assets/readme_assets/overview.png)
+
 </details>
 
 <details>
-  <summary>Latencies Dashboard</summary>
-    <div style="text-align: center">
-      <a href="./assets/readme_assets/latencies.jpeg">
-        <img src="./assets/readme_assets/latencies.jpeg" width="80%"/>
-      </a>
-    </div>
+  <summary>📈 <strong>Latencies Dashboard</strong></summary>
+
+  [<img src="./assets/readme_assets/latencies.jpeg" alt="Latencies Dashboard" width="80%"/>](./assets/readme_assets/latencies.jpeg)
+
 </details>
 
 <details>
-  <summary>Log Volumes Dashboard</summary>
-    <div style="text-align: center">
-      <a href="./assets/readme_assets/log_volumes.jpeg">
-        <img src="./assets/readme_assets/log_volumes.jpeg" width="80%"/>
-      </a>
-    </div>
+  <summary>📉 <strong>Log Volumes Dashboard</strong></summary>
+
+  [<img src="./assets/readme_assets/log_volumes.jpeg" alt="Log Volumes Dashboard" width="80%"/>](./assets/readme_assets/log_volumes.jpeg)
+
 </details>
 
 <details>
-  <summary>Alerts Dashboard</summary>
-    <div style="text-align: center">
-      <a href="./assets/readme_assets/alerts.png">
-        <img src="./assets/readme_assets/alerts.png" width="80%"/>
-      </a>
-    </div>
+  <summary>🚨 <strong>Alerts Dashboard</strong></summary>
+
+  [<img src="./assets/readme_assets/alerts.png" alt="Alerts Dashboard" width="80%"/>](./assets/readme_assets/alerts.png)
+
 </details>
 
 <details>
-  <summary>Dataset Dashboard</summary>
-    <div style="text-align: center">
-      <a href="./assets/readme_assets/datatests.png">
-        <img src="./assets/readme_assets/datatests.png" width="80%"/>
-      </a>
-    </div>
+  <summary>🧪 <strong>Dataset Dashboard</strong></summary>
+
+  [<img src="./assets/readme_assets/datatests.png" alt="Dataset Dashboard" width="80%"/>](./assets/readme_assets/datatests.png)
+
 </details>
+
 
 ## Contributing
 
