@@ -182,9 +182,53 @@ loglines:
 <!-- CONTRIBUTING -->
 
 
-### Dashboard 
-Below you will find examplary views of the dashboard 
+### Examplary Dashboards
+In the below summary you will find examplary views of the grafana dashboards. The metrics were obtained using the [mock-generator](./docker/docker-compose.send-real-logs.yml)
 
+<details>
+  <summary>Overview Dashboard</summary>
+    <div style="text-align: center">
+      <a href="./assets/readme_assets/overview.png">
+        <img src="./assets/readme_assets/overview.png" width="80%"/>
+      </a>
+    </div>
+</details>
+
+<details>
+  <summary>Latencies Dashboard</summary>
+    <div style="text-align: center">
+      <a href="./assets/readme_assets/latencies.jpeg">
+        <img src="./assets/readme_assets/latencies.jpeg" width="80%"/>
+      </a>
+    </div>
+</details>
+
+<details>
+  <summary>Log Volumes Dashboard</summary>
+    <div style="text-align: center">
+      <a href="./assets/readme_assets/log_volumes.jpeg">
+        <img src="./assets/readme_assets/log_volumes.jpeg" width="80%"/>
+      </a>
+    </div>
+</details>
+
+<details>
+  <summary>Alerts Dashboard</summary>
+    <div style="text-align: center">
+      <a href="./assets/readme_assets/alerts.png">
+        <img src="./assets/readme_assets/alerts.png" width="80%"/>
+      </a>
+    </div>
+</details>
+
+<details>
+  <summary>Dataset Dashboard</summary>
+    <div style="text-align: center">
+      <a href="./assets/readme_assets/datatests.png">
+        <img src="./assets/readme_assets/datatests.png" width="80%"/>
+      </a>
+    </div>
+</details>
 
 ## Contributing
 
