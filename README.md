@@ -121,7 +121,7 @@ For training our models, we currently rely on the following data sets:
 However, we compute all feature separately and only rely on the `domain` and `class`.
 Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
 
-After downloading the dataset and storing it under `<project-root>/data` you can run 
+After downloading the dataset and storing it under `<project-root>/data` you can run
 ```
 docker compose -f docker/docker-compose.send-real-logs.yml up
 ```
@@ -131,7 +131,7 @@ to start inserting the dataset traffic.
 > [!IMPORTANT]
 > This is only a brief wrap-up of a custom training process.
 > We highly encourage you to have a look at the [documentation](https://heidgaf.readthedocs.io/en/latest/training.html)
-> for a full description and explanation of the configuration parameters. 
+> for a full description and explanation of the configuration parameters.
 
 Currently, we enable two trained models, namely XGBoost and RandomForest.
 
@@ -145,18 +145,18 @@ pip install -r requirements/requirements.train.txt
 After setting up the [dataset directories](#insert-test-data) (and adding the code for your model class if applicable), simply run:
 
 ```
-python src/train/train.py train  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> 
+python src/train/train.py train  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name>
 ```
 to start the training process. The results will be saved per default to `./results`, if not configured otherwise.
 To test your model's performance, run:
 ```
 python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
 ```
-To get an overview over the internals of your models decisionmaking, run 
+To get an overview over the internals of your models decisionmaking, run
 ```
 python src/train/train.py explain  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
 ```
-This will create a rules.txt file containing the innards of the model, explaining the rules it created. 
+This will create a rules.txt file containing the innards of the model, explaining the rules it created.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
