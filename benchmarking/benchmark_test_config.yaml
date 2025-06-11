@@ -1,24 +1,33 @@
-ramp_up:
-  intervals:  # msg/s, duration in seconds
-    - [1, 30]
-    - [10, 30]
-    - [50, 30]
-    - [100, 30]
-    - [150, 30]
-    - [200, 30]
+tests:
+  ramp_up:
+    intervals:  # msg/s, duration in seconds
+      - [1, 30]
+      - [10, 30]
+      - [50, 30]
+      - [100, 30]
+      - [150, 30]
+      - [200, 30]
 
-burst:
-  normal_rate:
-    data_rate: 20  # msg/s
-    interval_length: 10  # seconds
-  burst_rate:
-    data_rate: 10000  # msg/s
-    interval_length: 2  # seconds
-  number_of_repetitions: 3
+  burst:
+    normal_rate:
+      data_rate: 20  # msg/s
+      interval_length: 10  # seconds
+    burst_rate:
+      data_rate: 10000  # msg/s
+      interval_length: 2  # seconds
+    number_of_repetitions: 3
 
-maximum_throughput:
-  length: 60  # seconds
+  maximum_throughput:
+    length: 60  # seconds
 
-long_term:
-  data_rate: 15  # msg/s
-  length: 10  # minutes
+  long_term:
+    data_rate: 15  # msg/s
+    length: 10  # minutes
+
+runners:
+  heidgaf-benchmarking-1:
+    - ramp_up
+    - burst
+    - maximum_throughput
+  heidgaf-benchmarking-2:
+    - long_term
