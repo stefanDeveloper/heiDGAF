@@ -40,33 +40,37 @@ class BurstTest(ScalabilityTest):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Execute the burst test with given test parameters."
+        description="Execute the burst test with given test parameters. By default, configuration file values are used."
     )
 
     parser.add_argument(
         "--normal_data_rate",
-        help="Normal Rate Test: data rate",
+        help=f"Normal Rate Test: data rate in msg/s [float | int], "
+        f"default: {burst_test_config['normal_rate']['data_rate']}",
         default=burst_test_config["normal_rate"]["data_rate"],
     )
     parser.add_argument(
         "--normal_interval_length",
-        help="Normal Rate Test: interval length",
+        help=f"Normal Rate Test: interval length in seconds [float | int], "
+        f"default: {burst_test_config['normal_rate']['interval_length']}",
         default=burst_test_config["normal_rate"]["interval_length"],
     )
     parser.add_argument(
         "--burst_data_rate",
-        help="Burst Rate Test: data rate",
+        help=f"Burst Rate Test: data rate in msg/s [float | int], "
+        f"default: {burst_test_config['burst_rate']['data_rate']}",
         default=burst_test_config["burst_rate"]["data_rate"],
     )
     parser.add_argument(
         "--burst_interval_length",
-        help="Burst Rate Test: interval length",
+        help=f"Burst Rate Test: interval length in seconds [float | int], "
+        f"default: {burst_test_config['burst_rate']['interval_length']}",
         default=burst_test_config["burst_rate"]["interval_length"],
     )
     parser.add_argument(
         "--number_of_repetitions",
         type=int,
-        help="Number of Intervals",
+        help=f"number of intervals [int], default: {burst_test_config['number_of_repetitions']}",
         default=burst_test_config["number_of_repetitions"],
     )
 
