@@ -9,7 +9,7 @@ from benchmarking.src.setup_config import setup_config
 logger = get_logger()
 benchmark_test_config = setup_config()
 
-maximum_throughput_test_config = benchmark_test_config["maximum_throughput"]
+maximum_throughput_test_config = benchmark_test_config["tests"]["maximum_throughput"]
 
 
 class MaximumThroughputTest(LongTermTest):

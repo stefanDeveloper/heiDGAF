@@ -9,7 +9,7 @@ from benchmarking.src.setup_config import setup_config
 logger = get_logger()
 benchmark_test_config = setup_config()
 
-ramp_up_test_config = benchmark_test_config["ramp_up"]
+ramp_up_test_config = benchmark_test_config["tests"]["ramp_up"]
 
 
 class RampUpTest(ScalabilityTest):
