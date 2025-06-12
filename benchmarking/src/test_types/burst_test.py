@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -9,7 +10,7 @@ from benchmarking.src.setup_config import setup_config
 logger = get_logger()
 benchmark_test_config = setup_config()
 
-burst_test_config = benchmark_test_config["burst"]
+burst_test_config = benchmark_test_config["tests"]["burst"]
 
 
 class BurstTest(ScalabilityTest):
@@ -38,11 +39,44 @@ class BurstTest(ScalabilityTest):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Execute the burst test with given test parameters."
+    )
+
+    parser.add_argument(
+        "--normal_data_rate",
+        help="Normal Rate Test: data rate",
+        default=burst_test_config["normal_rate"]["data_rate"],
+    )
+    parser.add_argument(
+        "--normal_interval_length",
+        help="Normal Rate Test: interval length",
+        default=burst_test_config["normal_rate"]["interval_length"],
+    )
+    parser.add_argument(
+        "--burst_data_rate",
+        help="Burst Rate Test: data rate",
+        default=burst_test_config["burst_rate"]["data_rate"],
+    )
+    parser.add_argument(
+        "--burst_interval_length",
+        help="Burst Rate Test: interval length",
+        default=burst_test_config["burst_rate"]["interval_length"],
+    )
+    parser.add_argument(
+        "--number_of_repetitions",
+        type=int,
+        help="Number of Intervals",
+        default=burst_test_config["number_of_repetitions"],
+    )
+
+    args = parser.parse_args()
+
     burst_test = BurstTest(
-        normal_rate_interval_length=burst_test_config["normal_rate"]["interval_length"],
-        normal_rate_msg_per_sec=burst_test_config["normal_rate"]["data_rate"],
-        burst_rate_interval_length=burst_test_config["burst_rate"]["interval_length"],
-        burst_rate_msg_per_sec=burst_test_config["burst_rate"]["data_rate"],
-        number_of_repetitions=burst_test_config["number_of_repetitions"],
+        normal_rate_interval_length=args.normal_interval_length,
+        normal_rate_msg_per_sec=args.normal_data_rate,
+        burst_rate_interval_length=args.burst_interval_length,
+        burst_rate_msg_per_sec=args.burst_data_rate,
+        number_of_repetitions=args.number_of_repetitions,
     )
     burst_test.execute()
