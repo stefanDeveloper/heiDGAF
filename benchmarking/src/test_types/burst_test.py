@@ -40,7 +40,8 @@ class BurstTest(ScalabilityTest):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Execute the burst test with given test parameters. By default, configuration file values are used."
+        description="Execute the burst test with given test parameters. "
+        "By default, configuration file values are used."
     )
 
     parser.add_argument(

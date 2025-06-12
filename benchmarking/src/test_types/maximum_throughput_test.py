@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -20,7 +21,20 @@ class MaximumThroughputTest(LongTermTest):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Execute the maximum throughput test with given test parameters. "
+        "By default, configuration file values are used."
+    )
+
+    parser.add_argument(
+        "--data_rate",
+        help=f"Full length/duration in minutes [float | int], default: {maximum_throughput_test_config['length'] / 60}",
+        default=maximum_throughput_test_config["length"] / 60,
+    )
+
+    args = parser.parse_args()
+
     maximum_throughput_test = MaximumThroughputTest(
-        length_in_min=maximum_throughput_test_config["length"] / 60,
+        length_in_min=args.length,
     )
     maximum_throughput_test.execute()
