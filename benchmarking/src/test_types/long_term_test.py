@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import os
 import sys
@@ -16,7 +17,7 @@ logger = get_logger()
 config = setup_config()
 benchmark_test_config = setup_benchmark_test_config()
 
-long_term_test_config = benchmark_test_config["long_term"]
+long_term_test_config = benchmark_test_config["tests"]["long_term"]
 PRODUCE_TO_TOPIC = config["environment"]["kafka_topics"]["pipeline"]["logserver_in"]
 
 
@@ -62,8 +63,25 @@ class LongTermTest:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Execute the long term test with given test parameters. By default, configuration file values are used."
+    )
+
+    parser.add_argument(
+        "--data_rate",
+        help=f"Data rate in msg/s [float | int], default: {long_term_test_config['data_rate']}",
+        default=long_term_test_config["data_rate"],
+    )
+    parser.add_argument(
+        "--length",
+        help=f"Full length/duration in minutes [float | int], default: {long_term_test_config['length']}",
+        default=long_term_test_config["length"],
+    )
+
+    args = parser.parse_args()
+
     long_term_test = LongTermTest(
-        full_length_in_min=long_term_test_config["length"],
-        msg_per_sec=long_term_test_config["data_rate"],
+        full_length_in_min=args.length,
+        msg_per_sec=args.data_rate,
     )
     long_term_test.execute()
