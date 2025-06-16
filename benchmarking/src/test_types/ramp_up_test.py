@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -35,15 +36,37 @@ class RampUpTest(ScalabilityTest):
 
 
 if __name__ == "__main__":
-    data_rates = []
-    interval_lengths = []
+    parser = argparse.ArgumentParser(
+        description="Execute the ramp-up test with given test parameters. "
+        "By default, configuration file values are used."
+    )
+
+    default_data_rates = []
+    default_durations = []
 
     for e in ramp_up_test_config["intervals"]:
-        data_rates.append(e[0])
-        interval_lengths.append(e[1])
+        default_data_rates.append(e[0])
+        default_durations.append(e[1])
+
+    parser.add_argument(
+        "--data_rates",
+        help=f"Data rates per interval in msg/s [List[float | int], "
+        f"default: {','.join(str(i) for i in default_data_rates)}",
+        default=default_data_rates,
+    )
+
+    parser.add_argument(
+        "--durations",
+        help=f"Length/duration per interval in minutes [float | int | List[float | int]], "
+        f"single value applies to all intervals, "
+        f"default: {','.join(str(i) for i in default_durations)}",
+        default=default_durations,
+    )
+
+    args = parser.parse_args()
 
     ramp_up_test = RampUpTest(
-        msg_per_sec_in_intervals=data_rates,
-        interval_length_in_sec=interval_lengths,
+        msg_per_sec_in_intervals=args.data_rates,
+        interval_length_in_sec=args.durations,
     )
     ramp_up_test.execute()
