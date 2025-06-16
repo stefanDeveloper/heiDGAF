@@ -35,7 +35,7 @@ Training Parameters
      - Data set to train model, choose between all available datasets.
    * - ``--dataset_path``
      - ``Path``
-     - 
+     -
      - Dataset path, follow folder structure.
    * - ``--dataset_max_rows``
      - ``int``
@@ -43,7 +43,7 @@ Training Parameters
      - Maximum rows to load from each dataset.
    * - ``--model``
      - ``[xg|rf|gbm]``
-     - 
+     -
      - Model to train, choose between XGBoost, RandomForest, or GBM.
    * - ``--model_output_path``
      - ``Path``
@@ -66,7 +66,7 @@ Testing Parameters
      - Data set to test model.
    * - ``--dataset_path``
      - ``Path``
-     - 
+     -
      - Dataset path, follow folder structure.
    * - ``--dataset_max_rows``
      - ``int``
@@ -74,11 +74,11 @@ Testing Parameters
      - Maximum rows to load from each dataset.
    * - ``--model``
      - ``[xg|rf|gbm]``
-     - 
+     -
      - Model architecture to test.
    * - ``--model_path``
      - ``Path``
-     - 
+     -
      - Path to trained model.
 
 Explanation Parameters
@@ -97,7 +97,7 @@ Explanation Parameters
      - Data set to explain model predictions.
    * - ``--dataset_path``
      - ``Path``
-     - 
+     -
      - Dataset path, follow folder structure.
    * - ``--dataset_max_rows``
      - ``int``
@@ -105,10 +105,9 @@ Explanation Parameters
      - Maximum rows to load from each dataset.
    * - ``--model``
      - ``[xg|rf|gbm]``
-     - 
+     -
      - Model architecture to explain.
    * - ``--model_path``
      - ``Path``
-     - 
+     -
      - Path to trained model.
-

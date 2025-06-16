@@ -147,19 +147,19 @@ functionality of the modules.
      - Description
    * - mode
      - ``univariate`` (options: ``multivariate``, ``ensemble``)
-     - Mode of operation for the data inspector. 
+     - Mode of operation for the data inspector.
    * - ensemble.model
      - ``WeightEnsemble``
-     -  Model to use when inspector mode is ``ensemble``. 
+     -  Model to use when inspector mode is ``ensemble``.
    * - ensemble.module
      - ``streamad.process``
-     - Python module for the ensemble model.      
+     - Python module for the ensemble model.
    * - ensemble.model_args
      -
-     - Additional Arguments for the ensemble model.    
+     - Additional Arguments for the ensemble model.
    * - models.model
      - ``ZScoreDetector``
-     - Model to use for data inspection 
+     - Model to use for data inspection
    * - models.module
      - ``streamad.model``
      - Base python module for inspection models
@@ -168,19 +168,19 @@ functionality of the modules.
      - Additional arguments for the model
    * - models.model_args.is_global
      - ``false``
-     - 
+     -
    * - anomaly_threshold
      - ``0.01``
-     - Threshold for classifying an observation as an anomaly. 
+     - Threshold for classifying an observation as an anomaly.
    * - score_threshold
      - ``0.5``
-     - Threshold for the anomaly score.  
+     - Threshold for the anomaly score.
    * - time_type
      - ``ms``
-     - Unit of time used in time range calculations. 
+     - Unit of time used in time range calculations.
    * - time_range
      - ``20``
-     - Time window for data inspection 
+     - Time window for data inspection
 
 ``pipeline.data_analysis``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
