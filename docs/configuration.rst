@@ -146,41 +146,41 @@ functionality of the modules.
      - Default Value
      - Description
    * - mode
-     - ``univariate``
-     - TODO
+     - ``univariate`` (options: ``multivariate``, ``ensemble``)
+     - Mode of operation for the data inspector.
    * - ensemble.model
      - ``WeightEnsemble``
-     - TODO
+     -  Model to use when inspector mode is ``ensemble``.
    * - ensemble.module
      - ``streamad.process``
-     - TODO
+     - Python module for the ensemble model.
    * - ensemble.model_args
      -
-     - TODO
+     - Additional Arguments for the ensemble model.
    * - models.model
      - ``ZScoreDetector``
-     - TODO
+     - Model to use for data inspection
    * - models.module
      - ``streamad.model``
-     - TODO
+     - Base python module for inspection models
    * - models.model_args
      -
-     - TODO
+     - Additional arguments for the model
    * - models.model_args.is_global
      - ``false``
-     - TODO
+     -
    * - anomaly_threshold
      - ``0.01``
-     - TODO
+     - Threshold for classifying an observation as an anomaly.
    * - score_threshold
      - ``0.5``
-     - TODO
+     - Threshold for the anomaly score.
    * - time_type
      - ``ms``
-     - TODO
+     - Unit of time used in time range calculations.
    * - time_range
      - ``20``
-     - TODO
+     - Time window for data inspection
 
 ``pipeline.data_analysis``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -193,17 +193,17 @@ functionality of the modules.
      - Default Value
      - Description
    * - model
-     - ``rf``
-     - TODO
+     - ``rf`` option: ``XGBoost``
+     - Model to use for the detector
    * - checksum
      - Not given here
-     - TODO
+     - Checksum for the model file to ensure integrity
    * - base_url
      - https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
-     - TODO
+     - Base URL for downloading the model if not present locally
    * - threshold
      - ``0.5``
-     - TODO
+     - Threshold for the detector's classification.
 
 Environment Configuration
 .........................
