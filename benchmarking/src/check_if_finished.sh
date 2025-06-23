@@ -4,7 +4,7 @@ set -euo pipefail
 # Configuration
 CONTAINER="clickhouse-server"
 CLICKHOUSE_CLIENT="clickhouse-client"
-SQL_DIR="sql"
+SQL_DIR="benchmarking/sql"
 CHECK_INTERVAL=30  # seconds
 
 log_message() {
