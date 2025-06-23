@@ -6,7 +6,7 @@ CONTAINER="clickhouse-server"
 CLICKHOUSE_CLIENT="clickhouse-client"
 CURRENT_TIME=$(date +'%Y-%m-%d_%H-%M-%S')
 BASE_DIR="benchmark_results/test_run_$CURRENT_TIME"
-SQL_DIR="sql"
+SQL_DIR="benchmarking/sql"
 
 # Create output directories
 declare -a SUBDIRS=("entering_processed" "latencies" "log_volumes" "full_tables")
