@@ -52,7 +52,7 @@ if __name__ == "__main__":
         "--data_rates",
         help=f"Data rates per interval in msg/s [List[float | int], "
         f"default: {','.join(str(i) for i in default_data_rates)}",
-        default=default_data_rates,
+        default=",".join(str(i) for i in default_data_rates),
     )
 
     parser.add_argument(
@@ -60,13 +60,13 @@ if __name__ == "__main__":
         help=f"Length/duration per interval in minutes [float | int | List[float | int]], "
         f"single value applies to all intervals, "
         f"default: {','.join(str(i) for i in default_durations)}",
-        default=default_durations,
+        default=",".join(str(i) for i in default_data_rates),
     )
 
     args = parser.parse_args()
 
-    ramp_up_test = RampUpTest(
-        msg_per_sec_in_intervals=args.data_rates,
-        interval_length_in_sec=args.durations,
+    ramp_up_test = RampUpTest(  # TODO: Check handling of single value
+        msg_per_sec_in_intervals=[int(e) for e in args.data_rates.split(",")],
+        interval_length_in_sec=[int(e) for e in args.durations.split(",")],
     )
     ramp_up_test.execute()

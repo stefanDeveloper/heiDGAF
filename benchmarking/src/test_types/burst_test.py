@@ -46,24 +46,28 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--normal_data_rate",
+        type=float,
         help=f"Normal Rate Test: data rate in msg/s [float | int], "
         f"default: {burst_test_config['normal_rate']['data_rate']}",
         default=burst_test_config["normal_rate"]["data_rate"],
     )
     parser.add_argument(
         "--normal_interval_length",
+        type=float,
         help=f"Normal Rate Test: interval length in seconds [float | int], "
         f"default: {burst_test_config['normal_rate']['interval_length']}",
         default=burst_test_config["normal_rate"]["interval_length"],
     )
     parser.add_argument(
         "--burst_data_rate",
+        type=float,
         help=f"Burst Rate Test: data rate in msg/s [float | int], "
         f"default: {burst_test_config['burst_rate']['data_rate']}",
         default=burst_test_config["burst_rate"]["data_rate"],
     )
     parser.add_argument(
         "--burst_interval_length",
+        type=float,
         help=f"Burst Rate Test: interval length in seconds [float | int], "
         f"default: {burst_test_config['burst_rate']['interval_length']}",
         default=burst_test_config["burst_rate"]["interval_length"],

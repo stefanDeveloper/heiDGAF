@@ -27,7 +27,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--data_rate",
+        "--length",
+        type=float,
         help=f"Full length/duration in minutes [float | int], default: {maximum_throughput_test_config['length'] / 60}",
         default=maximum_throughput_test_config["length"] / 60,
     )

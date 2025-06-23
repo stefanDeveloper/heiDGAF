@@ -69,11 +69,13 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--data_rate",
+        type=float,
         help=f"Data rate in msg/s [float | int], default: {long_term_test_config['data_rate']}",
         default=long_term_test_config["data_rate"],
     )
     parser.add_argument(
         "--length",
+        type=float,
         help=f"Full length/duration in minutes [float | int], default: {long_term_test_config['length']}",
         default=long_term_test_config["length"],
     )
