@@ -10,9 +10,10 @@ COPY src/base ./src/base
 COPY src/train ./src/train
 COPY config.yaml .
 COPY benchmarking/src ./benchmarking/src
+COPY benchmarking/sql/entering_processed/activity_last_three_minutes.sql benchmarking/sql/entering_processed/activity_last_three_minutes.sql
 COPY benchmarking/benchmark_test_config.yaml ./benchmarking/benchmark_test_config.yaml
 COPY data ./data
 
 RUN rm -rf /root/.cache
 
-CMD [ "python", "benchmarking/src/test_types/ramp_up_test.py"]
+CMD ["tail", "-f", "/dev/null"]

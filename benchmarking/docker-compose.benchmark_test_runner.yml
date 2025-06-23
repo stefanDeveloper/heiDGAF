@@ -1,0 +1,13 @@
+services:
+  benchmark_test_runner:
+    container_name: benchmark_test_runner
+    build:
+      context: ..
+      dockerfile: benchmarking/docker/Dockerfile.benchmark_test_runner
+      network: host
+    networks:
+      docker_heidgaf:
+
+networks:
+  docker_heidgaf:
+    external: true
