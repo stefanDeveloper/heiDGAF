@@ -104,10 +104,15 @@ class BenchmarkTestController:
                 arguments = []
 
         if not remote_host:
-            print(
-                f"sudo docker exec {remote_docker_container_name} "
-                f"python3 ./test_types/{test_name}_test.py {' '.join(arguments)}"
+            cmd = (
+                f"docker exec {remote_docker_container_name} "
+                f"python benchmarking/src/test_types/{test_name}_test.py {' '.join(arguments)}"
             )
+            subprocess.run(cmd, shell=True)
+
+            logger.info("READY")
+
+            # os.system("sh benchmarking/src/check_if_finished.sh")
 
         # ssh debian@129.206.4.50 \
         #   "sudo docker exec container_name python3 /script.py arg1 arg2"
@@ -116,4 +121,4 @@ class BenchmarkTestController:
 
 if __name__ == "__main__":
     controller = BenchmarkTestController()
-    controller.run_single_test("long_term")
+    controller.run_single_test("maximum_throughput")
