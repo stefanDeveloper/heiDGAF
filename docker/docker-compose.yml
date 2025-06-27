@@ -112,6 +112,17 @@ services:
       clickhouse-server:
         condition: service_healthy
 
+  zeek1:
+    extends:
+      file: "docker-compose/base/docker-compose.zeek.yml"
+      service: zeek
+    environment:
+      - CONTAINER_NAME=zeek1
+    volumes:
+      - ./data/test_pcaps:/opt/static_files
+      # - ./src:/opt/src
+    # add the config here otherwise rebuild necessary on config changes!
+      #- ./config.yaml:/opt/config.yaml
 networks:
   heidgaf:
     driver: bridge
@@ -120,3 +131,5 @@ networks:
       config:
         - subnet: 172.27.0.0/16
           gateway: 172.27.0.1
+
+

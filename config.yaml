@@ -68,6 +68,30 @@ pipeline:
       batch_size: 50  # do not set higher
       batch_timeout: 2.0
 
+
+  zeek:
+    sensors:
+      zeek1:
+        static_analysis: false # default
+        protocol_to_topic:
+          - all: "pipeline-logserver_in"
+        interfaces:
+          - eth0
+          - dummy
+      zeek2: 
+        static_analysis: false # default
+        protocol_to_topic:
+          - http: "my-http-topic"
+          - dns: "dns-topic"
+        interfaces: 
+          - eth0
+          - dummy
+      zeek3:
+        static_analysis: true
+        protocol_to_topic:
+          - http: "my-http-topic"
+          - dns: "dns-topic"
+
 environment:
   kafka_brokers:
     - hostname: kafka1
