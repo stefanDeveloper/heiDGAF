@@ -76,8 +76,7 @@ pipeline:
         protocol_to_topic:
           - all: "pipeline-logserver_in"
         # interfaces:
-        #   - eth0
-        #   - dummy
+        #   - enx84ba5960ffe6
       zeek2: 
         static_analysis: false # default
         protocol_to_topic:
@@ -96,10 +95,13 @@ environment:
   kafka_brokers:
     - hostname: kafka1
       port: 8097
+      node_ip: 192.168.176.67
     - hostname: kafka2
       port: 8098
+      node_ip: 192.168.176.67
     - hostname: kafka3
       port: 8099
+      node_ip: 192.168.176.67
   kafka_topics:
     pipeline:
       logserver_in: "pipeline-logserver_in"

@@ -20,6 +20,7 @@ services:
       zookeeper:
         condition: service_healthy
 
+      
   kafka3:
     extends:
       file: "docker-compose/base/docker-compose.kafka.yml"
@@ -27,6 +28,7 @@ services:
     depends_on:
       zookeeper:
         condition: service_healthy
+
 
   logserver:
     extends:

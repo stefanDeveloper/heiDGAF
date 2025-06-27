@@ -10,9 +10,7 @@ from src.base.log_config import get_logger
 logger = get_logger("zeek.sensor")
 
 
-# TODO: allow for static file injection somehow 
 # Connect to kafka using node IP and PORT from expsed kafka ports
-
         
 @click.command()
 @click.option(

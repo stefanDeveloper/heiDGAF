@@ -16,8 +16,7 @@ services:
         condition: service_healthy
       grafana:
         condition: service_healthy    
-    networks:
-      - heidgaf
+    network_mode: host
     volumes:
       - ../../../src:/opt/src
       # add the config here otherwise rebuild necessary on config changes!

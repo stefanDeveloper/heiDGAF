@@ -39,14 +39,12 @@ class ZeekConfigurationHandler():
                 logger.error("Could not parse configuration for zeek sensor, as the 'interfaces' parameter is not specified")
         
         self.potocol_to_topic_configurations = {str(protocol):str(topic)  for protocol_topic_dict in zeek_sensor_configuration["protocol_to_topic"] for protocol, topic in protocol_topic_dict.items()}
-        self.kafka_brokers = [ f"{broker['hostname']}:{broker['port']}" for broker in configured_kafka_brokers ]
+        self.kafka_brokers = [ f"{broker['node_ip']}:{broker['port']}" for broker in configured_kafka_brokers ]
         logger.info(f"Succesfully parse config.yaml")
 
     def configure(self):
         logger.info(f"configuring Zeek...")
         if not self.is_analysis_static:
-            # configuration to have workers for each network interface
-            # not needed for static analyses
             self.template_and_copy_node_config()
         self.create_plugin_configuration()
     
