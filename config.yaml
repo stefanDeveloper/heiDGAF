@@ -72,12 +72,12 @@ pipeline:
   zeek:
     sensors:
       zeek1:
-        static_analysis: false # default
+        static_analysis: true # default
         protocol_to_topic:
           - all: "pipeline-logserver_in"
-        interfaces:
-          - eth0
-          - dummy
+        # interfaces:
+        #   - eth0
+        #   - dummy
       zeek2: 
         static_analysis: false # default
         protocol_to_topic:

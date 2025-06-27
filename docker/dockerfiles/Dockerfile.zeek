@@ -26,4 +26,4 @@ WORKDIR /opt/
 RUN mkdir "/opt/static_files"
 ENV STATIC_FILES_DIR="/opt/static_files"
 
-CMD ["bash", "-c", "tail -f /dev/null"]
+CMD ["bash", "-c", "python3 /opt/src/zeek/zeek_handler.py -c /opt/config.yaml"]

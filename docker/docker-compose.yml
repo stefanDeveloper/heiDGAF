@@ -118,11 +118,8 @@ services:
       service: zeek
     environment:
       - CONTAINER_NAME=zeek1
-    volumes:
-      - ./data/test_pcaps:/opt/static_files
-      # - ./src:/opt/src
-    # add the config here otherwise rebuild necessary on config changes!
-      #- ./config.yaml:/opt/config.yaml
+    volumes:  
+      - ../data/test_pcaps/:/opt/static_files
 networks:
   heidgaf:
     driver: bridge

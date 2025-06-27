@@ -31,6 +31,7 @@ logger = get_logger("zeek.sensor")
 
    
 def setup_zeek(configuration_file_path, zeek_config_location):
+    default_zeek_config_location = "/usr/local/zeek/share/zeek/site/local.zeek"
     configuration_file_content = configuration_file_path.read()
     try:
         data = yaml.safe_load(configuration_file_content)
@@ -39,12 +40,15 @@ def setup_zeek(configuration_file_path, zeek_config_location):
         return
     
     if zeek_config_location is None:
-        zeekConfigHandler = ZeekConfigurationHandler(data)
+        zeek_config_location = default_zeek_config_location
+        zeekConfigHandler = ZeekConfigurationHandler(data, default_zeek_config_location)
     else:
         zeekConfigHandler = ZeekConfigurationHandler(data, zeek_config_location)        
         
     zeekConfigHandler.configure()
+    logger.info("configured zeek")
     zeekAnalysisHandler = ZeekAnalysisHandler(zeek_config_location, zeekConfigHandler.zeek_log_location)
+    logger.info("starting analysis...")
     zeekAnalysisHandler.start_analysis(zeekConfigHandler.is_analysis_static)
     
 if __name__ == "__main__":
