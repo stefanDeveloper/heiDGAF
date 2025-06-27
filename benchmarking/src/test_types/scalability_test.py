@@ -3,6 +3,7 @@ import os
 import sys
 import time
 
+import progressbar
 from confluent_kafka import KafkaError
 
 sys.path.append(os.getcwd())
@@ -24,20 +25,52 @@ class ScalabilityTest:
         self.dataset_generator = DatasetGenerator()
         self.kafka_producer = SimpleKafkaProduceHandler()
 
-        self.interval_lengths = None
+        self.interval_lengths = None  # in seconds
         self.msg_per_sec_in_intervals = None
+        self.progress_bar = None
+        self.__text_message_count = None
 
     def execute(self):
         """Executes the test with the configured parameters."""
         logger.warning(f"Start at: {datetime.datetime.now()}")
 
+        text_interval = progressbar.FormatCustomText(
+            "%(interval_nr)s", dict(interval_nr=1)
+        )
+        self.__text_message_count = progressbar.FormatCustomText(
+            f"%(cur_message_count){len(str(self._get_total_message_count()))}s",
+            dict(cur_message_count=0),
+        )  # adjusted to correct width
+
+        self.progress_bar = progressbar.ProgressBar(
+            maxval=100,
+            widgets=[
+                progressbar.Percentage(),
+                " ",
+                progressbar.Bar(),
+                " ",
+                progressbar.Timer(),
+                ", ",
+                "Int.: ",
+                text_interval,
+                ", ",
+                "Sent: ",
+                self.__text_message_count,
+                f"/{self._get_total_message_count()}",
+            ],
+        )
+        self.progress_bar.start()
+
         cur_index = 0
         for i in range(len(self.msg_per_sec_in_intervals)):
+            text_interval.update_mapping(interval_nr=i + 1)
             cur_index = self._execute_one_interval(
                 cur_index=cur_index,
                 msg_per_sec=self.msg_per_sec_in_intervals[i],
                 length_in_sec=self.interval_lengths[i],
             )
+
+        self.progress_bar.finish()
 
         logger.warning(f"Stop at: {datetime.datetime.now()}")
 
@@ -58,9 +91,14 @@ class ScalabilityTest:
                     PRODUCE_TO_TOPIC,
                     self.dataset_generator.generate_random_logline(),
                 )
-                logger.info(
-                    f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
+
+                self.__text_message_count.update_mapping(cur_message_count=cur_index)
+                self.progress_bar.update(
+                    min(
+                        self._get_time_elapsed() / self._get_total_duration() * 100, 100
+                    )
                 )
+
                 cur_index += 1
             except KafkaError:
                 logger.warning(KafkaError)
@@ -68,3 +106,17 @@ class ScalabilityTest:
 
         logger.warning(f"Finish interval with {msg_per_sec} msg/s")
         return cur_index
+
+    def _get_time_elapsed(self) -> datetime.timedelta:
+        return datetime.datetime.now() - self.progress_bar.start_time
+
+    def _get_total_duration(self) -> datetime.timedelta:
+        return datetime.timedelta(seconds=sum(self.interval_lengths))
+
+    def _get_total_message_count(self):
+        total_message_count = 0
+        for i in range(len(self.interval_lengths)):
+            total_message_count += (
+                self.interval_lengths[i] * self.msg_per_sec_in_intervals[i]
+            )
+        return total_message_count
