@@ -20,10 +20,10 @@ COPY requirements/requirements.zeek.txt /opt/requirements.txt
 RUN pip3 install -r /opt/requirements.txt
 
 RUN chown -R root:root /usr/local/zeek
-
-WORKDIR /opt/
+RUN mkdir /opt/logs
+WORKDIR /opt/logs
 
 RUN mkdir "/opt/static_files"
 ENV STATIC_FILES_DIR="/opt/static_files"
 
-CMD ["bash", "-c", "python3 /opt/src/zeek/zeek_handler.py -c /opt/config.yaml"]
+CMD ["bash", "-c", "cd /opt/ && python3 /opt/src/zeek/zeek_handler.py -c /opt/config.yaml"]

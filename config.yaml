@@ -74,9 +74,10 @@ pipeline:
       zeek1:
         static_analysis: true # default
         protocol_to_topic:
-          - all: "pipeline-logserver_in"
-        # interfaces:
-        #   - enx84ba5960ffe6
+          - http: "my-http-topic"
+          - dns: "dns-topic"
+        interfaces:
+          - enx84ba5960ffe6
       zeek2: 
         static_analysis: false # default
         protocol_to_topic:

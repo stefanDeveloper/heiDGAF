@@ -61,8 +61,12 @@ class ZeekConfigurationHandler():
         else:
             config_lines = [
                 '@load packages/zeek-kafka\n',
+                'redef Kafka::topic_name = "";\n',
+                f'redef Kafka::kafka_conf = table(\n'
+                f'  ["metadata.broker.list"] = "{",".join(self.kafka_brokers)}");\n',
                 'redef Kafka::tag_json = T;\n',
-                'event zeek_init() &priority=-10 {\n'
+                'event zeek_init() &priority=-10\n',
+                '{\n'
             ]
 
             for protocol, topic in self.potocol_to_topic_configurations.items():
@@ -70,15 +74,13 @@ class ZeekConfigurationHandler():
                     local {protocol}_filter: Log::Filter = [
                         $name = "kafka-{protocol}",
                         $writer = Log::WRITER_KAFKAWRITER,
-                        $config = table(
-                            ["metadata.broker.list"] = "{",".join(self.kafka_brokers)}"
-                        ),
                         $path = "{topic}"
                     ];
                     Log::add_filter({protocol.upper()}::LOG, {protocol}_filter);\n
+                    
                 """
-                config_lines.append(filter_block.strip())
-            config_lines.append('}')   
+                config_lines.append(filter_block)
+            config_lines.append('\n}')   
                   
         with open(self.base_config_location, "a") as f:
             f.writelines(config_lines)
