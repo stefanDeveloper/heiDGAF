@@ -103,7 +103,7 @@ environment:
     - hostname: kafka3
       port: 8099
       node_ip: 192.168.176.67
-  kafka_topics:
+  kafka_topics_prefix:
     pipeline:
       logserver_in: "pipeline-logserver_in"
       logserver_to_collector: "pipeline-logserver_to_collector"

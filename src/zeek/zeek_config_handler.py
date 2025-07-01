@@ -38,6 +38,8 @@ class ZeekConfigurationHandler():
                 logger.error(e)
                 logger.error("Could not parse configuration for zeek sensor, as the 'interfaces' parameter is not specified")
         
+        self.kafka_topic_prefix = configuration_dict["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_in"]
+        
         self.potocol_to_topic_configurations = {str(protocol):str(topic)  for protocol_topic_dict in zeek_sensor_configuration["protocol_to_topic"] for protocol, topic in protocol_topic_dict.items()}
         self.kafka_brokers = [ f"{broker['node_ip']}:{broker['port']}" for broker in configured_kafka_brokers ]
         logger.info(f"Succesfully parse config.yaml")
@@ -74,7 +76,7 @@ class ZeekConfigurationHandler():
             config_lines = [
                 "@load packages/zeek-kafka\n",
                 "redef Kafka::send_all_active_logs = T;\n",
-                f"redef Kafka::topic_name = \"{self.potocol_to_topic_configurations['all']}\";\n",
+                f"redef Kafka::topic_name = \"{self.kafka_topic_prefix}-{self.potocol_to_topic_configurations['all']}\";\n",
                 "redef Kafka::kafka_conf = table(\n",
                 f'    ["metadata.broker.list"] = "{",".join(self.kafka_brokers)}"\n',
                 ");\n"
@@ -95,7 +97,7 @@ class ZeekConfigurationHandler():
                     local {protocol}_filter: Log::Filter = [
                         $name = "kafka-{protocol}",
                         $writer = Log::WRITER_KAFKAWRITER,
-                        $path = "{topic}"
+                        $path = "{self.kafka_topic_prefix}-{topic}"
                     ];
                     Log::add_filter({protocol.upper()}::LOG, {protocol}_filter);\n
                     

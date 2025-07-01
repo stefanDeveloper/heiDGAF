@@ -8,6 +8,7 @@ import ast
 import os
 import sys
 import time
+import uuid
 from abc import abstractmethod
 
 import marshmallow_dataclass
@@ -133,7 +134,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
 
         conf = {
             "bootstrap.servers": self.brokers,
-            "transactional.id": HOSTNAME,
+            "transactional.id": f"{HOSTNAME}-{uuid.uuid4()}",
             "enable.idempotence": True,
         }
 

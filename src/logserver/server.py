@@ -19,10 +19,15 @@ module_name = "log_storage.logserver"
 logger = get_logger(module_name)
 
 config = setup_config()
-CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"]["logserver_in"]
-PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
-    "logserver_to_collector"
-]
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_in"]
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_to_collector"]
+
+SENSOR_TOPICS = set([
+    topic
+    for sensor in config["pipeline"]["zeek"]["sensors"].values()
+    for mapping in sensor.get("protocol_to_topic", [])
+    for topic in mapping.values()
+])
 READ_FROM_FILE = config["pipeline"]["log_storage"]["logserver"]["input_file"]
 KAFKA_BROKERS = ",".join(
     [
@@ -38,8 +43,12 @@ class LogServer:
     file.
     """
 
-    def __init__(self) -> None:
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(CONSUME_TOPIC)
+    def __init__(self, consume_topic, produce_topic) -> None:
+        
+        self.consume_topic = consume_topic
+        self.produce_topic = produce_topic
+        
+        self.kafka_consume_handler = SimpleKafkaConsumeHandler(consume_topic) 
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
@@ -52,9 +61,9 @@ class LogServer:
         """
         logger.info(
             "LogServer started:\n"
-            f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'\n"
+            f"    ⤷  receiving on Kafka topic '{self.consume_topic}'\n"
             f"    ⤷  receiving from input file '{READ_FROM_FILE}'\n"
-            f"    ⤷  sending on Kafka topic '{PRODUCE_TOPIC}'"
+            f"    ⤷  sending on Kafka topic '{self.produce_topic}'"
         )
 
         task_fetch_kafka = asyncio.Task(self.fetch_from_kafka())
@@ -80,7 +89,7 @@ class LogServer:
             message_id (uuid.UUID): UUID of the message
             message (str): Message to be sent
         """
-        self.kafka_produce_handler.produce(topic=PRODUCE_TOPIC, data=message)
+        self.kafka_produce_handler.produce(topic=self.produce_topic, data=message)
         logger.debug(f"Sent: '{message}'")
 
         self.server_logs_timestamps.insert(
@@ -113,6 +122,7 @@ class LogServer:
             )
 
             self.send(message_id, value)
+
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
         """
@@ -152,13 +162,21 @@ class LogServer:
                     self.send(message_id, cleaned_line)
 
 
-def main() -> None:
+async def main() -> None:
     """
-    Creates the :class:`LogServer` instance and starts it.
-    """
-    server_instance = LogServer()
-    asyncio.run(server_instance.start())
+    Creates the :class:`LogServer` instance and starts it for every topic used by any of the Zeek-sensors.
+    """  
+    tasks = []
+    for topic in SENSOR_TOPICS:
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{topic}"
+        produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{topic}"
+        server_instance = LogServer(consume_topic=consume_topic, produce_topic=produce_topic)
+        tasks.append(
+            asyncio.create_task(server_instance.start())
+        )
+
+    await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    asyncio.run(main())
