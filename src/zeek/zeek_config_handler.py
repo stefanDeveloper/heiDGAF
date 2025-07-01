@@ -47,6 +47,27 @@ class ZeekConfigurationHandler():
         if not self.is_analysis_static:
             self.template_and_copy_node_config()
         self.create_plugin_configuration()
+        self.create_additional_dns_configuration()
+    
+    def create_additional_dns_configuration(self):
+        dns_payload_extension = [
+            "\n@load base/protocols/dns\n",
+            "module DNS;\n",
+            "redef record DNS::Info += {\n",
+            "    dns_payload_len_bytes: count &optional &log;\n",
+            "};\n",
+            "event dns_message(c: connection, is_query: bool, msg: dns_msg, len: count)\n",
+            "{\n",
+            "    if ( c?$dns ) {\n",
+            "        c$dns$dns_payload_len_bytes = len;\n",
+            "    }\n",
+            "}\n"
+        ]
+
+        with open(self.base_config_location, "a") as f:
+            f.writelines(dns_payload_extension)
+        logger.info("Appended DNS payload length extension to Zeek config")
+        
     
     def create_plugin_configuration(self):
         if "all" in self.potocol_to_topic_configurations:
