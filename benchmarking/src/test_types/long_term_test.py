@@ -4,6 +4,7 @@ import os
 import sys
 import time
 
+import progressbar
 from confluent_kafka import KafkaError
 
 sys.path.append(os.getcwd())
@@ -30,14 +31,37 @@ class LongTermTest:
 
         self.msg_per_sec = msg_per_sec
         self.full_length_in_min = full_length_in_min
+        self.progress_bar = None
+        self.__text_message_count = None
 
     def execute(self):
         """Executes the test with the configured parameters."""
         start_timestamp = datetime.datetime.now()
-        logger.warning(
+        logger.info(
             f"Start {self.full_length_in_min} minute-test with "
             f"rate {self.msg_per_sec} msg/sec at: {start_timestamp}"
         )
+
+        self.__text_message_count = progressbar.FormatCustomText(
+            f"%(cur_message_count){len(str(self._get_total_message_count()))}s",
+            dict(cur_message_count=0),
+        )  # adjusted to correct width
+
+        self.progress_bar = progressbar.ProgressBar(
+            maxval=100,
+            widgets=[
+                progressbar.Percentage(),
+                " ",
+                progressbar.Bar(),
+                " ",
+                progressbar.Timer(),
+                ", ",
+                "Sent: ",
+                self.__text_message_count,
+                f"/{self._get_total_message_count()}",
+            ],
+        )
+        self.progress_bar.start()
 
         cur_index = 0
         while datetime.datetime.now() - start_timestamp < datetime.timedelta(
@@ -48,18 +72,32 @@ class LongTermTest:
                     PRODUCE_TO_TOPIC,
                     self.dataset_generator.generate_random_logline(),
                 )
-                logger.info(
-                    f"Sent message {cur_index + 1} at: {datetime.datetime.now()}"
+
+                self.__text_message_count.update_mapping(cur_message_count=cur_index)
+                self.progress_bar.update(
+                    min(
+                        self._get_time_elapsed()
+                        / datetime.timedelta(minutes=self.full_length_in_min)
+                        * 100,
+                        100,
+                    )
                 )
+
                 cur_index += 1
             except KafkaError:
                 logger.warning(KafkaError)
             time.sleep(1.0 / self.msg_per_sec)
 
-        logger.warning(
-            f"Stop at: {datetime.datetime.now()}, sent {cur_index} messages in the "
-            f"past {(datetime.datetime.now() - start_timestamp).total_seconds() / 60} minutes."
-        )
+        self.progress_bar.update(100)
+        self.progress_bar.finish()
+
+        logger.info(f"Stop at: {datetime.datetime.now()}")
+
+    def _get_time_elapsed(self) -> datetime.timedelta:
+        return datetime.datetime.now() - self.progress_bar.start_time
+
+    def _get_total_message_count(self):
+        return round(self.msg_per_sec * self.full_length_in_min * 60)
 
 
 if __name__ == "__main__":

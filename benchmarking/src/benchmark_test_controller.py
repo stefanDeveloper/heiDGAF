@@ -18,8 +18,7 @@ class BenchmarkTestController:
     def run_single_test(
         self,
         test_name: str,
-        remote_host=None,
-        remote_docker_container_name: str = "benchmark_test_runner",
+        docker_container_name: str = "benchmark_test_runner",
     ):
         """Sends the command to the remote host to start the respective test with the configured parameters."""
         test_parameters = benchmark_test_config["tests"][test_name]
@@ -86,7 +85,7 @@ class BenchmarkTestController:
                 arguments = [f"--length {length_arg}"]
 
                 # ONLY FOR TESTING, TODO
-                arguments = [f"--length 1"]
+                arguments = [f"--length {10 / 60}"]
 
             case "long_term":
                 try:
@@ -104,29 +103,25 @@ class BenchmarkTestController:
             case _:
                 arguments = []
 
-        if not remote_host:
-            # run benchmark test
-            cmd = (
-                f"docker exec {remote_docker_container_name} "
-                f"python benchmarking/src/test_types/{test_name}_test.py {' '.join(arguments)}"
-            )
-            subprocess.run(cmd, shell=True)
+        # run benchmark test
+        cmd = (
+            f"docker exec {docker_container_name} "
+            f"python benchmarking/src/test_types/{test_name}_test.py {' '.join(arguments)}"
+        )
+        subprocess.run(cmd, shell=True).check_returncode()
 
-            # check if data has been fully processed
-            subprocess.run(
-                ["sh", "benchmarking/src/check_if_finished.sh"]
-            ).check_returncode()
+        # check if data has been fully processed
+        subprocess.run(
+            ["sh", "benchmarking/src/check_if_finished.sh"]
+        ).check_returncode()
 
-            # extract data from ClickHouse
-            subprocess.run(
-                ["sh", "benchmarking/src/extract_data.sh"]
-            ).check_returncode()
+        # extract data from ClickHouse
+        subprocess.run(["sh", "benchmarking/src/extract_data.sh"]).check_returncode()
 
-        # ssh debian@129.206.4.50 \
-        #   "sudo docker exec container_name python3 /script.py arg1 arg2"
-        pass
+        # wipe ClickHouse database
+        subprocess.run(["sh", "benchmarking/src/clean_up.sh"]).check_returncode()
 
 
 if __name__ == "__main__":
     controller = BenchmarkTestController()
-    controller.run_single_test("ramp_up")
+    controller.run_single_test("maximum_throughput")

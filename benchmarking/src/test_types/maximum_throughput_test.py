@@ -16,7 +16,7 @@ maximum_throughput_test_config = benchmark_test_config["tests"]["maximum_through
 class MaximumThroughputTest(LongTermTest):
     """Keeps a consistent rate that is too high to be handled."""
 
-    def __init__(self, length_in_min: float | int, msg_per_sec: int = 10000):
+    def __init__(self, length_in_min: float | int, msg_per_sec: int = 10):
         super().__init__(full_length_in_min=length_in_min, msg_per_sec=msg_per_sec)
 
 
