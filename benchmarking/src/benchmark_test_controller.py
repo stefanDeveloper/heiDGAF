@@ -20,7 +20,7 @@ class BenchmarkTestController:
         test_name: str,
         docker_container_name: str = "benchmark_test_runner",
     ):
-        """Sends the command to the remote host to start the respective test with the configured parameters."""
+        """Sends the command to the test runner container to start the respective test with the configured parameters."""
         test_parameters = benchmark_test_config["tests"][test_name]
 
         match test_name:
@@ -84,9 +84,6 @@ class BenchmarkTestController:
 
                 arguments = [f"--length {length_arg}"]
 
-                # ONLY FOR TESTING, TODO
-                arguments = [f"--length {10 / 60}"]
-
             case "long_term":
                 try:
                     # check types
@@ -118,10 +115,15 @@ class BenchmarkTestController:
         # extract data from ClickHouse
         subprocess.run(["sh", "benchmarking/src/extract_data.sh"]).check_returncode()
 
-        # wipe ClickHouse database
-        subprocess.run(["sh", "benchmarking/src/clean_up.sh"]).check_returncode()
+        # cleanup ClickHouse database
+        subprocess.run(["sh", "benchmarking/src/cleanup.sh"]).check_returncode()
+
+    def run_configured_tests_sequentially(self):
+        """Runs the tests from the configuration sequentially."""
+        for test_run in benchmark_test_config["test_runs"]:
+            self.run_single_test(test_run)
 
 
 if __name__ == "__main__":
     controller = BenchmarkTestController()
-    controller.run_single_test("maximum_throughput")
+    controller.run_configured_tests_sequentially()

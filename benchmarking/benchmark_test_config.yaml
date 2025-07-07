@@ -24,10 +24,6 @@ tests:
     data_rate: 15  # msg/s
     length: 10  # minutes
 
-runners:
-  heidgaf-benchmarking-1:
-    - ramp_up
-    - burst
-    - maximum_throughput
-  heidgaf-benchmarking-2:
-    - long_term
+test_runs:
+  - ramp_up
+  - maximum_throughput
