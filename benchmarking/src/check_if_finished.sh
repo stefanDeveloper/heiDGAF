@@ -14,7 +14,7 @@ log_message() {
 # Function to run query from file
 run_query_file() {
     local input_file="$1"
-    sudo docker exec -i "$CONTAINER" $CLICKHOUSE_CLIENT --query "$(cat "$input_file")" --format CSV 2>/dev/null
+    docker exec -i "$CONTAINER" $CLICKHOUSE_CLIENT --query "$(cat "$input_file")" --format CSV 2>/dev/null
 }
 
 #------------ Check if test has terminated -----------

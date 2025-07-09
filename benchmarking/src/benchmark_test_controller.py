@@ -15,8 +15,8 @@ benchmark_test_config = setup_benchmark_test_config()
 class BenchmarkTestController:
     """Contains methods for running tests on remote hosts."""
 
+    @staticmethod
     def run_single_test(
-        self,
         test_name: str,
         docker_container_name: str = "benchmark_test_runner",
     ):

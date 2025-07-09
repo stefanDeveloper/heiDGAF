@@ -20,7 +20,7 @@ run_query_file() {
     local input_file="$1"
     local output_file="$2"
     echo "🔹 Running: $input_file -> $output_file"
-    sudo docker exec -i "$CONTAINER" $CLICKHOUSE_CLIENT --query "$(cat "$input_file")" > "$output_file"
+    docker exec -i "$CONTAINER" $CLICKHOUSE_CLIENT --query "$(cat "$input_file")" > "$output_file"
 }
 
 # ---------- Process all query files ----------

@@ -11,7 +11,7 @@ declare -a TABLES=("alerts" "batch_timestamps" "dns_loglines" "failed_dns_loglin
 drop_table() {
     local table_name="$1"
     echo "Dropping table: $table_name"
-    sudo docker exec -i "$CONTAINER" $CLICKHOUSE_CLIENT --query "TRUNCATE TABLE $table_name"
+    docker exec -i "$CONTAINER" $CLICKHOUSE_CLIENT --query "TRUNCATE TABLE $table_name"
 }
 
 # ---------- Drop all tables ----------
