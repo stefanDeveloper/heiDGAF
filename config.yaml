@@ -1,3 +1,8 @@
+define: &zeek_http_topic "my_http_topic"
+define: &zeek_dns_topic "my_dns_topic"
+define: &zeek_dns_topic_2 "my_second_dns_topic"
+
+
 logging:
   base:
     debug: false
@@ -22,15 +27,18 @@ pipeline:
 
   log_collection:
     collector:
-      logline_format:
-        - [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ" ]
-        - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
-        - [ "client_ip", IpAddress ]
-        - [ "dns_server_ip", IpAddress ]
-        - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
-        - [ "record_type", ListItem, [ "A", "AAAA" ] ]
-        - [ "response_ip", IpAddress ]
-        - [ "size", RegEx, '^\d+b$' ]
+      valid_logline_formats:
+        dns:
+          dga_format:
+            - [ "ts", Timestamp, "%Y-%m-%dT%H:%M:%S" ]
+            - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+            - [ "client_ip", IpAddress ]
+            - [ "dns_server_ip", IpAddress ]
+            - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+            - [ "record_type", ListItem, [ "A", "AAAA" ] ]
+            # - [ "response_ip", IpAddress ]
+            - [ "size", RegEx, '^\d+b$' ]
+
     batch_handler:
       batch_size: 10000
       batch_timeout: 30.0
@@ -57,11 +65,13 @@ pipeline:
       time_range: 20
 
   data_analysis:
-    detector:
-      model: rf # XGBoost
-      checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
-      base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
-      threshold: 0.5
+    detectors:
+      - name: "RF - DGA detector"
+        model: rf # XGBoost
+        checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
+        base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+        threshold: 0.5
+        zeek_topic: *zeek_dns_topic_2 
 
   monitoring:
     clickhouse_connector:
@@ -72,37 +82,44 @@ pipeline:
   zeek:
     sensors:
       zeek1:
-        static_analysis: true # default
+        static_analysis: true
         protocol_to_topic:
-          - http: "my-http-topic"
-          - dns: "dns-topic"
+          #- http: 
+          #  - *zeek_http_topic
+          - dns: 
+            - *zeek_dns_topic
+          #  - *zeek_dns_topic_2
         interfaces:
           - enx84ba5960ffe6
       zeek2: 
         static_analysis: false # default
         protocol_to_topic:
-          - http: "my-http-topic"
-          - dns: "dns-topic"
+          - http: 
+            - *zeek_http_topic
+          - dns: 
+            - *zeek_dns_topic
         interfaces: 
           - eth0
           - dummy
       zeek3:
         static_analysis: true
         protocol_to_topic:
-          - http: "my-http-topic"
-          - dns: "dns-topic"
+          - http: 
+            - *zeek_http_topic
+          - dns: 
+            - *zeek_dns_topic
 
 environment:
   kafka_brokers:
     - hostname: kafka1
       port: 8097
-      node_ip: 192.168.176.67
+      node_ip: 192.168.175.69
     - hostname: kafka2
       port: 8098
-      node_ip: 192.168.176.67
+      node_ip: 192.168.175.69
     - hostname: kafka3
       port: 8099
-      node_ip: 192.168.176.67
+      node_ip: 192.168.175.69
   kafka_topics_prefix:
     pipeline:
       logserver_in: "pipeline-logserver_in"

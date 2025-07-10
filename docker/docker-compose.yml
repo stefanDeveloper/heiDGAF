@@ -53,6 +53,7 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
+        
 
   prefilter:
     extends:

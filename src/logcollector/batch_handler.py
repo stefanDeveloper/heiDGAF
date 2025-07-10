@@ -20,17 +20,13 @@ logger = get_logger(module_name)
 config = setup_config()
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
-PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
-    "batch_sender_to_prefilter"
-]
+
 KAFKA_BROKERS = ",".join(
     [
         f"{broker['hostname']}:{broker['port']}"
         for broker in config["environment"]["kafka_brokers"]
     ]
 )
-
-
 class BufferedBatch:
     """Data structure for managing the batch, buffer, and timestamps. The batch contains the latest messages and a
     buffer that stores the previous batch messages. Sorts the batches and can return timestamps.
@@ -339,8 +335,8 @@ class BufferedBatch:
 class BufferedBatchSender:
     """Adds messages to the :class:`BufferedBatch` and sends them after a timer ran out or a key's batch is full."""
 
-    def __init__(self):
-        self.topic = PRODUCE_TOPIC
+    def __init__(self, produce_topic):
+        self.topic = produce_topic
         self.batch = BufferedBatch()
         self.timer = None
 

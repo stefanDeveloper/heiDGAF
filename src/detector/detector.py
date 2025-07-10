@@ -5,7 +5,7 @@ import os
 import pickle
 import sys
 import tempfile
-
+import asyncio
 import math
 import numpy as np
 import requests
@@ -26,13 +26,11 @@ logger = get_logger(module_name)
 BUF_SIZE = 65536  # let's read stuff in 64kb chunks!
 
 config = setup_config()
-MODEL = config["pipeline"]["data_analysis"]["detector"]["model"]
-CHECKSUM = config["pipeline"]["data_analysis"]["detector"]["checksum"]
-MODEL_BASE_URL = config["pipeline"]["data_analysis"]["detector"]["base_url"]
-THRESHOLD = config["pipeline"]["data_analysis"]["detector"]["threshold"]
-CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
-    "inspector_to_detector"
-]
+DETECTOR_CONFIGS = config["pipeline"]["data_analysis"]["detectors"]
+
+
+
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["inspector_to_detector"]
 
 
 class WrongChecksum(Exception):  # pragma: no cover
@@ -48,7 +46,14 @@ class Detector:
     In addition, it returns all individually probabilities of the anomalous batch.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, detector_config, consume_topic) -> None:
+        self.name = detector_config["name"]
+        self.model = detector_config["model"]
+        self.checksum = detector_config["checksum"]
+        self.threshold = detector_config["threshold"]
+        self.model_base_url = detector_config["base_url"]
+
+        self.consume_topic = consume_topic
         self.suspicious_batch_id = None
         self.key = None
         self.messages = []
@@ -56,10 +61,10 @@ class Detector:
         self.begin_timestamp = None
         self.end_timestamp = None
         self.model_path = os.path.join(
-            tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pickle"
+            tempfile.gettempdir(), f"{self.model}_{self.checksum}.pickle"
         )
 
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
 
         self.model = self._get_model()
 
@@ -156,12 +161,12 @@ class Detector:
         Downloads model from server. If model already exists, it returns the current model. In addition, it checks the
         sha256 sum in case a model has been updated.
         """
-        logger.info(f"Get model: {MODEL} with checksum {CHECKSUM}")
+        logger.info(f"Get model: {self.model} with checksum {self.checksum}")
         if not os.path.isfile(self.model_path):
             response = requests.get(
-                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pickle&dl=1"
+                f"{self.model_base_url}/files/?p=%2F{self.model}_{self.checksum}.pickle&dl=1"
             )
-            logger.info(f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pickle&dl=1")
+            logger.info(f"{self.model_base_url}/files/?p=%2F{self.model}_{self.checksum}.pickle&dl=1")
             response.raise_for_status()
 
             with open(self.model_path, "wb") as f:
@@ -170,12 +175,12 @@ class Detector:
         # Check file sha256
         local_checksum = self._sha256sum(self.model_path)
 
-        if local_checksum != CHECKSUM:
+        if local_checksum != self.checksum:
             logger.warning(
-                f"Checksum {CHECKSUM} SHA256 is not equal with new checksum {local_checksum}!"
+                f"Checksum {self.checksum} SHA256 is not equal with new checksum {local_checksum}!"
             )
             raise WrongChecksum(
-                f"Checksum {CHECKSUM} SHA256 is not equal with new checksum {local_checksum}!"
+                f"Checksum {self.checksum} SHA256 is not equal with new checksum {local_checksum}!"
             )
 
         with open(self.model_path, "rb") as input_file:
@@ -307,13 +312,14 @@ class Detector:
                 self._get_features(message["domain_name"])
             )
             logger.info(f"Prediction: {y_pred}")
-            if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:
+            if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > self.threshold:
                 logger.info("Append malicious request to warning.")
                 warning = {
                     "request": message,
                     "probability": float(y_pred[0][1]),
-                    "model": MODEL,
-                    "sha256": CHECKSUM,
+                    "model": self.model,
+                    "name": self.name,
+                    "sha256": self.checksum,
                 }
                 self.warnings.append(warning)
 
@@ -409,8 +415,33 @@ class Detector:
             )
         )
 
-
-def main(one_iteration: bool = False):  # pragma: no cover
+    async def start(self, one_iteration: bool = False):
+        iterations = 0
+        while True:
+            if one_iteration and iterations > 0:
+                break
+            iterations += 1
+            try:
+                logger.debug("Before getting and filling data")
+                self.get_and_fill_data()
+                logger.debug("Inspect Data")
+                self.detect()
+                logger.debug("Send warnings")
+                self.send_warning()
+            except KafkaMessageFetchException as e:  # pragma: no cover
+                logger.debug(e)
+            except IOError as e:
+                logger.error(e)
+                raise e
+            except ValueError as e:
+                logger.debug(e)
+            except KeyboardInterrupt:
+                logger.info("Closing down Detector...")
+                break
+            finally:
+                self.clear_data()
+            
+async def main():  # pragma: no cover
     """
     Creates the :class:`Detector` instance. Starts a loop that continously fetches data.
 
@@ -420,37 +451,20 @@ def main(one_iteration: bool = False):  # pragma: no cover
     Raises:
         KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
     """
-    logger.info("Starting Detector...")
-    detector = Detector()
-    logger.info(f"Detector is running.")
+    tasks = []
+    for detector_config in DETECTOR_CONFIGS:
+        name = detector_config["name"]
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{detector_config['zeek_topic']}"
+        logger.info(f"Starting Detector {name}")
+        detector = Detector(detector_config=detector_config, consume_topic=consume_topic)
+        logger.info(f"Detector {name} is running.")
+        tasks.append(
+            asyncio.create_task(detector.start())
+        )
 
-    iterations = 0
-
-    while True:
-        if one_iteration and iterations > 0:
-            break
-        iterations += 1
-
-        try:
-            logger.debug("Before getting and filling data")
-            detector.get_and_fill_data()
-            logger.debug("Inspect Data")
-            detector.detect()
-            logger.debug("Send warnings")
-            detector.send_warning()
-        except KafkaMessageFetchException as e:  # pragma: no cover
-            logger.debug(e)
-        except IOError as e:
-            logger.error(e)
-            raise e
-        except ValueError as e:
-            logger.debug(e)
-        except KeyboardInterrupt:
-            logger.info("Closing down Detector...")
-            break
-        finally:
-            detector.clear_data()
+    await asyncio.gather(*tasks)
+    
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    asyncio.run(main())

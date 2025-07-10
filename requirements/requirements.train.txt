@@ -1,7 +1,7 @@
 numpy
 xgboost
 scikit-learn~=1.5.2
-scipy
+scipy<=1.15.3 
 torch
 pyarrow
 polars

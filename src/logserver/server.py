@@ -26,8 +26,10 @@ SENSOR_TOPICS = set([
     topic
     for sensor in config["pipeline"]["zeek"]["sensors"].values()
     for mapping in sensor.get("protocol_to_topic", [])
-    for topic in mapping.values()
+    for topics in mapping.values()
+    for topic in topics
 ])
+
 READ_FROM_FILE = config["pipeline"]["log_storage"]["logserver"]["input_file"]
 KAFKA_BROKERS = ",".join(
     [

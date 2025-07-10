@@ -4,6 +4,7 @@ import sys
 import uuid
 from datetime import datetime
 from enum import Enum, unique
+import asyncio
 
 import marshmallow_dataclass
 import numpy as np
@@ -33,12 +34,16 @@ ANOMALY_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"][
 SCORE_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["score_threshold"]
 TIME_TYPE = config["pipeline"]["data_inspection"]["inspector"]["time_type"]
 TIME_RANGE = config["pipeline"]["data_inspection"]["inspector"]["time_range"]
-CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
-    "prefilter_to_inspector"
-]
-PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
-    "inspector_to_detector"
-]
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["inspector_to_detector"]
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["prefilter_to_inspector"]
+SENSOR_TOPICS = set([
+    topic
+    for sensor in config["pipeline"]["zeek"]["sensors"].values()
+    for mapping in sensor.get("protocol_to_topic", [])
+    for topics in mapping.values()
+    for topic in topics
+])
+
 KAFKA_BROKERS = ",".join(
     [
         f"{broker['hostname']}:{broker['port']}"
@@ -79,7 +84,9 @@ class EnsembleModels(str, Enum):
 class Inspector:
     """Finds anomalies in a batch of requests and produces it to the ``Detector``."""
 
-    def __init__(self) -> None:
+    def __init__(self, consume_topic, produce_topic) -> None:
+        self.consume_topic = consume_topic
+        self.produce_topic = produce_topic
         self.batch_id = None
         self.X = None
         self.key = None
@@ -89,7 +96,7 @@ class Inspector:
         self.messages = []
         self.anomalies = []
 
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
@@ -521,7 +528,7 @@ class Inspector:
                 )
 
                 self.kafka_produce_handler.produce(
-                    topic=PRODUCE_TOPIC,
+                    topic=self.produce_topic,
                     data=batch_schema.dumps(data_to_send),
                     key=key,
                 )
@@ -561,8 +568,36 @@ class Inspector:
             )
         )
 
+    def start(self, one_iteration: bool = False):
+        iterations = 0
 
-def main(one_iteration: bool = False):
+        while True:
+            if one_iteration and iterations > 0:
+                break
+            iterations += 1
+
+            try:
+                logger.debug("Before getting and filling data")
+                self.get_and_fill_data()
+                logger.debug("After getting and filling data")
+                logger.debug("Start anomaly detection")
+                self.inspect()
+                logger.debug("Send data to detector")
+                self.send_data()
+            except KafkaMessageFetchException as e:  # pragma: no cover
+                logger.debug(e)
+            except IOError as e:
+                logger.error(e)
+                raise e
+            except ValueError as e:
+                logger.debug(e)
+            except KeyboardInterrupt:
+                logger.info("Closing down Inspector...")
+                break
+            finally:
+                self.clear_data()
+            
+async def main():
     """
     Creates the :class:`Inspector` instance. Starts a loop that continuously fetches data. Actual functionality
     follows.
@@ -573,38 +608,19 @@ def main(one_iteration: bool = False):
     Raises:
         KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
     """
-    logger.info("Starting Inspector...")
-    inspector = Inspector()
-    logger.info(f"Inspector is running.")
+    tasks = []
+    for topic in SENSOR_TOPICS:
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{topic}"
+        produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{topic}"
+        logger.info("Starting Inspector...")
+        inspector = Inspector(consume_topic=consume_topic, produce_topic=produce_topic)
+        tasks.append(
+            asyncio.create_task(inspector.start())
+        )
 
-    iterations = 0
+    await asyncio.gather(*tasks)
 
-    while True:
-        if one_iteration and iterations > 0:
-            break
-        iterations += 1
-
-        try:
-            logger.debug("Before getting and filling data")
-            inspector.get_and_fill_data()
-            logger.debug("After getting and filling data")
-            logger.debug("Start anomaly detection")
-            inspector.inspect()
-            logger.debug("Send data to detector")
-            inspector.send_data()
-        except KafkaMessageFetchException as e:  # pragma: no cover
-            logger.debug(e)
-        except IOError as e:
-            logger.error(e)
-            raise e
-        except ValueError as e:
-            logger.debug(e)
-        except KeyboardInterrupt:
-            logger.info("Closing down Inspector...")
-            break
-        finally:
-            inspector.clear_data()
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    asyncio.run(main())

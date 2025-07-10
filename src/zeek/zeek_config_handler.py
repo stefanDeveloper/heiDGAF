@@ -3,6 +3,7 @@ import os
 import shutil
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
+import glob
 
 logger = get_logger("zeek.sensor")
 class ZeekConfigurationHandler():
@@ -12,9 +13,11 @@ class ZeekConfigurationHandler():
             zeek_config_location: str = "/usr/local/zeek/share/zeek/site/local.zeek",
             zeek_node_config_template: str = "/opt/src/zeek/base_node.cfg",
             zeek_log_location: str = "/usr/local/zeek/log/zeek.log",
+            additional_configurations: str = "/opt/src/zeek/additional_configs/"
         ):      
         logger.info(f"Setting up Zeek configuration...")
         self.base_config_location = zeek_config_location
+        self.additional_configurations = additional_configurations
         self.zeek_node_config_template = zeek_node_config_template
         self.zeek_node_config_path: str = "/usr/local/zeek/etc/node.cfg"
         self.zeek_log_location = zeek_log_location
@@ -40,7 +43,8 @@ class ZeekConfigurationHandler():
         
         self.kafka_topic_prefix = configuration_dict["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_in"]
         
-        self.potocol_to_topic_configurations = {str(protocol):str(topic)  for protocol_topic_dict in zeek_sensor_configuration["protocol_to_topic"] for protocol, topic in protocol_topic_dict.items()}
+        self.potocol_to_topic_configurations = {str(protocol):topics for protocol_topic_dict in zeek_sensor_configuration["protocol_to_topic"] for protocol, topics in protocol_topic_dict.items()}
+        logger.info(f"topics: {self.potocol_to_topic_configurations}")
         self.kafka_brokers = [ f"{broker['node_ip']}:{broker['port']}" for broker in configured_kafka_brokers ]
         logger.info(f"Succesfully parse config.yaml")
 
@@ -48,28 +52,19 @@ class ZeekConfigurationHandler():
         logger.info(f"configuring Zeek...")
         if not self.is_analysis_static:
             self.template_and_copy_node_config()
-        self.create_plugin_configuration()
-        self.create_additional_dns_configuration()
-    
-    def create_additional_dns_configuration(self):
-        dns_payload_extension = [
-            "\n@load base/protocols/dns\n",
-            "module DNS;\n",
-            "redef record DNS::Info += {\n",
-            "    dns_payload_len_bytes: count &optional &log;\n",
-            "};\n",
-            "event dns_message(c: connection, is_query: bool, msg: dns_msg, len: count)\n",
-            "{\n",
-            "    if ( c?$dns ) {\n",
-            "        c$dns$dns_payload_len_bytes = len;\n",
-            "    }\n",
-            "}\n"
-        ]
+        self.append_additional_configurations()
 
-        with open(self.base_config_location, "a") as f:
-            f.writelines(dns_payload_extension)
-        logger.info("Appended DNS payload length extension to Zeek config")
-        
+        self.create_plugin_configuration()
+    
+    def append_additional_configurations(self):
+        config_files = find_files_in_dir(self.additional_configurations)
+        with open(self.base_config_location,"a") as base_config:
+            base_config.write("\n")
+            for file in config_files:
+                with open(file) as additional_config:
+                    base_config.writelines(additional_config)
+    
+    
     
     def create_plugin_configuration(self):
         if "all" in self.potocol_to_topic_configurations:
@@ -87,22 +82,24 @@ class ZeekConfigurationHandler():
                 'redef Kafka::topic_name = "";\n',
                 f'redef Kafka::kafka_conf = table(\n'
                 f'  ["metadata.broker.list"] = "{",".join(self.kafka_brokers)}");\n',
-                'redef Kafka::tag_json = T;\n',
+                'redef Kafka::tag_json = F;\n',
                 'event zeek_init() &priority=-10\n',
-                '{\n'
+                '{\n',
             ]
 
-            for protocol, topic in self.potocol_to_topic_configurations.items():
-                filter_block = f"""
-                    local {protocol}_filter: Log::Filter = [
-                        $name = "kafka-{protocol}",
-                        $writer = Log::WRITER_KAFKAWRITER,
-                        $path = "{self.kafka_topic_prefix}-{topic}"
-                    ];
-                    Log::add_filter({protocol.upper()}::LOG, {protocol}_filter);\n
-                    
-                """
-                config_lines.append(filter_block)
+            for protocol, topics in self.potocol_to_topic_configurations.items():
+                zeek_protocol_log_format = f"Custom{protocol.upper()}"
+                for idx, topic in enumerate(topics):
+                    kafka_writer_name = f"{protocol}_filter_{idx}"
+                    filter_block = f"""
+                        local {kafka_writer_name}: Log::Filter = [
+                            $name = "kafka-{kafka_writer_name}",
+                            $writer = Log::WRITER_KAFKAWRITER,
+                            $path = "{self.kafka_topic_prefix}-{topic}"
+                        ];
+                        Log::add_filter({zeek_protocol_log_format}::LOG, {kafka_writer_name});\n
+                    """
+                    config_lines.append(filter_block)
             config_lines.append('\n}')   
                   
         with open(self.base_config_location, "a") as f:
@@ -124,3 +121,8 @@ class ZeekConfigurationHandler():
         configuration_lines = self.create_worker_configurations_for_interfaces()
         with open(self.zeek_node_config_path, "a") as f:
             f.writelines(configuration_lines)
+            
+        
+def find_files_in_dir(path):
+    return glob.glob(os.path.join(path, "*.zeek"))
+            

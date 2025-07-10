@@ -13,6 +13,7 @@ from src.base.logline_handler import LoglineHandler
 from src.base import utils
 from src.logcollector.batch_handler import BufferedBatchSender
 from src.base.log_config import get_logger
+from collections import defaultdict
 
 module_name = "log_collection.collector"
 logger = get_logger(module_name)
@@ -25,31 +26,39 @@ IPV6_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subn
     "ipv6_prefix_length"
 ]
 REQUIRED_FIELDS = [
-    "timestamp",
+    "ts",
     "status_code",
     "client_ip",
     "record_type",
 ]
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
-CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
-    "logserver_to_collector"
-]
 
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["batch_sender_to_prefilter"]
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_to_collector"]
 
+PROTOCOLS_TO_SENSOR_TOPICS = defaultdict(list)
+for sensor in config["pipeline"]["zeek"]["sensors"].values():
+    for mapping in sensor.get("protocol_to_topic", []):
+        for protocol, topics in mapping.items():
+            for topic in topics:
+                PROTOCOLS_TO_SENSOR_TOPICS[protocol].append(topic)
+for k,v in PROTOCOLS_TO_SENSOR_TOPICS.items():
+    PROTOCOLS_TO_SENSOR_TOPICS[k] = set(PROTOCOLS_TO_SENSOR_TOPICS[k])
 class LogCollector:
     """Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
     value, invalid loglines are discarded. All valid loglines are sent to the batch sender.
     """
-
-    def __init__(self) -> None:
+    def __init__(self, protocol, consume_topic, produce_topic) -> None:
+        self.protocol = protocol
+        self.consume_topic = consume_topic
         self.loglines = asyncio.Queue()
-        self.batch_handler = BufferedBatchSender()
-        self.logline_handler = LoglineHandler()
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
+        self.batch_handler = BufferedBatchSender(produce_topic=produce_topic)
+        self.logline_handler = LoglineHandler(protocol)
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(consume_topic)
 
         # databases
-        self.failed_dns_loglines = ClickHouseKafkaSender("failed_dns_loglines")
-        self.dns_loglines = ClickHouseKafkaSender("dns_loglines")
+        self.failed_dns_loglines = ClickHouseKafkaSender(f"failed_dns_loglines")
+        self.dns_loglines = ClickHouseKafkaSender(f"dns_loglines")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
         self.fill_levels = ClickHouseKafkaSender("fill_levels")
 
@@ -66,7 +75,7 @@ class LogCollector:
         """Starts fetching messages from Kafka and sending them to the :class:`Prefilter`."""
         logger.info(
             "LogCollector started:\n"
-            f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'"
+            f"    ⤷  receiving on Kafka topic '{self.consume_topic}'"
         )
 
         task_fetch = asyncio.Task(self.fetch())
@@ -83,6 +92,7 @@ class LogCollector:
     async def fetch(self) -> None:
         """Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is
         decoded and sent."""
+        import time
         loop = asyncio.get_running_loop()
 
         while True:
@@ -101,12 +111,12 @@ class LogCollector:
             timestamp_in (datetime.datetime): Timestamp of entering the pipeline
             message (str): Message to be stored
         """
-
         try:
             fields = self.logline_handler.validate_logline_and_get_fields_as_json(
                 message
             )
         except ValueError:
+            
             self.failed_dns_loglines.insert(
                 dict(
                     message_text=message,
@@ -116,7 +126,7 @@ class LogCollector:
                 )
             )
             return
-
+        # TODO make the code less hardcoded in variables!       
         additional_fields = fields.copy()
         for field in REQUIRED_FIELDS:
             additional_fields.pop(field)
@@ -124,11 +134,12 @@ class LogCollector:
         subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("client_ip")))
         logline_id = uuid.uuid4()
 
+        # TODO required types per protocol
         self.dns_loglines.insert(
             dict(
                 logline_id=logline_id,
                 subnet_id=subnet_id,
-                timestamp=datetime.datetime.fromisoformat(fields.get("timestamp")),
+                timestamp=datetime.datetime.fromisoformat(fields.get("ts")),
                 status_code=fields.get("status_code"),
                 client_ip=fields.get("client_ip"),
                 record_type=fields.get("record_type"),
@@ -158,9 +169,8 @@ class LogCollector:
                 is_active=True,
             )
         )
-
         self.batch_handler.add_message(subnet_id, json.dumps(message_fields))
-        logger.debug(f"Sent: '{message}'")
+        logger.info(f"Sent: {message}")
 
     @staticmethod
     def _get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
@@ -187,13 +197,20 @@ class LogCollector:
         return f"{normalized_ip_address}_{prefix_length}"
 
 
-def main() -> None:
+async def main() -> None:
     """
     Creates the :class:`LogCollector` instance and starts it.
     """
-    collector_instance = LogCollector()
-    asyncio.run(collector_instance.start())
+    tasks = []
+    for protocol,topics in PROTOCOLS_TO_SENSOR_TOPICS.items():
+        for topic in topics:
+            consume_topic = f"{CONSUME_TOPIC_PREFIX}-{topic}"
+            produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{topic}"
+            collector_instance = LogCollector(protocol=protocol,consume_topic=consume_topic, produce_topic=produce_topic)
+            tasks.append(
+                asyncio.create_task(collector_instance.start())
+            )
 
-
+    await asyncio.gather(*tasks)
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    asyncio.run(main())

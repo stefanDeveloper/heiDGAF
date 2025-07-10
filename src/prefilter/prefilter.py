@@ -2,7 +2,7 @@ import datetime
 import os
 import sys
 import uuid
-
+import asyncio
 import marshmallow_dataclass
 
 sys.path.append(os.getcwd())
@@ -21,12 +21,18 @@ module_name = "log_filtering.prefilter"
 logger = get_logger(module_name)
 
 config = setup_config()
-CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
-    "batch_sender_to_prefilter"
-]
-PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
-    "prefilter_to_inspector"
-]
+
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["batch_sender_to_prefilter"]
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["prefilter_to_inspector"]
+SENSOR_TOPICS = set([
+    topic
+    for sensor in config["pipeline"]["zeek"]["sensors"].values()
+    for mapping in sensor.get("protocol_to_topic", [])
+    for topics in mapping.values()
+    for topic in topics
+])
+
+
 KAFKA_BROKERS = ",".join(
     [
         f"{broker['hostname']}:{broker['port']}"
@@ -41,7 +47,9 @@ class Prefilter:
     kept. Filtered data is then sent using topic ``Inspect``.
     """
 
-    def __init__(self):
+    def __init__(self, consume_topic, produce_topic):
+        self.consume_topic = consume_topic
+        self.produce_topic = produce_topic
         self.batch_id = None
         self.begin_timestamp = None
         self.end_timestamp = None
@@ -51,7 +59,7 @@ class Prefilter:
         self.filtered_data = []
 
         self.logline_handler = LoglineHandler()
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
@@ -182,7 +190,7 @@ class Prefilter:
 
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
         self.kafka_produce_handler.produce(
-            topic=PRODUCE_TOPIC,
+            topic=self.produce_topic,
             data=batch_schema.dumps(data_to_send),
             key=self.subnet_id,
         )
@@ -198,7 +206,33 @@ class Prefilter:
         self.filtered_data = []
 
 
-def main(one_iteration: bool = False) -> None:
+    def start(self, one_iteration: bool = False):
+            
+        iterations = 0
+        while True:
+            if one_iteration and iterations > 0:
+                break
+            iterations += 1
+
+            try:
+                self.get_and_fill_data()
+                self.filter_by_error()
+                self.send_filtered_data()
+            except IOError as e:
+                logger.error(e)
+                raise
+            except ValueError as e:
+                logger.debug(e)
+            except KafkaMessageFetchException as e:
+                logger.debug(e)
+                continue
+            except KeyboardInterrupt:
+                logger.info("Closing down Prefilter...")
+                break
+            finally:
+                self.clear_data()
+
+async def main() -> None:
     """
     Runs the main loop by
 
@@ -211,32 +245,20 @@ def main(one_iteration: bool = False) -> None:
     Args:
         one_iteration (bool): Only one iteration is done if True (for testing purposes). False by default.
     """
-    prefilter = Prefilter()
+    
+    tasks = []
+    for topic in SENSOR_TOPICS:
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{topic}"
+        produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{topic}"
+        prefilter = Prefilter(consume_topic=consume_topic, produce_topic=produce_topic)
+        tasks.append(
+            asyncio.create_task(prefilter.start())
+        )
 
-    iterations = 0
-    while True:
-        if one_iteration and iterations > 0:
-            break
-        iterations += 1
+    await asyncio.gather(*tasks)
 
-        try:
-            prefilter.get_and_fill_data()
-            prefilter.filter_by_error()
-            prefilter.send_filtered_data()
-        except IOError as e:
-            logger.error(e)
-            raise
-        except ValueError as e:
-            logger.debug(e)
-        except KafkaMessageFetchException as e:
-            logger.debug(e)
-            continue
-        except KeyboardInterrupt:
-            logger.info("Closing down Prefilter...")
-            break
-        finally:
-            prefilter.clear_data()
+
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    asyncio.run(main())
