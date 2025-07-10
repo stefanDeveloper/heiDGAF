@@ -176,7 +176,8 @@ class BufferedBatch:
                 def _get_first_timestamp_of_batch() -> str | None:
                     entries = self.batch.get(key)
                     return (
-                        json.loads(entries[0])["timestamp"]
+                        # TODO remove hardcoded ts value
+                        json.loads(entries[0])["ts"]
                         if entries and entries[0]
                         else None
                     )
@@ -192,7 +193,7 @@ class BufferedBatch:
                 def _get_first_timestamp_of_buffer() -> str | None:
                     entries = self.buffer.get(key)
                     return (
-                        json.loads(entries[0])["timestamp"]
+                        json.loads(entries[0])["ts"]
                         if entries and entries[0]
                         else None
                     )
@@ -205,7 +206,7 @@ class BufferedBatch:
                 entries = self.batch.get(key)
 
                 return (
-                    json.loads(entries[-1])["timestamp"]
+                    json.loads(entries[-1])["ts"]
                     if entries and entries[-1]
                     else None
                 )
@@ -304,8 +305,8 @@ class BufferedBatch:
 
         for item in data:
             record = json.loads(item)
-
-            timestamp = record.get("timestamp", "")
+            # TODO remove hardcoded ts value
+            timestamp = record.get("ts", "")
             tuples.append((str(timestamp), item))
 
         return tuples
