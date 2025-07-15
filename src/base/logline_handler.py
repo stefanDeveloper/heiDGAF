@@ -233,11 +233,6 @@ class LoglineHandler:
                     logger.debug(f"line {logline} does not contain the specified field of {log_line_property_key}")
             if all(valid_values):
                 return True
-            else:
-                error_line = ""
-                for incorrect_key in invalid_value_names:
-                    error_line += f"{incorrect_key}: {logline[incorrect_key]} "
-                logger.warning(f"Incorrect logline properties: {error_line}")
         return False
     
     def __get_fields_as_json(self, logline: str) -> dict:

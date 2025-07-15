@@ -429,14 +429,15 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
         Raises:
             ValueError: Invalid data format
         """
+        logger.info("consume")
         key, value, topic = self.consume()
-
+        logger.inf("consumed")
         if not key and not value:
             # TODO: Change return value to fit the type, maybe switch to raise
             return None, {}
-
+        logger.info("ast")
         eval_data: dict = ast.literal_eval(value)
-
+        logger.info("asted")
         if self._is_dicts(eval_data.get("data")):
             eval_data["data"] = eval_data.get("data")
         else:

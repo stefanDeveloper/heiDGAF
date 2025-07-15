@@ -4,6 +4,7 @@ import sys
 import uuid
 import asyncio
 import marshmallow_dataclass
+from collections import defaultdict
 
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
@@ -22,15 +23,16 @@ logger = get_logger(module_name)
 
 config = setup_config()
 
-PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["batch_sender_to_prefilter"]
-CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["prefilter_to_inspector"]
-SENSOR_TOPICS = set([
-    topic
-    for sensor in config["pipeline"]["zeek"]["sensors"].values()
-    for mapping in sensor.get("protocol_to_topic", [])
-    for topics in mapping.values()
-    for topic in topics
-])
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["batch_sender_to_prefilter"]
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["prefilter_to_inspector"]
+PROTOCOLS_TO_SENSOR_TOPICS = defaultdict(list)
+for sensor in config["pipeline"]["zeek"]["sensors"].values():
+    for mapping in sensor.get("protocol_to_topic", []):
+        for protocol, topics in mapping.items():
+            for topic in topics:
+                PROTOCOLS_TO_SENSOR_TOPICS[protocol].append(topic)
+for k,v in PROTOCOLS_TO_SENSOR_TOPICS.items():
+    PROTOCOLS_TO_SENSOR_TOPICS[k] = set(PROTOCOLS_TO_SENSOR_TOPICS[k])
 
 
 KAFKA_BROKERS = ",".join(
@@ -47,7 +49,8 @@ class Prefilter:
     kept. Filtered data is then sent using topic ``Inspect``.
     """
 
-    def __init__(self, consume_topic, produce_topic):
+    def __init__(self, protocol, consume_topic, produce_topic):
+        self.protocol = protocol
         self.consume_topic = consume_topic
         self.produce_topic = produce_topic
         self.batch_id = None
@@ -58,7 +61,7 @@ class Prefilter:
         self.unfiltered_data = []
         self.filtered_data = []
 
-        self.logline_handler = LoglineHandler()
+        self.logline_handler = LoglineHandler(protocol)
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
@@ -81,17 +84,18 @@ class Prefilter:
         Clears data already stored and consumes new data. Unpacks the data and checks if it is empty. Data is stored
         internally, including timestamps.
         """
+        logger.info("clear")
         self.clear_data()  # clear in case we already have data stored
-
+        
         key, data = self.kafka_consume_handler.consume_as_object()
-
+        logger.info("get")
         self.subnet_id = key
         if data.data:
             self.batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.unfiltered_data = data.data
-
+        logger.info("insert")
         self.batch_timestamps.insert(
             dict(
                 batch_id=self.batch_id,
@@ -102,7 +106,7 @@ class Prefilter:
                 message_count=len(self.unfiltered_data),
             )
         )
-
+        logger.info("insert")
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -207,7 +211,24 @@ class Prefilter:
 
 
     def start(self, one_iteration: bool = False):
-            
+        """
+        Runs the main loop by
+
+        1. Retrieving new data,
+        2. Filtering the data and
+        3. Sending the filtered data if not empty.
+
+        Stops by a ``KeyboardInterrupt``, any internal data is lost.
+
+        Args:
+            one_iteration (bool): Only one iteration is done if True (for testing purposes). False by default.
+        """  
+        
+        logger.info(
+            "Prefilter started:\n"
+            f"    ⤷  receiving on Kafka topic '{self.consume_topic}'"
+        )          
+        
         iterations = 0
         while True:
             if one_iteration and iterations > 0:
@@ -215,8 +236,11 @@ class Prefilter:
             iterations += 1
 
             try:
+                logger.info("test1")
                 self.get_and_fill_data()
+                logger.inf0("test2")
                 self.filter_by_error()
+                logger.inf("test3")
                 self.send_filtered_data()
             except IOError as e:
                 logger.error(e)
@@ -232,33 +256,18 @@ class Prefilter:
             finally:
                 self.clear_data()
 
-async def main() -> None:
-    """
-    Runs the main loop by
-
-    1. Retrieving new data,
-    2. Filtering the data and
-    3. Sending the filtered data if not empty.
-
-    Stops by a ``KeyboardInterrupt``, any internal data is lost.
-
-    Args:
-        one_iteration (bool): Only one iteration is done if True (for testing purposes). False by default.
-    """
-    
+async def main() -> None:  
     tasks = []
-    for topic in SENSOR_TOPICS:
-        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{topic}"
-        produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{topic}"
-        prefilter = Prefilter(consume_topic=consume_topic, produce_topic=produce_topic)
-        tasks.append(
-            asyncio.create_task(prefilter.start())
-        )
+    for protocol,topics in PROTOCOLS_TO_SENSOR_TOPICS.items():
+        for topic in topics:
+            consume_topic = f"{CONSUME_TOPIC_PREFIX}-{topic}"
+            produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{topic}"
+            prefilter = Prefilter(protocol=protocol, consume_topic=consume_topic, produce_topic=produce_topic)
+            tasks.append(
+                asyncio.create_task(prefilter.start())
+            )
 
     await asyncio.gather(*tasks)
-
-
-
 
 if __name__ == "__main__":  # pragma: no cover
     asyncio.run(main())
