@@ -1,11 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
+FILE_NAME=$1
+
 # Configuration
 CONTAINER="clickhouse-server"
 CLICKHOUSE_CLIENT="clickhouse-client"
-CURRENT_TIME=$(date +'%Y-%m-%d_%H-%M-%S')
-BASE_DIR="benchmark_results/test_run_$CURRENT_TIME"
+BASE_DIR="benchmark_results/$FILE_NAME/data"
 SQL_DIR="benchmarking/sql"
 
 # Create output directories
