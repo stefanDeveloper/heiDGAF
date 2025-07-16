@@ -1,8 +1,13 @@
+import datetime
 import os
 import subprocess
 import sys
+from pathlib import Path
+
+import pandas as pd
 
 sys.path.append(os.getcwd())
+from benchmarking.src.plot_generator import PlotGenerator
 from src.base.log_config import get_logger
 from src.base.utils import setup_config
 from benchmarking.src.setup_config import setup_config as setup_benchmark_test_config
@@ -11,117 +16,228 @@ logger = get_logger()
 config = setup_config()
 benchmark_test_config = setup_benchmark_test_config()
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
+
 
 class BenchmarkTestController:
     """Contains methods for running tests on remote hosts."""
 
-    @staticmethod
+    def __init__(self):
+        self.test_name = None
+        self.docker_container_name = None
+
     def run_single_test(
+        self,
         test_name: str,
         docker_container_name: str = "benchmark_test_runner",
     ):
         """Sends the command to the test runner container to start the respective test with the configured parameters."""
+
+        def handle_ramp_up_input() -> list[str]:
+            try:
+                # check type for data rates
+                for i in [interval[0] for interval in test_parameters["intervals"]]:
+                    float(i)
+
+                # check type for durations
+                for i in [interval[1] for interval in test_parameters["intervals"]]:
+                    float(i)
+            except ValueError as err:
+                raise ValueError(f"Wrong argument type: {err}")
+
+            data_rates = ",".join(
+                str(i)
+                for i in [interval[0] for interval in test_parameters["intervals"]]
+            )
+            durations = ",".join(
+                str(i)
+                for i in [interval[1] for interval in test_parameters["intervals"]]
+            )
+            return [
+                f"--data_rates {data_rates}",
+                f"--durations {durations}",
+            ]  # arguments
+
+        def handle_burst_input() -> list[str]:
+            try:
+                # check types
+                normal_data_rate = float(test_parameters["normal_rate"]["data_rate"])
+                normal_rate_interval_length = float(
+                    test_parameters["normal_rate"]["interval_length"]
+                )
+                burst_data_rate = float(test_parameters["burst_rate"]["data_rate"])
+                burst_rate_interval_length = float(
+                    test_parameters["burst_rate"]["interval_length"]
+                )
+                number_of_repetitions = int(test_parameters["number_of_repetitions"])
+            except ValueError as err:
+                raise ValueError(f"Wrong argument type: {err}")
+
+            return [
+                f"--normal_data_rate {normal_data_rate}",
+                f"--normal_interval_length {normal_rate_interval_length}",
+                f"--burst_data_rate {burst_data_rate}",
+                f"--burst_interval_length {burst_rate_interval_length}",
+                f"--number_of_repetitions {number_of_repetitions}",
+            ]  # arguments
+
+        def handle_maximum_throughput() -> list[str]:
+            try:
+                # check type
+                length = float(test_parameters["length"])
+            except ValueError as err:
+                raise ValueError(f"Wrong argument type: {err}")
+
+            return [f"--length {length}"]  # arguments
+
+        def handle_long_term() -> list[str]:
+            try:
+                # check types
+                data_rate = float(test_parameters["data_rate"])
+                length = float(test_parameters["length"])
+            except ValueError as err:
+                raise ValueError(f"Wrong argument type: {err}")
+
+            return [
+                f"--data_rate {data_rate}",
+                f"--length {length}",
+            ]  # arguments
+
+        self.test_name = test_name
+        self.docker_container_name = docker_container_name
+
         test_parameters = benchmark_test_config["tests"][test_name]
 
         match test_name:
             case "ramp_up":
-                try:
-                    # check type for data rates
-                    for i in [interval[0] for interval in test_parameters["intervals"]]:
-                        float(i)
-
-                    # check type for durations
-                    for i in [interval[1] for interval in test_parameters["intervals"]]:
-                        float(i)
-                except ValueError as err:
-                    raise ValueError(f"Wrong argument type: {err}")
-
-                data_rates = ",".join(
-                    str(i)
-                    for i in [interval[0] for interval in test_parameters["intervals"]]
-                )
-                durations = ",".join(
-                    str(i)
-                    for i in [interval[1] for interval in test_parameters["intervals"]]
-                )
-                arguments = [f"--data_rates {data_rates}", f"--durations {durations}"]
+                arguments = handle_ramp_up_input()
 
             case "burst":
-                try:
-                    # check types
-                    normal_data_rate_arg = float(
-                        test_parameters["normal_rate"]["data_rate"]
-                    )
-                    normal_rate_interval_length_arg = float(
-                        test_parameters["normal_rate"]["interval_length"]
-                    )
-                    burst_data_rate_arg = float(
-                        test_parameters["burst_rate"]["data_rate"]
-                    )
-                    burst_rate_interval_length_arg = float(
-                        test_parameters["burst_rate"]["interval_length"]
-                    )
-                    number_of_repetitions_arg = int(
-                        test_parameters["number_of_repetitions"]
-                    )
-                except ValueError as err:
-                    raise ValueError(f"Wrong argument type: {err}")
-
-                arguments = [
-                    f"--normal_data_rate {normal_data_rate_arg}",
-                    f"--normal_interval_length {normal_rate_interval_length_arg}",
-                    f"--burst_data_rate {burst_data_rate_arg}",
-                    f"--burst_interval_length {burst_rate_interval_length_arg}",
-                    f"--number_of_repetitions {number_of_repetitions_arg}",
-                ]
+                arguments = handle_burst_input()
 
             case "maximum_throughput":
-                try:
-                    # check type
-                    length_arg = float(test_parameters["length"])
-                except ValueError as err:
-                    raise ValueError(f"Wrong argument type: {err}")
-
-                arguments = [f"--length {length_arg}"]
+                arguments = handle_maximum_throughput()
 
             case "long_term":
-                try:
-                    # check types
-                    data_rate_arg = float(test_parameters["data_rate"])
-                    length_arg = float(test_parameters["length"])
-                except ValueError as err:
-                    raise ValueError(f"Wrong argument type: {err}")
-
-                arguments = [
-                    f"--data_rate {data_rate_arg}",
-                    f"--length {length_arg}",
-                ]
+                arguments = handle_long_term()
 
             case _:
-                arguments = []
+                raise ValueError("Unknown test type")
 
-        # run benchmark test
-        cmd = (
-            f"docker exec {docker_container_name} "
-            f"python benchmarking/src/test_types/{test_name}_test.py {' '.join(arguments)}"
+        file_identifier, test_started_at = (
+            self.__run_test_procedure_with_clickhouse_handling(arguments)
         )
-        subprocess.run(cmd, shell=True).check_returncode()
 
-        # check if data has been fully processed
-        subprocess.run(
-            ["sh", "benchmarking/src/check_if_finished.sh"]
-        ).check_returncode()
+        # generate plots
+        self._generate_plots(
+            test_run_directory=f"{BASE_DIR}/benchmark_results/{file_identifier}",
+            start_time=test_started_at,
+        )
 
-        # extract data from ClickHouse
-        subprocess.run(["sh", "benchmarking/src/extract_data.sh"]).check_returncode()
-
-        # cleanup ClickHouse database
-        subprocess.run(["sh", "benchmarking/src/cleanup.sh"]).check_returncode()
+        self.test_name = None
+        self.docker_container_name = None
 
     def run_configured_tests_sequentially(self):
         """Runs the tests from the configuration sequentially."""
         for test_run in benchmark_test_config["test_runs"]:
             self.run_single_test(test_run)
+
+    @staticmethod
+    def _generate_plots(test_run_directory: str, start_time: pd.Timestamp):
+        plot_generator = PlotGenerator()
+
+        module_to_filename = {
+            "Batch Handler": "batch_handler.csv",
+            "Collector": "collector.csv",
+            "Detector": "detector.csv",
+            "Inspector": "inspector.csv",
+            "Log Server": "logserver.csv",
+            "Prefilter": "prefilter.csv",
+        }
+
+        def plot_latencies():
+            module_to_filepath = (
+                module_to_filename.copy()
+            )  # keep original dict unchanged
+
+            # prepare file paths
+            for module in module_to_filename.keys():
+                filename = module_to_filename[module]
+                module_to_filepath[module] = str(
+                    BASE_DIR / test_run_directory / "data" / "latencies" / filename
+                )
+
+            output_file_directory = f"{test_run_directory}/graphs/"
+            destination_file = os.path.join(
+                output_file_directory, "latency_comparison.png"
+            )
+            os.makedirs(output_file_directory, exist_ok=True)
+
+            plot_generator.plot_latency(
+                datafiles_to_names=module_to_filepath,
+                destination_file=destination_file,
+                title="Latency Comparison",
+                start_time=start_time,
+            )
+
+        plot_latencies()
+
+    def __run_test_procedure_with_clickhouse_handling(
+        self, arguments
+    ) -> [str, pd.Timestamp]:
+        def cleanup_clickhouse_database():
+            subprocess.run(["sh", "benchmarking/src/cleanup.sh"]).check_returncode()
+
+        def execute_test_return_start_time() -> pd.Timestamp:
+            start_time = pd.Timestamp.utcnow().tz_localize(
+                None
+            )  # utc time without timezone info
+
+            cmd = (
+                f"docker exec {self.docker_container_name} "
+                f"python benchmarking/src/test_types/{self.test_name}_test.py {' '.join(arguments)}"
+            )
+            subprocess.run(cmd, shell=True).check_returncode()
+
+            return start_time
+
+        def check_if_all_data_processed():
+            subprocess.run(
+                ["sh", "benchmarking/src/check_if_finished.sh"]
+            ).check_returncode()
+
+        def extract_all_data_from_clickhouse_return_identifier() -> str:
+            identifier = (
+                self.test_name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            )
+
+            subprocess.run(
+                [
+                    "sh",
+                    "benchmarking/src/extract_data.sh",
+                    f"{file_identifier}",  # e.g. burst_20250709_202118
+                ]
+            ).check_returncode()
+
+            return identifier
+
+        cleanup_clickhouse_database()
+        logger.info(f"{self.test_name} Preparation: Database cleanup finished")
+
+        test_started_at = execute_test_return_start_time()
+        logger.info(f"{self.test_name}: Execution finished successfully")
+
+        check_if_all_data_processed()
+
+        file_identifier = extract_all_data_from_clickhouse_return_identifier()
+        logger.info(
+            f"{self.test_name}: Database entries extracted under {file_identifier}"
+        )
+
+        cleanup_clickhouse_database()
+        logger.info(f"{self.test_name} Cleanup: After-test database cleanup finished")
+
+        return file_identifier, test_started_at
 
 
 if __name__ == "__main__":
