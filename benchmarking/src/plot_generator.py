@@ -1,8 +1,13 @@
 import datetime
+import os.path
 from typing import Optional
 
 import pandas as pd
 from matplotlib import pyplot as plt, ticker
+
+from src.base.log_config import get_logger
+
+logger = get_logger()
 
 
 class PlotGenerator:
@@ -27,7 +32,7 @@ class PlotGenerator:
         which is then stored as a file.
 
         Args:
-            datafiles_to_names (dict[str, str]): Dictionary of file paths and their names to show in the legend
+            datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
             title (str): Title of the figure
             destination_file (str): File path at which the figure should be stored
             start_time (pd.Timestamp): Time to be set as t = 0
@@ -51,8 +56,12 @@ class PlotGenerator:
         total_max_time = 0  # seconds
         total_max_value = 0
 
-        for file, label in datafiles_to_names.items():
+        for name, file in datafiles_to_names.items():
             df = pd.read_csv(file, parse_dates=["time"]).sort_values(by="time")
+
+            if df.empty:
+                continue  # skip empty datafiles
+
             df["time"] = (df["time"] - start_time).dt.total_seconds()
 
             if median_smooth:
@@ -63,7 +72,7 @@ class PlotGenerator:
                     .median()
                 )
 
-            dataframes[label] = df
+            dataframes[name] = df
 
             df_max_time = df["time"].max()
             if df_max_time > total_max_time:
@@ -77,13 +86,13 @@ class PlotGenerator:
         y_unit, y_scale = self._determine_time_unit(total_max_value, y_input_unit)
 
         # plot data
-        for label, df in dataframes.items():
+        for name, df in dataframes.items():
             plt.plot(
                 df["time"] / x_scale * (10**6),
                 df["value"] / y_scale,
                 marker=None,
                 linestyle="-",
-                label=label,
+                label=name,
                 color=colors[cur_color_index],
             )
             cur_color_index += 1
@@ -116,6 +125,7 @@ class PlotGenerator:
             plt.legend()
 
         plt.savefig(destination_file, dpi=300, bbox_inches="tight")
+        logger.info(f"File saved at {os.path.abspath(destination_file)}")
 
     @staticmethod
     def _determine_time_unit(max_value: int, input_unit: str):
