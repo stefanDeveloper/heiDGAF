@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.append(os.getcwd())
+from benchmarking.src.pdf_overview_generator import PDFOverviewGenerator
 from benchmarking.src.plot_generator import PlotGenerator
 from src.base.log_config import get_logger
 from src.base.utils import setup_config
@@ -18,6 +19,8 @@ benchmark_test_config = setup_benchmark_test_config()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
 
+LATENCIES_COMPARISON_FILENAME = "latency_comparison.png"
+
 
 class BenchmarkTestController:
     """Contains methods for running tests on remote hosts."""
@@ -25,6 +28,7 @@ class BenchmarkTestController:
     def __init__(self):
         self.test_name = None
         self.docker_container_name = None
+        self.test_run_directory = None
 
     def run_single_test(
         self,
@@ -119,7 +123,10 @@ class BenchmarkTestController:
                 arguments = handle_maximum_throughput()
 
             case "long_term":
-                arguments = handle_long_term()
+                # arguments = handle_long_term()
+                arguments = [
+                    "--data_rate 100 --length 2"
+                ]  # TODO: Remove, only for testing
 
             case _:
                 raise ValueError("Unknown test type")
@@ -127,23 +134,44 @@ class BenchmarkTestController:
         file_identifier, test_started_at = (
             self.__run_test_procedure_with_clickhouse_handling(arguments)
         )
+        self.test_run_directory = f"{BASE_DIR}/benchmark_results/{file_identifier}"
 
-        # generate plots
-        self._generate_plots(
-            test_run_directory=f"{BASE_DIR}/benchmark_results/{file_identifier}",
-            start_time=test_started_at,
+        self._generate_plots(start_time=test_started_at)
+
+        self._generate_report(
+            output_filename=f"report_{self.test_name}_{file_identifier}.pdf"
         )
 
         self.test_name = None
         self.docker_container_name = None
+        self.test_run_directory = None
 
     def run_configured_tests_sequentially(self):
         """Runs the tests from the configuration sequentially."""
         for test_run in benchmark_test_config["test_runs"]:
             self.run_single_test(test_run)
 
-    @staticmethod
-    def _generate_plots(test_run_directory: str, start_time: pd.Timestamp):
+    def _generate_report(self, output_filename: str):
+        generator = PDFOverviewGenerator()
+
+        relative_input_graph_directory = self.test_run_directory / "graphs"
+        relative_input_graph_filename = (
+            relative_input_graph_directory / LATENCIES_COMPARISON_FILENAME
+        )
+
+        relative_output_directory_path = self.test_run_directory / "reports"
+
+        generator.setup_first_page_layout()
+        generator.insert_title()
+        generator.insert_box_titles()
+        generator.insert_main_graph(relative_input_graph_filename)
+
+        generator.save_file(
+            relative_output_directory_path=relative_output_directory_path,
+            output_filename=output_filename,
+        )
+
+    def _generate_plots(self, start_time: pd.Timestamp):
         plot_generator = PlotGenerator()
 
         module_to_filename = {
@@ -158,24 +186,25 @@ class BenchmarkTestController:
         def plot_latencies():
             module_to_filepath = (
                 module_to_filename.copy()
-            )  # keep original dict unchanged
+            )  # keep original dictionary unchanged
 
             # prepare file paths
+            relative_data_path = self.test_run_directory / "data"
+
             for module in module_to_filename.keys():
                 filename = module_to_filename[module]
-                module_to_filepath[module] = str(
-                    BASE_DIR / test_run_directory / "data" / "latencies" / filename
-                )
+                module_to_filepath[module] = relative_data_path / "latencies" / filename
 
-            output_file_directory = f"{test_run_directory}/graphs/"
-            destination_file = os.path.join(
-                output_file_directory, "latency_comparison.png"
+            relative_output_graph_directory = self.test_run_directory / "graphs"
+            os.makedirs(relative_output_graph_directory, exist_ok=True)
+
+            relative_output_graph_filename = (
+                relative_output_graph_directory / LATENCIES_COMPARISON_FILENAME
             )
-            os.makedirs(output_file_directory, exist_ok=True)
 
             plot_generator.plot_latency(
                 datafiles_to_names=module_to_filepath,
-                destination_file=destination_file,
+                relative_output_directory_path=relative_output_graph_filename,
                 title="Latency Comparison",
                 start_time=start_time,
             )
@@ -215,7 +244,7 @@ class BenchmarkTestController:
                 [
                     "sh",
                     "benchmarking/src/extract_data.sh",
-                    f"{file_identifier}",  # e.g. burst_20250709_202118
+                    f"{identifier}",  # e.g. burst_20250709_202118
                 ]
             ).check_returncode()
 
@@ -242,4 +271,6 @@ class BenchmarkTestController:
 
 if __name__ == "__main__":
     controller = BenchmarkTestController()
-    controller.run_configured_tests_sequentially()
+    controller.run_single_test("long_term")
+    # controller._generate_plots(test_run_directory="benchmark_results/long_term_20250709_210708",
+    #                            start_time=pd.Timestamp("2025-07-07 18:40:52.069653"))
