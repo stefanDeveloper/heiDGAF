@@ -82,72 +82,74 @@ pipeline:
 
 
   data_inspection:
-    dns:
-      dga_inspector:
-          mode: univariate # multivariate, ensemble
-          # Only used when mode is set to ensemble
-          ensemble:
-            model: WeightEnsemble
-            module: streamad.process
-            model_args:
-          models:
-            - model: ZScoreDetector
-              module: streamad.model
-              model_args:
-                is_global: false
-          anomaly_threshold: 0.01
-          score_threshold: 0.5
-          time_type: ms
-          time_range: 20
-      domniator_inspector:
-          mode: univariate # multivariate, ensemble
-          # Only used when mode is set to ensemble
-          ensemble:
-            model: WeightEnsemble
-            module: streamad.process
-            model_args:
-          models:
-            - model: ZScoreDetector
-              module: streamad.model
-              model_args:
-                is_global: false
-          anomaly_threshold: 0.01
-          score_threshold: 0.5
-          time_type: ms
-          time_range: 20
-      exemplary_inspector:
-          mode: univariate # multivariate, ensemble
-          # Only used when mode is set to ensemble
-          ensemble:
-            model: WeightEnsemble
-            module: streamad.process
-            model_args:
-          models:
-            - model: ZScoreDetector
-              module: streamad.model
-              model_args:
-                is_global: false
-          anomaly_threshold: 0.01
-          score_threshold: 0.5
-          time_type: ms
-          time_range: 20
-    http:
-      xss_inspector:
-          mode: univariate # multivariate, ensemble
-          # Only used when mode is set to ensemble
-          ensemble:
-            model: WeightEnsemble
-            module: streamad.process
-            model_args:
-          models:
-            - model: ZScoreDetector
-              module: streamad.model
-              model_args:
-                is_global: false
-          anomaly_threshold: 0.01
-          score_threshold: 0.5
-          time_type: ms
-          time_range: 20
+    - name: dga_inspector
+      prefilter_name: dga_filter
+      mode: univariate # multivariate, ensemble
+      # Only used when mode is set to ensemble
+      ensemble:
+        model: WeightEnsemble
+        module: streamad.process
+        model_args:
+      models:
+        - model: ZScoreDetector
+          module: streamad.model
+          model_args:
+            is_global: false
+      anomaly_threshold: 0.01
+      score_threshold: 0.5
+      time_type: ms
+      time_range: 20
+    - name: domniator_inspector
+      prefilter_name: "dominator_filter"
+      mode: univariate # multivariate, ensemble
+      # Only used when mode is set to ensemble
+      ensemble:
+        model: WeightEnsemble
+        module: streamad.process
+        model_args:
+      models:
+        - model: ZScoreDetector
+          module: streamad.model
+          model_args:
+            is_global: false
+      anomaly_threshold: 0.01
+      score_threshold: 0.5
+      time_type: ms
+      time_range: 20
+    - name: exemplary_inspector
+      prefilter_name: dga_filter
+      mode: univariate # multivariate, ensemble
+      # Only used when mode is set to ensemble
+      ensemble:
+        model: WeightEnsemble
+        module: streamad.process
+        model_args:
+      models:
+        - model: ZScoreDetector
+          module: streamad.model
+          model_args:
+            is_global: false
+      anomaly_threshold: 0.01
+      score_threshold: 0.5
+      time_type: ms
+      time_range: 20
+    - name: xss_inspector
+      prefilter_name: xss_filter
+      mode: univariate # multivariate, ensemble
+      # Only used when mode is set to ensemble
+      ensemble:
+        model: WeightEnsemble
+        module: streamad.process
+        model_args:
+      models:
+        - model: ZScoreDetector
+          module: streamad.model
+          model_args:
+            is_global: false
+      anomaly_threshold: 0.01
+      score_threshold: 0.5
+      time_type: ms
+      time_range: 20
       
   data_analysis:
     detectors:

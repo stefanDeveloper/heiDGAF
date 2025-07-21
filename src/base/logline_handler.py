@@ -267,18 +267,19 @@ class LoglineHandler:
         Returns:
             True if the logline is relevant, else False
         """
-        relevant = True
+        return True
+        # relevant = True
 
-        for i in self.instances_by_position:
-            current_instance = self.instances_by_position[i]
-            if isinstance(current_instance, ListItem):
-                if not current_instance.check_relevance(
-                    logline_dict[current_instance.name]
-                ):
-                    relevant = False
-                    break
+        # for i in self.instances_by_position:
+        #     current_instance = self.instances_by_position[i]
+        #     if isinstance(current_instance, ListItem):
+        #         if not current_instance.check_relevance(
+        #             logline_dict[current_instance.name]
+        #         ):
+        #             relevant = False
+        #             break
 
-        return relevant
+        # return relevant
 
     @staticmethod
     def _create_instance_from_list_entry(field_list: list):

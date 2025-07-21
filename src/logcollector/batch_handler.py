@@ -458,7 +458,7 @@ class BufferedBatchSender:
         
         for topic in self.topics:
             self.kafka_produce_handler.produce(
-                topic=self.topic,
+                topic=topic,
                 data=batch_schema.dumps(data),
                 key=key,
             )

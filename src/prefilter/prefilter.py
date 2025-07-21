@@ -11,12 +11,12 @@ from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
 from src.base.logline_handler import LoglineHandler
 from src.base.kafka_handler import (
-    ExactlyOnceKafkaConsumeHandler,
-    ExactlyOnceKafkaProduceHandler,
+    SimpleKafkaConsumeHandler,
+    SimpleKafkaProduceHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
-from src.base.utils import setup_config
+from src.base.utils import setup_config, get_zeek_sensor_topic_base_names
 
 module_name = "log_filtering.prefilter"
 logger = get_logger(module_name)
@@ -25,16 +25,13 @@ config = setup_config()
 
 CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["batch_sender_to_prefilter"]
 PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["prefilter_to_inspector"]
-PROTOCOLS_TO_SENSOR_TOPICS = defaultdict(list)
-for sensor in config["pipeline"]["zeek"]["sensors"].values():
-    for mapping in sensor.get("protocol_to_topic", []):
-        for protocol, topics in mapping.items():
-            for topic in topics:
-                PROTOCOLS_TO_SENSOR_TOPICS[protocol].append(topic)
-for k,v in PROTOCOLS_TO_SENSOR_TOPICS.items():
-    PROTOCOLS_TO_SENSOR_TOPICS[k] = set(PROTOCOLS_TO_SENSOR_TOPICS[k])
 
-
+SENSOR_PROTOCOLS = get_zeek_sensor_topic_base_names(config)
+PREFILTERS = config["pipeline"]["log_filtering"]
+INSPECTORS = config["pipeline"]["data_inspection"]
+COLLECTORS = [
+    collector for collector in config["pipeline"]["log_collection"]["collectors"]
+]
 KAFKA_BROKERS = ",".join(
     [
         f"{broker['hostname']}:{broker['port']}"
@@ -49,10 +46,9 @@ class Prefilter:
     kept. Filtered data is then sent using topic ``Inspect``.
     """
 
-    def __init__(self, protocol, consume_topic, produce_topic):
-        self.protocol = protocol
+    def __init__(self, validation_config, consume_topic, produce_topics):
         self.consume_topic = consume_topic
-        self.produce_topic = produce_topic
+        self.produce_topics = produce_topics
         self.batch_id = None
         self.begin_timestamp = None
         self.end_timestamp = None
@@ -61,9 +57,9 @@ class Prefilter:
         self.unfiltered_data = []
         self.filtered_data = []
 
-        self.logline_handler = LoglineHandler(protocol)
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        self.logline_handler = LoglineHandler(validation_config)
+        self.kafka_consume_handler = SimpleKafkaConsumeHandler(self.consume_topic)
+        self.kafka_produce_handler = SimpleKafkaProduceHandler()
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
@@ -84,18 +80,15 @@ class Prefilter:
         Clears data already stored and consumes new data. Unpacks the data and checks if it is empty. Data is stored
         internally, including timestamps.
         """
-        logger.info("clear")
         self.clear_data()  # clear in case we already have data stored
         
         key, data = self.kafka_consume_handler.consume_as_object()
-        logger.info("get")
         self.subnet_id = key
         if data.data:
             self.batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.unfiltered_data = data.data
-        logger.info("insert")
         self.batch_timestamps.insert(
             dict(
                 batch_id=self.batch_id,
@@ -106,7 +99,6 @@ class Prefilter:
                 message_count=len(self.unfiltered_data),
             )
         )
-        logger.info("insert")
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -164,14 +156,12 @@ class Prefilter:
         """
         if not self.filtered_data:
             raise ValueError("Failed to send data: No filtered data.")
-
         data_to_send = {
             "batch_id": self.batch_id,
             "begin_timestamp": self.begin_timestamp,
             "end_timestamp": self.end_timestamp,
             "data": self.filtered_data,
         }
-
         self.batch_timestamps.insert(
             dict(
                 batch_id=self.batch_id,
@@ -182,7 +172,6 @@ class Prefilter:
                 message_count=len(self.filtered_data),
             )
         )
-
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -193,11 +182,12 @@ class Prefilter:
         )
 
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
-        self.kafka_produce_handler.produce(
-            topic=self.produce_topic,
-            data=batch_schema.dumps(data_to_send),
-            key=self.subnet_id,
-        )
+        for topic in self.produce_topics:
+            self.kafka_produce_handler.produce(
+                topic=topic,
+                data=batch_schema.dumps(data_to_send),
+                key=self.subnet_id,
+            )
         logger.info(
             f"Filtered data was successfully sent:\n"
             f"    ⤷  Contains data field of {len(self.filtered_data)} message(s). Originally: "
@@ -236,11 +226,8 @@ class Prefilter:
             iterations += 1
 
             try:
-                logger.info("test1")
                 self.get_and_fill_data()
-                logger.inf0("test2")
                 self.filter_by_error()
-                logger.inf("test3")
                 self.send_filtered_data()
             except IOError as e:
                 logger.error(e)
@@ -258,15 +245,14 @@ class Prefilter:
 
 async def main() -> None:  
     tasks = []
-    for protocol,topics in PROTOCOLS_TO_SENSOR_TOPICS.items():
-        for topic in topics:
-            consume_topic = f"{CONSUME_TOPIC_PREFIX}-{topic}"
-            produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{topic}"
-            prefilter = Prefilter(protocol=protocol, consume_topic=consume_topic, produce_topic=produce_topic)
-            tasks.append(
-                asyncio.create_task(prefilter.start())
-            )
-
+    for prefilter in PREFILTERS:
+        validation_config = [collector["required_log_information"] for collector in COLLECTORS if collector["name"] == prefilter["collector_name"]][0]
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{prefilter['name']}"
+        produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{inspector['name']}" for inspector in INSPECTORS if prefilter["name"] == inspector["prefilter_name"]]
+        prefilter = Prefilter(validation_config=validation_config, consume_topic=consume_topic, produce_topics=produce_topics)
+        tasks.append(
+            asyncio.create_task(prefilter.start())
+        )
     await asyncio.gather(*tasks)
 
 if __name__ == "__main__":  # pragma: no cover
