@@ -1,5 +1,5 @@
 import datetime
-import os.path
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
@@ -8,6 +8,8 @@ from matplotlib import pyplot as plt, ticker
 from src.base.log_config import get_logger
 
 logger = get_logger()
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
 
 
 class PlotGenerator:
@@ -18,8 +20,8 @@ class PlotGenerator:
         datafiles_to_names: dict[str, str],
         title: str,
         start_time: pd.Timestamp,
+        relative_output_directory_path: Path,
         median_smooth: bool = False,
-        destination_file: str = "../graphs/",
         x_label: str = "Time",
         y_label: str = "Latency",
         y_input_unit: str = "microseconds",
@@ -34,7 +36,7 @@ class PlotGenerator:
         Args:
             datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
             title (str): Title of the figure
-            destination_file (str): File path at which the figure should be stored
+            relative_output_directory_path (Path): File path at which the figure should be stored
             start_time (pd.Timestamp): Time to be set as t = 0
             median_smooth (bool): True if the data should be smoothed, False by default
             x_label (str): Label x-axis, "Time" by default
@@ -124,8 +126,13 @@ class PlotGenerator:
         if len(datafiles_to_names) > 1:
             plt.legend()
 
-        plt.savefig(destination_file, dpi=300, bbox_inches="tight")
-        logger.info(f"File saved at {os.path.abspath(destination_file)}")
+        relative_output_filename = (
+            relative_output_directory_path / "latency_comparison.png"
+        )
+        absolute_output_filename = BASE_DIR / relative_output_filename
+
+        plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
+        logger.info(f"File saved at {relative_output_filename}")
 
     @staticmethod
     def _determine_time_unit(max_value: int, input_unit: str):
