@@ -9,10 +9,10 @@ import aiofiles
 sys.path.append(os.getcwd())
 from src.base.kafka_handler import (
     SimpleKafkaConsumeHandler,
-    ExactlyOnceKafkaProduceHandler,
+    SimpleKafkaProduceHandler,
 )
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.utils import setup_config
+from src.base.utils import setup_config, get_zeek_sensor_topic_base_names
 from src.base.log_config import get_logger
 
 module_name = "log_storage.logserver"
@@ -22,13 +22,7 @@ config = setup_config()
 CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_in"]
 PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_to_collector"]
 
-SENSOR_TOPICS = set([
-    topic
-    for sensor in config["pipeline"]["zeek"]["sensors"].values()
-    for mapping in sensor.get("protocol_to_topic", [])
-    for topics in mapping.values()
-    for topic in topics
-])
+SENSOR_PROTOCOLS= get_zeek_sensor_topic_base_names(config)
 
 READ_FROM_FILE = config["pipeline"]["log_storage"]["logserver"]["input_file"]
 KAFKA_BROKERS = ",".join(
@@ -51,7 +45,7 @@ class LogServer:
         self.produce_topic = produce_topic
         
         self.kafka_consume_handler = SimpleKafkaConsumeHandler(consume_topic) 
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        self.kafka_produce_handler = SimpleKafkaProduceHandler()
 
         # databases
         self.server_logs = ClickHouseKafkaSender("server_logs")
@@ -169,9 +163,9 @@ async def main() -> None:
     Creates the :class:`LogServer` instance and starts it for every topic used by any of the Zeek-sensors.
     """  
     tasks = []
-    for topic in SENSOR_TOPICS:
-        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{topic}"
-        produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{topic}"
+    for protocol in SENSOR_PROTOCOLS:
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{protocol}"
+        produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{protocol}"
         server_instance = LogServer(consume_topic=consume_topic, produce_topic=produce_topic)
         tasks.append(
             asyncio.create_task(server_instance.start())

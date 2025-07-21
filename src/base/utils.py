@@ -12,7 +12,27 @@ logger = get_logger()
 
 CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../../config.yaml")
 
+def get_zeek_sensor_topic_base_names(config):
+    return set([
+        protocol
+        for sensor in config["pipeline"]["zeek"]["sensors"].values()
+        for protocol in sensor.get("protocols", [])
+    ])
 
+def get_batch_configuration(collector_name):
+    config = setup_config()
+    default_configuration = config["pipeline"]["log_collection"]["default_batch_handler_config"]
+    collector_configs = config["pipeline"]["log_collection"]["collectors"]
+
+    for collector in collector_configs:
+        if collector["name"] == collector_name:
+            override = collector.get("batch_handler_config_override")
+            if override:
+                # Merge override into a copy of the default configuration
+                merged = {**default_configuration, **override}
+                return merged
+
+    return default_configuration
 def setup_config():
     """
     Loads the configuration data from the configuration file and returns it as the corresponding Python object.

@@ -7,13 +7,10 @@ from src.base.utils import setup_config, validate_host
 logger = get_logger()
 
 CONFIG = setup_config()
-LOGLINE_FORMATS = CONFIG["pipeline"]["log_collection"]["collector"]["valid_logline_formats"]
+
 REQUIRED_FIELDS = [
-    "timestamp",
-    "status_code",
-    "client_ip",
-    "record_type",
-    "domain_name",
+    "ts",
+    "src_ip"
 ]
 FORBIDDEN_FIELD_NAMES = [
     "logline_id",
@@ -181,29 +178,28 @@ class LoglineHandler:
     logline has the format given in the configuration. Can also return the validated logline as dictionary.
     """
 
-    def __init__(self, protocol):
+    def __init__(self, validation_config):
         """
         Check all existing log configurations for validity. 
         """
-        self.protocol = protocol
-        self.logformats = {}
-        for log_protocol, log_format_config in LOGLINE_FORMATS.items():
-            if log_protocol == self.protocol:
-                for name, log_format_config_list in log_format_config.items():
-                    self.logformats[name] = log_format_config_list
-                    log_configuration_instances = {}
-                    # check logf_formats for correctness on init
-                    for log_config_item in log_format_config_list:
-                        instance = self._create_instance_from_list_entry(log_config_item)
-                        if instance.name in FORBIDDEN_FIELD_NAMES:
-                            raise ValueError(
-                                f"Forbidden field name included. These fields are used internally "
-                                f"and cannot be used as names: {FORBIDDEN_FIELD_NAMES}"
-                            )
-                        if log_configuration_instances.get(instance.name):
-                            raise ValueError("Multiple fields with same name")
-                        else:
-                            log_configuration_instances[instance.name] = instance
+        self.logformats = validation_config
+        log_configuration_instances = {}
+        for log_config_item in validation_config:
+            instance = self._create_instance_from_list_entry(log_config_item)
+            if instance.name in FORBIDDEN_FIELD_NAMES:
+                raise ValueError(
+                    f"Forbidden field name included. These fields are used internally "
+                    f"and cannot be used as names: {FORBIDDEN_FIELD_NAMES}"
+                )
+            if log_configuration_instances.get(instance.name):
+                raise ValueError("Multiple fields with same name")
+            else:
+                log_configuration_instances[instance.name] = instance
+
+        for required_field in REQUIRED_FIELDS:
+            if required_field not in log_configuration_instances.keys():
+                raise ValueError("Not all needed fields are set in the configuration")
+
     def validate_logline(self, logline: str) -> bool:
         """
         Validates the given input logline by checking if the fields presented are corresponding to a given logformat of a protocol.
@@ -217,22 +213,21 @@ class LoglineHandler:
             True if the logline contains correct fields in the configured format, False otherwise
         """
         logline = json.loads(logline)
-        for name, log_format_config_list in self.logformats.items():
-            valid_values = []
-            invalid_value_names = []
-            for log_config_item in log_format_config_list:
-                # by convention the first item is always the key present in a logline
-                log_line_property_key = log_config_item[0]
-                instance = self._create_instance_from_list_entry(log_config_item)
-                try:
-                    is_value_valid = instance.validate(logline.get(log_line_property_key))
-                    valid_values.append(is_value_valid)
-                    if not is_value_valid:
-                        invalid_value_names.append(log_line_property_key)
-                except:
-                    logger.debug(f"line {logline} does not contain the specified field of {log_line_property_key}")
-            if all(valid_values):
-                return True
+        valid_values = []
+        invalid_value_names = []
+        for log_config_item in self.logformats:
+            # by convention the first item is always the key present in a logline
+            log_line_property_key = log_config_item[0]
+            instance = self._create_instance_from_list_entry(log_config_item)
+            try:
+                is_value_valid = instance.validate(logline.get(log_line_property_key))
+                valid_values.append(is_value_valid)
+                if not is_value_valid:
+                    invalid_value_names.append(log_line_property_key)
+            except:
+                logger.error(f"line {logline} does not contain the specified field of {log_line_property_key}")
+        if all(valid_values):
+            return True        
         return False
     
     def __get_fields_as_json(self, logline: str) -> dict:
@@ -258,7 +253,6 @@ class LoglineHandler:
         Returns:
             Dictionary of field names as keys and field values as value
         """
-        
         if not self.validate_logline(logline):
             raise ValueError("Incorrect logline, validation unsuccessful")
         return self.__get_fields_as_json(logline)

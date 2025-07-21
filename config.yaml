@@ -1,8 +1,3 @@
-define: &zeek_http_topic "my_http_topic"
-define: &zeek_dns_topic "my_dns_topic"
-define: &zeek_dns_topic_2 "my_second_dns_topic"
-
-
 logging:
   base:
     debug: false
@@ -25,53 +20,153 @@ pipeline:
     logserver:
       input_file: "/opt/file.txt"
 
-  log_collection:
-    collector:
-      valid_logline_formats:
-        dns:
-          dga_format:
-            - [ "ts", Timestamp, "%Y-%m-%dT%H:%M:%S" ]
-            - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
-            - [ "client_ip", IpAddress ]
-            - [ "dns_server_ip", IpAddress ]
-            - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
-            - [ "record_type", ListItem, [ "A", "AAAA" ] ]
-            # - [ "response_ip", IpAddress ]
-            - [ "size", RegEx, '^\d+b$' ]
 
-    batch_handler:
+
+  log_collection:
+    default_batch_handler_config:
       batch_size: 10000
       batch_timeout: 30.0
       subnet_id:
         ipv4_prefix_length: 24
         ipv6_prefix_length: 64
+    collectors:
+      - name: "dga_collector"
+        protocol_base: dns
+        required_log_information:
+          - [ "ts", Timestamp, "%Y-%m-%dT%H:%M:%S" ]
+          - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+          - [ "src_ip", IpAddress ]
+          - [ "dns_server_ip", IpAddress ]
+          - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+          - [ "record_type", ListItem, [ "A", "AAAA" ] ]
+          # - [ "response_ip", IpAddress ]
+          - [ "size", RegEx, '^\d+$' ]
+        batch_handler_config_override:
+          batch_timeout: 30.1
+      
+      - name: "dominator_collector"
+        protocol_base: dns
+        required_log_information:
+          - [ "ts", Timestamp, "%Y-%m-%dT%H:%M:%S" ]
+          - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+          - [ "src_ip", IpAddress ]
+
+      
+      - name: "my_http_collector"
+        protocol_base: http
+        required_log_information:
+          - [ "ts", Timestamp, "%Y-%m-%dT%H:%M:%S" ]
+          - [ "src_ip", IpAddress ]
+
+        batch_handler_config_override:
+          batch_size: 200000
+          batch_timeout: 50.0
+          subnet_id:
+            ipv4_prefix_length: 16
+            ipv6_prefix_length: 32
+  
+  log_filtering:
+    - name: "dga_filter"
+      # method to apply for rule based prefiltering according to the needs
+      relevance_method: checkmate
+      collector_name: dga_collector 
+    - name: "dominator_filter"
+      relevance_method: pass
+      collector_name: dominator_collector
+    - name: "examplary_filter" 
+      relevance_method: pass
+      collector_name: dga_collector 
+    - name: "xss_filter"
+      relevance_method: pass
+      collector_name: my_http_collector
+
 
   data_inspection:
-    inspector:
-      mode: univariate # multivariate, ensemble
-      # Only used when mode is set to ensemble
-      ensemble:
-        model: WeightEnsemble
-        module: streamad.process
-        model_args:
-      models:
-        - model: ZScoreDetector
-          module: streamad.model
-          model_args:
-            is_global: false
-      anomaly_threshold: 0.01
-      score_threshold: 0.5
-      time_type: ms
-      time_range: 20
-
+    dns:
+      dga_inspector:
+          mode: univariate # multivariate, ensemble
+          # Only used when mode is set to ensemble
+          ensemble:
+            model: WeightEnsemble
+            module: streamad.process
+            model_args:
+          models:
+            - model: ZScoreDetector
+              module: streamad.model
+              model_args:
+                is_global: false
+          anomaly_threshold: 0.01
+          score_threshold: 0.5
+          time_type: ms
+          time_range: 20
+      domniator_inspector:
+          mode: univariate # multivariate, ensemble
+          # Only used when mode is set to ensemble
+          ensemble:
+            model: WeightEnsemble
+            module: streamad.process
+            model_args:
+          models:
+            - model: ZScoreDetector
+              module: streamad.model
+              model_args:
+                is_global: false
+          anomaly_threshold: 0.01
+          score_threshold: 0.5
+          time_type: ms
+          time_range: 20
+      exemplary_inspector:
+          mode: univariate # multivariate, ensemble
+          # Only used when mode is set to ensemble
+          ensemble:
+            model: WeightEnsemble
+            module: streamad.process
+            model_args:
+          models:
+            - model: ZScoreDetector
+              module: streamad.model
+              model_args:
+                is_global: false
+          anomaly_threshold: 0.01
+          score_threshold: 0.5
+          time_type: ms
+          time_range: 20
+    http:
+      xss_inspector:
+          mode: univariate # multivariate, ensemble
+          # Only used when mode is set to ensemble
+          ensemble:
+            model: WeightEnsemble
+            module: streamad.process
+            model_args:
+          models:
+            - model: ZScoreDetector
+              module: streamad.model
+              model_args:
+                is_global: false
+          anomaly_threshold: 0.01
+          score_threshold: 0.5
+          time_type: ms
+          time_range: 20
+      
   data_analysis:
     detectors:
-      - name: "RF - DGA detector"
-        model: rf # XGBoost
-        checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
-        base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
-        threshold: 0.5
-        zeek_topic: *zeek_dns_topic_2 
+      dns:
+        - name: "RF - DGA detector"
+          model: rf # XGBoost
+          checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
+          base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+          threshold: 0.5
+          prefilter: "<name>"
+          inspector: "<name>"
+        - name: "XGBoost - DGA detector"
+          model: XGBoost
+          checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
+          base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+          threshold: 0.5
+          prefilter: "<name>"
+          inspector: "<name>"
+      http:
 
   monitoring:
     clickhouse_connector:
@@ -83,31 +178,25 @@ pipeline:
     sensors:
       zeek1:
         static_analysis: true
-        protocol_to_topic:
-          #- http: 
-          #  - *zeek_http_topic
-          - dns: 
-            - *zeek_dns_topic
-          #  - *zeek_dns_topic_2
+        protocols:
+        # by convention the protocol name is the topic name for the logsever + preficx of the logserver
+          # -http
+          - dns
         interfaces:
           - enx84ba5960ffe6
       zeek2: 
         static_analysis: false # default
-        protocol_to_topic:
-          - http: 
-            - *zeek_http_topic
-          - dns: 
-            - *zeek_dns_topic
+        protocols:
+          - http
+          - dns
         interfaces: 
           - eth0
           - dummy
       zeek3:
         static_analysis: true
-        protocol_to_topic:
-          - http: 
-            - *zeek_http_topic
-          - dns: 
-            - *zeek_dns_topic
+        protocols:
+          - http
+          - dns
 
 environment:
   kafka_brokers:

@@ -5,8 +5,8 @@ export {
     type Info: record {
         ts: string &log;
         uid: string &log;
-        client_ip: addr &log;
-        client_port: port &log;
+        src_ip: addr &log;
+        src_port: port &log;
         dns_server_ip: addr &log;
         dns_server_port: port &log;
         domain_name: string &log &optional;
@@ -46,8 +46,8 @@ event DNS::log_dns(rec: DNS::Info)
     local dnsLog: Info = [
         $ts = strftime("%Y-%m-%dT%H:%M:%S", rec$ts),
         $uid = rec$uid,
-        $client_ip = rec$id$orig_h,
-        $client_port = rec$id$orig_p,
+        $src_ip = rec$id$orig_h,
+        $src_port = rec$id$orig_p,
         $dns_server_ip = rec$id$resp_h,
         $dns_server_port = rec$id$resp_p,
         $rejected = rec$rejected

@@ -11,15 +11,13 @@ sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
-from src.base.utils import setup_config
+from src.base.utils import setup_config, get_batch_configuration
 from src.base.log_config import get_logger
 
 module_name = "log_collection.batch_handler"
 logger = get_logger(module_name)
 
 config = setup_config()
-BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
-BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
 
 KAFKA_BROKERS = ",".join(
     [
@@ -32,7 +30,7 @@ class BufferedBatch:
     buffer that stores the previous batch messages. Sorts the batches and can return timestamps.
     """
 
-    def __init__(self):
+    def __init__(self,batch_configuration):
         self.batch = {}  # Batch for the latest messages coming in
         self.buffer = {}  # Former batch with previous messages
         self.batch_id = {}  # Batch ID per key
@@ -336,9 +334,10 @@ class BufferedBatch:
 class BufferedBatchSender:
     """Adds messages to the :class:`BufferedBatch` and sends them after a timer ran out or a key's batch is full."""
 
-    def __init__(self, produce_topic):
-        self.topic = produce_topic
-        self.batch = BufferedBatch()
+    def __init__(self, produce_topics, collector_name):
+        self.topics = produce_topics
+        self.batch_configuration = get_batch_configuration(collector_name)
+        self.batch = BufferedBatch(self.batch_configuration)
         self.timer = None
 
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
@@ -385,7 +384,7 @@ class BufferedBatchSender:
         logger.debug(f"Batch: {self.batch.batch}")
         number_of_messages_for_key = self.batch.get_message_count_for_batch_key(key)
 
-        if number_of_messages_for_key >= BATCH_SIZE:
+        if number_of_messages_for_key >= self.batch_configuration["batch_size"]:
             self._send_batch_for_key(key)
             logger.info(
                 f"Full batch: Successfully sent batch messages for subnet_id {key}.\n"
@@ -449,24 +448,25 @@ class BufferedBatchSender:
 
     def _send_data_packet(self, key: str, data: dict) -> None:
         """
-        Sends a packet of a Batch to the defined Kafka topic
+        Sends a packet of a Batch to the defined Kafka topics
 
         Args:
             key (str): key to identify the batch
             data (dict): the batch data to send
         """
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
-
-        self.kafka_produce_handler.produce(
-            topic=self.topic,
-            data=batch_schema.dumps(data),
-            key=key,
-        )
+        
+        for topic in self.topics:
+            self.kafka_produce_handler.produce(
+                topic=self.topic,
+                data=batch_schema.dumps(data),
+                key=key,
+            )
 
     def _reset_timer(self) -> None:
         """Restarts the internal timer of the object"""
         if self.timer:
             self.timer.cancel()
 
-        self.timer = Timer(BATCH_TIMEOUT, self._send_all_batches)
+        self.timer = Timer(self.batch_configuration["batch_timeout"], self._send_all_batches)
         self.timer.start()

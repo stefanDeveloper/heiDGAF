@@ -43,8 +43,7 @@ class ZeekConfigurationHandler():
         
         self.kafka_topic_prefix = configuration_dict["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_in"]
         
-        self.potocol_to_topic_configurations = {str(protocol):topics for protocol_topic_dict in zeek_sensor_configuration["protocol_to_topic"] for protocol, topics in protocol_topic_dict.items()}
-        logger.info(f"topics: {self.potocol_to_topic_configurations}")
+        self.configured_protocols =  [ protocol for protocol in zeek_sensor_configuration["protocols"] ]
         self.kafka_brokers = [ f"{broker['node_ip']}:{broker['port']}" for broker in configured_kafka_brokers ]
         logger.info(f"Succesfully parse config.yaml")
 
@@ -53,7 +52,6 @@ class ZeekConfigurationHandler():
         if not self.is_analysis_static:
             self.template_and_copy_node_config()
         self.append_additional_configurations()
-
         self.create_plugin_configuration()
     
     def append_additional_configurations(self):
@@ -67,40 +65,29 @@ class ZeekConfigurationHandler():
     
     
     def create_plugin_configuration(self):
-        if "all" in self.potocol_to_topic_configurations:
-            config_lines = [
-                "@load packages/zeek-kafka\n",
-                "redef Kafka::send_all_active_logs = T;\n",
-                f"redef Kafka::topic_name = \"{self.kafka_topic_prefix}-{self.potocol_to_topic_configurations['all']}\";\n",
-                "redef Kafka::kafka_conf = table(\n",
-                f'    ["metadata.broker.list"] = "{",".join(self.kafka_brokers)}"\n',
-                ");\n"
-            ]
-        else:
-            config_lines = [
-                '@load packages/zeek-kafka\n',
-                'redef Kafka::topic_name = "";\n',
-                f'redef Kafka::kafka_conf = table(\n'
-                f'  ["metadata.broker.list"] = "{",".join(self.kafka_brokers)}");\n',
-                'redef Kafka::tag_json = F;\n',
-                'event zeek_init() &priority=-10\n',
-                '{\n',
-            ]
-
-            for protocol, topics in self.potocol_to_topic_configurations.items():
-                zeek_protocol_log_format = f"Custom{protocol.upper()}"
-                for idx, topic in enumerate(topics):
-                    kafka_writer_name = f"{protocol}_filter_{idx}"
-                    filter_block = f"""
-                        local {kafka_writer_name}: Log::Filter = [
-                            $name = "kafka-{kafka_writer_name}",
-                            $writer = Log::WRITER_KAFKAWRITER,
-                            $path = "{self.kafka_topic_prefix}-{topic}"
-                        ];
-                        Log::add_filter({zeek_protocol_log_format}::LOG, {kafka_writer_name});\n
-                    """
-                    config_lines.append(filter_block)
-            config_lines.append('\n}')   
+        config_lines = [
+            '@load packages/zeek-kafka\n',
+            'redef Kafka::topic_name = "";\n',
+            f'redef Kafka::kafka_conf = table(\n'
+            f'  ["metadata.broker.list"] = "{",".join(self.kafka_brokers)}");\n',
+            'redef Kafka::tag_json = F;\n',
+            'event zeek_init() &priority=-10\n',
+            '{\n',
+        ]
+        for protocol in self.configured_protocols:
+            topic_name = f"{self.kafka_topic_prefix}-{protocol.lower()}"
+            zeek_protocol_log_format = f"Custom{protocol.upper()}"
+            kafka_writer_name = f"{protocol.lower()}_filter"
+            filter_block = f"""
+                local {kafka_writer_name}: Log::Filter = [
+                    $name = "kafka-{kafka_writer_name}",
+                    $writer = Log::WRITER_KAFKAWRITER,
+                    $path = "{topic_name}"
+                ];
+                Log::add_filter({zeek_protocol_log_format}::LOG, {kafka_writer_name});\n
+            """
+            config_lines.append(filter_block)
+        config_lines.append('\n}')   
                   
         with open(self.base_config_location, "a") as f:
             f.writelines(config_lines)
