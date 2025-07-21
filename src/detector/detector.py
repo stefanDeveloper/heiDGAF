@@ -15,7 +15,7 @@ sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
-    ExactlyOnceKafkaConsumeHandler,
+    SimpleKafkaConsumeHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -26,8 +26,8 @@ logger = get_logger(module_name)
 BUF_SIZE = 65536  # let's read stuff in 64kb chunks!
 
 config = setup_config()
-DETECTOR_CONFIGS = config["pipeline"]["data_analysis"]["detectors"]
-
+INSPECTORS = config["pipeline"]["data_inspection"]
+DETECTORS = config["pipeline"]["data_analysis"]
 
 
 CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["inspector_to_detector"]
@@ -64,7 +64,7 @@ class Detector:
             tempfile.gettempdir(), f"{self.model}_{self.checksum}.pickle"
         )
 
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
+        self.kafka_consume_handler = SimpleKafkaConsumeHandler(self.consume_topic)
 
         self.model = self._get_model()
 
@@ -93,16 +93,16 @@ class Detector:
                 "current workload."
             )
             return
-
+        logger.info("consuming")
         key, data = self.kafka_consume_handler.consume_as_object()
-
+        logger.info("consumed")
         if data.data:
             self.suspicious_batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
-
+        logger.info("send1")
         self.suspicious_batch_timestamps.insert(
             dict(
                 suspicious_batch_id=self.suspicious_batch_id,
@@ -114,7 +114,7 @@ class Detector:
                 message_count=len(self.messages),
             )
         )
-
+        logger.info("send2")
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -317,7 +317,8 @@ class Detector:
                 warning = {
                     "request": message,
                     "probability": float(y_pred[0][1]),
-                    "model": self.model,
+                    # TODO: what is the use of this? not even json serializabel ?
+                    # "model": self.model,
                     "name": self.name,
                     "sha256": self.checksum,
                 }
@@ -331,6 +332,7 @@ class Detector:
                 [warning["probability"] for warning in self.warnings]
             )
             alert = {"overall_score": overall_score, "result": self.warnings}
+            
 
             logger.info(f"Add alert: {alert}")
             with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a+") as f:
@@ -452,12 +454,9 @@ async def main():  # pragma: no cover
         KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
     """
     tasks = []
-    for detector_config in DETECTOR_CONFIGS:
-        name = detector_config["name"]
-        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{detector_config['zeek_topic']}"
-        logger.info(f"Starting Detector {name}")
-        detector = Detector(detector_config=detector_config, consume_topic=consume_topic)
-        logger.info(f"Detector {name} is running.")
+    for detector in DETECTORS:
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{detector['name']}"
+        detector = Detector(detector_config=detector, consume_topic=consume_topic)
         tasks.append(
             asyncio.create_task(detector.start())
         )

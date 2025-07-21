@@ -13,10 +13,10 @@ from streamad.util import StreamGenerator, CustomDS
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
-from src.base.utils import setup_config
+from src.base.utils import setup_config, get_zeek_sensor_topic_base_names
 from src.base.kafka_handler import (
-    ExactlyOnceKafkaConsumeHandler,
-    ExactlyOnceKafkaProduceHandler,
+    SimpleKafkaConsumeHandler,
+    SimpleKafkaProduceHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -25,24 +25,14 @@ module_name = "data_inspection.inspector"
 logger = get_logger(module_name)
 
 config = setup_config()
-MODE = config["pipeline"]["data_inspection"]["inspector"]["mode"]
-ENSEMBLE = config["pipeline"]["data_inspection"]["inspector"]["ensemble"]
-MODELS = config["pipeline"]["data_inspection"]["inspector"]["models"]
-ANOMALY_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"][
-    "anomaly_threshold"
-]
-SCORE_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["score_threshold"]
-TIME_TYPE = config["pipeline"]["data_inspection"]["inspector"]["time_type"]
-TIME_RANGE = config["pipeline"]["data_inspection"]["inspector"]["time_range"]
 PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["inspector_to_detector"]
 CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["prefilter_to_inspector"]
-SENSOR_TOPICS = set([
-    topic
-    for sensor in config["pipeline"]["zeek"]["sensors"].values()
-    for mapping in sensor.get("protocol_to_topic", [])
-    for topics in mapping.values()
-    for topic in topics
-])
+SENSOR_PROTOCOLS = get_zeek_sensor_topic_base_names(config)
+PREFILTERS = config["pipeline"]["log_filtering"]
+INSPECTORS = config["pipeline"]["data_inspection"]
+COLLECTORS = config["pipeline"]["log_collection"]["collectors"]
+DETECTORS = config["pipeline"]["data_analysis"]
+
 
 KAFKA_BROKERS = ",".join(
     [
@@ -84,9 +74,17 @@ class EnsembleModels(str, Enum):
 class Inspector:
     """Finds anomalies in a batch of requests and produces it to the ``Detector``."""
 
-    def __init__(self, consume_topic, produce_topic) -> None:
+    def __init__(self, consume_topic, produce_topics, config) -> None:
+        self.mode = config["mode"]
+        self.ensemble = config["ensemble"]
+        self.model_configurations = config["models"]
+        self.anomaly_threshold = config["anomaly_threshold"]
+        self.score_threshold = config["score_threshold"]
+        self.time_type = config["time_type"]
+        self.time_range = config["time_range"]
+
         self.consume_topic = consume_topic
-        self.produce_topic = produce_topic
+        self.produce_topics = produce_topics
         self.batch_id = None
         self.X = None
         self.key = None
@@ -96,8 +94,8 @@ class Inspector:
         self.messages = []
         self.anomalies = []
 
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        self.kafka_consume_handler = SimpleKafkaConsumeHandler(self.consume_topic)
+        self.kafka_produce_handler = SimpleKafkaProduceHandler()
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
@@ -129,14 +127,14 @@ class Inspector:
             return
 
         key, data = self.kafka_consume_handler.consume_as_object()
-
+        logger.info("got-data")
         if data:
             self.batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
-
+        logger.info("transformed")
         self.batch_timestamps.insert(
             dict(
                 batch_id=self.batch_id,
@@ -147,7 +145,7 @@ class Inspector:
                 message_count=len(self.messages),
             )
         )
-
+        logger.info("inserted")
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.now(),
@@ -156,6 +154,7 @@ class Inspector:
                 entry_count=len(self.messages),
             )
         )
+        logger.info("inserte2")
 
         if not self.messages:
             logger.info(
@@ -193,7 +192,7 @@ class Inspector:
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
             [
-                np.datetime64(datetime.fromisoformat(item["timestamp"]))
+                np.datetime64(datetime.fromisoformat(item["ts"]))
                 for item in messages
             ]
         )
@@ -215,8 +214,8 @@ class Inspector:
         )
         time_range = np.arange(
             min_date,
-            max_date + np.timedelta64(TIME_RANGE, TIME_TYPE),
-            np.timedelta64(TIME_RANGE, TIME_TYPE),
+            max_date + np.timedelta64(self.time_range, self.time_type),
+            np.timedelta64(self.time_range, self.time_type),
         )
 
         logger.debug(
@@ -238,8 +237,8 @@ class Inspector:
             # Sum the sizes at each unique timestamp
             for idx, count in zip(unique_indices, unique_counts):
                 time_index = (
-                    ((timestamps[idx] - min_date) // TIME_RANGE)
-                    .astype(f"timedelta64[{TIME_TYPE}]")
+                    ((timestamps[idx] - min_date) // self.time_range)
+                    .astype(f"timedelta64[{self.time_type}]")
                     .astype(int)
                 )
                 size_sums[time_index] = np.sum(sizes[idx : idx + count])
@@ -272,7 +271,7 @@ class Inspector:
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
             [
-                np.datetime64(datetime.fromisoformat(item["timestamp"]))
+                np.datetime64(datetime.fromisoformat(item["ts"]))
                 for item in messages
             ]
         )
@@ -291,8 +290,8 @@ class Inspector:
         # Adding np.timedelta adds end time to time_range
         time_range = np.arange(
             min_date,
-            max_date + np.timedelta64(TIME_RANGE, TIME_TYPE),
-            np.timedelta64(TIME_RANGE, TIME_TYPE),
+            max_date + np.timedelta64(self.time_range, self.time_type),
+            np.timedelta64(self.time_range, self.time_type),
         )
 
         logger.debug(
@@ -309,8 +308,8 @@ class Inspector:
                 timestamps, return_index=True, return_counts=True
             )
             time_indices = (
-                ((unique_times - min_date) // TIME_RANGE)
-                .astype(f"timedelta64[{TIME_TYPE}]")
+                ((unique_times - min_date) // self.time_range)
+                .astype(f"timedelta64[{self.time_type}]")
                 .astype(int)
             )
             counts[time_indices] = unique_counts
@@ -322,15 +321,15 @@ class Inspector:
 
     def inspect(self):
         """Runs anomaly detection on given StreamAD Model on either univariate, multivariate data, or as an ensemble."""
-        if MODELS == None or len(MODELS) == 0:
+        if self.model_configurations == None or len(self.model_configurations) == 0:
             logger.warning("No model ist set!")
             raise NotImplementedError(f"No model is set!")
-        if len(MODELS) > 1:
+        if len(self.model_configurations) > 1:
             logger.warning(
-                f"Model List longer than 1. Only the first one is taken: {MODELS[0]['model']}!"
+                f"Model List longer than 1. Only the first one is taken: {self.model_configurations[0]['model']}!"
             )
-        self._get_models(MODELS)
-        match MODE:
+        self._get_models(self.model_configurations)
+        match self.mode:
             case "univariate":
                 self._inspect_univariate()
             case "multivariate":
@@ -339,8 +338,8 @@ class Inspector:
                 self._get_ensemble()
                 self._inspect_ensemble()
             case _:
-                logger.warning(f"Mode {MODE} is not supported!")
-                raise NotImplementedError(f"Mode {MODE} is not supported!")
+                logger.warning(f"Mode {self.mode} is not supported!")
+                raise NotImplementedError(f"Mode {self.mode} is not supported!")
 
     def _inspect_multivariate(self):
         """
@@ -440,7 +439,7 @@ class Inspector:
 
         self.models = []
         for model in models:
-            if MODE == "univariate" or MODE == "ensemble":
+            if self.mode == "univariate" or self.mode == "ensemble":
                 logger.debug(f"Load Model: {model['model']} from {model['module']}.")
                 if not model["model"] in VALID_UNIVARIATE_MODELS:
                     logger.error(
@@ -449,7 +448,7 @@ class Inspector:
                     raise NotImplementedError(
                         f"Model {models} is not a valid univariate or ensemble model."
                     )
-            if MODE == "multivariate":
+            if self.mode == "multivariate":
                 logger.debug(f"Load Model: {model['model']} from {model['module']}.")
                 if not model["model"] in VALID_MULTIVARIATE_MODELS:
                     logger.error(f"Model {model} is not a valid multivariate model.")
@@ -462,36 +461,36 @@ class Inspector:
             self.models.append(module_model(**model["model_args"]))
 
     def _get_ensemble(self):
-        logger.debug(f"Load Model: {ENSEMBLE['model']} from {ENSEMBLE['module']}.")
-        if not ENSEMBLE["model"] in VALID_ENSEMBLE_MODELS:
-            logger.error(f"Model {ENSEMBLE} is not a valid ensemble model.")
+        logger.debug(f"Load Model: {self.ensemble['model']} from {self.ensemble['module']}.")
+        if not self.ensemble["model"] in VALID_ENSEMBLE_MODELS:
+            logger.error(f"Model {self.ensemble} is not a valid ensemble model.")
             raise NotImplementedError(
-                f"Model {ENSEMBLE} is not a valid ensemble model."
+                f"Model {self.ensemble} is not a valid ensemble model."
             )
 
         if hasattr(self, "ensemble") and self.ensemble != None:
             logger.info("Ensemble have been successfully loaded!")
             return
 
-        module = importlib.import_module(ENSEMBLE["module"])
-        module_model = getattr(module, ENSEMBLE["model"])
-        self.ensemble = module_model(**ENSEMBLE["model_args"])
+        module = importlib.import_module(self.ensemble["module"])
+        module_model = getattr(module, self.ensemble["model"])
+        self.ensemble = module_model(**self.ensemble["model_args"])
 
     def send_data(self):
         """Pass the anomalous data for the detector unit for further processing"""
         total_anomalies = np.count_nonzero(
-            np.greater_equal(np.array(self.anomalies), SCORE_THRESHOLD)
+            np.greater_equal(np.array(self.anomalies), self.score_threshold)
         )
-        if total_anomalies / len(self.X) > ANOMALY_THRESHOLD:  # subnet is suspicious
+        logger.info(f" {total_anomalies} anomalies found")
+        if total_anomalies / len(self.X) > self.anomaly_threshold:  # subnet is suspicious
             logger.info("Sending anomalies to detector for further analysis.")
             buckets = {}
-
             for message in self.messages:
-                if message["client_ip"] in buckets.keys():
-                    buckets[message["client_ip"]].append(message)
+                if message["src_ip"] in buckets.keys():
+                    buckets[message["src_ip"]].append(message)
                 else:
-                    buckets[message["client_ip"]] = []
-                    buckets.get(message["client_ip"]).append(message)
+                    buckets[message["src_ip"]] = []
+                    buckets.get(message["src_ip"]).append(message)
 
             for key, value in buckets.items():
                 logger.info(f"Sending anomalies to detector for {key}.")
@@ -518,7 +517,7 @@ class Inspector:
                 self.suspicious_batch_timestamps.insert(
                     dict(
                         suspicious_batch_id=suspicious_batch_id,
-                        client_ip=key,
+                        src_ip=key,
                         stage=module_name,
                         status="finished",
                         timestamp=datetime.now(),
@@ -526,12 +525,13 @@ class Inspector:
                         message_count=len(value),
                     )
                 )
-
-                self.kafka_produce_handler.produce(
-                    topic=self.produce_topic,
-                    data=batch_schema.dumps(data_to_send),
-                    key=key,
-                )
+                for topic in self.produce_topics:
+                    logger.info(f"now producing for {topic}")
+                    self.kafka_produce_handler.produce(
+                        topic=topic,
+                        data=batch_schema.dumps(data_to_send),
+                        key=key,
+                    )
         else:  # subnet is not suspicious
             self.batch_timestamps.insert(
                 dict(
@@ -609,11 +609,12 @@ async def main():
         KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
     """
     tasks = []
-    for topic in SENSOR_TOPICS:
-        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{topic}"
-        produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{topic}"
+    for inspector in INSPECTORS:
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{inspector['name']}"
+        produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{detector['name']}" for detector in DETECTORS if detector["inspector_name"] == inspector["name"]]
         logger.info("Starting Inspector...")
-        inspector = Inspector(consume_topic=consume_topic, produce_topic=produce_topic)
+        inspector = Inspector(consume_topic=consume_topic, produce_topics=produce_topics, config=inspector)
+        
         tasks.append(
             asyncio.create_task(inspector.start())
         )

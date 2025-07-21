@@ -13,7 +13,7 @@ logging:
     data_inspection.inspector:
       debug: false
     data_analysis.detector:
-      debug: false
+      debug: true
 
 pipeline:
   log_storage:
@@ -95,8 +95,8 @@ pipeline:
           module: streamad.model
           model_args:
             is_global: false
-      anomaly_threshold: 0.01
-      score_threshold: 0.5
+      anomaly_threshold: 0.0001
+      score_threshold: 0.005
       time_type: ms
       time_range: 20
     - name: domniator_inspector
@@ -152,23 +152,18 @@ pipeline:
       time_range: 20
       
   data_analysis:
-    detectors:
-      dns:
-        - name: "RF - DGA detector"
-          model: rf # XGBoost
-          checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
-          base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
-          threshold: 0.5
-          prefilter: "<name>"
-          inspector: "<name>"
-        - name: "XGBoost - DGA detector"
-          model: XGBoost
-          checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
-          base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
-          threshold: 0.5
-          prefilter: "<name>"
-          inspector: "<name>"
-      http:
+    - name: "RF-dga_detector"
+      model: rf # XGBoost
+      checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
+      base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+      threshold: 0.005
+      inspector_name: dga_inspector
+    # - name: "XGBoost-dga_detector"
+    #   model: XGBoost
+    #   checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
+    #   base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+    #   threshold: 0.005
+    #   inspector_name: dga_inspector
 
   monitoring:
     clickhouse_connector:

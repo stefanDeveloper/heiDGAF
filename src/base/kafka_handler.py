@@ -113,7 +113,6 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
         """
         if not data:
             return
-
         self.producer.flush()
         self.producer.produce(
             topic=topic,
@@ -121,8 +120,6 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
             value=data,
             callback=kafka_delivery_report,
         )
-
-
 class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
     """
     Wrapper for the Kafka Producer with Write-Exactly-Once semantics.
@@ -277,7 +274,7 @@ class KafkaConsumeHandler(KafkaHandler):
             return None, {}
 
         try:
-            eval_data = ast.literal_eval(value)
+            eval_data = json.loads(value)
 
             if isinstance(eval_data, dict):
                 return key, eval_data
@@ -333,30 +330,23 @@ class KafkaConsumeHandler(KafkaHandler):
         Raises:
             ValueError: Invalid data format
         """
+        logger.info("consume")
         key, value, topic = self.consume()
+        logger.info("consumed1")
         if not key and not value:
-            logger.info("none")
             # TODO: Change return value to fit the type, maybe switch to raise
             return None, {}
-        eval_data: dict = ast.literal_eval(value)
-        logger.info(f"type: {type(eval_data)}")
-        logger.info(f"type: {type(eval_data['data'])}")
-        logger.info(f"type: {type(eval_data['data'][0])}")
-        test = json.loads(eval_data['data'][0])
-        logger.info(f"test-type {type(test)}")
+        logger.info("eval data")
+        eval_data: dict = json.loads(value)
         if self._is_dicts(eval_data.get("data")):
-            logger.info("is dict")
             eval_data["data"] = eval_data.get("data")
         else:
-            logger.info("not a dict")
             eval_data["data"] = [
                 json.loads(item) for item in eval_data.get("data")
             ]
-        logger.info("batch-baby-batch")
+        logger.info("yummy marshmallow")
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
-        logger.info("marshmallow yummy")
         eval_data: Batch = batch_schema.load(eval_data)
-        logger.info(" is nstance!!")
         if isinstance(eval_data, Batch):
             return key, eval_data
         else:
@@ -390,7 +380,7 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
 
                     empty_data_retrieved = True
                     continue
-                logger.info("after none")
+                logger.info("messgae!")
                 if msg.error():
                     if msg.error().code() == KafkaError._PARTITION_EOF:
                         continue
@@ -399,11 +389,10 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
                         raise ValueError("Message is invalid")
 
                 # unpack message
-                logger.info("decode")
+                logger.info("umpakc!")
                 key = msg.key().decode("utf-8") if msg.key() else None
                 value = msg.value().decode("utf-8") if msg.value() else None
                 topic = msg.topic() if msg.topic() else None
-                logger.info("done-here")
                 return key, value, topic
         except KeyboardInterrupt:
             logger.info("Stopping KafkaConsumeHandler...")
@@ -459,36 +448,3 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
                 return key, value, topic
         except KeyboardInterrupt:
             logger.info("Shutting down KafkaConsumeHandler...")
-
-
-
-    # def consume_as_object(self) -> tuple[None | str, Batch]:
-    #     """
-    #     Consumes available messages on the specified topic. Decodes the data and converts it to a Batch
-    #     object. Returns the Batch object.
-
-    #     Returns:
-    #         Consumed data as Batch object
-
-    #     Raises:
-    #         ValueError: Invalid data format
-    #     """
-    #     key, value, topic = self.consume()
-    #     if not key and not value:
-    #         # TODO: Change return value to fit the type, maybe switch to raise
-    #         return None, {}
-    #     eval_data: dict = ast.literal_eval(value)
-    #     if self._is_dicts(eval_data.get("data")):
-    #         eval_data["data"] = eval_data.get("data")
-    #     else:
-    #         eval_data["data"] = [
-    #             ast.literal_eval(item) for item in eval_data.get("data")
-    #         ]
-
-    #     batch_schema = marshmallow_dataclass.class_schema(Batch)()
-    #     eval_data: Batch = batch_schema.load(eval_data)
-
-    #     if isinstance(eval_data, Batch):
-    #         return key, eval_data
-    #     else:
-    #         raise ValueError("Unknown data format.")

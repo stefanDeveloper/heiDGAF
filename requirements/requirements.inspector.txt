@@ -5,3 +5,5 @@ streamad~=0.3.1
 numpy~=1.26.4
 marshmallow_dataclass~=8.7.1
 clickhouse_connect~=0.8.3
+scipy==1.12.0
+
