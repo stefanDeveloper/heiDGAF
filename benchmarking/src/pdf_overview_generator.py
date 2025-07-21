@@ -1,5 +1,6 @@
 import os.path
 import sys
+from pathlib import Path
 
 import pymupdf
 
@@ -8,14 +9,13 @@ from src.base.log_config import get_logger
 
 logger = get_logger()
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
+
 
 class PDFOverviewGenerator:
     """Combines multiple plots and test information in a PDF document."""
 
     def __init__(self):
-        self.output_file_path = "../output/"
-        self.output_file_name = "example_overview"
-
         self.page_width, self.page_height = 595, 842  # page dimension: A4 portrait
         self.standard_page_margin = {"left": 50, "right": 50, "top": 50, "bottom": 80}
 
@@ -432,7 +432,7 @@ class PDFOverviewGenerator:
         page = self.document[0]  # first page
         main_graph_box = self.boxes.get("overview_page")[3][1]
         page.insert_image(
-            self.__get_padded_rect(main_graph_box, 4), filename=f"graphs/{file_name}"
+            self.__get_padded_rect(main_graph_box, 4), filename=f"{file_name}"
         )
 
     def insert_top_left_graph(self, file_name: str):
@@ -441,7 +441,7 @@ class PDFOverviewGenerator:
         top_left_graph_box = self.boxes.get("overview_page")[6][0]
         page.insert_image(
             self.__get_padded_rect(top_left_graph_box, 4),
-            filename=f"graphs/{file_name}",
+            filename=f"{file_name}",
         )
 
     def insert_top_right_graph(self, file_name: str):
@@ -450,7 +450,7 @@ class PDFOverviewGenerator:
         top_right_graph_box = self.boxes.get("overview_page")[6][1]
         page.insert_image(
             self.__get_padded_rect(top_right_graph_box, 4),
-            filename=f"graphs/{file_name}",
+            filename=f"{file_name}",
         )
 
     def insert_bottom_left_graph(self, file_name: str):
@@ -459,7 +459,7 @@ class PDFOverviewGenerator:
         bottom_left_graph_box = self.boxes.get("overview_page")[9][0]
         page.insert_image(
             self.__get_padded_rect(bottom_left_graph_box, 4),
-            filename=f"graphs/{file_name}",
+            filename=f"{file_name}",
         )
 
     def insert_bottom_right_graph(self, file_name: str):
@@ -468,17 +468,32 @@ class PDFOverviewGenerator:
         bottom_right_graph_box = self.boxes.get("overview_page")[9][1]
         page.insert_image(
             self.__get_padded_rect(bottom_right_graph_box, 4),
-            filename=f"graphs/{file_name}",
+            filename=f"{file_name}",
         )
 
-    def save_file(self):
-        """Stores the document as a file."""
-        file_path_and_name = os.path.join(self.output_file_path, self.output_file_name)
-        os.makedirs(self.output_file_path, exist_ok=True)
+    def save_file(self, relative_output_directory_path: Path, output_filename: str):
+        """Stores the document as a file.
+
+        Args:
+            relative_output_directory_path (Path): Path to the directory in which to store the output file, relative to
+                        the project base directory
+            output_filename (str): Filename the output file should have, without file type
+        """
+        absolute_output_directory_path = BASE_DIR / relative_output_directory_path
+        os.makedirs(absolute_output_directory_path, exist_ok=True)
+
+        relative_output_filename = (
+            relative_output_directory_path / f"{output_filename}.pdf"
+        )
+        absolute_output_filename = (
+            absolute_output_directory_path / f"{output_filename}.pdf"
+        )
 
         try:
-            self.document.save(f"{file_path_and_name}.pdf", garbage=4, deflate=True)
-            logger.info(f"Successfully stored document as {file_path_and_name}.pdf")
+            self.document.save(absolute_output_filename, garbage=4, deflate=True)
+            logger.info(
+                f"Successfully stored document under {relative_output_filename}"
+            )
         except ValueError as err:  # includes zero page error
             logger.error(err)
 
