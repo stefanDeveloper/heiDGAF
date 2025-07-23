@@ -159,9 +159,11 @@ class BenchmarkTestController:
         """
         generator = PDFOverviewGenerator()
 
-        # prepare paths
+        # prepare directory paths
         relative_input_graph_directory = self.test_run_directory / "graphs"
         relative_output_directory_path = self.test_run_directory
+
+        # prepare file paths
         relative_input_graph_filename = (
             relative_input_graph_directory
             / LATENCIES_COMPARISON_FILENAME  # latency_comparison.png
@@ -191,25 +193,29 @@ class BenchmarkTestController:
             "Prefilter": "prefilter.csv",
         }
 
-        def plot_latencies():
+        def plot_latency_comparison():
+            """Plots the latency_comparison graph."""
+            # prepare directory paths
+            relative_data_path = self.test_run_directory / "data"
+            relative_output_graph_directory = self.test_run_directory / "graphs"
+
+            # create base output directory
+            os.makedirs(relative_output_graph_directory, exist_ok=True)
+
+            # prepare input file paths
             module_to_filepath = (
                 module_to_filename.copy()
             )  # keep original dictionary unchanged
-
-            # prepare file paths
-            relative_data_path = self.test_run_directory / "data"
-
             for module in module_to_filename.keys():
                 filename = module_to_filename[module]
                 module_to_filepath[module] = relative_data_path / "latencies" / filename
 
-            relative_output_graph_directory = self.test_run_directory / "graphs"
-            os.makedirs(relative_output_graph_directory, exist_ok=True)
-
+            # prepare output file paths
             relative_output_graph_filename = (
                 relative_output_graph_directory / LATENCIES_COMPARISON_FILENAME
             )
 
+            # generate and save plots
             plot_generator.plot_latency(
                 datafiles_to_names=module_to_filepath,
                 relative_output_directory_path=relative_output_graph_filename,
@@ -217,7 +223,7 @@ class BenchmarkTestController:
                 start_time=start_time,
             )
 
-        plot_latencies()
+        plot_latency_comparison()
 
     def __run_test_procedure_with_clickhouse_handling(
         self, arguments
