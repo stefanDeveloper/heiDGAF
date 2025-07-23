@@ -11,6 +11,8 @@ logger = get_logger()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
 
+LATENCIES_COMPARISON_FILENAME = "latency_comparison.png"
+
 
 class PlotGenerator:
     """Plots given data and combines it into figures."""
@@ -127,7 +129,7 @@ class PlotGenerator:
             plt.legend()
 
         relative_output_filename = (
-            relative_output_directory_path / "latency_comparison.png"
+            relative_output_directory_path / LATENCIES_COMPARISON_FILENAME
         )
         absolute_output_filename = BASE_DIR / relative_output_filename
 

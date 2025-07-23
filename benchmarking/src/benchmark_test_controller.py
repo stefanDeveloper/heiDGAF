@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 
@@ -26,9 +27,9 @@ class BenchmarkTestController:
     """Contains methods for running tests on remote hosts."""
 
     def __init__(self):
-        self.test_name = None
-        self.docker_container_name = None
-        self.test_run_directory = None
+        self.test_name: Optional[str] = None
+        self.docker_container_name: Optional[str] = None
+        self.test_run_directory: Optional[Path] = None
 
     def run_single_test(
         self,
@@ -135,7 +136,9 @@ class BenchmarkTestController:
         file_identifier, test_started_at = (
             self.__run_test_procedure_with_clickhouse_handling(arguments)
         )
-        self.test_run_directory = f"{BASE_DIR}/benchmark_results/{file_identifier}"
+        self.test_run_directory = Path(
+            f"{BASE_DIR}/benchmark_results/{file_identifier}"
+        )
 
         self._generate_plots(start_time=test_started_at)
 
@@ -173,7 +176,7 @@ class BenchmarkTestController:
         generator.setup_first_page_layout()
         generator.insert_title()
         generator.insert_box_titles()
-        generator.insert_main_graph(relative_input_graph_filename)
+        generator.insert_main_graph(str(relative_input_graph_filename))
 
         # generate and save report
         generator.save_file(
@@ -210,15 +213,10 @@ class BenchmarkTestController:
                 filename = module_to_filename[module]
                 module_to_filepath[module] = relative_data_path / "latencies" / filename
 
-            # prepare output file paths
-            relative_output_graph_filename = (
-                relative_output_graph_directory / LATENCIES_COMPARISON_FILENAME
-            )
-
             # generate and save plots
             plot_generator.plot_latency(
                 datafiles_to_names=module_to_filepath,
-                relative_output_directory_path=relative_output_graph_filename,
+                relative_output_directory_path=relative_output_graph_directory,
                 title="Latency Comparison",
                 start_time=start_time,
             )
@@ -285,9 +283,10 @@ class BenchmarkTestController:
 
 if __name__ == "__main__":
     controller = BenchmarkTestController()
-    controller.test_run_directory = Path("benchmark_results/long_term_20250716_195953")
-    controller._generate_report()
+    controller.run_single_test("long_term")
 
+    # controller.test_run_directory = Path("benchmark_results/long_term_20250716_195953")
+    # controller._generate_report()
     # controller.run_single_test("long_term")
     # controller._generate_plots(test_run_directory="benchmark_results/long_term_20250716_195953",
     #                            start_time=pd.Timestamp("2025-07-16 19:59:52"))
