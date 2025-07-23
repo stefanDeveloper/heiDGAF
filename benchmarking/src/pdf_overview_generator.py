@@ -431,9 +431,9 @@ class PDFOverviewGenerator:
         """Inserts the main graph plot into the box."""
         page = self.document[0]  # first page
         main_graph_box = self.boxes.get("overview_page")[3][1]
-        page.insert_image(
-            self.__get_padded_rect(main_graph_box, 4), filename=f"{file_name}"
-        )
+
+        file = BASE_DIR / file_name
+        page.insert_image(self.__get_padded_rect(main_graph_box, 4), filename=file)
 
     def insert_top_left_graph(self, file_name: str):
         """Inserts the top left graph plot into the box."""

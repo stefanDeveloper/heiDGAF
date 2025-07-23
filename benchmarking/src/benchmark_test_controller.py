@@ -35,7 +35,8 @@ class BenchmarkTestController:
         test_name: str,
         docker_container_name: str = "benchmark_test_runner",
     ):
-        """Sends the command to the test runner container to start the respective test with the configured parameters."""
+        """Sends the command to the test runner container to start the respective test with the configured
+        parameters."""
 
         def handle_ramp_up_input() -> list[str]:
             try:
@@ -139,7 +140,7 @@ class BenchmarkTestController:
         self._generate_plots(start_time=test_started_at)
 
         self._generate_report(
-            output_filename=f"report_{self.test_name}_{file_identifier}.pdf"
+            output_filename=f"report_{self.test_name}_{file_identifier}"
         )
 
         self.test_name = None
@@ -151,21 +152,30 @@ class BenchmarkTestController:
         for test_run in benchmark_test_config["test_runs"]:
             self.run_single_test(test_run)
 
-    def _generate_report(self, output_filename: str):
+    def _generate_report(self, output_filename: str = "report"):
+        """
+        Generates the report from the generated result graphs.
+
+        Args:
+            output_filename (str): Filename for the output report file without .pdf suffix. Default: "report"
+        """
         generator = PDFOverviewGenerator()
 
+        # prepare paths
         relative_input_graph_directory = self.test_run_directory / "graphs"
+        relative_output_directory_path = self.test_run_directory
         relative_input_graph_filename = (
-            relative_input_graph_directory / LATENCIES_COMPARISON_FILENAME
+            relative_input_graph_directory
+            / LATENCIES_COMPARISON_FILENAME  # latency_comparison.png
         )
 
-        relative_output_directory_path = self.test_run_directory / "reports"
-
+        # add elements to report pdf
         generator.setup_first_page_layout()
         generator.insert_title()
         generator.insert_box_titles()
         generator.insert_main_graph(relative_input_graph_filename)
 
+        # generate and save report
         generator.save_file(
             relative_output_directory_path=relative_output_directory_path,
             output_filename=output_filename,
@@ -271,6 +281,9 @@ class BenchmarkTestController:
 
 if __name__ == "__main__":
     controller = BenchmarkTestController()
-    controller.run_single_test("long_term")
-    # controller._generate_plots(test_run_directory="benchmark_results/long_term_20250709_210708",
-    #                            start_time=pd.Timestamp("2025-07-07 18:40:52.069653"))
+    controller.test_run_directory = Path("benchmark_results/long_term_20250716_195953")
+    controller._generate_report()
+
+    # controller.run_single_test("long_term")
+    # controller._generate_plots(test_run_directory="benchmark_results/long_term_20250716_195953",
+    #                            start_time=pd.Timestamp("2025-07-16 19:59:52"))
