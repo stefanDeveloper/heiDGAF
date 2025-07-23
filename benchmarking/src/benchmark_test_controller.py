@@ -139,9 +139,7 @@ class BenchmarkTestController:
 
         self._generate_plots(start_time=test_started_at)
 
-        self._generate_report(
-            output_filename=f"report_{self.test_name}_{file_identifier}"
-        )
+        self._generate_report()
 
         self.test_name = None
         self.docker_container_name = None
