@@ -156,21 +156,32 @@ class ListItem(FieldType):
         """
         return True if value in self.allowed_list else False
 
-    def check_relevance(self, value) -> bool:
-        """
-        Checks if the given value is a relevant value.
 
-        Args:
-            value: Value to be checked for relevance
-
-        Returns:
-            True if the value is relevant, else False
-        """
-        if self.relevant_list:
-            return True if value in self.relevant_list else False
-
+class RelevanceHandler:
+    def __init__(self, log_configuration_instances):
+        self.log_configuration_instances = log_configuration_instances
+    
+    def check_relevance(self, function_name: str, logline_dict: dict) -> bool:
+        is_relevant = False
+        try:
+            is_relevant = getattr(self, function_name)(logline_dict)
+        except AttributeError as e:
+            logger.error(f"Function {function_name} is not implemented!")
+            raise(f"Function {function_name} is not implemented!")
+        return is_relevant
+        
+    def check_dga_relevance(self, logline_dict: dict) -> bool:
+        relevant = True
+        for _, instance_configuartion in self.log_configuration_instances.items():
+            if isinstance(instance_configuartion, ListItem):
+                if instance_configuartion.relevant_list:
+                    relevant = logline_dict[instance_configuartion.name] in instance_configuartion.relevant_list
+                    if not relevant: 
+                        return relevant   
+        return relevant
+    def no_relevance_check(self, logline_dict: dict) -> bool:
         return True
-
+    
 
 class LoglineHandler:
     """
@@ -199,6 +210,8 @@ class LoglineHandler:
         for required_field in REQUIRED_FIELDS:
             if required_field not in log_configuration_instances.keys():
                 raise ValueError("Not all needed fields are set in the configuration")
+
+        self.relvance_handler = RelevanceHandler(log_configuration_instances=log_configuration_instances)
 
     def validate_logline(self, logline: str) -> bool:
         """
@@ -257,8 +270,9 @@ class LoglineHandler:
             raise ValueError("Incorrect logline, validation unsuccessful")
         return self.__get_fields_as_json(logline)
 
-    def check_relevance(self, logline_dict: dict) -> bool:
+    def check_relevance(self, logline_dict: dict, function_name: str) -> bool:
         """
+        TODO: update documentation
         Checks if the given logline is relevant.
 
         Args:
@@ -267,19 +281,8 @@ class LoglineHandler:
         Returns:
             True if the logline is relevant, else False
         """
-        return True
-        # relevant = True
+        return self.relvance_handler.check_relevance(function_name=function_name, logline_dict=logline_dict)
 
-        # for i in self.instances_by_position:
-        #     current_instance = self.instances_by_position[i]
-        #     if isinstance(current_instance, ListItem):
-        #         if not current_instance.check_relevance(
-        #             logline_dict[current_instance.name]
-        #         ):
-        #             relevant = False
-        #             break
-
-        # return relevant
 
     @staticmethod
     def _create_instance_from_list_entry(field_list: list):

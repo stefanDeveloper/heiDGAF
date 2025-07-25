@@ -15,7 +15,7 @@ sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
-    SimpleKafkaConsumeHandler,
+    ExactlyOnceKafkaConsumeHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -64,7 +64,7 @@ class Detector:
             tempfile.gettempdir(), f"{self.model}_{self.checksum}.pickle"
         )
 
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(self.consume_topic)
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
 
         self.model = self._get_model()
 
@@ -417,31 +417,32 @@ class Detector:
             )
         )
 
-    async def start(self, one_iteration: bool = False):
-        iterations = 0
+    def bootstrap_detector_instance(self):
         while True:
-            if one_iteration and iterations > 0:
-                break
-            iterations += 1
-            try:
-                logger.debug("Before getting and filling data")
-                self.get_and_fill_data()
-                logger.debug("Inspect Data")
-                self.detect()
-                logger.debug("Send warnings")
-                self.send_warning()
-            except KafkaMessageFetchException as e:  # pragma: no cover
-                logger.debug(e)
-            except IOError as e:
-                logger.error(e)
-                raise e
-            except ValueError as e:
-                logger.debug(e)
-            except KeyboardInterrupt:
-                logger.info("Closing down Detector...")
-                break
-            finally:
-                self.clear_data()
+           try:
+               logger.debug("Before getting and filling data")
+               self.get_and_fill_data()
+               logger.debug("Inspect Data")
+               self.detect()
+               logger.debug("Send warnings")
+               self.send_warning()
+           except KafkaMessageFetchException as e:  # pragma: no cover
+               logger.debug(e)
+           except IOError as e:
+               logger.error(e)
+               raise e
+           except ValueError as e:
+               logger.debug(e)
+           except KeyboardInterrupt:
+               logger.info("Closing down Detector...")
+               break
+           finally:
+               self.clear_data()       
+    async def start(self):
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, self.bootstrap_detector_instance
+        )
             
 async def main():  # pragma: no cover
     """

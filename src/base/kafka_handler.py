@@ -168,6 +168,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
 
             self.commit_transaction_with_retry()
         except Exception:
+            logger.info(f"aborted for topic {topic}")
             self.producer.abort_transaction()
             logger.error("Transaction aborted.")
             raise
@@ -330,13 +331,10 @@ class KafkaConsumeHandler(KafkaHandler):
         Raises:
             ValueError: Invalid data format
         """
-        logger.info("consume")
         key, value, topic = self.consume()
-        logger.info("consumed1")
         if not key and not value:
             # TODO: Change return value to fit the type, maybe switch to raise
             return None, {}
-        logger.info("eval data")
         eval_data: dict = json.loads(value)
         if self._is_dicts(eval_data.get("data")):
             eval_data["data"] = eval_data.get("data")
@@ -344,7 +342,6 @@ class KafkaConsumeHandler(KafkaHandler):
             eval_data["data"] = [
                 json.loads(item) for item in eval_data.get("data")
             ]
-        logger.info("yummy marshmallow")
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
         eval_data: Batch = batch_schema.load(eval_data)
         if isinstance(eval_data, Batch):
@@ -380,7 +377,6 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
 
                     empty_data_retrieved = True
                     continue
-                logger.info("messgae!")
                 if msg.error():
                     if msg.error().code() == KafkaError._PARTITION_EOF:
                         continue
@@ -389,7 +385,6 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
                         raise ValueError("Message is invalid")
 
                 # unpack message
-                logger.info("umpakc!")
                 key = msg.key().decode("utf-8") if msg.key() else None
                 value = msg.value().decode("utf-8") if msg.value() else None
                 topic = msg.topic() if msg.topic() else None

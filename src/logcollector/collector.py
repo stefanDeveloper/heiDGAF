@@ -47,8 +47,8 @@ class LogCollector:
         self.kafka_consume_handler = SimpleKafkaConsumeHandler(consume_topic)
 
         # databases
-        self.failed_dns_loglines = ClickHouseKafkaSender(f"failed_dns_loglines")
-        self.dns_loglines = ClickHouseKafkaSender(f"dns_loglines")
+        self.failed_protocol_loglines = ClickHouseKafkaSender("failed_loglines")
+        self.protocol_loglines = ClickHouseKafkaSender("loglines")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
         self.fill_levels = ClickHouseKafkaSender("fill_levels")
 
@@ -104,7 +104,7 @@ class LogCollector:
                 message
             )
         except ValueError:
-            self.failed_dns_loglines.insert(
+            self.failed_protocol_loglines.insert(
                 dict(
                     message_text=message,
                     timestamp_in=timestamp_in,
@@ -118,7 +118,7 @@ class LogCollector:
             additional_fields.pop(field)
         subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("src_ip")))
         logline_id = uuid.uuid4()
-        self.dns_loglines.insert(
+        self.protocol_loglines.insert(
             dict(
                 logline_id=logline_id,
                 subnet_id=subnet_id,

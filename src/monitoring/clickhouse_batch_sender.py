@@ -84,8 +84,8 @@ class ClickHouseBatchSender:
                     "event_timestamp": datetime.datetime,
                 },
             ),
-            "failed_dns_loglines": Table(
-                "failed_dns_loglines",
+            "failed_loglines": Table(
+                "failed_loglines",
                 {
                     "message_text": str,
                     "timestamp_in": datetime.datetime,
@@ -100,8 +100,8 @@ class ClickHouseBatchSender:
                     "batch_id": uuid.UUID,
                 },
             ),
-            "dns_loglines": Table(
-                "dns_loglines",
+            "loglines": Table(
+                "loglines",
                 {
                     "logline_id": uuid.UUID,
                     "subnet_id": str,

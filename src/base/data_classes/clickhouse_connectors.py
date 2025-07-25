@@ -35,7 +35,7 @@ class ServerLogsTimestamps:
 
 
 @dataclass
-class FailedDNSLoglines:
+class FailedLoglines:
     message_text: str = field(
         metadata={"marshmallow_field": marshmallow.fields.String()}
     )
@@ -65,7 +65,7 @@ class LoglineToBatches:
 
 
 @dataclass
-class DNSLoglines:
+class Loglines:
     logline_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
@@ -192,9 +192,9 @@ class FillLevels:
 TABLE_NAME_TO_TYPE = {
     "server_logs": ServerLogs,
     "server_logs_timestamps": ServerLogsTimestamps,
-    "failed_dns_loglines": FailedDNSLoglines,
+    "failed_loglines": FailedLoglines,
     "logline_to_batches": LoglineToBatches,
-    "dns_loglines": DNSLoglines,
+    "loglines": Loglines,
     "logline_timestamps": LoglineTimestamps,
     "batch_timestamps": BatchTimestamps,
     "suspicious_batches_to_batch": SuspiciousBatchesToBatch,

@@ -11,8 +11,8 @@ from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
 from src.base.logline_handler import LoglineHandler
 from src.base.kafka_handler import (
-    SimpleKafkaConsumeHandler,
-    SimpleKafkaProduceHandler,
+    ExactlyOnceKafkaProduceHandler,
+    ExactlyOnceKafkaConsumeHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -46,20 +46,21 @@ class Prefilter:
     kept. Filtered data is then sent using topic ``Inspect``.
     """
 
-    def __init__(self, validation_config, consume_topic, produce_topics):
+    def __init__(self, validation_config, consume_topic, produce_topics, relevance_function_name):
         self.consume_topic = consume_topic
         self.produce_topics = produce_topics
         self.batch_id = None
         self.begin_timestamp = None
         self.end_timestamp = None
         self.subnet_id = None
+        self.relevance_function_name = relevance_function_name
 
         self.unfiltered_data = []
         self.filtered_data = []
 
         self.logline_handler = LoglineHandler(validation_config)
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(self.consume_topic)
-        self.kafka_produce_handler = SimpleKafkaProduceHandler()
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
@@ -81,9 +82,10 @@ class Prefilter:
         internally, including timestamps.
         """
         self.clear_data()  # clear in case we already have data stored
-        
+        logger.info(f"{self.consume_topic} consume")
         key, data = self.kafka_consume_handler.consume_as_object()
         self.subnet_id = key
+        logger.info(f" {self.consume_topic} consumed")
         if data.data:
             self.batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
@@ -115,21 +117,21 @@ class Prefilter:
             )
         else:
             logger.info(
-                f"Received message:\n"
+                f"{self.consume_topic} Received message:\n"
                 f"    ⤷  Contains data field of {len(self.unfiltered_data)} message(s) with "
                 f"subnet_id: '{self.subnet_id}'."
             )
 
-    def filter_by_error(self) -> None:
+    def check_data_relevance_using_rules(self) -> None:
         """
         Applies the filter to the data in ``unfiltered_data``, i.e. all loglines whose error status is in
         the given error types are kept and added to ``filtered_data``, all other ones are discarded.
         """
-        for e in self.unfiltered_data:
-            if self.logline_handler.check_relevance(e):
-                self.filtered_data.append(e)
+        for logline in self.unfiltered_data:
+            if self.logline_handler.check_relevance(logline_dict=logline, function_name=self.relevance_function_name):
+                self.filtered_data.append(logline)
             else:  # not relevant, filtered out
-                logline_id = uuid.UUID(e.get("logline_id"))
+                logline_id = uuid.UUID(logline.get("logline_id"))
 
                 self.logline_timestamps.insert(
                     dict(
@@ -199,8 +201,24 @@ class Prefilter:
         self.unfiltered_data = []
         self.filtered_data = []
 
-
-    def start(self, one_iteration: bool = False):
+    async def bootstrap_prefiltering_process(self):
+        loop = asyncio.get_running_loop()
+        logger.info(f"I am {self.consume_topic}")
+        counter = 0
+        while True:
+            logger.info(f"Runnin for {self.consume_topic} - {counter}")
+            await loop.run_in_executor(
+                None, self.get_and_fill_data
+            )
+            logger.info(f"Received data {self.consume_topic} - {counter}")
+            await loop.run_in_executor(
+                None, self.check_data_relevance_using_rules
+            )
+            logger.info(f"checked data {self.consume_topic} - {counter}")
+            self.send_filtered_data()
+            logger.info(f"Send data {self.consume_topic} - {counter}")
+            counter += 1
+    async def start(self, one_iteration: bool = False):
         """
         Runs the main loop by
 
@@ -219,37 +237,33 @@ class Prefilter:
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'"
         )          
         
-        iterations = 0
-        while True:
-            if one_iteration and iterations > 0:
-                break
-            iterations += 1
+        task_bootstrap_prefiltering_process = asyncio.Task(self.bootstrap_prefiltering_process())
+        try:
+            await asyncio.gather(
+                task_bootstrap_prefiltering_process
+            )
+        except IOError as e:
+            logger.error(e)
+            raise
+        except ValueError as e:
+            logger.debug(e)
+        except KafkaMessageFetchException as e:
+            logger.debug(e)
+        except KeyboardInterrupt:
+            logger.info("Closing down Prefilter...")
+        finally:
+            self.clear_data()
+            
 
-            try:
-                self.get_and_fill_data()
-                self.filter_by_error()
-                self.send_filtered_data()
-            except IOError as e:
-                logger.error(e)
-                raise
-            except ValueError as e:
-                logger.debug(e)
-            except KafkaMessageFetchException as e:
-                logger.debug(e)
-                continue
-            except KeyboardInterrupt:
-                logger.info("Closing down Prefilter...")
-                break
-            finally:
-                self.clear_data()
 
 async def main() -> None:  
     tasks = []
     for prefilter in PREFILTERS:
+        relevance_function_name = prefilter["relevance_method"]
         validation_config = [collector["required_log_information"] for collector in COLLECTORS if collector["name"] == prefilter["collector_name"]][0]
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{prefilter['name']}"
         produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{inspector['name']}" for inspector in INSPECTORS if prefilter["name"] == inspector["prefilter_name"]]
-        prefilter = Prefilter(validation_config=validation_config, consume_topic=consume_topic, produce_topics=produce_topics)
+        prefilter = Prefilter(validation_config=validation_config, consume_topic=consume_topic, produce_topics=produce_topics,relevance_function_name=relevance_function_name)
         tasks.append(
             asyncio.create_task(prefilter.start())
         )

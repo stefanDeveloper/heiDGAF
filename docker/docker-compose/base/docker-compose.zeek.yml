@@ -19,5 +19,4 @@ services:
     network_mode: host
     volumes:
       - ../../../src:/opt/src
-      # add the config here otherwise rebuild necessary on config changes!
       - ../../../config.yaml:/opt/config.yaml

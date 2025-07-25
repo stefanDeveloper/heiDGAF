@@ -68,16 +68,16 @@ pipeline:
   log_filtering:
     - name: "dga_filter"
       # method to apply for rule based prefiltering according to the needs
-      relevance_method: checkmate
+      relevance_method: check_dga_relevance
       collector_name: dga_collector 
     - name: "dominator_filter"
-      relevance_method: pass
+      relevance_method: no_relevance_check
       collector_name: dominator_collector
     - name: "examplary_filter" 
-      relevance_method: pass
+      relevance_method: no_relevance_check
       collector_name: dga_collector 
     - name: "xss_filter"
-      relevance_method: pass
+      relevance_method: no_relevance_check
       collector_name: my_http_collector
 
 
@@ -199,13 +199,13 @@ environment:
   kafka_brokers:
     - hostname: kafka1
       port: 8097
-      node_ip: 192.168.175.69
+      node_ip: 192.168.178.96
     - hostname: kafka2
       port: 8098
-      node_ip: 192.168.175.69
+      node_ip: 192.168.178.96
     - hostname: kafka3
       port: 8099
-      node_ip: 192.168.175.69
+      node_ip: 192.168.178.96
   kafka_topics_prefix:
     pipeline:
       logserver_in: "pipeline-logserver_in"

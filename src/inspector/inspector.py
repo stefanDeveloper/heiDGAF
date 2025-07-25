@@ -15,8 +15,8 @@ from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
 from src.base.utils import setup_config, get_zeek_sensor_topic_base_names
 from src.base.kafka_handler import (
-    SimpleKafkaConsumeHandler,
-    SimpleKafkaProduceHandler,
+    ExactlyOnceKafkaConsumeHandler,
+    ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -32,7 +32,6 @@ PREFILTERS = config["pipeline"]["log_filtering"]
 INSPECTORS = config["pipeline"]["data_inspection"]
 COLLECTORS = config["pipeline"]["log_collection"]["collectors"]
 DETECTORS = config["pipeline"]["data_analysis"]
-
 
 KAFKA_BROKERS = ",".join(
     [
@@ -50,6 +49,7 @@ VALID_UNIVARIATE_MODELS = [
     "MadDetector",
     "SArimaDetector",
 ]
+
 VALID_MULTIVARIATE_MODELS = [
     "xStreamDetector",
     "RShashDetector",
@@ -94,8 +94,8 @@ class Inspector:
         self.messages = []
         self.anomalies = []
 
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(self.consume_topic)
-        self.kafka_produce_handler = SimpleKafkaProduceHandler()
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
@@ -127,14 +127,12 @@ class Inspector:
             return
 
         key, data = self.kafka_consume_handler.consume_as_object()
-        logger.info("got-data")
         if data:
             self.batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
-        logger.info("transformed")
         self.batch_timestamps.insert(
             dict(
                 batch_id=self.batch_id,
@@ -145,7 +143,6 @@ class Inspector:
                 message_count=len(self.messages),
             )
         )
-        logger.info("inserted")
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.now(),
@@ -154,8 +151,6 @@ class Inspector:
                 entry_count=len(self.messages),
             )
         )
-        logger.info("inserte2")
-
         if not self.messages:
             logger.info(
                 "Received message:\n"
@@ -483,7 +478,6 @@ class Inspector:
         )
         logger.info(f" {total_anomalies} anomalies found")
         if total_anomalies / len(self.X) > self.anomaly_threshold:  # subnet is suspicious
-            logger.info("Sending anomalies to detector for further analysis.")
             buckets = {}
             for message in self.messages:
                 if message["src_ip"] in buckets.keys():
@@ -493,8 +487,6 @@ class Inspector:
                     buckets.get(message["src_ip"]).append(message)
 
             for key, value in buckets.items():
-                logger.info(f"Sending anomalies to detector for {key}.")
-                logger.info(f"Sending anomalies to detector for {value}.")
 
                 suspicious_batch_id = uuid.uuid4()  # generate new suspicious_batch_id
 
@@ -526,7 +518,6 @@ class Inspector:
                     )
                 )
                 for topic in self.produce_topics:
-                    logger.info(f"now producing for {topic}")
                     self.kafka_produce_handler.produce(
                         topic=topic,
                         data=batch_schema.dumps(data_to_send),
@@ -568,21 +559,12 @@ class Inspector:
             )
         )
 
-    def start(self, one_iteration: bool = False):
-        iterations = 0
-
+    def bootstrap_inspection_process(self):
+        logger.info(f"Starting {self.consume_topic}")
         while True:
-            if one_iteration and iterations > 0:
-                break
-            iterations += 1
-
             try:
-                logger.debug("Before getting and filling data")
                 self.get_and_fill_data()
-                logger.debug("After getting and filling data")
-                logger.debug("Start anomaly detection")
                 self.inspect()
-                logger.debug("Send data to detector")
                 self.send_data()
             except KafkaMessageFetchException as e:  # pragma: no cover
                 logger.debug(e)
@@ -592,10 +574,17 @@ class Inspector:
             except ValueError as e:
                 logger.debug(e)
             except KeyboardInterrupt:
-                logger.info("Closing down Inspector...")
+                logger.info(f" {self.consume_topic}  Closing down Inspector...")
                 break
-            finally:
+            finally:        
                 self.clear_data()
+
+    async def start(self, one_iteration: bool = False):
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+                None, self.bootstrap_inspection_process
+            )
+
             
 async def main():
     """
@@ -612,7 +601,6 @@ async def main():
     for inspector in INSPECTORS:
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{inspector['name']}"
         produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{detector['name']}" for detector in DETECTORS if detector["inspector_name"] == inspector["name"]]
-        logger.info("Starting Inspector...")
         inspector = Inspector(consume_topic=consume_topic, produce_topics=produce_topics, config=inspector)
         
         tasks.append(

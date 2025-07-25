@@ -10,7 +10,7 @@ import marshmallow_dataclass
 sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.kafka_handler import SimpleKafkaProduceHandler
+from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
 from src.base.utils import setup_config, get_batch_configuration
 from src.base.log_config import get_logger
 
@@ -340,7 +340,7 @@ class BufferedBatchSender:
         self.batch = BufferedBatch(self.batch_configuration)
         self.timer = None
 
-        self.kafka_produce_handler = SimpleKafkaProduceHandler()
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
