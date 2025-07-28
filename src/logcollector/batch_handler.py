@@ -462,6 +462,7 @@ class BufferedBatchSender:
                 data=batch_schema.dumps(data),
                 key=key,
             )
+            logger.info(f"send data to {topic}")
 
     def _reset_timer(self) -> None:
         """Restarts the internal timer of the object"""

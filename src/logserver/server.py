@@ -58,24 +58,15 @@ class LogServer:
         logger.info(
             "LogServer started:\n"
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'\n"
-            f"    ⤷  receiving from input file '{READ_FROM_FILE}'\n"
             f"    ⤷  sending on Kafka topic '{self.produce_topic}'"
         )
 
-        task_fetch_kafka = asyncio.Task(self.fetch_from_kafka())
-        task_fetch_file = asyncio.Task(self.fetch_from_file())
-
-        try:
-            task = asyncio.gather(
-                task_fetch_kafka,
-                task_fetch_file,
-            )
-            await task
-        except KeyboardInterrupt:
-            task_fetch_kafka.cancel()
-            task_fetch_file.cancel()
-
-            logger.info("LogServer stopped.")
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+            None, self.fetch_from_kafka
+        )
+        # if awaited completely then the while True has come to an end
+        logger.info("LogServer stopped.")
 
     def send(self, message_id: uuid.UUID, message: str) -> None:
         """
@@ -96,16 +87,12 @@ class LogServer:
             )
         )
 
-    async def fetch_from_kafka(self) -> None:
+    def fetch_from_kafka(self) -> None:
         """
         Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is sent.
         """
-        loop = asyncio.get_running_loop()
-
         while True:
-            key, value, topic = await loop.run_in_executor(
-                None, self.kafka_consume_handler.consume
-            )
+            key, value, topic = self.kafka_consume_handler.consume()
             logger.debug(f"From Kafka: '{value}'")
 
             message_id = uuid.uuid4()
@@ -118,45 +105,6 @@ class LogServer:
             )
 
             self.send(message_id, value)
-
-
-    async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
-        """
-        Continuously checks for new lines at the end of the input file. If one or multiple new lines are found, any
-        empty lines are removed and the remaining lines are sent individually.
-
-        Args:
-            file (str): Filename of the file to be read
-        """
-        async with aiofiles.open(file, mode="r") as file:
-            await file.seek(0, 2)  # jump to end of file
-
-            while True:
-                lines = await file.readlines()
-
-                if not lines:
-                    await asyncio.sleep(0.1)
-                    continue
-
-                for line in lines:
-                    cleaned_line = line.strip()  # remove empty lines
-
-                    if not cleaned_line:
-                        continue
-
-                    logger.debug(f"From file: '{cleaned_line}'")
-
-                    message_id = uuid.uuid4()
-                    self.server_logs.insert(
-                        dict(
-                            message_id=message_id,
-                            timestamp_in=datetime.datetime.now(),
-                            message_text=cleaned_line,
-                        )
-                    )
-
-                    self.send(message_id, cleaned_line)
-
 
 async def main() -> None:
     """

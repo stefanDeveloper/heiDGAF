@@ -58,7 +58,7 @@ class RegEx(FieldType):
         Returns:
             True if the value is valid, False otherwise
         """
-        return True if re.match(self.pattern, value) else False
+        return True if re.match(self.pattern, str(value)) else False
 
 
 class Timestamp(FieldType):
@@ -206,8 +206,8 @@ class LoglineHandler:
                 raise ValueError("Multiple fields with same name")
             else:
                 log_configuration_instances[instance.name] = instance
-
         for required_field in REQUIRED_FIELDS:
+
             if required_field not in log_configuration_instances.keys():
                 raise ValueError("Not all needed fields are set in the configuration")
 

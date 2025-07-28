@@ -98,6 +98,7 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
             "bootstrap.servers": self.brokers,
             "enable.idempotence": False,
             "acks": "1",
+            "message.max.bytes": 1000000000,  
         }
 
         super().__init__(conf)
@@ -134,6 +135,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             "bootstrap.servers": self.brokers,
             "transactional.id": f"{HOSTNAME}-{uuid.uuid4()}",
             "enable.idempotence": True,
+            "message.max.bytes": 1000000000, 
         }
 
         super().__init__(conf)
@@ -167,10 +169,11 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             )
 
             self.commit_transaction_with_retry()
-        except Exception:
+        except Exception as e:
             logger.info(f"aborted for topic {topic}")
             self.producer.abort_transaction()
             logger.error("Transaction aborted.")
+            logger.error(e)
             raise
 
     def commit_transaction_with_retry(

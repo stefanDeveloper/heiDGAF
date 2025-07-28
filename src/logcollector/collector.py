@@ -68,28 +68,22 @@ class LogCollector:
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'"
         )
 
-        task_fetch = asyncio.Task(self.fetch())
-        try:
-            await asyncio.gather(
-                task_fetch,
-            )
-        except KeyboardInterrupt:
-            task_fetch.cancel()
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, self.fetch
+        )
 
-            logger.info("LogCollector stopped.")
+        logger.info("LogCollector stopped.")
 
-    async def fetch(self) -> None:
+    def fetch(self) -> None:
         """Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is
         decoded and sent."""
-        loop = asyncio.get_running_loop()
 
         while True:
-            key, value, topic = await loop.run_in_executor(
-                None, self.kafka_consume_handler.consume
-            )
-            logger.info(f"From Kafka: '{value}'")
-
-            self.send(datetime.datetime.now(), value)
+            key, value, topic = self.kafka_consume_handler.consume()
+            logger.debug(f"From Kafka: '{value}'")
+            self.send(datetime.datetime.now(), value)            
+            
 
     def send(self, timestamp_in: datetime.datetime, message: str) -> None:
         """Sends the logline in JSON format to the BatchSender, where it is stored in
@@ -149,7 +143,7 @@ class LogCollector:
             )
         )
         self.batch_handler.add_message(subnet_id, json.dumps(message_fields))
-        logger.info(f"Sent: {message}")
+        logger.debug(f"Sent: {message}")
 
     def _get_subnet_id(self, address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
         """

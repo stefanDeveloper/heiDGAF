@@ -101,6 +101,24 @@ services:
       file: "docker-compose/prod/docker-compose.grafana.yml"
       service: grafana
 
+  prometheus: 
+    extends:
+      file: "docker-compose/prod/docker-compose.prometheus.yml"
+      service: prometheus
+
+  kafka-exporter:   
+    extends:
+      file: "docker-compose/base/docker-compose.kafka-exporter.yml"
+      service: kafka-exporter
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
   monitoring_agent:
     extends:
       file: "docker-compose/base/docker-compose.monitoring.yml"

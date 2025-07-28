@@ -260,7 +260,7 @@ async def main() -> None:
     tasks = []
     for prefilter in PREFILTERS:
         relevance_function_name = prefilter["relevance_method"]
-        validation_config = [collector["required_log_information"] for collector in COLLECTORS if collector["name"] == prefilter["collector_name"]][0]
+        validation_config = [ item for collector in COLLECTORS if collector["name"] == prefilter["collector_name"] for item in collector["required_log_information"]]
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{prefilter['name']}"
         produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{inspector['name']}" for inspector in INSPECTORS if prefilter["name"] == inspector["prefilter_name"]]
         prefilter = Prefilter(validation_config=validation_config, consume_topic=consume_topic, produce_topics=produce_topics,relevance_function_name=relevance_function_name)
