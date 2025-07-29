@@ -201,24 +201,19 @@ class Prefilter:
         self.unfiltered_data = []
         self.filtered_data = []
 
-    async def bootstrap_prefiltering_process(self):
-        loop = asyncio.get_running_loop()
+    def bootstrap_prefiltering_process(self):
         logger.info(f"I am {self.consume_topic}")
         counter = 0
         while True:
-            logger.info(f"Runnin for {self.consume_topic} - {counter}")
-            await loop.run_in_executor(
-                None, self.get_and_fill_data
-            )
-            logger.info(f"Received data {self.consume_topic} - {counter}")
-            await loop.run_in_executor(
-                None, self.check_data_relevance_using_rules
-            )
+            logger.info(f"fetching data {self.consume_topic} - {counter}")
+            self.get_and_fill_data()
+            logger.info(f"received data {self.consume_topic} - {counter}")
+            self.check_data_relevance_using_rules()
             logger.info(f"checked data {self.consume_topic} - {counter}")
             self.send_filtered_data()
             logger.info(f"Send data {self.consume_topic} - {counter}")
             counter += 1
-    async def start(self, one_iteration: bool = False):
+    async def start(self):
         """
         Runs the main loop by
 
@@ -231,28 +226,16 @@ class Prefilter:
         Args:
             one_iteration (bool): Only one iteration is done if True (for testing purposes). False by default.
         """  
-        
+        loop = asyncio.get_running_loop()
         logger.info(
             "Prefilter started:\n"
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'"
         )          
-        
-        task_bootstrap_prefiltering_process = asyncio.Task(self.bootstrap_prefiltering_process())
-        try:
-            await asyncio.gather(
-                task_bootstrap_prefiltering_process
+        await loop.run_in_executor(
+                None, self.bootstrap_prefiltering_process
             )
-        except IOError as e:
-            logger.error(e)
-            raise
-        except ValueError as e:
-            logger.debug(e)
-        except KafkaMessageFetchException as e:
-            logger.debug(e)
-        except KeyboardInterrupt:
-            logger.info("Closing down Prefilter...")
-        finally:
-            self.clear_data()
+        logger.info("Closing down Prefilter...")
+        self.clear_data()
             
 
 

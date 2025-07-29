@@ -8,8 +8,8 @@ import aiofiles
 
 sys.path.append(os.getcwd())
 from src.base.kafka_handler import (
-    SimpleKafkaConsumeHandler,
-    SimpleKafkaProduceHandler,
+    ExactlyOnceKafkaConsumeHandler,
+    ExactlyOnceKafkaProduceHandler,
 )
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import setup_config, get_zeek_sensor_topic_base_names
@@ -31,7 +31,9 @@ KAFKA_BROKERS = ",".join(
         for broker in config["environment"]["kafka_brokers"]
     ]
 )
-
+COLLECTORS = [
+    collector for collector in config["pipeline"]["log_collection"]["collectors"]
+]
 
 class LogServer:
     """
@@ -39,13 +41,13 @@ class LogServer:
     file.
     """
 
-    def __init__(self, consume_topic, produce_topic) -> None:
+    def __init__(self, consume_topic, produce_topics) -> None:
         
         self.consume_topic = consume_topic
-        self.produce_topic = produce_topic
+        self.produce_topics = produce_topics
         
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(consume_topic) 
-        self.kafka_produce_handler = SimpleKafkaProduceHandler()
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(consume_topic) 
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
         self.server_logs = ClickHouseKafkaSender("server_logs")
@@ -58,7 +60,7 @@ class LogServer:
         logger.info(
             "LogServer started:\n"
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'\n"
-            f"    ⤷  sending on Kafka topic '{self.produce_topic}'"
+            f"    ⤷  sending on Kafka topics '{self.produce_topics}'"
         )
 
         loop = asyncio.get_running_loop()
@@ -76,8 +78,9 @@ class LogServer:
             message_id (uuid.UUID): UUID of the message
             message (str): Message to be sent
         """
-        self.kafka_produce_handler.produce(topic=self.produce_topic, data=message)
-        logger.debug(f"Sent: '{message}'")
+        for topic in self.produce_topics:
+            self.kafka_produce_handler.produce(topic=topic, data=message)
+            logger.debug(f"Sent: '{message}' to topic {topic}")
 
         self.server_logs_timestamps.insert(
             dict(
@@ -113,8 +116,8 @@ async def main() -> None:
     tasks = []
     for protocol in SENSOR_PROTOCOLS:
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{protocol}"
-        produce_topic = f"{PRODUCE_TOPIC_PREFIX}-{protocol}"
-        server_instance = LogServer(consume_topic=consume_topic, produce_topic=produce_topic)
+        produce_topics = [f'{PRODUCE_TOPIC_PREFIX}-{collector["name"]}' for collector in COLLECTORS if collector["protocol_base"] == protocol]
+        server_instance = LogServer(consume_topic=consume_topic, produce_topics=produce_topics)
         tasks.append(
             asyncio.create_task(server_instance.start())
         )

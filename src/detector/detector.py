@@ -438,6 +438,7 @@ class Detector:
                break
            finally:
                self.clear_data()       
+               
     async def start(self):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(

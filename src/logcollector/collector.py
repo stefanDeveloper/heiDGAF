@@ -8,7 +8,7 @@ import uuid
 
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.kafka_handler import SimpleKafkaConsumeHandler
+from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 from src.base.logline_handler import LoglineHandler
 from src.base import utils
 from src.logcollector.batch_handler import BufferedBatchSender
@@ -44,7 +44,7 @@ class LogCollector:
         self.loglines = asyncio.Queue()
         self.batch_handler = BufferedBatchSender(produce_topics=produce_topics, collector_name=collector_name)
         self.logline_handler = LoglineHandler(validation_config)
-        self.kafka_consume_handler = SimpleKafkaConsumeHandler(consume_topic)
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(consume_topic)
 
         # databases
         self.failed_protocol_loglines = ClickHouseKafkaSender("failed_loglines")
@@ -67,7 +67,6 @@ class LogCollector:
             "LogCollector started:\n"
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'"
         )
-
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
             None, self.fetch
@@ -177,7 +176,7 @@ async def main() -> None:
     
     for collector in COLLECTORS:
         protocol = collector["protocol_base"]
-        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{protocol}"
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{collector['name']}"
         produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{prefilter['name']}" for prefilter in PREFILTERS if collector["name"] == prefilter["collector_name"]]        
         validation_config = collector["required_log_information"]
         collector_instance = LogCollector(collector_name = collector["name"], protocol=protocol,consume_topic=consume_topic, produce_topics=produce_topics, validation_config=validation_config)

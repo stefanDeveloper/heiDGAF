@@ -25,7 +25,7 @@ sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
 from src.base.log_config import get_logger
 from src.base.utils import kafka_delivery_report, setup_config
-
+import uuid
 logger = get_logger()
 
 HOSTNAME = os.getenv("HOSTNAME", "default_tid")
@@ -227,7 +227,7 @@ class KafkaConsumeHandler(KafkaHandler):
         # create consumer
         conf = {
             "bootstrap.servers": self.brokers,
-            "group.id": CONSUMER_GROUP_ID,
+            "group.id": f'{CONSUMER_GROUP_ID}',
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,

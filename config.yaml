@@ -3,9 +3,9 @@ logging:
     debug: false
   modules:
     log_storage.logserver:
-      debug: false
-    log_collection.collector:
       debug: true
+    log_collection.collector:
+      debug: false
     log_collection.batch_handler:
       debug: true
     log_filtering.prefilter:
