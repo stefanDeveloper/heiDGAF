@@ -45,7 +45,7 @@ class TestFeatures(unittest.TestCase):
 
     @patch(
         "src.detector.detector.CHECKSUM",
-        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+        "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
     )
     @patch("src.detector.detector.MODEL", "rf")
     @patch(
@@ -70,7 +70,7 @@ class TestGetModel(unittest.TestCase):
 
     @patch(
         "src.detector.detector.CHECKSUM",
-        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+        "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
     )
     @patch("src.detector.detector.MODEL", "rf")
     @patch(
@@ -246,7 +246,7 @@ class TestSendWarning(unittest.TestCase):
 
     @patch(
         "src.detector.detector.CHECKSUM",
-        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+        "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
     )
     @patch("src.detector.detector.MODEL", "rf")
     @patch(
@@ -265,13 +265,13 @@ class TestSendWarning(unittest.TestCase):
                 "request": "google.de",
                 "probability": 0.8765,
                 "model": "rf",
-                "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+                "sha256": "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
             },
             {
                 "request": "request.de",
                 "probability": 0.12388,
                 "model": "rf",
-                "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+                "sha256": "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
             },
         ]
         sut.messages = [{"logline_id": "test_id"}]
@@ -285,7 +285,7 @@ class TestSendWarning(unittest.TestCase):
 
     @patch(
         "src.detector.detector.CHECKSUM",
-        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+        "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
     )
     @patch("src.detector.detector.MODEL", "rf")
     @patch(
@@ -309,7 +309,7 @@ class TestSendWarning(unittest.TestCase):
 
     @patch(
         "src.detector.detector.CHECKSUM",
-        "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+        "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
     )
     @patch("src.detector.detector.MODEL", "rf")
     @patch(
@@ -328,7 +328,7 @@ class TestSendWarning(unittest.TestCase):
                 "request": "request.de",
                 "probability": "INVALID",
                 "model": "rf",
-                "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+                "sha256": "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
             }
         ]
         with self.assertRaises(Exception):
