@@ -311,7 +311,7 @@ class Detector:
         for message in self.messages:
             # TODO predict all messages
             y_pred = self.model.predict_proba(
-                self.scaler.transform(self._get_features(message["host_domain_name"]))
+                self.scaler.transform(self._get_features(message["domain_name"]))
             )
             logger.info(f"Prediction: {y_pred}")
             if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:
