@@ -56,12 +56,15 @@ class Detector:
         self.begin_timestamp = None
         self.end_timestamp = None
         self.model_path = os.path.join(
-            tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}.pickle"
+            tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}_model.pickle"
+        )
+        self.scaler_path = os.path.join(
+            tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}_scaler.pickle"
         )
 
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
 
-        self.model = self._get_model()
+        self.model, self.scaler = self._get_model()
 
         # databases
         self.suspicious_batch_timestamps = ClickHouseKafkaSender(
@@ -159,12 +162,26 @@ class Detector:
         logger.info(f"Get model: {MODEL} with checksum {CHECKSUM}")
         if not os.path.isfile(self.model_path):
             response = requests.get(
-                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pickle&dl=1"
+                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}/{CHECKSUM}/{MODEL}.pickle&dl=1"
             )
-            logger.info(f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}_{CHECKSUM}.pickle&dl=1")
+            logger.info(
+                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}/{CHECKSUM}/{MODEL}.pickle&dl=1"
+            )
             response.raise_for_status()
 
             with open(self.model_path, "wb") as f:
+                f.write(response.content)
+
+        if not os.path.isfile(self.scaler_path):
+            response = requests.get(
+                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}/{CHECKSUM}/scaler.pickle&dl=1"
+            )
+            logger.info(
+                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}/{CHECKSUM}/scaler.pickle&dl=1"
+            )
+            response.raise_for_status()
+
+            with open(self.scaler_path, "wb") as f:
                 f.write(response.content)
 
         # Check file sha256
@@ -181,7 +198,10 @@ class Detector:
         with open(self.model_path, "rb") as input_file:
             clf = pickle.load(input_file)
 
-        return clf
+        with open(self.scaler_path, "rb") as input_file:
+            scaler = pickle.load(input_file)
+
+        return clf, scaler
 
     def clear_data(self):
         """Clears the data in the internal data structures."""
@@ -304,7 +324,7 @@ class Detector:
         for message in self.messages:
             # TODO predict all messages
             y_pred = self.model.predict_proba(
-                self._get_features(message["domain_name"])
+                self.scaler.transform(self._get_features(message["domain_name"]))
             )
             logger.info(f"Prediction: {y_pred}")
             if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:
