@@ -257,12 +257,6 @@ class Detector:
             for level, level_value in levels.items()
         }
 
-        logger.debug("Get frequency standard deviation, median, variance, and mean.")
-        freq_std = np.std(freq)
-        freq_var = np.var(freq)
-        freq_median = np.median(freq)
-        freq_mean = np.mean(freq)
-
         logger.debug(
             "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
         )
@@ -288,16 +282,9 @@ class Detector:
 
         # Final feature aggregation as a NumPy array
         basic_features = np.array([label_length, label_max, label_average])
-        freq_features = np.array([freq_std, freq_var, freq_median, freq_mean])
 
         # Flatten counts and stats for each level into arrays
         level_features = np.hstack([counts[level] for level in levels.keys()])
-        stats_features = np.array(
-            [stats[f"{level}_std"] for level in levels.keys()]
-            + [stats[f"{level}_var"] for level in levels.keys()]
-            + [stats[f"{level}_median"] for level in levels.keys()]
-            + [stats[f"{level}_mean"] for level in levels.keys()]
-        )
 
         # Entropy features
         entropy_features = np.array([entropy[level] for level in levels.keys()])
@@ -307,9 +294,9 @@ class Detector:
             [
                 basic_features,
                 freq,
-                freq_features,
+                # freq_features,
                 level_features,
-                stats_features,
+                # stats_features,
                 entropy_features,
             ]
         )
@@ -324,7 +311,7 @@ class Detector:
         for message in self.messages:
             # TODO predict all messages
             y_pred = self.model.predict_proba(
-                self.scaler.transform(self._get_features(message["domain_name"]))
+                self.scaler.transform(self._get_features(message["host_domain_name"]))
             )
             logger.info(f"Prediction: {y_pred}")
             if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:
