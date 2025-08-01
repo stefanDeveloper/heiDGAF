@@ -325,3 +325,4 @@ cython_debug/
 # Others
 docs/api/
 !/docs/api/index.rst
+/benchmark_results/
