@@ -227,7 +227,9 @@ class BenchmarkTestController:
         self, arguments
     ) -> [str, pd.Timestamp]:
         def cleanup_clickhouse_database():
-            subprocess.run(["sh", "benchmarking/src/cleanup.sh"]).check_returncode()
+            subprocess.run(
+                ["sh", "benchmarking/src/shell/cleanup.sh"]
+            ).check_returncode()
 
         def execute_test_return_start_time() -> pd.Timestamp:
             start_time = pd.Timestamp.utcnow().tz_localize(
@@ -244,7 +246,7 @@ class BenchmarkTestController:
 
         def check_if_all_data_processed():
             subprocess.run(
-                ["sh", "benchmarking/src/check_if_finished.sh"]
+                ["sh", "benchmarking/src/shell/check_if_finished.sh"]
             ).check_returncode()
 
         def extract_all_data_from_clickhouse_return_identifier() -> str:
@@ -255,7 +257,7 @@ class BenchmarkTestController:
             subprocess.run(
                 [
                     "sh",
-                    "benchmarking/src/extract_data.sh",
+                    "benchmarking/src/shell/extract_data.sh",
                     f"{identifier}",  # e.g. burst_20250709_202118
                 ]
             ).check_returncode()
