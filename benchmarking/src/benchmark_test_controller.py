@@ -22,6 +22,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
 
 LATENCIES_COMPARISON_FILENAME = "latency_comparison.png"
 
+MODULE_TO_CSV_FILENAME = {
+    "Batch Handler": "batch_handler.csv",
+    "Collector": "collector.csv",
+    "Detector": "detector.csv",
+    "Inspector": "inspector.csv",
+    "Log Server": "logserver.csv",
+    "Prefilter": "prefilter.csv",
+}
+
 
 class BenchmarkTestController:
     """Contains methods for running tests on remote hosts."""
@@ -187,15 +196,6 @@ class BenchmarkTestController:
     def _generate_plots(self, start_time: pd.Timestamp):
         plot_generator = PlotGenerator()
 
-        module_to_filename = {
-            "Batch Handler": "batch_handler.csv",
-            "Collector": "collector.csv",
-            "Detector": "detector.csv",
-            "Inspector": "inspector.csv",
-            "Log Server": "logserver.csv",
-            "Prefilter": "prefilter.csv",
-        }
-
         def plot_latency_comparison():
             """Plots the latency_comparison graph."""
             # prepare directory paths
@@ -207,10 +207,10 @@ class BenchmarkTestController:
 
             # prepare input file paths
             module_to_filepath = (
-                module_to_filename.copy()
+                MODULE_TO_CSV_FILENAME.copy()
             )  # keep original dictionary unchanged
-            for module in module_to_filename.keys():
-                filename = module_to_filename[module]
+            for module in MODULE_TO_CSV_FILENAME.keys():
+                filename = MODULE_TO_CSV_FILENAME[module]
                 module_to_filepath[module] = relative_data_path / "latencies" / filename
 
             # generate and save plots
