@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from benchmarking.src.test_types.scalability_test import ScalabilityTest
+from benchmarking.src.test_types.base_test import IntervalBasedTest
 from src.base.log_config import get_logger
 from benchmarking.src.setup_config import setup_config
 
@@ -13,7 +13,7 @@ benchmark_test_config = setup_config()
 burst_test_config = benchmark_test_config["tests"]["burst"]
 
 
-class BurstTest(ScalabilityTest):
+class BurstTest(IntervalBasedTest):
     """Starts with a normal rate, sends a high rate for a short period, then returns to normal rate.
     Repeats the process for a defined number of times."""
 
@@ -25,17 +25,20 @@ class BurstTest(ScalabilityTest):
         burst_rate_interval_length: float | int,
         number_of_repetitions: int = 1,
     ):
-        super().__init__()
-
-        self.msg_per_sec_in_intervals = [normal_rate_msg_per_sec]
-        self.interval_lengths = [normal_rate_interval_length]
+        interval_lengths_in_seconds = [normal_rate_interval_length]
+        messages_per_second_in_intervals = [normal_rate_msg_per_sec]
 
         for _ in range(number_of_repetitions):
-            self.msg_per_sec_in_intervals.append(burst_rate_msg_per_sec)
-            self.msg_per_sec_in_intervals.append(normal_rate_msg_per_sec)
+            messages_per_second_in_intervals.append(burst_rate_msg_per_sec)
+            messages_per_second_in_intervals.append(normal_rate_msg_per_sec)
 
-            self.interval_lengths.append(burst_rate_interval_length)
-            self.interval_lengths.append(normal_rate_interval_length)
+            interval_lengths_in_seconds.append(burst_rate_interval_length)
+            interval_lengths_in_seconds.append(normal_rate_interval_length)
+
+        super().__init__(
+            interval_lengths_in_seconds=interval_lengths_in_seconds,
+            messages_per_second_in_intervals=messages_per_second_in_intervals,
+        )
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from benchmarking.src.test_types.scalability_test import ScalabilityTest
+from benchmarking.src.test_types.base_test import IntervalBasedTest
 from src.base.log_config import get_logger
 from benchmarking.src.setup_config import setup_config
 
@@ -13,26 +13,25 @@ benchmark_test_config = setup_config()
 ramp_up_test_config = benchmark_test_config["tests"]["ramp_up"]
 
 
-class RampUpTest(ScalabilityTest):
+class RampUpTest(IntervalBasedTest):
     """Starts with a low rate and increases the rate in fixed intervals."""
 
     def __init__(
         self,
-        msg_per_sec_in_intervals: list[float | int],
-        interval_length_in_sec: int | float | list[int | float],
+        interval_lengths_in_seconds: int | float | list[int | float],
+        messages_per_second_in_intervals: list[float | int],
     ):
-        super().__init__()
-        self.msg_per_sec_in_intervals = msg_per_sec_in_intervals
-
-        if type(interval_length_in_sec) is list:
-            self.interval_lengths = interval_length_in_sec
-        else:
-            self.interval_lengths = [
-                interval_length_in_sec for _ in range(len(msg_per_sec_in_intervals))
-            ]
-
-        if len(interval_length_in_sec) != len(msg_per_sec_in_intervals):
-            raise Exception("Different lengths of interval lists. Must be equal.")
+        """
+        Args:
+            interval_lengths_in_seconds: Single value to use for each interval, or list of lengths for each interval
+                                         separately
+            messages_per_second_in_intervals: List of message rates per interval. Must have same length as
+                                              interval_lengths_in_seconds, if a list is specified there.
+        """
+        super().__init__(
+            interval_lengths_in_seconds,
+            messages_per_second_in_intervals,
+        )
 
 
 if __name__ == "__main__":
@@ -65,8 +64,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    ramp_up_test = RampUpTest(  # TODO: Check handling of single value
-        msg_per_sec_in_intervals=[int(e) for e in args.data_rates.split(",")],
-        interval_length_in_sec=[int(e) for e in args.durations.split(",")],
+    ramp_up_test = RampUpTest(
+        messages_per_second_in_intervals=[int(e) for e in args.data_rates.split(",")],
+        interval_lengths_in_seconds=[int(e) for e in args.durations.split(",")],
     )
     ramp_up_test.execute()
