@@ -3,7 +3,7 @@ services:
     container_name: benchmark_test_runner
     build:
       context: ..
-      dockerfile: benchmarking/docker/Dockerfile.benchmark_test_runner
+      dockerfile: benchmarking/Dockerfile.benchmark_test_runner
       network: host
     networks:
       docker_heidgaf:
