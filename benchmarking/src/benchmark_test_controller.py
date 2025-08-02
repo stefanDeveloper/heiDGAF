@@ -21,7 +21,6 @@ benchmark_test_config = setup_benchmark_test_config()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
 
 LATENCIES_COMPARISON_FILENAME = "latency_comparison.png"
-
 MODULE_TO_CSV_FILENAME = {
     "Batch Handler": "batch_handler.csv",
     "Collector": "collector.csv",
@@ -134,10 +133,7 @@ class BenchmarkTestController:
                 arguments = handle_maximum_throughput()
 
             case "long_term":
-                # arguments = handle_long_term()
-                arguments = [
-                    "--data_rate 100 --length 2"
-                ]  # TODO: Remove, only for testing
+                arguments = handle_long_term()
 
             case _:
                 raise ValueError("Unknown test type")
@@ -285,10 +281,4 @@ class BenchmarkTestController:
 
 if __name__ == "__main__":
     controller = BenchmarkTestController()
-    controller.run_single_test("long_term")
-
-    # controller.test_run_directory = Path("benchmark_results/long_term_20250716_195953")
-    # controller._generate_report()
-    # controller.run_single_test("long_term")
-    # controller._generate_plots(test_run_directory="benchmark_results/long_term_20250716_195953",
-    #                            start_time=pd.Timestamp("2025-07-16 19:59:52"))
+    controller.run_configured_tests_sequentially()
