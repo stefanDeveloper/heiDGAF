@@ -251,14 +251,14 @@ class BenchmarkTestController:
 
         def extract_all_data_from_clickhouse_return_identifier() -> str:
             identifier = (
-                self.test_name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + self.test_name
             )
 
             subprocess.run(
                 [
                     "sh",
                     "benchmarking/src/shell/extract_data.sh",
-                    f"{identifier}",  # e.g. burst_20250709_202118
+                    f"{identifier}",  # e.g. 20250709_202118_burst
                 ]
             ).check_returncode()
 
