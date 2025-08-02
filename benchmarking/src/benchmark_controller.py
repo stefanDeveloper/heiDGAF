@@ -12,11 +12,11 @@ from benchmarking.src.pdf_overview_generator import PDFOverviewGenerator
 from benchmarking.src.plot_generator import PlotGenerator
 from src.base.log_config import get_logger
 from src.base.utils import setup_config
-from benchmarking.src.setup_config import setup_config as setup_benchmark_test_config
+from benchmarking.src.setup_config import setup_config as setup_benchmark_config
 
 logger = get_logger()
 config = setup_config()
-benchmark_test_config = setup_benchmark_test_config()
+benchmark_test_config = setup_benchmark_config()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
 
@@ -31,7 +31,7 @@ MODULE_TO_CSV_FILENAME = {
 }
 
 
-class BenchmarkTestController:
+class BenchmarkController:
     """Contains methods for running tests on remote hosts."""
 
     def __init__(self):
@@ -234,7 +234,7 @@ class BenchmarkTestController:
 
             cmd = (
                 f"docker exec {self.docker_container_name} "
-                f"python benchmarking/src/test_types/{self.test_name}_test.py {' '.join(arguments)}"
+                f"python benchmarking/src/test_types/{self.test_name}.py {' '.join(arguments)}"
             )
             subprocess.run(cmd, shell=True).check_returncode()
 
@@ -280,5 +280,5 @@ class BenchmarkTestController:
 
 
 if __name__ == "__main__":
-    controller = BenchmarkTestController()
+    controller = BenchmarkController()
     controller.run_configured_tests_sequentially()

@@ -10,9 +10,7 @@ from src.base.utils import setup_config
 logger = get_logger()
 config = setup_config()
 
-CONFIG_FILEPATH = os.path.join(
-    os.path.dirname(__file__), "../benchmark_test_config.yaml"
-)
+CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../benchmark_config.yaml")
 
 
 def setup_config():

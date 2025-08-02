@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from benchmarking.src.test_types.base_test import SingleIntervalTest
+from benchmarking.src.test_types.base import SingleIntervalTest
 from src.base.log_config import get_logger
 from benchmarking.src.setup_config import setup_config as setup_benchmark_test_config
 

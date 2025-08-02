@@ -11,7 +11,7 @@ COPY src/train ./src/train
 COPY config.yaml .
 COPY benchmarking/src ./benchmarking/src
 COPY benchmarking/sql/entering_processed/activity_last_three_minutes.sql benchmarking/sql/entering_processed/activity_last_three_minutes.sql
-COPY benchmarking/benchmark_test_config.yaml ./benchmarking/benchmark_test_config.yaml
+COPY benchmarking/benchmark_config.yaml ./benchmarking/benchmark_config.yaml
 COPY data ./data
 
 RUN rm -rf /root/.cache

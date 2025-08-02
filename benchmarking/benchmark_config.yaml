@@ -27,3 +27,5 @@ tests:
 test_runs:
   - ramp_up
   - maximum_throughput
+  - burst
+  - long_term

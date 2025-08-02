@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from benchmarking.src.test_types.base_test import IntervalBasedTest
+from benchmarking.src.test_types.base import IntervalBasedTest
 from src.base.log_config import get_logger
 from benchmarking.src.setup_config import setup_config
 
