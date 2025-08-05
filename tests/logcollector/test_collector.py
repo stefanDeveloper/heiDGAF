@@ -171,7 +171,7 @@ class TestSend(unittest.TestCase):
         self.sut.logline_handler.validate_logline_and_get_fields_as_json.return_value = {
             "timestamp": str(timestamp),
             "status_code": "test_status",
-            "client_ip": "192.168.3.141",
+            "src_ip": "192.168.3.141",
             "record_type": "test_record_type",
         }
 
@@ -188,7 +188,7 @@ class TestSend(unittest.TestCase):
         # Assert
         self.sut.batch_handler.add_message.assert_called_once_with(
             "192.168.3.0_24",
-            '{"timestamp": "2026-02-14 16:38:06.184006", "status_code": "test_status", "client_ip": "192.168.3.141", "record_type": "test_record_type", "logline_id": "da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
+            '{"timestamp": "2026-02-14 16:38:06.184006", "status_code": "test_status", "src_ip": "192.168.3.141", "record_type": "test_record_type", "logline_id": "da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
         )
 
 

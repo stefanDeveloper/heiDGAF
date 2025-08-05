@@ -26,7 +26,7 @@ used by the modules. Some field names are cannot be used, as they are defined fo
    :widths: 15 50
 
    * - Required
-     - ``timestamp``, ``status_code``, ``client_ip``, ``record_type``, ``domain_name``
+     - ``timestamp``, ``status_code``, ``src_ip``, ``record_type``, ``domain_name``
    * - Forbidden
      - ``logline_id``, ``batch_id``
 

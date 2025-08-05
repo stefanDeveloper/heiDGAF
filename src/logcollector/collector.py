@@ -116,7 +116,7 @@ class LogCollector:
                 logline_id=logline_id,
                 subnet_id=subnet_id,
                 timestamp=datetime.datetime.fromisoformat(fields.get("ts")),
-                client_ip=fields.get("src_ip"),
+                src_ip=fields.get("src_ip"),
                 additional_fields=json.dumps(additional_fields),
             )
         )

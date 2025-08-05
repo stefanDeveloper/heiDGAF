@@ -187,7 +187,7 @@ class TestFilterByError(unittest.TestCase):
             "logline_id": str(uuid.uuid4()),
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status_code": "NOERROR",
-            "client_ip": "192.168.0.105",
+            "src_ip": "192.168.0.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
             "record_type": "A",
@@ -199,7 +199,7 @@ class TestFilterByError(unittest.TestCase):
             "logline_id": str(uuid.uuid4()),
             "timestamp": "2024-06-01T02:31:07.943Z",
             "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
+            "src_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.biotech-hei.com",
             "record_type": "AAAA",
@@ -211,7 +211,7 @@ class TestFilterByError(unittest.TestCase):
             "logline_id": str(uuid.uuid4()),
             "timestamp": "2024-06-01T01:37:41.796Z",
             "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
+            "src_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-stadtbibliothek.de",
             "record_type": "A",
@@ -244,7 +244,7 @@ class TestFilterByError(unittest.TestCase):
             "logline_id": str(uuid.uuid4()),
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status_code": "NOERROR",
-            "client_ip": "192.168.0.105",
+            "src_ip": "192.168.0.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
             "record_type": "A",
@@ -256,7 +256,7 @@ class TestFilterByError(unittest.TestCase):
             "logline_id": str(uuid.uuid4()),
             "timestamp": "2024-06-01T02:31:07.943Z",
             "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
+            "src_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.biotech-hei.com",
             "record_type": "AAAA",
@@ -268,7 +268,7 @@ class TestFilterByError(unittest.TestCase):
             "logline_id": str(uuid.uuid4()),
             "timestamp": "2024-06-01T01:37:41.796Z",
             "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
+            "src_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-stadtbibliothek.de",
             "record_type": "A",
@@ -301,7 +301,7 @@ class TestFilterByError(unittest.TestCase):
             "logline_id": str(uuid.uuid4()),
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status_code": "NOERROR",
-            "client_ip": "192.168.0.105",
+            "src_ip": "192.168.0.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
             "record_type": "A",
@@ -313,7 +313,7 @@ class TestFilterByError(unittest.TestCase):
             "logline_id": str(uuid.uuid4()),
             "timestamp": "2024-06-01T02:31:07.943Z",
             "status_code": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
+            "src_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.biotech-hei.com",
             "record_type": "AAAA",
@@ -325,7 +325,7 @@ class TestFilterByError(unittest.TestCase):
             "logline_id": str(uuid.uuid4()),
             "timestamp": "2024-06-01T01:37:41.796Z",
             "status_code": "OTHER_TYPE",
-            "client_ip": "192.168.1.206",
+            "src_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-stadtbibliothek.de",
             "record_type": "A",
@@ -363,7 +363,7 @@ class TestSendFilteredData(unittest.TestCase):
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status": "NXDOMAIN",
-            "client_ip": "192.168.1.105",
+            "src_ip": "192.168.1.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
             "record_type": "A",
@@ -373,7 +373,7 @@ class TestSendFilteredData(unittest.TestCase):
         second_entry = {
             "timestamp": "2024-06-01T02:31:07.943Z",
             "status": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
+            "src_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.biotech-hei.com",
             "record_type": "AAAA",
@@ -391,10 +391,10 @@ class TestSendFilteredData(unittest.TestCase):
         expected_message = (
             '{"batch_id": "5236b147-5b0d-44a8-981f-bd7da8c54733", "begin_timestamp": "2024-05-21T08:31:27", '
             '"end_timestamp": "2024-05-21T08:31:29", "data": [{'
-            '"timestamp": "2024-05-21T08:31:28.119Z", "status": "NXDOMAIN", "client_ip": "192.168.1.105", '
+            '"timestamp": "2024-05-21T08:31:28.119Z", "status": "NXDOMAIN", "src_ip": "192.168.1.105", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}, {"timestamp": "2024-06-01T02:31:07.943Z", '
-            '"status": "NXDOMAIN", "client_ip": "192.168.1.206", "dns_ip": "8.8.8.8", "host_domain_name": '
+            '"status": "NXDOMAIN", "src_ip": "192.168.1.206", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.biotech-hei.com", "record_type": "AAAA", "response_ip": "4250:5939:b4f2:b3ec:36ef:752d:b325:189b", '
             '"size": "117b"}]}'
         )
@@ -470,7 +470,7 @@ class TestClearData(unittest.TestCase):
         first_entry = {
             "timestamp": "2024-05-21T08:31:28.119Z",
             "status": "NOERROR",
-            "client_ip": "192.168.0.105",
+            "src_ip": "192.168.0.105",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.heidelberg-botanik.de",
             "record_type": "A",
@@ -480,7 +480,7 @@ class TestClearData(unittest.TestCase):
         second_entry = {
             "timestamp": "2024-06-01T02:31:07.943Z",
             "status": "NXDOMAIN",
-            "client_ip": "192.168.1.206",
+            "src_ip": "192.168.1.206",
             "dns_ip": "8.8.8.8",
             "host_domain_name": "www.biotech-hei.com",
             "record_type": "AAAA",

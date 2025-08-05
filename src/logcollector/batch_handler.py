@@ -11,7 +11,7 @@ sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
-from src.base.utils import setup_config, get_batch_configuration
+from src.base.utils import setup_config, get_batch_configuration, generate_collisions_resistant_uuid
 from src.base.log_config import get_logger
 
 module_name = "log_collection.batch_handler"
@@ -30,7 +30,8 @@ class BufferedBatch:
     buffer that stores the previous batch messages. Sorts the batches and can return timestamps.
     """
 
-    def __init__(self,batch_configuration):
+    def __init__(self, collector_name):
+        self.name = f"buffered-batch-for-{collector_name}"
         self.batch = {}  # Batch for the latest messages coming in
         self.buffer = {}  # Former batch with previous messages
         self.batch_id = {}  # Batch ID per key
@@ -39,7 +40,7 @@ class BufferedBatch:
         self.logline_to_batches = ClickHouseKafkaSender("logline_to_batches")
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
         self.fill_levels = ClickHouseKafkaSender("fill_levels")
-
+        self.batch_tree = ClickHouseKafkaSender("batch_tree")
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -81,6 +82,7 @@ class BufferedBatch:
                 dict(
                     batch_id=batch_id,
                     stage=module_name,
+                    instance_name=self.name,
                     status="waiting",
                     timestamp=datetime.datetime.now(),
                     is_active=True,
@@ -105,6 +107,7 @@ class BufferedBatch:
                 dict(
                     batch_id=new_batch_id,
                     stage=module_name,
+                    instance_name=self.name,
                     status="waiting",
                     timestamp=datetime.datetime.now(),
                     is_active=True,
@@ -208,8 +211,10 @@ class BufferedBatch:
                     if entries and entries[-1]
                     else None
                 )
-
+            row_id = generate_collisions_resistant_uuid()
+            
             data = {
+                "batch_tree_row_id": row_id,
                 "batch_id": batch_id,
                 "begin_timestamp": datetime.datetime.fromisoformat(begin_timestamp),
                 "end_timestamp": datetime.datetime.fromisoformat(
@@ -217,18 +222,31 @@ class BufferedBatch:
                 ),
                 "data": buffer_data + self.batch[key],
             }
-
+            
+            timestamp=datetime.datetime.now()
             self.batch_timestamps.insert(
-                dict(
+                dict(   
                     batch_id=batch_id,
                     stage=module_name,
+                    instance_name=self.name,
                     status="completed",
-                    timestamp=datetime.datetime.now(),
+                    timestamp=timestamp,
                     is_active=True,
                     message_count=self.get_message_count_for_batch_key(key),
                 )
             )
-
+            self.batch_tree.insert(
+                dict(
+                    batch_row_id=row_id,   
+                    parent_batch_row_id=None,
+                    stage=module_name,
+                    instance_name=self.name,
+                    timestamp=timestamp,
+                    status="completed",
+                    batch_id=batch_id
+                )
+            )            
+            
             # Move data from batch to buffer
             self.buffer[key] = self.batch[key]
             del self.batch[key]
@@ -337,7 +355,7 @@ class BufferedBatchSender:
     def __init__(self, produce_topics, collector_name):
         self.topics = produce_topics
         self.batch_configuration = get_batch_configuration(collector_name)
-        self.batch = BufferedBatch(self.batch_configuration)
+        self.batch = BufferedBatch(collector_name)
         self.timer = None
 
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()

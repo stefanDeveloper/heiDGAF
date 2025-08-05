@@ -3,17 +3,17 @@ logging:
     debug: false
   modules:
     log_storage.logserver:
-      debug: true
+      debug: false
     log_collection.collector:
       debug: false
     log_collection.batch_handler:
-      debug: true
+      debug: false
     log_filtering.prefilter:
-      debug: true
+      debug: false
     data_inspection.inspector:
-      debug: true
+      debug: false
     data_analysis.detector:
-      debug: true
+      debug: false
 
 pipeline:
   log_storage:
@@ -68,7 +68,7 @@ pipeline:
   log_filtering:
     - name: "dga_filter"
       # method to apply for rule based prefiltering according to the needs
-      relevance_method: check_dga_relevance
+      relevance_method: no_relevance_check # check_dga_relevance
       collector_name: dga_collector 
     - name: "dominator_filter"
       relevance_method: no_relevance_check
@@ -199,13 +199,13 @@ environment:
   kafka_brokers:
     - hostname: kafka1
       port: 8097
-      node_ip: 192.168.175.69
+      node_ip: 192.168.178.96
     - hostname: kafka2
       port: 8098
-      node_ip: 192.168.175.69
+      node_ip: 192.168.178.96
     - hostname: kafka3
       port: 8099
-      node_ip: 192.168.175.69
+      node_ip: 192.168.178.96
   kafka_topics_prefix:
     pipeline:
       logserver_in: "pipeline-logserver_in"

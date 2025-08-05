@@ -16,7 +16,7 @@ class TestClearData(unittest.TestCase):
                 {
                     "timestamp": "2024-05-21T08:31:28.119",
                     "status": "NOERROR",
-                    "client_ip": "192.168.0.105",
+                    "src_ip": "192.168.0.105",
                     "dns_ip": "8.8.8.8",
                     "host_domain_name": "www.heidelberg-botanik.de",
                     "record_type": "A",

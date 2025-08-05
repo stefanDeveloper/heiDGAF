@@ -13,7 +13,7 @@ from numpy import median
 
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.utils import setup_config
+from src.base.utils import setup_config, generate_collisions_resistant_uuid
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
     KafkaMessageFetchException,
@@ -69,6 +69,7 @@ class Detector:
         self.model = self._get_model()
 
         # databases
+        self.batch_tree = ClickHouseKafkaSender("batch_tree")
         self.suspicious_batch_timestamps = ClickHouseKafkaSender(
             "suspicious_batch_timestamps"
         )
@@ -93,28 +94,40 @@ class Detector:
                 "current workload."
             )
             return
-        logger.info("consuming")
         key, data = self.kafka_consume_handler.consume_as_object()
-        logger.info("consumed")
         if data.data:
+            self.parent_row_id = data.batch_tree_row_id
             self.suspicious_batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
-        logger.info("send1")
         self.suspicious_batch_timestamps.insert(
             dict(
                 suspicious_batch_id=self.suspicious_batch_id,
-                client_ip=key,
+                src_ip=key,
                 stage=module_name,
+                instance_name=self.name,
                 status="in_process",
                 timestamp=datetime.datetime.now(),
                 is_active=True,
                 message_count=len(self.messages),
             )
         )
-        logger.info("send2")
+        row_id = generate_collisions_resistant_uuid()
+        
+        self.batch_tree.insert(
+            dict(
+                batch_row_id = row_id,
+                stage=module_name,
+                instance_name=self.name,
+                status="in_process",
+                timestamp=datetime.datetime.now(),
+                parent_batch_row_id=self.parent_row_id,
+                batch_id=self.suspicious_batch_id
+            )
+        )
+        
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -341,7 +354,7 @@ class Detector:
 
             self.alerts.insert(
                 dict(
-                    client_ip=self.key,
+                    src_ip=self.key,
                     alert_timestamp=datetime.datetime.now(),
                     suspicious_batch_id=self.suspicious_batch_id,
                     overall_score=overall_score,
@@ -355,12 +368,27 @@ class Detector:
             self.suspicious_batch_timestamps.insert(
                 dict(
                     suspicious_batch_id=self.suspicious_batch_id,
-                    client_ip=self.key,
+                    src_ip=self.key,
                     stage=module_name,
+                    instance_name=self.name,
                     status="finished",
                     timestamp=datetime.datetime.now(),
                     is_active=False,
                     message_count=len(self.messages),
+                )
+            )
+            
+            row_id = generate_collisions_resistant_uuid()
+            
+            self.batch_tree.insert(
+                dict(
+                    batch_row_id = row_id,
+                    stage=module_name,
+                    instance_name=self.name,
+                    status="finished",
+                    timestamp=datetime.datetime.now(),
+                    parent_batch_row_id=self.parent_row_id,
+                    batch_id=self.suspicious_batch_id
                 )
             )
 
@@ -384,8 +412,9 @@ class Detector:
             self.suspicious_batch_timestamps.insert(
                 dict(
                     suspicious_batch_id=self.suspicious_batch_id,
-                    client_ip=self.key,
+                    src_ip=self.key,
                     stage=module_name,
+                    instance_name=self.name,
                     status="filtered_out",
                     timestamp=datetime.datetime.now(),
                     is_active=False,

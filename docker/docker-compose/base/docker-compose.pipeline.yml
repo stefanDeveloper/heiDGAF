@@ -74,7 +74,7 @@ services:
       heidgaf:
     deploy:
       mode: "replicated"
-      replicas: 1
+      replicas: 4
       resources:
         limits:
           cpus: '2'
@@ -84,7 +84,7 @@ services:
           memory: 256m
     environment:
       - GROUP_ID=data_inspection
-      - NUMBER_OF_INSTANCES=1
+      - NUMBER_OF_INSTANCES=4
     volumes:
       - ../../../config.yaml:/app/config.yaml
   detector:

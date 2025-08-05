@@ -64,7 +64,7 @@ class DatasetGenerator:
 
         # choose client IP address
         number_of_subnets = 50
-        client_ip = (
+        src_ip = (
             f"192.168.{random.randint(0, number_of_subnets)}.{random.randint(1, 255)}"
         )
 
@@ -96,7 +96,7 @@ class DatasetGenerator:
         # choose random size
         size = f"{random.randint(50, 255)}b"
 
-        return f"{timestamp} {status} {client_ip} {server_ip} {domain} {record_type} {response_ip_address} {size}"
+        return f"{timestamp} {status} {src_ip} {server_ip} {domain} {record_type} {response_ip_address} {size}"
 
     def get_random_domain(self) -> str:
         random_domain = self.domains.sample(n=1)

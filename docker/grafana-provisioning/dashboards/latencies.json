@@ -1110,7 +1110,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -1180,9 +1180,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\n\n\n\n",
           "refId": "A"
         }
       ],
@@ -1271,7 +1271,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -1339,9 +1339,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\n",
           "refId": "A"
         }
       ],
@@ -1803,7 +1803,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -1873,9 +1873,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n      FROM batch_timestamps bt\n      INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n      INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n      WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n            sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n            bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime)",
           "refId": "A"
         }
       ],
@@ -1964,7 +1964,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -2032,9 +2032,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n      FROM batch_timestamps bt\n      INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n      INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n      WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n            sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n            bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
           "refId": "A"
         }
       ],
@@ -2495,7 +2495,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -2565,9 +2565,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n      FROM suspicious_batch_timestamps sbt1\n      INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n      WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n            sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n            sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
           "refId": "A"
         }
       ],
@@ -2656,7 +2656,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -2724,9 +2724,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n      FROM suspicious_batch_timestamps sbt1\n      INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n      WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n            sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n            sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\n",
           "refId": "A"
         }
       ],
@@ -3305,7 +3305,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -3388,9 +3388,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_timestamps bt1\n  INNER JOIN batch_timestamps bt2\n          ON bt1.batch_id = bt2.batch_id\n  WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n    AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n    AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
           "refId": "A"
         }
       ],
@@ -3398,7 +3398,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -3481,9 +3481,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_timestamps bt1\n  INNER JOIN batch_timestamps bt2\n          ON bt1.batch_id = bt2.batch_id\n  WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
           "refId": "A"
         }
       ],
@@ -3491,7 +3491,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -3574,16 +3574,16 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.6.0",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM suspicious_batch_timestamps bt1\n  INNER JOIN suspicious_batch_timestamps bt2\n          ON bt1.suspicious_batch_id = bt2.suspicious_batch_id\n  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\n\n",
           "refId": "A"
         }
       ],
       "type": "stat"
     }
   ],
-  "refresh": "auto",
+  "refresh": "5s",
   "schemaVersion": 39,
   "tags": [],
   "templating": {

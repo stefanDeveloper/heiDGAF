@@ -13,7 +13,7 @@ from streamad.util import StreamGenerator, CustomDS
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
-from src.base.utils import setup_config, get_zeek_sensor_topic_base_names
+from src.base.utils import setup_config, get_zeek_sensor_topic_base_names, generate_collisions_resistant_uuid
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
@@ -85,6 +85,7 @@ class Inspector:
 
         self.consume_topic = consume_topic
         self.produce_topics = produce_topics
+        self.name = None
         self.batch_id = None
         self.X = None
         self.key = None
@@ -98,6 +99,7 @@ class Inspector:
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
+        self.batch_tree = ClickHouseKafkaSender("batch_tree")
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
         self.suspicious_batch_timestamps = ClickHouseKafkaSender(
             "suspicious_batch_timestamps"
@@ -128,6 +130,7 @@ class Inspector:
 
         key, data = self.kafka_consume_handler.consume_as_object()
         if data:
+            self.parent_row_id = data.batch_tree_row_id
             self.batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
@@ -138,11 +141,27 @@ class Inspector:
                 batch_id=self.batch_id,
                 stage=module_name,
                 status="in_process",
+                instance_name=self.name,
                 timestamp=datetime.now(),
                 is_active=True,
                 message_count=len(self.messages),
             )
         )
+        
+        row_id = generate_collisions_resistant_uuid()
+        
+        self.batch_tree.insert(
+            dict(
+                batch_row_id = row_id,
+                stage=module_name,
+                instance_name=self.name,
+                status="in_process",
+                timestamp=datetime.now(),
+                parent_batch_row_id=self.parent_row_id,
+                batch_id=self.batch_id
+            )
+        )
+        
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.now(),
@@ -496,8 +515,10 @@ class Inspector:
                         batch_id=self.batch_id,
                     )
                 )
+                row_id = generate_collisions_resistant_uuid()
 
                 data_to_send = {
+                    "batch_tree_row_id": row_id,
                     "batch_id": suspicious_batch_id,
                     "begin_timestamp": self.begin_timestamp,
                     "end_timestamp": self.end_timestamp,
@@ -506,28 +527,46 @@ class Inspector:
 
                 batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
+                # important to finish before sending, otherwise detector can process before finished here!
                 self.suspicious_batch_timestamps.insert(
                     dict(
                         suspicious_batch_id=suspicious_batch_id,
                         src_ip=key,
                         stage=module_name,
+                        instance_name=self.name,
                         status="finished",
                         timestamp=datetime.now(),
                         is_active=True,
                         message_count=len(value),
                     )
                 )
-                for topic in self.produce_topics:
+                
+                        
+                self.batch_tree.insert(
+                    dict(
+                        batch_row_id = row_id,
+                        stage=module_name,
+                        instance_name=self.name,
+                        status="finished",
+                        timestamp=datetime.now(),
+                        parent_batch_row_id=self.parent_row_id,
+                        batch_id=suspicious_batch_id
+                    )
+                )
+                
+                for topic in self.produce_topics:                   
                     self.kafka_produce_handler.produce(
                         topic=topic,
                         data=batch_schema.dumps(data_to_send),
                         key=key,
                     )
+
         else:  # subnet is not suspicious
             self.batch_timestamps.insert(
                 dict(
                     batch_id=self.batch_id,
                     stage=module_name,
+                    instance_name=self.name,
                     status="filtered_out",
                     timestamp=datetime.now(),
                     is_active=False,
@@ -601,10 +640,10 @@ async def main():
     for inspector in INSPECTORS:
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{inspector['name']}"
         produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{detector['name']}" for detector in DETECTORS if detector["inspector_name"] == inspector["name"]]
-        inspector = Inspector(consume_topic=consume_topic, produce_topics=produce_topics, config=inspector)
-        
+        inspector_instance = Inspector(consume_topic=consume_topic, produce_topics=produce_topics, config=inspector)
+        inspector_instance.name = inspector["name"]
         tasks.append(
-            asyncio.create_task(inspector.start())
+            asyncio.create_task(inspector_instance.start())
         )
 
     await asyncio.gather(*tasks)

@@ -1,7 +1,7 @@
 import ipaddress
 import os
 import sys
-
+import uuid
 import yaml
 from confluent_kafka import KafkaError, Message
 
@@ -157,3 +157,7 @@ def normalize_ipv6_address(
 
     net = ipaddress.IPv6Network((address, prefix_length), strict=False)
     return net.network_address, prefix_length
+
+
+def generate_collisions_resistant_uuid():
+    return f"{uuid.uuid4()}-{uuid.uuid4()}"

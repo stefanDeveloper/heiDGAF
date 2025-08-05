@@ -16,7 +16,7 @@ from src.base.kafka_handler import (
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
-from src.base.utils import setup_config, get_zeek_sensor_topic_base_names
+from src.base.utils import setup_config, get_zeek_sensor_topic_base_names, generate_collisions_resistant_uuid
 
 module_name = "log_filtering.prefilter"
 logger = get_logger(module_name)
@@ -47,6 +47,7 @@ class Prefilter:
     """
 
     def __init__(self, validation_config, consume_topic, produce_topics, relevance_function_name):
+        self.name = None
         self.consume_topic = consume_topic
         self.produce_topics = produce_topics
         self.batch_id = None
@@ -63,6 +64,7 @@ class Prefilter:
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
+        self.batch_tree = ClickHouseKafkaSender("batch_tree")
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
         self.fill_levels = ClickHouseKafkaSender("fill_levels")
@@ -82,11 +84,10 @@ class Prefilter:
         internally, including timestamps.
         """
         self.clear_data()  # clear in case we already have data stored
-        logger.info(f"{self.consume_topic} consume")
         key, data = self.kafka_consume_handler.consume_as_object()
         self.subnet_id = key
-        logger.info(f" {self.consume_topic} consumed")
         if data.data:
+            self.parent_row_id = data.batch_tree_row_id
             self.batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
@@ -95,12 +96,28 @@ class Prefilter:
             dict(
                 batch_id=self.batch_id,
                 stage=module_name,
+                instance_name=self.name,
                 status="in_process",
                 timestamp=datetime.datetime.now(),
                 is_active=True,
                 message_count=len(self.unfiltered_data),
             )
         )
+
+        row_id = generate_collisions_resistant_uuid()
+        
+        self.batch_tree.insert(
+            dict(
+                batch_row_id = row_id,
+                stage=module_name,
+                instance_name=self.name,
+                status="in_process",
+                timestamp=datetime.datetime.now(),
+                parent_batch_row_id=self.parent_row_id,
+                batch_id=self.batch_id
+            )
+        )
+               
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -109,6 +126,8 @@ class Prefilter:
                 entry_count=len(self.unfiltered_data),
             )
         )
+        
+
 
         if not self.unfiltered_data:
             logger.info(
@@ -156,24 +175,43 @@ class Prefilter:
         """
         Sends the filtered data if available via the :class:`KafkaProduceHandler`.
         """
+        row_id = generate_collisions_resistant_uuid()
+
         if not self.filtered_data:
             raise ValueError("Failed to send data: No filtered data.")
         data_to_send = {
+            "batch_tree_row_id": row_id,
             "batch_id": self.batch_id,
             "begin_timestamp": self.begin_timestamp,
             "end_timestamp": self.end_timestamp,
             "data": self.filtered_data,
         }
+        
+        # important to finish before sending, otherwise inspector can process before finished here!
         self.batch_timestamps.insert(
             dict(
                 batch_id=self.batch_id,
                 stage=module_name,
+                instance_name=self.name,
                 status="finished",
                 timestamp=datetime.datetime.now(),
                 is_active=True,
                 message_count=len(self.filtered_data),
             )
         )
+               
+        self.batch_tree.insert(
+            dict(
+                batch_row_id = row_id,
+                stage=module_name,
+                instance_name=self.name,
+                status="finished",
+                timestamp=datetime.datetime.now(),
+                parent_batch_row_id=self.parent_row_id,
+                batch_id=self.batch_id 
+            )
+        )
+        
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -185,11 +223,16 @@ class Prefilter:
 
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
         for topic in self.produce_topics:
+   
             self.kafka_produce_handler.produce(
                 topic=topic,
                 data=batch_schema.dumps(data_to_send),
                 key=self.subnet_id,
             )
+
+        
+
+
         logger.info(
             f"Filtered data was successfully sent:\n"
             f"    ⤷  Contains data field of {len(self.filtered_data)} message(s). Originally: "
@@ -246,9 +289,10 @@ async def main() -> None:
         validation_config = [ item for collector in COLLECTORS if collector["name"] == prefilter["collector_name"] for item in collector["required_log_information"]]
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{prefilter['name']}"
         produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{inspector['name']}" for inspector in INSPECTORS if prefilter["name"] == inspector["prefilter_name"]]
-        prefilter = Prefilter(validation_config=validation_config, consume_topic=consume_topic, produce_topics=produce_topics,relevance_function_name=relevance_function_name)
+        prefilter_instance = Prefilter(validation_config=validation_config, consume_topic=consume_topic, produce_topics=produce_topics,relevance_function_name=relevance_function_name)
+        prefilter_instance.name = prefilter["name"]
         tasks.append(
-            asyncio.create_task(prefilter.start())
+            asyncio.create_task(prefilter_instance.start())
         )
     await asyncio.gather(*tasks)
 

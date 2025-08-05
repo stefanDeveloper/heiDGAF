@@ -119,7 +119,7 @@ validates. The logline is parsed into its respective fields, each checked for co
 
     .. code-block::
 
-        TIMESTAMP STATUS CLIENT_IP DNS_IP HOST_DOMAIN_NAME RECORD_TYPE RESPONSE_IP SIZE
+        TIMESTAMP STATUS SRC_IP DNS_IP HOST_DOMAIN_NAME RECORD_TYPE RESPONSE_IP SIZE
 
     +----------------------+------------------------------------------------+
     | **Field**            | **Description**                                |
@@ -140,7 +140,7 @@ validates. The logline is parsed into its respective fields, each checked for co
     | ``STATUS``           | The status of the DNS query, e.g., ``NOERROR``,|
     |                      | ``NXDOMAIN``.                                  |
     +----------------------+------------------------------------------------+
-    | ``CLIENT_IP``        | The IP address of the client that made the     |
+    | ``SRC_IP``        | The IP address of the client that made the     |
     |                      | request.                                       |
     +----------------------+------------------------------------------------+
     | ``DNS_IP``           | The IP address of the DNS server processing    |

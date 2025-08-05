@@ -53,6 +53,7 @@ class MonitoringAgent:
             "suspicious_batch_timestamps",
             "alerts",
             "fill_levels",
+            "batch_tree"
         ]
 
         self.topics = [f"clickhouse_{table_name}" for table_name in self.table_names]

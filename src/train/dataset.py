@@ -252,7 +252,7 @@ def cast_heicloud(data_path: str, max_rows: int) -> pl.DataFrame:
         {
             "column_1": "timestamp",
             "column_2": "return_code",
-            "column_3": "client_ip",
+            "column_3": "src_ip",
             "column_4": "dns_server",
             "column_5": "query",
             "column_6": "type",

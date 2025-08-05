@@ -21,7 +21,7 @@ class TestInit(unittest.TestCase):
             ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["record_type", "RegEx", r"^\d+b$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
         ],
     )
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
@@ -34,7 +34,7 @@ class TestInit(unittest.TestCase):
         list_item_instance = MagicMock()
         list_item_instance.name = "status_code"
         ip_address_instance = MagicMock()
-        ip_address_instance.name = "client_ip"
+        ip_address_instance.name = "src_ip"
 
         mock_create.side_effect = [
             timestamp_instance,
@@ -47,7 +47,7 @@ class TestInit(unittest.TestCase):
             "timestamp": timestamp_instance,
             "record_type": regex_instance,
             "status_code": list_item_instance,
-            "client_ip": ip_address_instance,
+            "src_ip": ip_address_instance,
         }
         expected_instances_by_position = {
             0: timestamp_instance,
@@ -71,7 +71,7 @@ class TestInit(unittest.TestCase):
             ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["status_code", "RegEx", r"^\d+b$"],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
         ],
     )
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
@@ -84,7 +84,7 @@ class TestInit(unittest.TestCase):
         regex_2_instance = MagicMock()
         regex_2_instance.name = "status_code"
         ip_address_instance = MagicMock()
-        ip_address_instance.name = "client_ip"
+        ip_address_instance.name = "src_ip"
 
         mock_create.side_effect = [
             regex_1_instance,
@@ -104,7 +104,7 @@ class TestInit(unittest.TestCase):
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
             ["timestamp", "RegEx", r"^\d+b$"],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
         ],
     )
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
@@ -113,7 +113,7 @@ class TestInit(unittest.TestCase):
         regex_1_instance = MagicMock()
         regex_1_instance.name = "timestamp"
         ip_address_instance = MagicMock()
-        ip_address_instance.name = "client_ip"
+        ip_address_instance.name = "src_ip"
 
         mock_create.side_effect = [regex_1_instance, ip_address_instance]
 
@@ -168,7 +168,7 @@ class TestValidateLogline(unittest.TestCase):
         [
             ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
         ],
     )
     def test_validate_successful(self):
@@ -186,7 +186,7 @@ class TestValidateLogline(unittest.TestCase):
         [
             ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%f"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
             ["dns_server_ip", "IpAddress"],
             [
                 "domain_name",
@@ -216,7 +216,7 @@ class TestValidateLogline(unittest.TestCase):
         [
             ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
         ],
     )
     def test_validate_wrong_number_of_fields(self, mock_logger):
@@ -235,7 +235,7 @@ class TestValidateLogline(unittest.TestCase):
         [
             ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
         ],
     )
     def test_validate_empty(self, mock_logger):
@@ -252,7 +252,7 @@ class TestValidateLogline(unittest.TestCase):
         [
             ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
         ],
     )
     def test_validate_contains_invalid_fields(self, mock_logger):
@@ -271,7 +271,7 @@ class TestValidateLogline(unittest.TestCase):
         [
             ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
         ],
     )
     def test_validate_wrong_order_of_fields(self, mock_logger):
@@ -291,7 +291,7 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
         [
             ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
             ["dns_server_ip", "IpAddress"],
             [
                 "domain_name",
@@ -308,7 +308,7 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
         expected_result = {
             "timestamp": "2024-07-28T14:45:30.123000",
             "status_code": "NXDOMAIN",
-            "client_ip": "127.0.0.2",
+            "src_ip": "127.0.0.2",
             "dns_server_ip": "126.24.5.20",
             "domain_name": "domain.test",
             "record_type": "A",
@@ -333,7 +333,7 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
         [
             ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
         ],
     )
     def test_validate_false(self, mock_logger):
@@ -359,7 +359,7 @@ class TestCheckRelevance(unittest.TestCase):
             ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["test_1", "ListItem", ["123", "456"]],
-            ["client_ip", "IpAddress"],
+            ["src_ip", "IpAddress"],
             ["test_2", "ListItem", ["789", "TEST"], ["TEST"]],
         ],
     )
@@ -375,7 +375,7 @@ class TestCheckRelevance(unittest.TestCase):
                     "timestamp": "2024-07-28T14:45:30.123Z",
                     "status_code": "NXDOMAIN",
                     "test_1": "123",
-                    "client_ip": "10.0.0.4",
+                    "src_ip": "10.0.0.4",
                     "test_2": "TEST",
                 }
             )
@@ -390,7 +390,7 @@ class TestCheckRelevance(unittest.TestCase):
                     "timestamp": "2024-07-28T14:45:30.123Z",
                     "status_code": "NOERROR",
                     "test_1": "123",
-                    "client_ip": "10.0.0.4",
+                    "src_ip": "10.0.0.4",
                     "test_2": "789",
                 }
             )
@@ -405,7 +405,7 @@ class TestCheckRelevance(unittest.TestCase):
                     "timestamp": "2024-07-28T14:45:30.123Z",
                     "status_code": "NXDOMAIN",
                     "test_1": "123",
-                    "client_ip": "10.0.0.4",
+                    "src_ip": "10.0.0.4",
                     "test_2": "789",
                 }
             )

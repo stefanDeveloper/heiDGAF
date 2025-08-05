@@ -326,25 +326,25 @@ class TestSortMessages(unittest.TestCase):
         list_of_timestamps_and_loglines = [
             (
                 "2024-05-21T08:31:28.119Z",
-                '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+                '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
                 '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
                 '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
                 '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
             ),
             (
                 "2024-05-21T08:31:28.249Z",
-                '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+                '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
                 '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
                 '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
                 '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
             ),
         ]
         expected_list = [
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
@@ -363,25 +363,25 @@ class TestSortMessages(unittest.TestCase):
         list_of_timestamps_and_loglines = [
             (
                 "2024-05-21T08:31:28.249Z",
-                '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+                '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
                 '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
                 '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
                 '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
             ),
             (
                 "2024-05-21T08:31:28.119Z",
-                '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+                '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
                 '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
                 '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
                 '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
             ),
         ]
         expected_list = [
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
@@ -413,11 +413,11 @@ class TestExtractTuplesFromJson(unittest.TestCase):
         # Arrange
         sut = BufferedBatch()
         data = [
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
-            '{"timestamp": "2024-05-21T08:31:28.299Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.299Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
@@ -425,14 +425,14 @@ class TestExtractTuplesFromJson(unittest.TestCase):
         expected_result = [
             (
                 "2024-05-21T08:31:28.119Z",
-                '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+                '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
                 '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
                 '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
                 '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
             ),
             (
                 "2024-05-21T08:31:28.299Z",
-                '{"timestamp": "2024-05-21T08:31:28.299Z", "status": "NXDOMAIN", "client_ip": '
+                '{"timestamp": "2024-05-21T08:31:28.299Z", "status": "NXDOMAIN", "src_ip": '
                 '"192.168.0.106", "dns_ip": "8.8.8.8", "host_domain_name": '
                 '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
                 '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
@@ -466,15 +466,15 @@ class TestSortBuffer(unittest.TestCase):
         key = "test_key"
         sut = BufferedBatch()
         sut.buffer[key] = [
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
-            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}',
@@ -493,29 +493,29 @@ class TestSortBuffer(unittest.TestCase):
         key = "test_key"
         sut = BufferedBatch()
         sut.buffer[key] = [
-            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}',
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
         ]
         expected_buffer = [
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
-            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}',
@@ -548,15 +548,15 @@ class TestSortBatch(unittest.TestCase):
         key = "test_key"
         sut = BufferedBatch()
         sut.batch[key] = [
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
-            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}',
@@ -575,29 +575,29 @@ class TestSortBatch(unittest.TestCase):
         key = "test_key"
         sut = BufferedBatch()
         sut.batch[key] = [
-            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}',
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
         ]
         expected_batch = [
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "A", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}',
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.230", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
-            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "client_ip": '
+            '{"timestamp": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "120b"}',
@@ -616,12 +616,12 @@ class TestCompleteBatch(unittest.TestCase):
         # Arrange
         key = "test_key"
         message_1 = (
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": "192.168.0.105", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", '
             '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
         )
         message_2 = (
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": "192.168.0.230", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", '
             '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
         )
@@ -655,22 +655,22 @@ class TestCompleteBatch(unittest.TestCase):
         # Arrange
         key = "test_key"
         message_1 = (
-            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "client_ip": "192.168.0.105", '
+            '{"timestamp": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": "192.168.0.105", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", '
             '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
         )
         message_2 = (
-            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", '
+            '{"timestamp": "2024-05-21T08:31:28.249Z", "status": "NXDOMAIN", "src_ip": "192.168.0.230", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", '
             '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
         )
         message_3 = (
-            '{"timestamp": "2024-05-21T08:31:28.319Z", "status": "NOERROR", "client_ip": "192.168.0.105", '
+            '{"timestamp": "2024-05-21T08:31:28.319Z", "status": "NOERROR", "src_ip": "192.168.0.105", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "A", '
             '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "150b"}'
         )
         message_4 = (
-            '{"timestamp": "2024-05-21T08:31:28.749Z", "status": "NXDOMAIN", "client_ip": "192.168.0.230", '
+            '{"timestamp": "2024-05-21T08:31:28.749Z", "status": "NXDOMAIN", "src_ip": "192.168.0.230", '
             '"dns_ip": "8.8.8.8", "host_domain_name": "www.heidelberg-botanik.de", "record_type": "AAAA", '
             '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
         )
