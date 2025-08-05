@@ -18,6 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 1,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -1875,7 +1876,7 @@
           },
           "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime)",
+          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime)",
           "refId": "A"
         }
       ],
@@ -3583,7 +3584,7 @@
       "type": "stat"
     }
   ],
-  "refresh": "5s",
+  "refresh": "",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -3649,8 +3650,8 @@
     ]
   },
   "time": {
-    "from": "now-1h",
-    "to": "now"
+    "from": "2025-08-05T10:46:00.079Z",
+    "to": "2025-08-05T11:07:54.729Z"
   },
   "timepicker": {
     "refresh_intervals": [
