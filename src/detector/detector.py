@@ -340,6 +340,7 @@ class Detector:
     def send_warning(self) -> None:
         """Dispatch warnings saved to the object's warning list"""
         logger.info("Store alert.")
+        row_id = generate_collisions_resistant_uuid()
         if len(self.warnings) > 0:
             overall_score = median(
                 [warning["probability"] for warning in self.warnings]
@@ -377,20 +378,7 @@ class Detector:
                     message_count=len(self.messages),
                 )
             )
-            
-            row_id = generate_collisions_resistant_uuid()
-            
-            self.batch_tree.insert(
-                dict(
-                    batch_row_id = row_id,
-                    stage=module_name,
-                    instance_name=self.name,
-                    status="finished",
-                    timestamp=datetime.datetime.now(),
-                    parent_batch_row_id=self.parent_row_id,
-                    batch_id=self.suspicious_batch_id
-                )
-            )
+                        
 
             logline_ids = set()
             for message in self.messages:
@@ -436,6 +424,18 @@ class Detector:
                         is_active=False,
                     )
                 )
+
+        self.batch_tree.insert(
+            dict(
+                batch_row_id = row_id,
+                stage=module_name,
+                instance_name=self.name,
+                status="finished",
+                timestamp=datetime.datetime.now(),
+                parent_batch_row_id=self.parent_row_id,
+                batch_id=self.suspicious_batch_id
+            )
+        )
 
         self.fill_levels.insert(
             dict(

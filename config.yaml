@@ -24,7 +24,7 @@ pipeline:
 
   log_collection:
     default_batch_handler_config:
-      batch_size: 1000
+      batch_size: 2000
       batch_timeout: 30.0
       subnet_id:
         ipv4_prefix_length: 24

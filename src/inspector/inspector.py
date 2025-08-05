@@ -495,6 +495,7 @@ class Inspector:
         total_anomalies = np.count_nonzero(
             np.greater_equal(np.array(self.anomalies), self.score_threshold)
         )
+        row_id = generate_collisions_resistant_uuid()
         logger.info(f" {total_anomalies} anomalies found")
         if total_anomalies / len(self.X) > self.anomaly_threshold:  # subnet is suspicious
             buckets = {}
@@ -515,8 +516,7 @@ class Inspector:
                         batch_id=self.batch_id,
                     )
                 )
-                row_id = generate_collisions_resistant_uuid()
-
+                
                 data_to_send = {
                     "batch_tree_row_id": row_id,
                     "batch_id": suspicious_batch_id,
@@ -540,8 +540,7 @@ class Inspector:
                         message_count=len(value),
                     )
                 )
-                
-                        
+                                        
                 self.batch_tree.insert(
                     dict(
                         batch_row_id = row_id,
@@ -553,7 +552,6 @@ class Inspector:
                         batch_id=suspicious_batch_id
                     )
                 )
-                
                 for topic in self.produce_topics:                   
                     self.kafka_produce_handler.produce(
                         topic=topic,
@@ -562,6 +560,7 @@ class Inspector:
                     )
 
         else:  # subnet is not suspicious
+
             self.batch_timestamps.insert(
                 dict(
                     batch_id=self.batch_id,
@@ -588,7 +587,18 @@ class Inspector:
                         is_active=False,
                     )
                 )
-
+            
+            self.batch_tree.insert(
+                dict(
+                    batch_row_id = row_id,
+                    stage=module_name,
+                    instance_name=self.name,
+                    status="finished",
+                    timestamp=datetime.now(),
+                    parent_batch_row_id=self.parent_row_id,
+                    batch_id=self.batch_id
+                )
+            )
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.now(),
