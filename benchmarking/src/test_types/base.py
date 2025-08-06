@@ -28,10 +28,14 @@ class BaseTest:
             total_message_count: Total number of messages to be sent during full test run
             is_interval_based: True if intervals are used, False for tests without intervals
         """
+        if total_message_count < 1:
+            raise ValueError("Given argument 'total_message_count' must be at least 1.")
+
         self.custom_fields = None
         self.progress_bar = None
         self.start_timestamp = None
-        self.total_message_count = round(total_message_count)
+
+        self.total_message_count = total_message_count
         self.is_interval_based = is_interval_based
 
         self.dataset_generator = DatasetGenerator()
@@ -39,7 +43,6 @@ class BaseTest:
 
     def execute(self):
         """Executes the test with the configured parameters."""
-        # TODO: Show Test Parameters
         self.start_timestamp = datetime.now()
         logger.info(f"Start test at: {self.start_timestamp}")
 
