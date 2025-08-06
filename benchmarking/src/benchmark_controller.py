@@ -227,7 +227,7 @@ class BenchmarkController:
                 ["sh", "benchmarking/src/shell/cleanup.sh"]
             ).check_returncode()
 
-        def execute_test_return_start_time() -> pd.Timestamp:
+        def execute_test_and_return_start_time() -> pd.Timestamp:
             start_time = pd.Timestamp.utcnow().tz_localize(
                 None
             )  # utc time without timezone info
@@ -263,7 +263,7 @@ class BenchmarkController:
         cleanup_clickhouse_database()
         logger.info(f"{self.test_name} Preparation: Database cleanup finished")
 
-        test_started_at = execute_test_return_start_time()
+        test_started_at = execute_test_and_return_start_time()
         logger.info(f"{self.test_name}: Execution finished successfully")
 
         check_if_all_data_processed()
