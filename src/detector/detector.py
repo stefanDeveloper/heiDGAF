@@ -30,7 +30,9 @@ INSPECTORS = config["pipeline"]["data_inspection"]
 DETECTORS = config["pipeline"]["data_analysis"]
 
 
-CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["inspector_to_detector"]
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "inspector_to_detector"
+]
 
 
 class WrongChecksum(Exception):  # pragma: no cover
@@ -115,19 +117,19 @@ class Detector:
             )
         )
         row_id = generate_collisions_resistant_uuid()
-        
+
         self.batch_tree.insert(
             dict(
-                batch_row_id = row_id,
+                batch_row_id=row_id,
                 stage=module_name,
                 instance_name=self.name,
                 status="in_process",
                 timestamp=datetime.datetime.now(),
                 parent_batch_row_id=self.parent_row_id,
-                batch_id=self.suspicious_batch_id
+                batch_id=self.suspicious_batch_id,
             )
         )
-        
+
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -179,7 +181,9 @@ class Detector:
             response = requests.get(
                 f"{self.model_base_url}/files/?p=%2F{self.model}_{self.checksum}.pickle&dl=1"
             )
-            logger.info(f"{self.model_base_url}/files/?p=%2F{self.model}_{self.checksum}.pickle&dl=1")
+            logger.info(
+                f"{self.model_base_url}/files/?p=%2F{self.model}_{self.checksum}.pickle&dl=1"
+            )
             response.raise_for_status()
 
             with open(self.model_path, "wb") as f:
@@ -346,7 +350,6 @@ class Detector:
                 [warning["probability"] for warning in self.warnings]
             )
             alert = {"overall_score": overall_score, "result": self.warnings}
-            
 
             logger.info(f"Add alert: {alert}")
             with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a+") as f:
@@ -378,7 +381,6 @@ class Detector:
                     message_count=len(self.messages),
                 )
             )
-                        
 
             logline_ids = set()
             for message in self.messages:
@@ -427,13 +429,13 @@ class Detector:
 
         self.batch_tree.insert(
             dict(
-                batch_row_id = row_id,
+                batch_row_id=row_id,
                 stage=module_name,
                 instance_name=self.name,
                 status="finished",
                 timestamp=datetime.datetime.now(),
                 parent_batch_row_id=self.parent_row_id,
-                batch_id=self.suspicious_batch_id
+                batch_id=self.suspicious_batch_id,
             )
         )
 
@@ -448,32 +450,31 @@ class Detector:
 
     def bootstrap_detector_instance(self):
         while True:
-           try:
-               logger.debug("Before getting and filling data")
-               self.get_and_fill_data()
-               logger.debug("Inspect Data")
-               self.detect()
-               logger.debug("Send warnings")
-               self.send_warning()
-           except KafkaMessageFetchException as e:  # pragma: no cover
-               logger.debug(e)
-           except IOError as e:
-               logger.error(e)
-               raise e
-           except ValueError as e:
-               logger.debug(e)
-           except KeyboardInterrupt:
-               logger.info("Closing down Detector...")
-               break
-           finally:
-               self.clear_data()       
-               
+            try:
+                logger.debug("Before getting and filling data")
+                self.get_and_fill_data()
+                logger.debug("Inspect Data")
+                self.detect()
+                logger.debug("Send warnings")
+                self.send_warning()
+            except KafkaMessageFetchException as e:  # pragma: no cover
+                logger.debug(e)
+            except IOError as e:
+                logger.error(e)
+                raise e
+            except ValueError as e:
+                logger.debug(e)
+            except KeyboardInterrupt:
+                logger.info("Closing down Detector...")
+                break
+            finally:
+                self.clear_data()
+
     async def start(self):
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None, self.bootstrap_detector_instance
-        )
-            
+        await loop.run_in_executor(None, self.bootstrap_detector_instance)
+
+
 async def main():  # pragma: no cover
     """
     Creates the :class:`Detector` instance. Starts a loop that continously fetches data.
@@ -488,12 +489,9 @@ async def main():  # pragma: no cover
     for detector in DETECTORS:
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{detector['name']}"
         detector = Detector(detector_config=detector, consume_topic=consume_topic)
-        tasks.append(
-            asyncio.create_task(detector.start())
-        )
+        tasks.append(asyncio.create_task(detector.start()))
 
     await asyncio.gather(*tasks)
-    
 
 
 if __name__ == "__main__":  # pragma: no cover

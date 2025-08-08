@@ -10,12 +10,13 @@ import tempfile
 import yaml
 from unittest.mock import patch
 
+
 def get_yaml_config_string():
     config = {
         "environment": {
             "kafka_brokers": [
                 {"hostname": "broker1", "port": 9092, "node_ip": "123.123.123.123"},
-                {"hostname": "broker2", "port": 9093, "node_ip": "123.123.123.123"}
+                {"hostname": "broker2", "port": 9093, "node_ip": "123.123.123.123"},
             ]
         },
         "pipeline": {
@@ -25,24 +26,23 @@ def get_yaml_config_string():
                         "static_analysis": False,
                         "protocol_to_topic": [
                             {"dns": "dns-topic"},
-                            {"http": "http-topic"}
+                            {"http": "http-topic"},
                         ],
-                        "interfaces": [
-                            "eth0",
-                            "dummy"
-                        ]
+                        "interfaces": ["eth0", "dummy"],
                     }
                 }
             }
-        }
+        },
     }
     return yaml.dump(config)
+
+
 def get_yaml_config_all_protocols():
     config = {
         "environment": {
             "kafka_brokers": [
                 {"hostname": "broker1", "port": 9092, "node_ip": "123.123.123.123"},
-                {"hostname": "broker2", "port": 9093, "node_ip": "123.123.123.123"}
+                {"hostname": "broker2", "port": 9093, "node_ip": "123.123.123.123"},
             ],
         },
         "pipeline": {
@@ -50,13 +50,11 @@ def get_yaml_config_all_protocols():
                 "sensors": {
                     "sensor-01": {
                         "static_analysis": True,
-                        "protocol_to_topic": [
-                            {"all": "pipeline-logserver-in"}
-                            ]
+                        "protocol_to_topic": [{"all": "pipeline-logserver-in"}],
                     }
                 }
             }
-        }
+        },
     }
     return yaml.dump(config)
 
@@ -84,6 +82,7 @@ class TestZeekConfigurationHandler(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             ZeekConfigurationHandler(self.config_dict)
         self.assertIn("CONTAINER_NAME env. variable not found", str(context.exception))
+
 
 class TestZeekConfiguration(unittest.TestCase):
 
@@ -115,7 +114,7 @@ class TestZeekConfiguration(unittest.TestCase):
         handler = ZeekConfigurationHandler(self.config_restricted_protocols)
         handler.potocol_to_topic_configurations = {
             "http": "http-topic",
-            "dns": "dns-topic"
+            "dns": "dns-topic",
         }
         handler.base_config_location = tempfile.mktemp()
         handler.zeek_node_config_path = tempfile.mktemp()
@@ -131,6 +130,7 @@ class TestZeekConfiguration(unittest.TestCase):
         self.assertIn("Log::add_filter(DNS::LOG", content)
         self.assertIn("http-topic", content)
         self.assertIn("123.123.123.123:9092", content)
+
 
 if __name__ == "__main__":
     unittest.main()

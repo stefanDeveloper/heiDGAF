@@ -13,7 +13,11 @@ from streamad.util import StreamGenerator, CustomDS
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
-from src.base.utils import setup_config, get_zeek_sensor_topic_base_names, generate_collisions_resistant_uuid
+from src.base.utils import (
+    setup_config,
+    get_zeek_sensor_topic_base_names,
+    generate_collisions_resistant_uuid,
+)
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
@@ -25,8 +29,12 @@ module_name = "data_inspection.inspector"
 logger = get_logger(module_name)
 
 config = setup_config()
-PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["inspector_to_detector"]
-CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["prefilter_to_inspector"]
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "inspector_to_detector"
+]
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "prefilter_to_inspector"
+]
 SENSOR_PROTOCOLS = get_zeek_sensor_topic_base_names(config)
 PREFILTERS = config["pipeline"]["log_filtering"]
 INSPECTORS = config["pipeline"]["data_inspection"]
@@ -82,10 +90,11 @@ class Inspector:
         self.score_threshold = config["score_threshold"]
         self.time_type = config["time_type"]
         self.time_range = config["time_range"]
+        self.name = config["name"]
+        self.skip = True if "skip_inspector" in config.keys() else False
 
         self.consume_topic = consume_topic
         self.produce_topics = produce_topics
-        self.name = None
         self.batch_id = None
         self.X = None
         self.key = None
@@ -147,21 +156,21 @@ class Inspector:
                 message_count=len(self.messages),
             )
         )
-        
+
         row_id = generate_collisions_resistant_uuid()
-        
+
         self.batch_tree.insert(
             dict(
-                batch_row_id = row_id,
+                batch_row_id=row_id,
                 stage=module_name,
                 instance_name=self.name,
                 status="in_process",
                 timestamp=datetime.now(),
                 parent_batch_row_id=self.parent_row_id,
-                batch_id=self.batch_id
+                batch_id=self.batch_id,
             )
         )
-        
+
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.now(),
@@ -205,10 +214,7 @@ class Inspector:
         """
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
-            [
-                np.datetime64(datetime.fromisoformat(item["ts"]))
-                for item in messages
-            ]
+            [np.datetime64(datetime.fromisoformat(item["ts"])) for item in messages]
         )
 
         # Extract and convert the size values from "111b" to integers
@@ -284,10 +290,7 @@ class Inspector:
         """
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
-            [
-                np.datetime64(datetime.fromisoformat(item["ts"]))
-                for item in messages
-            ]
+            [np.datetime64(datetime.fromisoformat(item["ts"])) for item in messages]
         )
 
         logger.debug("Sort timestamps and count occurrences")
@@ -475,7 +478,9 @@ class Inspector:
             self.models.append(module_model(**model["model_args"]))
 
     def _get_ensemble(self):
-        logger.debug(f"Load Model: {self.ensemble['model']} from {self.ensemble['module']}.")
+        logger.debug(
+            f"Load Model: {self.ensemble['model']} from {self.ensemble['module']}."
+        )
         if not self.ensemble["model"] in VALID_ENSEMBLE_MODELS:
             logger.error(f"Model {self.ensemble} is not a valid ensemble model.")
             raise NotImplementedError(
@@ -497,7 +502,9 @@ class Inspector:
         )
         row_id = generate_collisions_resistant_uuid()
         logger.info(f" {total_anomalies} anomalies found")
-        if total_anomalies / len(self.X) > self.anomaly_threshold:  # subnet is suspicious
+        if (
+            total_anomalies / len(self.X) > self.anomaly_threshold
+        ):  # subnet is suspicious
             buckets = {}
             for message in self.messages:
                 if message["src_ip"] in buckets.keys():
@@ -516,7 +523,7 @@ class Inspector:
                         batch_id=self.batch_id,
                     )
                 )
-                
+
                 data_to_send = {
                     "batch_tree_row_id": row_id,
                     "batch_id": suspicious_batch_id,
@@ -540,19 +547,19 @@ class Inspector:
                         message_count=len(value),
                     )
                 )
-                                        
+
                 self.batch_tree.insert(
                     dict(
-                        batch_row_id = row_id,
+                        batch_row_id=row_id,
                         stage=module_name,
                         instance_name=self.name,
                         status="finished",
                         timestamp=datetime.now(),
                         parent_batch_row_id=self.parent_row_id,
-                        batch_id=suspicious_batch_id
+                        batch_id=suspicious_batch_id,
                     )
                 )
-                for topic in self.produce_topics:                   
+                for topic in self.produce_topics:
                     self.kafka_produce_handler.produce(
                         topic=topic,
                         data=batch_schema.dumps(data_to_send),
@@ -587,16 +594,16 @@ class Inspector:
                         is_active=False,
                     )
                 )
-            
+
             self.batch_tree.insert(
                 dict(
-                    batch_row_id = row_id,
+                    batch_row_id=row_id,
                     stage=module_name,
                     instance_name=self.name,
                     status="finished",
                     timestamp=datetime.now(),
                     parent_batch_row_id=self.parent_row_id,
-                    batch_id=self.batch_id
+                    batch_id=self.batch_id,
                 )
             )
         self.fill_levels.insert(
@@ -613,7 +620,8 @@ class Inspector:
         while True:
             try:
                 self.get_and_fill_data()
-                self.inspect()
+                if not self.skip:
+                    self.inspect()
                 self.send_data()
             except KafkaMessageFetchException as e:  # pragma: no cover
                 logger.debug(e)
@@ -625,16 +633,14 @@ class Inspector:
             except KeyboardInterrupt:
                 logger.info(f" {self.consume_topic}  Closing down Inspector...")
                 break
-            finally:        
+            finally:
                 self.clear_data()
 
     async def start(self, one_iteration: bool = False):
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(
-                None, self.bootstrap_inspection_process
-            )
+        await loop.run_in_executor(None, self.bootstrap_inspection_process)
 
-            
+
 async def main():
     """
     Creates the :class:`Inspector` instance. Starts a loop that continuously fetches data. Actual functionality
@@ -649,15 +655,17 @@ async def main():
     tasks = []
     for inspector in INSPECTORS:
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{inspector['name']}"
-        produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{detector['name']}" for detector in DETECTORS if detector["inspector_name"] == inspector["name"]]
-        inspector_instance = Inspector(consume_topic=consume_topic, produce_topics=produce_topics, config=inspector)
-        inspector_instance.name = inspector["name"]
-        tasks.append(
-            asyncio.create_task(inspector_instance.start())
+        produce_topics = [
+            f"{PRODUCE_TOPIC_PREFIX}-{detector['name']}"
+            for detector in DETECTORS
+            if detector["inspector_name"] == inspector["name"]
+        ]
+        inspector_instance = Inspector(
+            consume_topic=consume_topic, produce_topics=produce_topics, config=inspector
         )
+        tasks.append(asyncio.create_task(inspector_instance.start()))
 
     await asyncio.gather(*tasks)
-
 
 
 if __name__ == "__main__":  # pragma: no cover

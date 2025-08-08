@@ -24,8 +24,12 @@ REQUIRED_FIELDS = [
     "ts",
     "src_ip",
 ]
-PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["batch_sender_to_prefilter"]
-CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_to_collector"]
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "batch_sender_to_prefilter"
+]
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "logserver_to_collector"
+]
 
 SENSOR_PROTOCOLS = utils.get_zeek_sensor_topic_base_names(config)
 PREFILTERS = config["pipeline"]["log_filtering"]
@@ -33,16 +37,23 @@ PREFILTERS = config["pipeline"]["log_filtering"]
 COLLECTORS = [
     collector for collector in config["pipeline"]["log_collection"]["collectors"]
 ]
+
+
 class LogCollector:
     """Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
     value, invalid loglines are discarded. All valid loglines are sent to the batch sender.
     """
-    def __init__(self, collector_name, protocol, consume_topic, produce_topics, validation_config) -> None:
+
+    def __init__(
+        self, collector_name, protocol, consume_topic, produce_topics, validation_config
+    ) -> None:
         self.protocol = protocol
         self.consume_topic = consume_topic
         self.batch_configuration = utils.get_batch_configuration(collector_name)
         self.loglines = asyncio.Queue()
-        self.batch_handler = BufferedBatchSender(produce_topics=produce_topics, collector_name=collector_name)
+        self.batch_handler = BufferedBatchSender(
+            produce_topics=produce_topics, collector_name=collector_name
+        )
         self.logline_handler = LoglineHandler(validation_config)
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(consume_topic)
 
@@ -68,9 +79,7 @@ class LogCollector:
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'"
         )
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None, self.fetch
-        )
+        await loop.run_in_executor(None, self.fetch)
 
         logger.info("LogCollector stopped.")
 
@@ -81,8 +90,7 @@ class LogCollector:
         while True:
             key, value, topic = self.kafka_consume_handler.consume()
             logger.debug(f"From Kafka: '{value}'")
-            self.send(datetime.datetime.now(), value)            
-            
+            self.send(datetime.datetime.now(), value)
 
     def send(self, timestamp_in: datetime.datetime, message: str) -> None:
         """Sends the logline in JSON format to the BatchSender, where it is stored in
@@ -144,7 +152,9 @@ class LogCollector:
         self.batch_handler.add_message(subnet_id, json.dumps(message_fields))
         logger.debug(f"Sent: {message}")
 
-    def _get_subnet_id(self, address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+    def _get_subnet_id(
+        self, address: ipaddress.IPv4Address | ipaddress.IPv6Address
+    ) -> str:
         """
         Returns the subnet ID of an IP address.
 
@@ -173,17 +183,26 @@ async def main() -> None:
     Creates the :class:`LogCollector` instance and starts it.
     """
     tasks = []
-    
+
     for collector in COLLECTORS:
         protocol = collector["protocol_base"]
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{collector['name']}"
-        produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{prefilter['name']}" for prefilter in PREFILTERS if collector["name"] == prefilter["collector_name"]]        
+        produce_topics = [
+            f"{PRODUCE_TOPIC_PREFIX}-{prefilter['name']}"
+            for prefilter in PREFILTERS
+            if collector["name"] == prefilter["collector_name"]
+        ]
         validation_config = collector["required_log_information"]
-        collector_instance = LogCollector(collector_name = collector["name"], protocol=protocol,consume_topic=consume_topic, produce_topics=produce_topics, validation_config=validation_config)
-        tasks.append(
-            asyncio.create_task(collector_instance.start())
+        collector_instance = LogCollector(
+            collector_name=collector["name"],
+            protocol=protocol,
+            consume_topic=consume_topic,
+            produce_topics=produce_topics,
+            validation_config=validation_config,
         )
-    await asyncio.gather(*tasks)        
-    
+        tasks.append(asyncio.create_task(collector_instance.start()))
+    await asyncio.gather(*tasks)
+
+
 if __name__ == "__main__":  # pragma: no cover
     asyncio.run(main())

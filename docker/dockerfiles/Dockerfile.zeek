@@ -15,7 +15,7 @@ RUN apt install -y \
 RUN yes | zkg install zeek-kafka --user-var LIBRDKAFKA_ROOT=/usr/local
 RUN setcap cap_net_raw,cap_net_admin=+eip $(which zeek)
 
-RUN rm /usr/lib/python3.11/EXTERNALLY-MANAGED 
+RUN rm /usr/lib/python3.11/EXTERNALLY-MANAGED
 COPY requirements/requirements.zeek.txt /opt/requirements.txt
 RUN pip3 install -r /opt/requirements.txt
 

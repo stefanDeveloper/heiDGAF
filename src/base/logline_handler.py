@@ -8,10 +8,7 @@ logger = get_logger()
 
 CONFIG = setup_config()
 
-REQUIRED_FIELDS = [
-    "ts",
-    "src_ip"
-]
+REQUIRED_FIELDS = ["ts", "src_ip"]
 FORBIDDEN_FIELD_NAMES = [
     "logline_id",
     "batch_id",
@@ -160,28 +157,32 @@ class ListItem(FieldType):
 class RelevanceHandler:
     def __init__(self, log_configuration_instances):
         self.log_configuration_instances = log_configuration_instances
-    
+
     def check_relevance(self, function_name: str, logline_dict: dict) -> bool:
         is_relevant = False
         try:
             is_relevant = getattr(self, function_name)(logline_dict)
         except AttributeError as e:
             logger.error(f"Function {function_name} is not implemented!")
-            raise(f"Function {function_name} is not implemented!")
+            raise (f"Function {function_name} is not implemented!")
         return is_relevant
-        
+
     def check_dga_relevance(self, logline_dict: dict) -> bool:
         relevant = True
         for _, instance_configuartion in self.log_configuration_instances.items():
             if isinstance(instance_configuartion, ListItem):
                 if instance_configuartion.relevant_list:
-                    relevant = logline_dict[instance_configuartion.name] in instance_configuartion.relevant_list
-                    if not relevant: 
-                        return relevant   
+                    relevant = (
+                        logline_dict[instance_configuartion.name]
+                        in instance_configuartion.relevant_list
+                    )
+                    if not relevant:
+                        return relevant
         return relevant
+
     def no_relevance_check(self, logline_dict: dict) -> bool:
         return True
-    
+
 
 class LoglineHandler:
     """
@@ -191,7 +192,7 @@ class LoglineHandler:
 
     def __init__(self, validation_config):
         """
-        Check all existing log configurations for validity. 
+        Check all existing log configurations for validity.
         """
         self.logformats = validation_config
         log_configuration_instances = {}
@@ -211,13 +212,15 @@ class LoglineHandler:
             if required_field not in log_configuration_instances.keys():
                 raise ValueError("Not all needed fields are set in the configuration")
 
-        self.relvance_handler = RelevanceHandler(log_configuration_instances=log_configuration_instances)
+        self.relvance_handler = RelevanceHandler(
+            log_configuration_instances=log_configuration_instances
+        )
 
     def validate_logline(self, logline: str) -> bool:
         """
         Validates the given input logline by checking if the fields presented are corresponding to a given logformat of a protocol.
         Calls the :meth:`validate` method for each field. If the logline is incorrect, it shows an error with the
-        incorrect fields being highlighted.     
+        incorrect fields being highlighted.
 
         Args:
             logline (str): Logline as string to be validated
@@ -238,11 +241,13 @@ class LoglineHandler:
                 if not is_value_valid:
                     invalid_value_names.append(log_line_property_key)
             except:
-                logger.error(f"line {logline} does not contain the specified field of {log_line_property_key}")
+                logger.error(
+                    f"line {logline} does not contain the specified field of {log_line_property_key}"
+                )
         if all(valid_values):
-            return True        
+            return True
         return False
-    
+
     def __get_fields_as_json(self, logline: str) -> dict:
         """
         Returns the fields of the given logline as dictionary, with the names of the fields as key, and the field value
@@ -281,8 +286,9 @@ class LoglineHandler:
         Returns:
             True if the logline is relevant, else False
         """
-        return self.relvance_handler.check_relevance(function_name=function_name, logline_dict=logline_dict)
-
+        return self.relvance_handler.check_relevance(
+            function_name=function_name, logline_dict=logline_dict
+        )
 
     @staticmethod
     def _create_instance_from_list_entry(field_list: list):

@@ -72,15 +72,15 @@ pipeline:
   zeek:
     sensors:
       zeek1:
-        static_analysis: true 
+        static_analysis: true
         protocol_to_topic:
           - all: "pipeline-logserver_in"
-      zeek2: 
-        static_analysis: false 
+      zeek2:
+        static_analysis: false
         protocol_to_topic:
           - http: "my-http-topic"
           - dns: "dns-topic"
-        interfaces: 
+        interfaces:
           - eth0
           - dummy
       zeek3:

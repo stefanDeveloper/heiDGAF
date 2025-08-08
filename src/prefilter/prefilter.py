@@ -16,15 +16,23 @@ from src.base.kafka_handler import (
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
-from src.base.utils import setup_config, get_zeek_sensor_topic_base_names, generate_collisions_resistant_uuid
+from src.base.utils import (
+    setup_config,
+    get_zeek_sensor_topic_base_names,
+    generate_collisions_resistant_uuid,
+)
 
 module_name = "log_filtering.prefilter"
 logger = get_logger(module_name)
 
 config = setup_config()
 
-CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["batch_sender_to_prefilter"]
-PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["prefilter_to_inspector"]
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "batch_sender_to_prefilter"
+]
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "prefilter_to_inspector"
+]
 
 SENSOR_PROTOCOLS = get_zeek_sensor_topic_base_names(config)
 PREFILTERS = config["pipeline"]["log_filtering"]
@@ -46,7 +54,9 @@ class Prefilter:
     kept. Filtered data is then sent using topic ``Inspect``.
     """
 
-    def __init__(self, validation_config, consume_topic, produce_topics, relevance_function_name):
+    def __init__(
+        self, validation_config, consume_topic, produce_topics, relevance_function_name
+    ):
         self.name = None
         self.consume_topic = consume_topic
         self.produce_topics = produce_topics
@@ -105,19 +115,19 @@ class Prefilter:
         )
 
         row_id = generate_collisions_resistant_uuid()
-        
+
         self.batch_tree.insert(
             dict(
-                batch_row_id = row_id,
+                batch_row_id=row_id,
                 stage=module_name,
                 instance_name=self.name,
                 status="in_process",
                 timestamp=datetime.datetime.now(),
                 parent_batch_row_id=self.parent_row_id,
-                batch_id=self.batch_id
+                batch_id=self.batch_id,
             )
         )
-               
+
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -126,8 +136,6 @@ class Prefilter:
                 entry_count=len(self.unfiltered_data),
             )
         )
-        
-
 
         if not self.unfiltered_data:
             logger.info(
@@ -147,7 +155,9 @@ class Prefilter:
         the given error types are kept and added to ``filtered_data``, all other ones are discarded.
         """
         for logline in self.unfiltered_data:
-            if self.logline_handler.check_relevance(logline_dict=logline, function_name=self.relevance_function_name):
+            if self.logline_handler.check_relevance(
+                logline_dict=logline, function_name=self.relevance_function_name
+            ):
                 self.filtered_data.append(logline)
             else:  # not relevant, filtered out
                 logline_id = uuid.UUID(logline.get("logline_id"))
@@ -186,7 +196,7 @@ class Prefilter:
             "end_timestamp": self.end_timestamp,
             "data": self.filtered_data,
         }
-        
+
         # important to finish before sending, otherwise inspector can process before finished here!
         self.batch_timestamps.insert(
             dict(
@@ -199,19 +209,19 @@ class Prefilter:
                 message_count=len(self.filtered_data),
             )
         )
-               
+
         self.batch_tree.insert(
             dict(
-                batch_row_id = row_id,
+                batch_row_id=row_id,
                 stage=module_name,
                 instance_name=self.name,
                 status="finished",
                 timestamp=datetime.datetime.now(),
                 parent_batch_row_id=self.parent_row_id,
-                batch_id=self.batch_id 
+                batch_id=self.batch_id,
             )
         )
-        
+
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -223,15 +233,12 @@ class Prefilter:
 
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
         for topic in self.produce_topics:
-   
+
             self.kafka_produce_handler.produce(
                 topic=topic,
                 data=batch_schema.dumps(data_to_send),
                 key=self.subnet_id,
             )
-
-        
-
 
         logger.info(
             f"Filtered data was successfully sent:\n"
@@ -256,6 +263,7 @@ class Prefilter:
             self.send_filtered_data()
             logger.info(f"Send data {self.consume_topic} - {counter}")
             counter += 1
+
     async def start(self):
         """
         Runs the main loop by
@@ -268,33 +276,43 @@ class Prefilter:
 
         Args:
             one_iteration (bool): Only one iteration is done if True (for testing purposes). False by default.
-        """  
+        """
         loop = asyncio.get_running_loop()
         logger.info(
             "Prefilter started:\n"
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'"
-        )          
-        await loop.run_in_executor(
-                None, self.bootstrap_prefiltering_process
-            )
+        )
+        await loop.run_in_executor(None, self.bootstrap_prefiltering_process)
         logger.info("Closing down Prefilter...")
         self.clear_data()
-            
 
 
-async def main() -> None:  
+async def main() -> None:
     tasks = []
     for prefilter in PREFILTERS:
         relevance_function_name = prefilter["relevance_method"]
-        validation_config = [ item for collector in COLLECTORS if collector["name"] == prefilter["collector_name"] for item in collector["required_log_information"]]
+        validation_config = [
+            item
+            for collector in COLLECTORS
+            if collector["name"] == prefilter["collector_name"]
+            for item in collector["required_log_information"]
+        ]
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{prefilter['name']}"
-        produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{inspector['name']}" for inspector in INSPECTORS if prefilter["name"] == inspector["prefilter_name"]]
-        prefilter_instance = Prefilter(validation_config=validation_config, consume_topic=consume_topic, produce_topics=produce_topics,relevance_function_name=relevance_function_name)
-        prefilter_instance.name = prefilter["name"]
-        tasks.append(
-            asyncio.create_task(prefilter_instance.start())
+        produce_topics = [
+            f"{PRODUCE_TOPIC_PREFIX}-{inspector['name']}"
+            for inspector in INSPECTORS
+            if prefilter["name"] == inspector["prefilter_name"]
+        ]
+        prefilter_instance = Prefilter(
+            validation_config=validation_config,
+            consume_topic=consume_topic,
+            produce_topics=produce_topics,
+            relevance_function_name=relevance_function_name,
         )
+        prefilter_instance.name = prefilter["name"]
+        tasks.append(asyncio.create_task(prefilter_instance.start()))
     await asyncio.gather(*tasks)
+
 
 if __name__ == "__main__":  # pragma: no cover
     asyncio.run(main())

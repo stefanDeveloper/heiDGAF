@@ -26,6 +26,7 @@ from src.base.data_classes.batch import Batch
 from src.base.log_config import get_logger
 from src.base.utils import kafka_delivery_report, setup_config
 import uuid
+
 logger = get_logger()
 
 HOSTNAME = os.getenv("HOSTNAME", "default_tid")
@@ -98,7 +99,7 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
             "bootstrap.servers": self.brokers,
             "enable.idempotence": False,
             "acks": "1",
-            "message.max.bytes": 1000000000,  
+            "message.max.bytes": 1000000000,
         }
 
         super().__init__(conf)
@@ -121,6 +122,8 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
             value=data,
             callback=kafka_delivery_report,
         )
+
+
 class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
     """
     Wrapper for the Kafka Producer with Write-Exactly-Once semantics.
@@ -135,7 +138,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             "bootstrap.servers": self.brokers,
             "transactional.id": f"{HOSTNAME}-{uuid.uuid4()}",
             "enable.idempotence": True,
-            "message.max.bytes": 1000000000, 
+            "message.max.bytes": 1000000000,
         }
 
         super().__init__(conf)
@@ -227,7 +230,7 @@ class KafkaConsumeHandler(KafkaHandler):
         # create consumer
         conf = {
             "bootstrap.servers": self.brokers,
-            "group.id": f'{CONSUMER_GROUP_ID}',
+            "group.id": f"{CONSUMER_GROUP_ID}",
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,
@@ -319,10 +322,11 @@ class KafkaConsumeHandler(KafkaHandler):
     def __del__(self) -> None:
         if self.consumer:
             self.consumer.close()
+
     @staticmethod
     def _is_dicts(obj):
         return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
-    
+
     def consume_as_object(self) -> tuple[None | str, Batch]:
         """
         Consumes available messages on the specified topic. Decodes the data and converts it to a Batch
@@ -342,15 +346,15 @@ class KafkaConsumeHandler(KafkaHandler):
         if self._is_dicts(eval_data.get("data")):
             eval_data["data"] = eval_data.get("data")
         else:
-            eval_data["data"] = [
-                json.loads(item) for item in eval_data.get("data")
-            ]
+            eval_data["data"] = [json.loads(item) for item in eval_data.get("data")]
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
         eval_data: Batch = batch_schema.load(eval_data)
         if isinstance(eval_data, Batch):
             return key, eval_data
         else:
             raise ValueError("Unknown data format.")
+
+
 class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
     """
     Simple wrapper for the Kafka Consumer without Write-Exactly-Once semantics.
@@ -394,9 +398,6 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
                 return key, value, topic
         except KeyboardInterrupt:
             logger.info("Stopping KafkaConsumeHandler...")
-            
-            
-
 
 
 class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):

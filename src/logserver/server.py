@@ -19,10 +19,14 @@ module_name = "log_storage.logserver"
 logger = get_logger(module_name)
 
 config = setup_config()
-CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_in"]
-PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"]["logserver_to_collector"]
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "logserver_in"
+]
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "logserver_to_collector"
+]
 
-SENSOR_PROTOCOLS= get_zeek_sensor_topic_base_names(config)
+SENSOR_PROTOCOLS = get_zeek_sensor_topic_base_names(config)
 
 READ_FROM_FILE = config["pipeline"]["log_storage"]["logserver"]["input_file"]
 KAFKA_BROKERS = ",".join(
@@ -35,6 +39,7 @@ COLLECTORS = [
     collector for collector in config["pipeline"]["log_collection"]["collectors"]
 ]
 
+
 class LogServer:
     """
     Receives and sends single log lines. Listens for messages via Kafka and reads newly added lines from an input
@@ -42,11 +47,11 @@ class LogServer:
     """
 
     def __init__(self, consume_topic, produce_topics) -> None:
-        
+
         self.consume_topic = consume_topic
         self.produce_topics = produce_topics
-        
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(consume_topic) 
+
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(consume_topic)
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         # databases
@@ -64,9 +69,7 @@ class LogServer:
         )
 
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(
-            None, self.fetch_from_kafka
-        )
+        await loop.run_in_executor(None, self.fetch_from_kafka)
         # if awaited completely then the while True has come to an end
         logger.info("LogServer stopped.")
 
@@ -109,18 +112,23 @@ class LogServer:
 
             self.send(message_id, value)
 
+
 async def main() -> None:
     """
     Creates the :class:`LogServer` instance and starts it for every topic used by any of the Zeek-sensors.
-    """  
+    """
     tasks = []
     for protocol in SENSOR_PROTOCOLS:
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{protocol}"
-        produce_topics = [f'{PRODUCE_TOPIC_PREFIX}-{collector["name"]}' for collector in COLLECTORS if collector["protocol_base"] == protocol]
-        server_instance = LogServer(consume_topic=consume_topic, produce_topics=produce_topics)
-        tasks.append(
-            asyncio.create_task(server_instance.start())
+        produce_topics = [
+            f'{PRODUCE_TOPIC_PREFIX}-{collector["name"]}'
+            for collector in COLLECTORS
+            if collector["protocol_base"] == protocol
+        ]
+        server_instance = LogServer(
+            consume_topic=consume_topic, produce_topics=produce_topics
         )
+        tasks.append(asyncio.create_task(server_instance.start()))
 
     await asyncio.gather(*tasks)
 

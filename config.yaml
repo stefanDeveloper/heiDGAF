@@ -43,7 +43,7 @@ pipeline:
           - [ "size", RegEx, '^\d+$' ]
         batch_handler_config_override:
           batch_timeout: 30.1
-      
+
       - name: "dominator_collector"
         protocol_base: dns
         required_log_information:
@@ -51,7 +51,7 @@ pipeline:
           - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
           - [ "src_ip", IpAddress ]
 
-      
+
       - name: "my_http_collector"
         protocol_base: http
         required_log_information:
@@ -64,18 +64,18 @@ pipeline:
           subnet_id:
             ipv4_prefix_length: 16
             ipv6_prefix_length: 32
-  
+
   log_filtering:
     - name: "dga_filter"
       # method to apply for rule based prefiltering according to the needs
       relevance_method: no_relevance_check # check_dga_relevance
-      collector_name: dga_collector 
+      collector_name: dga_collector
     - name: "dominator_filter"
       relevance_method: no_relevance_check
       collector_name: dominator_collector
-    - name: "examplary_filter" 
+    - name: "examplary_filter"
       relevance_method: no_relevance_check
-      collector_name: dga_collector 
+      collector_name: dga_collector
     - name: "xss_filter"
       relevance_method: no_relevance_check
       collector_name: my_http_collector
@@ -150,7 +150,15 @@ pipeline:
       score_threshold: 0.5
       time_type: ms
       time_range: 20
-      
+    - name: no_inspector
+      prefilter_name: dga_filter
+      skip_inspector: True
+    - name: skip_the_inspector_stage_as_well_with_this
+      prefilter_name: dominator_filter
+      skip_inspector: True
+
+
+
   data_analysis:
     - name: "RF-dga_detector"
       model: rf # XGBoost
@@ -181,12 +189,12 @@ pipeline:
           - dns
         interfaces:
           - enx84ba5960ffe6
-      zeek2: 
+      zeek2:
         static_analysis: false # default
         protocols:
           - http
           - dns
-        interfaces: 
+        interfaces:
           - eth0
           - dummy
       zeek3:

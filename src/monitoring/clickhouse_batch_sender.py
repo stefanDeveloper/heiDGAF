@@ -176,13 +176,13 @@ class ClickHouseBatchSender:
                 "batch_tree",
                 {
                     "batch_row_id": str,
-                    "batch_id": uuid.UUID, 
+                    "batch_id": uuid.UUID,
                     "parent_batch_row_id": Optional[str],
                     "instance_name": str,
                     "stage": str,
                     "status": str,
-                    "timestamp": datetime.datetime,                          
-                }
+                    "timestamp": datetime.datetime,
+                },
             ),
         }
 

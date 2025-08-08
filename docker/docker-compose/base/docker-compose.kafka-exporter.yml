@@ -1,4 +1,4 @@
-services: 
+services:
   kafka-exporter:
     image: danielqsj/kafka-exporter
     container_name: kafka-exporter
@@ -6,7 +6,7 @@ services:
       - "9308:9308"
     command: ["--kafka.server=kafka1:8097", "--kafka.server=kafka2:8098", "--kafka.server=kafka3:8099"]
     networks:
-      - heidgaf      
+      - heidgaf
 networks:
   heidgaf:
     external: true

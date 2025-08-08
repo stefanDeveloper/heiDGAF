@@ -11,7 +11,11 @@ sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
-from src.base.utils import setup_config, get_batch_configuration, generate_collisions_resistant_uuid
+from src.base.utils import (
+    setup_config,
+    get_batch_configuration,
+    generate_collisions_resistant_uuid,
+)
 from src.base.log_config import get_logger
 
 module_name = "log_collection.batch_handler"
@@ -25,6 +29,8 @@ KAFKA_BROKERS = ",".join(
         for broker in config["environment"]["kafka_brokers"]
     ]
 )
+
+
 class BufferedBatch:
     """Data structure for managing the batch, buffer, and timestamps. The batch contains the latest messages and a
     buffer that stores the previous batch messages. Sorts the batches and can return timestamps.
@@ -194,9 +200,7 @@ class BufferedBatch:
                 def _get_first_timestamp_of_buffer() -> str | None:
                     entries = self.buffer.get(key)
                     return (
-                        json.loads(entries[0])["ts"]
-                        if entries and entries[0]
-                        else None
+                        json.loads(entries[0])["ts"] if entries and entries[0] else None
                     )
 
                 begin_timestamp = _get_first_timestamp_of_buffer()
@@ -207,12 +211,11 @@ class BufferedBatch:
                 entries = self.batch.get(key)
 
                 return (
-                    json.loads(entries[-1])["ts"]
-                    if entries and entries[-1]
-                    else None
+                    json.loads(entries[-1])["ts"] if entries and entries[-1] else None
                 )
+
             row_id = generate_collisions_resistant_uuid()
-            
+
             data = {
                 "batch_tree_row_id": row_id,
                 "batch_id": batch_id,
@@ -222,10 +225,10 @@ class BufferedBatch:
                 ),
                 "data": buffer_data + self.batch[key],
             }
-            
-            timestamp=datetime.datetime.now()
+
+            timestamp = datetime.datetime.now()
             self.batch_timestamps.insert(
-                dict(   
+                dict(
                     batch_id=batch_id,
                     stage=module_name,
                     instance_name=self.name,
@@ -237,16 +240,16 @@ class BufferedBatch:
             )
             self.batch_tree.insert(
                 dict(
-                    batch_row_id=row_id,   
+                    batch_row_id=row_id,
                     parent_batch_row_id=None,
                     stage=module_name,
                     instance_name=self.name,
                     timestamp=timestamp,
                     status="completed",
-                    batch_id=batch_id
+                    batch_id=batch_id,
                 )
-            )            
-            
+            )
+
             # Move data from batch to buffer
             self.buffer[key] = self.batch[key]
             del self.batch[key]
@@ -473,7 +476,7 @@ class BufferedBatchSender:
             data (dict): the batch data to send
         """
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
-        
+
         for topic in self.topics:
             self.kafka_produce_handler.produce(
                 topic=topic,
@@ -487,5 +490,7 @@ class BufferedBatchSender:
         if self.timer:
             self.timer.cancel()
 
-        self.timer = Timer(self.batch_configuration["batch_timeout"], self._send_all_batches)
+        self.timer = Timer(
+            self.batch_configuration["batch_timeout"], self._send_all_batches
+        )
         self.timer.start()

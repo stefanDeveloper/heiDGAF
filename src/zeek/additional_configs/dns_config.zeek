@@ -19,8 +19,8 @@ export {
 
     };
     global log_dns: event(rec: Info);
-    global dns_payload_sizes: table[string] of count 
-        &default=0  
+    global dns_payload_sizes: table[string] of count
+        &default=0
         &write_expire = 5min;
 }
 
@@ -54,7 +54,7 @@ event DNS::log_dns(rec: DNS::Info)
     ];
 
     ##### add custom log messages if a given field that needs to be present is not present in the logline ####
-    # use this only for fields that are absolutely necessary 
+    # use this only for fields that are absolutely necessary
 
     # Keep this deactivated for now, as we want to use zeek at first to not prefilter anything
 
@@ -62,7 +62,7 @@ event DNS::log_dns(rec: DNS::Info)
 #        print fmt("Info: missing domain in DNS log %s, skipping the log...", rec);
 #    if ( ! rec?$conn )
 #        print fmt("Info:could not determine request length for line  %s, skipping the log...", rec);
-#    
+#
     ###########################################################################################################
 
     if ( rec?$query )
@@ -91,5 +91,3 @@ event DNS::log_dns(rec: DNS::Info)
 
     Log::write(CustomDNS::LOG, dnsLog);
 }
-
-
