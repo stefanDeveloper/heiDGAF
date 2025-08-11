@@ -362,6 +362,7 @@ class TestConsumeAsObject(unittest.TestCase):
         value = batch_schema.dumps(
             {
                 "batch_id": uuid.uuid4(),
+                "batch_tree_row_id": uuid.uuid4(),
                 "begin_timestamp": datetime.datetime.now(),
                 "end_timestamp": datetime.datetime.now(),
                 "data": [{"field1": "value1", "field2": "value2"}],
@@ -385,6 +386,7 @@ class TestConsumeAsObject(unittest.TestCase):
         value = batch_schema.dumps(
             {
                 "batch_id": uuid.uuid4(),
+                "batch_tree_row_id": uuid.uuid4(),
                 "begin_timestamp": datetime.datetime.now(),
                 "end_timestamp": datetime.datetime.now(),
                 "data": [

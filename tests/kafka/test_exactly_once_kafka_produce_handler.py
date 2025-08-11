@@ -25,15 +25,17 @@ class TestInit(unittest.TestCase):
             },
         ],
     )
+    @patch("src.base.kafka_handler.uuid")
     @patch("src.base.kafka_handler.Producer")
-    def test_init(self, mock_producer):
+    def test_init(self, mock_producer, mock_uuid):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
-
+        mock_uuid.uuid4.return_value = "fixed‑uuid‑1234‑abcd‑5678‑90ef"
         expected_conf = {
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
-            "transactional.id": "test_transactional_id",
+            "transactional.id": f"test_transactional_id-{mock_uuid.uuid4.return_value}",
             "enable.idempotence": True,
+            'message.max.bytes': 1000000000,
         }
 
         sut = ExactlyOnceKafkaProduceHandler()
@@ -44,6 +46,7 @@ class TestInit(unittest.TestCase):
         mock_producer.assert_called_once_with(expected_conf)
         mock_producer_instance.init_transactions.assert_called_once()
 
+    @patch("src.base.kafka_handler.uuid")
     @patch("src.base.kafka_handler.logger")
     @patch(
         "src.base.kafka_handler.KAFKA_BROKERS",
@@ -63,14 +66,16 @@ class TestInit(unittest.TestCase):
         ],
     )
     @patch("src.base.kafka_handler.Producer")
-    def test_init_fail(self, mock_producer, mock_logger):
+    def test_init_fail(self, mock_producer, mock_logger, mock_uuid):
         mock_producer_instance = MagicMock()
         mock_producer.return_value = mock_producer_instance
+        mock_uuid.uuid4.return_value = "fixed‑uuid‑1234‑abcd‑5678‑90ef"
 
         expected_conf = {
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
-            "transactional.id": "default_tid",
+            "transactional.id": f"default_tid-{mock_uuid.uuid4.return_value}",
             "enable.idempotence": True,
+            "message.max.bytes": 1000000000
         }
 
         with patch.object(
