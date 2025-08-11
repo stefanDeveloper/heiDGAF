@@ -110,59 +110,53 @@ class TestSend(unittest.TestCase):
         mock_kafka_produce_handler_instance.produce.assert_called_once_with(
             topic="test_topic",
             data=message,
+      
         )
+
+class _StopFetching(RuntimeError):
+    """Raised inside the test to break the infinite fetch loop."""
+    pass
 class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
     @patch("src.logserver.server.ExactlyOnceKafkaConsumeHandler")
     @patch("src.logserver.server.LogServer.send")
     @patch("src.logserver.server.logger")
-    @patch("asyncio.get_running_loop")
     @patch("src.logserver.server.ClickHouseKafkaSender")
     @patch("src.logserver.server.uuid")
     async def test_fetch_from_kafka(
         self,
         mock_uuid,
         mock_clickhouse,
-        mock_get_running_loop,
         mock_logger,
         mock_send,
         mock_kafka_consume,
         mock_kafka_produce,
     ):
-        self.sut = LogServer(consume_topic="test-topic", produce_topics=["test_produce_topic"])
         mock_uuid_instance = MagicMock()
         mock_uuid.return_value = mock_uuid_instance
         mock_uuid.uuid4.return_value = UUID("bd72ccb4-0ef2-4100-aa22-e787122d6875")
-        mock_send_instance = AsyncMock()
-        mock_send.return_value = mock_send_instance
-        mock_loop = AsyncMock()
-        mock_get_running_loop.return_value = mock_loop
         mock_consume_handler = MagicMock()
-        mock_kafka_consume.return_value = mock_consume_handler
-        mock_consume_handler.consume.return_value = (
-            "key1",
-            "value1",
-            "topic1",
-        )
         mock_consume_handler.consume.side_effect = [
             ("key1", "value1", "test-topic"),
-            asyncio.CancelledError(),
+            _StopFetching(),
         ]
+        mock_kafka_consume.return_value = mock_consume_handler
+        self.sut = LogServer(consume_topic="test-topic", produce_topics=["test_produce_topic"])
 
+        # Keep real fetch but stop after _StopFetching
         original_fetch = self.sut.fetch_from_kafka
-        async def fetch_wrapper(*args, **kwargs):
+        def fetch_wrapper(*args, **kwargs):
             try:
-                await original_fetch(*args, **kwargs)
-            except asyncio.CancelledError:
+                original_fetch(*args, **kwargs)
+            except _StopFetching:
                 return
 
         with patch.object(self.sut, "fetch_from_kafka", new=fetch_wrapper):
-            await self.sut.fetch_from_kafka()
+            self.sut.fetch_from_kafka()
 
         mock_send.assert_called_once_with(
             UUID("bd72ccb4-0ef2-4100-aa22-e787122d6875"), "value1"
         )
-
 
 # class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
 
