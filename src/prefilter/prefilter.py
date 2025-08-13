@@ -64,6 +64,7 @@ class Prefilter:
         self.begin_timestamp = None
         self.end_timestamp = None
         self.subnet_id = None
+        self.parent_row_id = None
         self.relevance_function_name = relevance_function_name
 
         self.unfiltered_data = []
