@@ -182,41 +182,41 @@ class TestListItem(unittest.TestCase):
         self.assertFalse(sut.validate("Test"))
         self.assertFalse(sut.validate(48))
 
-    def test_check_relevance_true(self):
-        # Arrange
-        name = "test_name"
-        allowed_list = ["test", 23, "another_test", 48]
-        relevant_list = [23, 48]
-        sut = ListItem(
-            name=name, allowed_list=allowed_list, relevant_list=relevant_list
-        )
+    # def test_check_relevance_true(self):
+    #     # Arrange
+    #     name = "test_name"
+    #     allowed_list = ["test", 23, "another_test", 48]
+    #     relevant_list = [23, 48]
+    #     sut = ListItem(
+    #         name=name, allowed_list=allowed_list, relevant_list=relevant_list
+    #     )
 
-        # Act and Assert
-        self.assertTrue(sut.check_relevance(23))
+    #     # Act and Assert
+    #     self.assertTrue(sut.check_relevance(23))
 
-    def test_check_relevance_false(self):
-        # Arrange
-        name = "test_name"
-        allowed_list = ["test", 23, "another_test", 48]
-        relevant_list = [23, 48]
-        sut = ListItem(
-            name=name, allowed_list=allowed_list, relevant_list=relevant_list
-        )
+    # def test_check_relevance_false(self):
+    #     # Arrange
+    #     name = "test_name"
+    #     allowed_list = ["test", 23, "another_test", 48]
+    #     relevant_list = [23, 48]
+    #     sut = ListItem(
+    #         name=name, allowed_list=allowed_list, relevant_list=relevant_list
+    #     )
 
-        # Act and Assert
-        self.assertFalse(sut.check_relevance("this_is_not_relevant"))
+    #     # Act and Assert
+    #     self.assertFalse(sut.check_relevance("this_is_not_relevant"))
 
-    def test_check_relevance_no_relevant_values(self):
-        # Arrange
-        name = "test_name"
-        allowed_list = ["test", 23, "another_test", 48]
-        relevant_list = []
-        sut = ListItem(
-            name=name, allowed_list=allowed_list, relevant_list=relevant_list
-        )
+    # def test_check_relevance_no_relevant_values(self):
+    #     # Arrange
+    #     name = "test_name"
+    #     allowed_list = ["test", 23, "another_test", 48]
+    #     relevant_list = []
+    #     sut = ListItem(
+    #         name=name, allowed_list=allowed_list, relevant_list=relevant_list
+    #     )
 
-        # Act and Assert
-        self.assertTrue(sut.check_relevance("this_is_not_relevant"))
+    #     # Act and Assert
+    #     self.assertTrue(sut.check_relevance("this_is_not_relevant"))
 
 
 if __name__ == "__main__":

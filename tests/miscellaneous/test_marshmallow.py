@@ -8,7 +8,9 @@ from src.base.data_classes.batch import Batch
 
 class TestClearData(unittest.TestCase):
     def test_clear_data_with_existing_data(self):
+        batch_tree_row_id=f"{str(uuid.uuid4())}-{str(uuid.uuid4())}"
         json_data = {
+            "batch_tree_row_id": batch_tree_row_id,
             "batch_id": str(uuid.uuid4()),
             "begin_timestamp": "2024-05-21T08:31:27",
             "end_timestamp": "2024-05-21T08:31:29",

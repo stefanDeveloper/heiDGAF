@@ -164,7 +164,7 @@ class RelevanceHandler:
             is_relevant = getattr(self, function_name)(logline_dict)
         except AttributeError as e:
             logger.error(f"Function {function_name} is not implemented!")
-            raise (f"Function {function_name} is not implemented!")
+            raise Exception(f"Function {function_name} is not implemented!")
         return is_relevant
 
     def check_dga_relevance(self, logline_dict: dict) -> bool:
@@ -196,6 +196,8 @@ class LoglineHandler:
         """
         self.logformats = validation_config
         log_configuration_instances = {}
+        if not validation_config:
+            raise ValueError("No fields configured")
         for log_config_item in validation_config:
             instance = self._create_instance_from_list_entry(log_config_item)
             if instance.name in FORBIDDEN_FIELD_NAMES:
