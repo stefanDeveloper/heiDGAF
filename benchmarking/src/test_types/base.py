@@ -5,7 +5,7 @@ from abc import abstractmethod
 from datetime import datetime, timedelta
 
 import progressbar
-from confluent_kafka import KafkaError
+from confluent_kafka import KafkaException
 
 sys.path.append(os.getcwd())
 from benchmarking.src.dataset_generator import DatasetGenerator
@@ -161,7 +161,7 @@ class IntervalBasedTest(BaseTest):
             length_in_seconds (float | int): Interval length of the current iteration
 
         Returns:
-            Index of the current iteration, same as index from input
+            Index of the iteration after this interval
         """
         start_of_interval_timestamp = datetime.now()
 
@@ -185,8 +185,9 @@ class IntervalBasedTest(BaseTest):
                 )
 
                 current_index += 1
-            except KafkaError:
-                logger.error(KafkaError)
+            except KafkaException:
+                logger.error(KafkaException)
+
             time.sleep(1.0 / messages_per_second)
 
         logger.info(f"Finish interval with {messages_per_second} msg/s")
@@ -272,8 +273,8 @@ class SingleIntervalTest(BaseTest):
                 )
 
                 current_index += 1
-            except KafkaError:
-                logger.error(KafkaError)
+            except KafkaException:
+                logger.error(KafkaException)
             time.sleep(1.0 / self.messages_per_second)
 
         self.progress_bar.update(100)
