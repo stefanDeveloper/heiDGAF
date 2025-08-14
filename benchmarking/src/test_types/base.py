@@ -73,13 +73,13 @@ class BaseTest:
         """
         custom_fields = {
             "message_count": progressbar.FormatCustomText(  # show the number of messages already sent
-                f"%(cur_message_count){len(str(self.total_message_count))}s",
-                dict(cur_message_count=0),
+                f"%(current_message_count){len(str(self.total_message_count))}s",
+                dict(current_message_count=0),
             ),
         }
         if self.is_interval_based:  # show the current interval number
             custom_fields["interval"] = progressbar.FormatCustomText(
-                "Int.: %(interval_nr)s, ", dict(interval_nr=1)
+                "Int.: %(interval_number)s, ", dict(interval_number=1)
             )
         else:
             custom_fields["interval"] = progressbar.FormatCustomText("")  # empty
@@ -138,23 +138,35 @@ class IntervalBasedTest(BaseTest):
     def _execute_core(self):
         """Executes the test by repeatedly executing single intervals.
         Updates the progress bar's interval information."""
-        cur_index = 0
+        current_index = 0
         for i in range(len(self.messages_per_second_in_intervals)):
-            self.custom_fields["interval"].update_mapping(interval_nr=i + 1)
-            cur_index = self.__execute_single_interval(
-                cur_index=cur_index,
-                msg_per_sec=self.messages_per_second_in_intervals[i],
-                length_in_sec=self.interval_lengths_in_seconds[i],
+            self.custom_fields["interval"].update_mapping(interval_number=i + 1)
+            current_index = self.__execute_single_interval(
+                current_index=current_index,
+                messages_per_second=self.messages_per_second_in_intervals[i],
+                length_in_seconds=self.interval_lengths_in_seconds[i],
             )
 
     def __execute_single_interval(
-        self, cur_index: int, msg_per_sec: float | int, length_in_sec: float | int
+        self,
+        current_index: int,
+        messages_per_second: float | int,
+        length_in_seconds: float | int,
     ) -> int:
-        """Executes a single interval and updates the progress bar accordingly."""
+        """Executes a single interval and updates the progress bar accordingly.
+
+        Args:
+            current_index (int): Index of the current iteration
+            messages_per_second (float | int): Data rate of the current iteration
+            length_in_seconds (float | int): Interval length of the current iteration
+
+        Returns:
+            Index of the current iteration, same as index from input
+        """
         start_of_interval_timestamp = datetime.now()
 
         while datetime.now() - start_of_interval_timestamp < timedelta(
-            seconds=length_in_sec
+            seconds=length_in_seconds
         ):
             try:
                 self.kafka_producer.produce(
@@ -163,7 +175,7 @@ class IntervalBasedTest(BaseTest):
                 )
 
                 self.custom_fields["message_count"].update_mapping(
-                    cur_message_count=cur_index
+                    current_message_count=current_index
                 )
                 self.progress_bar.update(
                     min(
@@ -172,13 +184,13 @@ class IntervalBasedTest(BaseTest):
                     )
                 )
 
-                cur_index += 1
+                current_index += 1
             except KafkaError:
                 logger.error(KafkaError)
-            time.sleep(1.0 / msg_per_sec)
+            time.sleep(1.0 / messages_per_second)
 
-        logger.info(f"Finish interval with {msg_per_sec} msg/s")
-        return cur_index
+        logger.info(f"Finish interval with {messages_per_second} msg/s")
+        return current_index
 
     def __get_total_duration(self) -> timedelta:
         """
@@ -237,7 +249,7 @@ class SingleIntervalTest(BaseTest):
     def _execute_core(self):
         """Produces messages for the specified duration and updates the
         progress bar accordingly."""
-        cur_index = 0
+        current_index = 0
         while datetime.now() - self.start_timestamp < timedelta(
             minutes=self.full_length_in_minutes
         ):
@@ -248,7 +260,7 @@ class SingleIntervalTest(BaseTest):
                 )
 
                 self.custom_fields["message_count"].update_mapping(
-                    cur_message_count=cur_index
+                    current_message_count=current_index
                 )
                 self.progress_bar.update(
                     min(
@@ -259,7 +271,7 @@ class SingleIntervalTest(BaseTest):
                     )  # current time elapsed relative to full duration
                 )
 
-                cur_index += 1
+                current_index += 1
             except KafkaError:
                 logger.error(KafkaError)
             time.sleep(1.0 / self.messages_per_second)
