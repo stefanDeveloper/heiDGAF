@@ -47,12 +47,13 @@ def setup_zeek(configuration_file_path, zeek_config_location):
     else:
         logger.info("Restore default config")
         shutil.copy2(default_zeek_config_backup_location, default_zeek_config_location)
+    # no need to check if proper file, as this is already checked with @click.option type=File
     configuration_file_content = configuration_file_path.read()
     try:
         data = yaml.safe_load(configuration_file_content)
     except yaml.YAMLError as e:
-        logger.error("Erro parsing the config file. Is this proper yaml?")
-        return
+        logger.error("Error parsing the config file. Is this proper yaml?")
+        raise(e)
 
     if zeek_config_location is None:
         zeek_config_location = default_zeek_config_location

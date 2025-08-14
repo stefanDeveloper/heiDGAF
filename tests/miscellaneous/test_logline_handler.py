@@ -10,31 +10,29 @@ from src.base.logline_handler import (
     Timestamp,
 )
 
-MOCK_REQUIRED_FIELDS = ["timestamp", "status_code"]
+MOCK_REQUIRED_FIELDS = ["ts", "status_code"]
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
+    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)# Empty file to make the directory a Python package
+    @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
+    def test_init_successful(self, mock_create):
+        validation_config=[
+            ["ts", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["record_type", "RegEx", r"^\d+b$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["src_ip", "IpAddress"],
-        ],
-    )
-    @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
-    def test_init_successful(self, mock_create):
-        # Arrange
+        ]
         timestamp_instance = MagicMock()
-        timestamp_instance.name = "timestamp"
+        timestamp_instance.name = "ts"
         regex_instance = MagicMock()
         regex_instance.name = "record_type"
         list_item_instance = MagicMock()
         list_item_instance.name = "status_code"
         ip_address_instance = MagicMock()
         ip_address_instance.name = "src_ip"
+        
+        mock_relevance_handler = MagicMock()
 
         mock_create.side_effect = [
             timestamp_instance,
@@ -43,40 +41,34 @@ class TestInit(unittest.TestCase):
             ip_address_instance,
         ]
 
-        expected_instances_by_name = {
-            "timestamp": timestamp_instance,
-            "record_type": regex_instance,
-            "status_code": list_item_instance,
-            "src_ip": ip_address_instance,
-        }
-        expected_instances_by_position = {
-            0: timestamp_instance,
-            1: regex_instance,
-            2: list_item_instance,
-            3: ip_address_instance,
+        expected_log_configuration_instances = {
+                "ts": timestamp_instance,
+                "record_type": regex_instance,
+                "status_code": list_item_instance,
+                "src_ip": ip_address_instance,
         }
 
-        # Act
-        sut = LoglineHandler()
+        with patch("src.base.logline_handler.RelevanceHandler") as mock_relevance:
+            # Make the patched class return a dummy object instead of running real logic
+            mock_relevance.return_value = MagicMock()
 
-        # Assert
-        self.assertEqual(expected_instances_by_name, sut.instances_by_name)
-        self.assertEqual(expected_instances_by_position, sut.instances_by_position)
-        self.assertEqual(4, sut.number_of_fields)
+            # Run the code under test
+            sut = LoglineHandler(validation_config=validation_config)        
+            sut.relvance_handler = mock_relevance_handler
+
+            # Assert
+            mock_relevance.assert_called_once()
+            mock_relevance.assert_called_once_with(log_configuration_instances=expected_log_configuration_instances)
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
+    @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
+    def test_init_multiple_fields_with_same_name(self, mock_create):
+        validation_config=[
+            ["ts", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["status_code", "RegEx", r"^\d+b$"],
             ["src_ip", "IpAddress"],
-        ],
-    )
-    @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
-    def test_init_multiple_fields_with_same_name(self, mock_create):
-        # Arrange
+        ]
         regex_1_instance = MagicMock()
         regex_1_instance.name = "timestamp"
         list_item_instance = MagicMock()
@@ -95,21 +87,17 @@ class TestInit(unittest.TestCase):
 
         # Act and Assert
         with self.assertRaises(ValueError) as context:
-            LoglineHandler()
+            LoglineHandler(validation_config=validation_config)
 
         self.assertEqual(str(context.exception), "Multiple fields with same name")
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "RegEx", r"^\d+b$"],
-            ["src_ip", "IpAddress"],
-        ],
-    )
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
     def test_init_missing_fields(self, mock_create):
-        # Arrange
+        validation_config=[
+            ["ts", "RegEx", r"^\d+b$"],
+            ["src_ip", "IpAddress"],
+        ]
         regex_1_instance = MagicMock()
         regex_1_instance.name = "timestamp"
         ip_address_instance = MagicMock()
@@ -119,14 +107,13 @@ class TestInit(unittest.TestCase):
 
         # Act and Assert
         with self.assertRaises(ValueError) as context:
-            LoglineHandler()
+            LoglineHandler(validation_config=validation_config)
 
         self.assertEqual(
             str(context.exception), "Not all needed fields are set in the configuration"
         )
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", ["field_1"])
-    @patch("src.base.logline_handler.LOGLINE_FIELDS", ["field_1", "field_2"])
     @patch("src.base.logline_handler.FORBIDDEN_FIELD_NAMES", ["field_2"])
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
     def test_init_no_fields(self, mock_create):
@@ -137,7 +124,7 @@ class TestInit(unittest.TestCase):
 
         # Act and Assert
         with self.assertRaises(ValueError) as context:
-            LoglineHandler()
+            LoglineHandler(validation_config=["field_1", "field_2"])
 
         self.assertEqual(
             str(context.exception),
@@ -147,8 +134,6 @@ class TestInit(unittest.TestCase):
         )
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", [])
-    @patch("src.base.logline_handler.LOGLINE_FIELDS", [])
-    @patch("src.base.logline_handler.LOGLINE_FIELDS", [])
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
     def test_init_forbidden_fields(self, mock_create):
         # Arrange
@@ -156,35 +141,29 @@ class TestInit(unittest.TestCase):
 
         # Act and Assert
         with self.assertRaises(ValueError) as context:
-            LoglineHandler()
-
-        self.assertEqual(str(context.exception), "No fields configured")
+            LoglineHandler(validation_config=[])
+            self.assertEqual(str(context.exception), "No fields configured")
 
 
 class TestValidateLogline(unittest.TestCase):
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
+    def test_validate_successful(self):
+        validation_config=[
+            ["ts", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["src_ip", "IpAddress"],
-        ],
-    )
-    def test_validate_successful(self):
-        # Arrange
-        sut = LoglineHandler()
+        ]
+        sut = LoglineHandler(validation_config=validation_config)
 
         # Act and Assert
         self.assertTrue(
-            sut.validate_logline("2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.20")
+            sut.validate_logline('{"ts": "2024-07-28T14:45:30.123Z","status_code": "NXDOMAIN","src_ip": "126.24.5.20"}')
         )
 
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%f"],
+    def test_validate_successful_with_real_format(self):
+        validation_config = [
+            ["ts", "Timestamp", "%Y-%m-%dT%H:%M:%S.%f"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["src_ip", "IpAddress"],
             ["dns_server_ip", "IpAddress"],
@@ -195,219 +174,203 @@ class TestValidateLogline(unittest.TestCase):
             ],
             ["record_type", "ListItem", ["A", "AAAA"]],
             ["response_ip", "IpAddress"],
-            ["size", "RegEx", r"^\d+b$"],
-        ],
-    )
-    def test_validate_successful_with_real_format(self):
-        # Arrange
-        sut = LoglineHandler()
+            ["size", "RegEx", r'^\d+$'],
+        ]
+        sut = LoglineHandler(validation_config=validation_config)
 
         # Act and Assert
         self.assertTrue(
             sut.validate_logline(
-                "2024-07-28T14:45:30.123 NXDOMAIN 127.0.0.2 126.24.5.20 domain.test A fe80::1 150b"
+                '{"ts": "2024-07-28T14:45:30.123","status_code": "NXDOMAIN","dns_server_ip": "127.0.0.2", "domain_name": "domain.test", "record_type": "A", "src_ip": "126.24.5.20", "response_ip": "fe80::1", "size": "150"}'
             )
         )
 
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
-            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["src_ip", "IpAddress"],
-        ],
-    )
     def test_validate_wrong_number_of_fields(self, mock_logger):
-        # Arrange
-        sut = LoglineHandler()
+        validation_config =[
+            ["ts", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["src_ip", "IpAddress"],
+        ]
+        sut = LoglineHandler(validation_config=validation_config)
 
         # Act and Assert
         self.assertFalse(
-            sut.validate_logline("2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.20 test")
+            sut.validate_logline('{"ts": "2024-07-28T14:45:30.123","status_code": "NXDOMAIN", "src_ip": "126.24.5.20"}')
+                
+
         )
 
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
-            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["src_ip", "IpAddress"],
-        ],
-    )
     def test_validate_empty(self, mock_logger):
-        # Arrange
-        sut = LoglineHandler()
+        validation_config= [
+            ["ts", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+            ["src_ip", "IpAddress"],
+        ]
+        sut = LoglineHandler(validation_config=validation_config)
 
         # Act and Assert
-        self.assertFalse(sut.validate_logline(""))
+        self.assertFalse(sut.validate_logline("{}"))
 
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+    def test_validate_contains_invalid_fields(self, mock_logger):
+        validation_config = [
+            ["ts", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["src_ip", "IpAddress"],
-        ],
-    )
-    def test_validate_contains_invalid_fields(self, mock_logger):
-        # Arrange
-        sut = LoglineHandler()
+        ]
+        sut = LoglineHandler(validation_config=validation_config)
 
         # Act and Assert
         self.assertFalse(
-            sut.validate_logline("2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.300")
+            sut.validate_logline('{"ts": "2024-07-28T14:45:30.123","status_code": "NXDOMAIN", "src_ip": "126.24.5.300"}')
         )
 
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+    def test_validate_wrong_order_of_fields(self, mock_logger):
+        validation_config = [
+            ["ts", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["src_ip", "IpAddress"],
-        ],
-    )
-    def test_validate_wrong_order_of_fields(self, mock_logger):
-        # Arrange
-        sut = LoglineHandler()
-
+        ]
+        sut = LoglineHandler(validation_config=validation_config)
         # Act and Assert
         self.assertFalse(
-            sut.validate_logline("NXDOMAIN 2024-07-28T14:45:30.123Z 126.24.5.20")
+            sut.validate_logline('{"ts": "2024-07-28T14:45:30.123", "src_ip": "126.24.5.20"}')
         )
 
 
 class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
-            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["src_ip", "IpAddress"],
-            ["dns_server_ip", "IpAddress"],
-            [
-                "domain_name",
-                "RegEx",
-                r"^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$",
-            ],
-            ["record_type", "ListItem", ["A", "AAAA"]],
-            ["response_ip", "IpAddress"],
-            ["size", "RegEx", r"^\d+b$"],
-        ],
-    )
     def test_validate_true(self):
+        validation_config = [
+                ["ts", "Timestamp", "%Y-%m-%dT%H:%M:%S.%fZ"],
+                ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+                ["src_ip", "IpAddress"],
+                ["dns_server_ip", "IpAddress"],
+                [ "domain_name", "RegEx", '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ],
+                ["record_type", "ListItem", ["A", "AAAA"]],
+                ["response_ip", "IpAddress"],
+                ["size", "RegEx", r"^\d+$"],
+            ]
         # Arrange
         expected_result = {
-            "timestamp": "2024-07-28T14:45:30.123000",
+            "ts": "2024-07-28T14:45:30.123Z",
             "status_code": "NXDOMAIN",
             "src_ip": "127.0.0.2",
             "dns_server_ip": "126.24.5.20",
             "domain_name": "domain.test",
             "record_type": "A",
             "response_ip": "fe80::1",
-            "size": "150b",
+            "size": "150",
         }
 
-        sut = LoglineHandler()
-
+        sut = LoglineHandler(validation_config=validation_config)
         # Act and Assert
         self.assertEqual(
             expected_result,
             sut.validate_logline_and_get_fields_as_json(
-                "2024-07-28T14:45:30.123Z NXDOMAIN 127.0.0.2 126.24.5.20 domain.test A fe80::1 150b"
-            ),
+                '{"ts": "2024-07-28T14:45:30.123Z", "status_code": "NXDOMAIN", "src_ip": "127.0.0.2", "domain_name": "domain.test", "record_type": "A", "dns_server_ip": "126.24.5.20", "response_ip": "fe80::1", "size": "150"}'
+            )
         )
 
     @patch("src.base.logline_handler.logger")
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
-            ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
-            ["src_ip", "IpAddress"],
-        ],
-    )
     def test_validate_false(self, mock_logger):
-        # Arrange
-        sut = LoglineHandler()
+        validation_config = [
+                ["ts", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+                ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+                ["src_ip", "IpAddress"],
+            ]
+        sut = LoglineHandler(validation_config=validation_config)
 
         # Act and Assert
         with self.assertRaises(ValueError) as context:
             sut.validate_logline_and_get_fields_as_json(
-                "NXDOMAIN 2024-07-28T14:45:30.123Z 126.24.5.20"
+            '{"ts": "2024-07-28T14:45:30.123","status_code": "NXDOMAIN", "src_ip": "126.24.5.20"}'
             )
 
-        self.assertEqual(
-            str(context.exception), "Incorrect logline, validation unsuccessful"
-        )
+            self.assertEqual(
+                str(context.exception), "Incorrect logline, validation unsuccessful"
+            )
 
 
 class TestCheckRelevance(unittest.TestCase):
     @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
-    @patch(
-        "src.base.logline_handler.LOGLINE_FIELDS",
-        [
-            ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
+    def setUp(self):
+        # Arrange
+        validation_config = [
+            ["ts", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["test_1", "ListItem", ["123", "456"]],
             ["src_ip", "IpAddress"],
             ["test_2", "ListItem", ["789", "TEST"], ["TEST"]],
-        ],
-    )
-    def setUp(self):
-        # Arrange
-        self.sut = LoglineHandler()
+        ]
+        self.sut = LoglineHandler(validation_config=validation_config)
 
-    def test_check_relevant_value(self):
+    def test_check_relevant_value_no_relevance_check(self):
         # Act and Assert
         self.assertTrue(
             self.sut.check_relevance(
                 {
-                    "timestamp": "2024-07-28T14:45:30.123Z",
+                    "ts": "2024-07-28T14:45:30.123Z",
                     "status_code": "NXDOMAIN",
                     "test_1": "123",
                     "src_ip": "10.0.0.4",
                     "test_2": "TEST",
-                }
+                },
+                "no_relevance_check"
             )
         )
-
-    def test_check_irrelevant_value_1(self):
+    def test_check_relevant_value_check_dga_relevance(self):
+        # Act and Assert
+        self.assertTrue(
+            self.sut.check_relevance(
+                {
+                    "ts": "2024-07-28T14:45:30.123Z",
+                    "status_code": "NXDOMAIN",
+                    "test_1": "123",
+                    "src_ip": "10.0.0.4",
+                    "test_2": "TEST",
+                },
+                "check_dga_relevance"
+            )
+        )
+        
+    def test_check_irrelevant_value_1_check_dga_relevance(self):
         # incorrect in all lists
         # Act and Assert
         self.assertFalse(
             self.sut.check_relevance(
                 {
-                    "timestamp": "2024-07-28T14:45:30.123Z",
+                    "ts": "2024-07-28T14:45:30.123Z",
                     "status_code": "NOERROR",
                     "test_1": "123",
                     "src_ip": "10.0.0.4",
                     "test_2": "789",
-                }
+                },
+                "check_dga_relevance"
             )
         )
 
-    def test_check_irrelevant_value_2(self):
+    def test_check_irrelevant_value_2_check_dga_relevance(self):
         # correct in one list, but not all
         # Act and Assert
         self.assertFalse(
             self.sut.check_relevance(
                 {
-                    "timestamp": "2024-07-28T14:45:30.123Z",
+                    "ts": "2024-07-28T14:45:30.123Z",
                     "status_code": "NXDOMAIN",
                     "test_1": "123",
                     "src_ip": "10.0.0.4",
                     "test_2": "789",
-                }
+                },
+                "check_dga_relevance"
             )
         )
 
@@ -542,7 +505,6 @@ class TestCreateInstanceFromListEntry(unittest.TestCase):
 
         # Assert
         self.assertEqual(str(context.exception), "Invalid ListItem parameters")
-
 
 if __name__ == "__main__":
     unittest.main()
