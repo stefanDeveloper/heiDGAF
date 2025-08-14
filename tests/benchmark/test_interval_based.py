@@ -429,5 +429,75 @@ class TestNormalizeIntervals(unittest.TestCase):
         self.assertEqual(returned_value, [2])
 
 
+class TestValidateIntervalData(unittest.TestCase):
+    def test_valid_inputs_full_interval(self):
+        # Arrange
+        test_interval_lengths_in_seconds = [2, 2, 2, 2, 2, 2]
+        test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"), patch(
+            "benchmarking.src.test_types.base.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
+        ):
+            # validation deactivated
+
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_lengths_in_seconds,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        sut._IntervalBasedTest__validate_interval_data()  # noqa
+
+        # Assert
+        self.assertTrue(True)  # check if code is reached
+
+    def test_valid_inputs_single_interval(self):
+        # Arrange
+        test_interval_length = 2
+        test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"), patch(
+            "benchmarking.src.test_types.base.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
+        ):
+            # validation deactivated
+
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_length,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        sut._IntervalBasedTest__validate_interval_data()  # noqa
+
+        # Assert
+        self.assertTrue(True)  # check if code is reached
+
+    def test_invalid_inputs(self):
+        # Arrange
+        test_interval_length = [2, 3, 4]  # 3 lengths
+        test_messages_per_second_in_intervals = [
+            170,
+            100.7,
+            50,
+            15.2,
+            156,
+            135,
+        ]  # 6 data rates
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"), patch(
+            "benchmarking.src.test_types.base.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
+        ):
+            # validation deactivated
+
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_length,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act and Assert
+        with self.assertRaises(ValueError):
+            sut._IntervalBasedTest__validate_interval_data()  # noqa
+
+
 if __name__ == "__main__":
     unittest.main()
