@@ -293,5 +293,62 @@ class TestGetTotalDuration(unittest.TestCase):
         self.assertEqual(returned_value, datetime.timedelta(seconds=21))
 
 
+class TestGetTotalMessageCount(unittest.TestCase):
+    def test_single_interval(self):
+        # Arrange
+        test_interval_length = 7
+        test_messages_per_second_in_intervals = [170]
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_length,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        returned_value = sut._IntervalBasedTest__get_total_message_count()  # noqa
+
+        # Assert
+        self.assertEqual(returned_value, 1190)  # = 7*170
+
+    def test_multiple_intervals(self):
+        # Arrange
+        test_interval_length = [1, 2, 3, 4, 5, 6]
+        test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_length,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        returned_value = sut._IntervalBasedTest__get_total_message_count()  # noqa
+
+        # Assert
+        self.assertEqual(
+            returned_value, 2170
+        )  # = 1*170 + 2*100 + 3*50 + 4*15 + 5*156 + 6*135
+
+    def test_including_floats(self):
+        # Arrange
+        test_interval_length = [1, 2, 3, 4, 5, 6]
+        test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_length,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        returned_value = sut._IntervalBasedTest__get_total_message_count()  # noqa
+
+        # Assert
+        self.assertEqual(
+            returned_value, 2172
+        )  # = round(1*170 + 2*100.7 + 3*50 + 4*15.2 + 5*156 + 6*135)
+
+
 if __name__ == "__main__":
     unittest.main()

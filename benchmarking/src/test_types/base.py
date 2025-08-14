@@ -161,7 +161,7 @@ class IntervalBasedTest(BaseTest):
             length_in_seconds (float | int): Interval length of the current iteration
 
         Returns:
-            Index of the iteration after this interval, as Int
+            Index of the iteration after this interval
         """
         start_of_interval_timestamp = datetime.now()
 
@@ -200,10 +200,10 @@ class IntervalBasedTest(BaseTest):
         """
         return timedelta(seconds=sum(self.interval_lengths_in_seconds))
 
-    def __get_total_message_count(self):
+    def __get_total_message_count(self) -> int:
         """
         Returns:
-            Expected number of messages sent throughout the entire test run.
+            Expected number of messages sent throughout the entire test run, rounded to integers.
         """
         total_message_count = 0
         for i in range(len(self.interval_lengths_in_seconds)):
@@ -211,7 +211,7 @@ class IntervalBasedTest(BaseTest):
                 self.interval_lengths_in_seconds[i]
                 * self.messages_per_second_in_intervals[i]
             )
-        return total_message_count
+        return round(total_message_count)
 
     def __handle_single_interval_value(self):
         if type(self.interval_lengths_in_seconds) is not list:
