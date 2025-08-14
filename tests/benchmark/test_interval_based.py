@@ -43,7 +43,7 @@ class TestInit(unittest.TestCase):
 
 
 class TestExecuteCore(unittest.TestCase):
-    def test_one_interval(self):
+    def test_single_interval(self):
         # Arrange
         test_interval_length = 4
         test_messages_per_second_in_intervals = [150]
@@ -255,6 +255,42 @@ class TestExecuteSingleInterval(unittest.TestCase):
         mock_time_sleep.assert_called_with(0.01)
 
         self.assertEqual(returned_value, 2)
+
+
+class TestGetTotalDuration(unittest.TestCase):
+    def test_single_interval(self):
+        # Arrange
+        test_interval_length = 47
+        test_messages_per_second_in_intervals = [170]
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_length,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        returned_value = sut._IntervalBasedTest__get_total_duration()  # noqa
+
+        # Assert
+        self.assertEqual(returned_value, datetime.timedelta(seconds=47))
+
+    def test_multiple_intervals(self):
+        # Arrange
+        test_interval_length = [1, 2, 3, 4, 5, 6]  # sum = 21
+        test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_length,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        returned_value = sut._IntervalBasedTest__get_total_duration()  # noqa
+
+        # Assert
+        self.assertEqual(returned_value, datetime.timedelta(seconds=21))
 
 
 if __name__ == "__main__":

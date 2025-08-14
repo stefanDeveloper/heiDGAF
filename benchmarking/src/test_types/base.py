@@ -161,7 +161,7 @@ class IntervalBasedTest(BaseTest):
             length_in_seconds (float | int): Interval length of the current iteration
 
         Returns:
-            Index of the iteration after this interval
+            Index of the iteration after this interval, as Int
         """
         start_of_interval_timestamp = datetime.now()
 
