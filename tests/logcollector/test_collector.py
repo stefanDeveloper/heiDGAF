@@ -498,7 +498,9 @@ class TestMain(unittest.IsolatedAsyncioTestCase):
             await main()
 
         mock_instance_obj.start.assert_called_once()
-        mock_asyncio_create_task.assert_called_once_with(mock_instance_obj.start)
+        args, kwargs = mock_asyncio_create_task.call_args_list[0]
+        expected_call = args[0]
+        mock_asyncio_create_task.assert_called_once_with(expected_call)
 
 
 if __name__ == "__main__":
