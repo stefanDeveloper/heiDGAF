@@ -14,8 +14,8 @@ class TestInit(unittest.TestCase):
         test_messages_per_second_in_intervals = [4, 5, 6]
 
         with patch(
-            "benchmarking.src.test_types.base.IntervalBasedTest._IntervalBasedTest__handle_single_interval_value"
-        ) as mock_handle_single_interval_value, patch(
+            "benchmarking.src.test_types.base.IntervalBasedTest._IntervalBasedTest__normalize_intervals"
+        ) as mock_normalize_intervals, patch(
             "benchmarking.src.test_types.base.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
         ) as mock_validate_interval_data, patch(
             "benchmarking.src.test_types.base.IntervalBasedTest._IntervalBasedTest__get_total_message_count"
@@ -23,6 +23,7 @@ class TestInit(unittest.TestCase):
             "benchmarking.src.test_types.base.BaseTest.__init__"
         ) as mock_base_test_init:
             mock_get_total_message_count.return_value = 150
+            mock_normalize_intervals.return_value = [1, 2, 3]
 
             # Act
             sut = IntervalBasedTest(
@@ -33,7 +34,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual(sut.interval_lengths_in_seconds, [1, 2, 3])
         self.assertEqual(sut.messages_per_second_in_intervals, [4, 5, 6])
 
-        mock_handle_single_interval_value.assert_called_once()
+        mock_normalize_intervals.assert_called_once()
         mock_validate_interval_data.assert_called_once()
 
         mock_base_test_init.assert_called_once_with(
@@ -73,12 +74,12 @@ class TestExecuteCore(unittest.TestCase):
 
     def test_multiple_intervals(self):
         # Arrange
-        test_interval_length = [3, 2, 1]
+        test_interval_lengths_in_seconds = [3, 2, 1]
         test_messages_per_second_in_intervals = [170, 100, 50]
 
         with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
             sut = IntervalBasedTest(
-                interval_lengths_in_seconds=test_interval_length,
+                interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
             sut.custom_fields = {"interval": Mock()}
@@ -137,12 +138,12 @@ class TestExecuteSingleInterval(unittest.TestCase):
     @patch("benchmarking.src.test_types.base.PRODUCE_TO_TOPIC", "test_topic")
     def test_successful(self):
         # Arrange
-        test_interval_length = [3, 5, 1, 3, 2, 1]
+        test_interval_lengths_in_seconds = [3, 5, 1, 3, 2, 1]
         test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
 
         with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
             sut = IntervalBasedTest(
-                interval_lengths_in_seconds=test_interval_length,
+                interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
             sut.kafka_producer = Mock()
@@ -203,12 +204,12 @@ class TestExecuteSingleInterval(unittest.TestCase):
     @patch("benchmarking.src.test_types.base.PRODUCE_TO_TOPIC", "test_topic")
     def test_including_kafka_error(self):
         # Arrange
-        test_interval_length = [3, 5, 1, 3, 2, 1]
+        test_interval_lengths_in_seconds = [3, 5, 1, 3, 2, 1]
         test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
 
         with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
             sut = IntervalBasedTest(
-                interval_lengths_in_seconds=test_interval_length,
+                interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
             sut.kafka_producer = Mock()
@@ -277,12 +278,12 @@ class TestGetTotalDuration(unittest.TestCase):
 
     def test_multiple_intervals(self):
         # Arrange
-        test_interval_length = [1, 2, 3, 4, 5, 6]  # sum = 21
+        test_interval_lengths_in_seconds = [1, 2, 3, 4, 5, 6]  # sum = 21
         test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
 
         with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
             sut = IntervalBasedTest(
-                interval_lengths_in_seconds=test_interval_length,
+                interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
 
@@ -313,12 +314,12 @@ class TestGetTotalMessageCount(unittest.TestCase):
 
     def test_multiple_intervals(self):
         # Arrange
-        test_interval_length = [1, 2, 3, 4, 5, 6]
+        test_interval_lengths_in_seconds = [1, 2, 3, 4, 5, 6]
         test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
 
         with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
             sut = IntervalBasedTest(
-                interval_lengths_in_seconds=test_interval_length,
+                interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
 
@@ -332,12 +333,12 @@ class TestGetTotalMessageCount(unittest.TestCase):
 
     def test_including_floats(self):
         # Arrange
-        test_interval_length = [1, 2, 3, 4, 5, 6]
+        test_interval_lengths_in_seconds = [1, 2, 3, 4, 5, 6]
         test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
 
         with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
             sut = IntervalBasedTest(
-                interval_lengths_in_seconds=test_interval_length,
+                interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
 
@@ -348,6 +349,84 @@ class TestGetTotalMessageCount(unittest.TestCase):
         self.assertEqual(
             returned_value, 2172
         )  # = round(1*170 + 2*100.7 + 3*50 + 4*15.2 + 5*156 + 6*135)
+
+
+class TestNormalizeIntervals(unittest.TestCase):
+    def test_successful_single_value(self):
+        # Arrange
+        test_interval_length = 2
+        test_messages_per_second_in_intervals = [
+            170,
+            100.7,
+            50,
+            15.2,
+            156,
+            135,
+        ]  # 6 intervals
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_length,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        returned_value = sut._IntervalBasedTest__normalize_intervals(  # noqa
+            intervals=test_interval_length
+        )
+
+        # Assert
+        self.assertEqual(returned_value, [2, 2, 2, 2, 2, 2])
+
+    def test_ignore_lists_with_multiple_elements(self):
+        # Arrange
+        test_interval_lengths_in_seconds = [2, 2, 2, 2, 2, 2]
+        test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_lengths_in_seconds,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        returned_value = sut._IntervalBasedTest__normalize_intervals(  # noqa
+            intervals=test_interval_lengths_in_seconds
+        )
+
+        # Assert
+        self.assertEqual(returned_value, [2, 2, 2, 2, 2, 2])
+
+    def test_ignore_lists_with_single_element(self):
+        """Lists with the wrong number of elements are ignored by this method and handled somewhere else."""
+        # Arrange
+        test_interval_lengths_in_seconds = [2]
+        test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
+
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"), patch(
+            "benchmarking.src.test_types.base.IntervalBasedTest._IntervalBasedTest__normalize_intervals"
+        ) as mock_normalize_intervals:
+            mock_normalize_intervals.return_value = [
+                2,
+                2,
+                2,
+                2,
+                2,
+                2,
+            ]  # deactivate in __init__ to prevent validation
+
+            sut = IntervalBasedTest(
+                interval_lengths_in_seconds=test_interval_lengths_in_seconds,
+                messages_per_second_in_intervals=test_messages_per_second_in_intervals,
+            )
+
+        # Act
+        returned_value = sut._IntervalBasedTest__normalize_intervals(  # noqa
+            intervals=test_interval_lengths_in_seconds
+        )
+
+        # Assert
+        self.assertEqual(returned_value, [2])
 
 
 if __name__ == "__main__":

@@ -125,10 +125,11 @@ class IntervalBasedTest(BaseTest):
             messages_per_second_in_intervals: List of message rates per interval. Must have same length as
                                               interval_lengths_in_seconds, if a list is specified there.
         """
-        self.interval_lengths_in_seconds = interval_lengths_in_seconds
         self.messages_per_second_in_intervals = messages_per_second_in_intervals
+        self.interval_lengths_in_seconds = self.__normalize_intervals(
+            interval_lengths_in_seconds
+        )
 
-        self.__handle_single_interval_value()
         self.__validate_interval_data()
 
         super().__init__(
@@ -213,12 +214,22 @@ class IntervalBasedTest(BaseTest):
             )
         return round(total_message_count)
 
-    def __handle_single_interval_value(self):
-        if type(self.interval_lengths_in_seconds) is not list:
-            self.interval_lengths_in_seconds = [
-                self.interval_lengths_in_seconds
-                for _ in range(len(self.messages_per_second_in_intervals))
+    def __normalize_intervals(
+        self, intervals: float | int | list[float | int]
+    ) -> list[float | int]:
+        """
+        Args:
+            intervals (float | int | list[float | int]): Single interval length or list of interval lengths
+
+        Returns:
+            List of interval lengths. If single value was given, all entries are the same.
+        """
+        if type(intervals) is not list:
+            intervals = [
+                intervals for _ in range(len(self.messages_per_second_in_intervals))
             ]
+
+        return intervals
 
     def __validate_interval_data(self):
         if len(self.interval_lengths_in_seconds) != len(
