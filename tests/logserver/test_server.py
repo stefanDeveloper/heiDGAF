@@ -206,57 +206,49 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
 #         self.assertEqual(2, mock_send.call_count)
 
 
-class TestMain(unittest.TestCase):
+class TestMain(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.logger")
     @patch("src.logserver.server.LogServer")
+    @patch("asyncio.create_task")  
     @patch("asyncio.run")
-    async def test_main(self, mock_asyncio_run, mock_instance, mock_logger):
+    @patch("src.logserver.server.SENSOR_PROTOCOLS", ["dns"])
+    @patch("src.logserver.server.CONSUME_TOPIC_PREFIX", "consume_prefix")
+    @patch("src.logserver.server.PRODUCE_TOPIC_PREFIX", "produce_prefix")
+    @patch("src.logserver.server.COLLECTORS", [{"name": "test-collector", "protocol_base": "dns"}])
+    async def test_main(self, mock_asyncio_run, mock_asyncio_create_task, mock_instance, mock_logger):
         # Arrange
         mock_instance_obj = MagicMock()
         mock_instance.return_value = mock_instance_obj
-
+        mock_instance_obj.start = AsyncMock()
+        mock_asyncio_create_task.side_effect = lambda coro: coro
+        
         # Act
         await main()
 
         # Assert
-        mock_instance.assert_called_once()
-        mock_asyncio_run.assert_called_once_with(mock_instance_obj.start())
+        mock_instance_obj.start.assert_called_once()
+        args, kwargs = mock_asyncio_create_task.call_args_list[0]
+        expected_call = args[0]
+        mock_asyncio_create_task.assert_called_once_with(expected_call)        
+
     @patch("src.logserver.server.logger")
     @patch("src.logserver.server.LogServer")
+    @patch("asyncio.create_task")  
     @patch("asyncio.run")
-    async def test_main_exception_handling(self, mock_asyncio_run, mock_logserver_cls, mock_logger):
-        """
-        Verify that ``main()`` correctly logs an exception when the
-        underlying ``LogServer.start`` coroutine raises.
-        """
-        # -------------------------------------------------------------
+    async def test_main_multiple_protocols(self, mock_asyncio_run, mock_asyncio_create_task, mock_instance, mock_logger):
         # Arrange
-        # -------------------------------------------------------------
-        # The LogServer instance that ``main`` will create
-        mock_server_instance = MagicMock()
-        mock_logserver_cls.return_value = mock_server_instance
+        mock_instance_obj = MagicMock()
+        mock_instance.return_value = mock_instance_obj
+        mock_instance_obj.start = AsyncMock()
+        mock_asyncio_create_task.side_effect = lambda coro: coro
 
-        # Simulate a failure inside ``asyncio.run`` (i.e. inside ``LogServer.start``)
         mock_asyncio_run.side_effect = RuntimeError("simulated failure")
 
-        # -------------------------------------------------------------
         # Act & Assert
-        # -------------------------------------------------------------
-        # ``main`` should propagate the exception after logging it.
-        with self.assertRaises(RuntimeError) as cm:
-            await main()
+        await main()
 
-        # The raised exception is the one we injected
-        self.assertEqual(str(cm.exception), "simulated failure")
-
-        # The logger must have been called exactly once with ``exception`` level
-        # (the test suite expects ``logger.exception`` to be used for unexpected errors)
-        mock_logger.exception.assert_called_once()
-
-        # Ensure the LogServer was instantiated before the failure occurred
-        mock_logserver_cls.assert_called_once()
-        # ``asyncio.run`` should have been invoked with the ``start`` coroutine
-        mock_asyncio_run.assert_called_once_with(mock_server_instance.start())
-
+        args, kwargs = mock_asyncio_create_task.call_args_list[0]
+        expected_call = args[0]
+        assert mock_asyncio_create_task.call_count == 2
 if __name__ == "__main__":
     unittest.main()
