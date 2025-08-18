@@ -165,10 +165,10 @@ class TestExecuteSingleInterval(unittest.TestCase):
                 datetime.datetime(2025, 1, 1, 12, 0, 6, 0),
             ]
             mock_get_time_elapsed.side_effect = [
-                datetime.timedelta(3),
-                datetime.timedelta(4.5),
+                datetime.timedelta(seconds=3),
+                datetime.timedelta(seconds=4.5),
             ]
-            mock_get_total_duration.return_value = datetime.timedelta(15)
+            mock_get_total_duration.return_value = datetime.timedelta(seconds=15)
 
             # Act
             returned_value = sut._IntervalBasedTest__execute_single_interval(  # noqa
@@ -232,8 +232,8 @@ class TestExecuteSingleInterval(unittest.TestCase):
                 datetime.datetime(2025, 1, 1, 12, 0, 4, 0),
                 datetime.datetime(2025, 1, 1, 12, 0, 6, 0),
             ]
-            mock_get_time_elapsed.side_effect = [datetime.timedelta(4.5)]
-            mock_get_total_duration.return_value = datetime.timedelta(15)
+            mock_get_time_elapsed.side_effect = [datetime.timedelta(seconds=4.5)]
+            mock_get_total_duration.return_value = datetime.timedelta(seconds=15)
 
             # Act
             returned_value = sut._IntervalBasedTest__execute_single_interval(  # noqa
