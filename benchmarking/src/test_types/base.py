@@ -261,8 +261,10 @@ class SingleIntervalTest(BaseTest):
     def _execute_core(self):
         """Produces messages for the specified duration and updates the
         progress bar accordingly."""
+        start_timestamp = datetime.now()
         current_index = 0
-        while datetime.now() - self.start_timestamp < timedelta(
+
+        while datetime.now() - start_timestamp < timedelta(
             minutes=self.full_length_in_minutes
         ):
             try:
