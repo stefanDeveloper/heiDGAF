@@ -151,5 +151,45 @@ class TestExecuteCore(unittest.TestCase):
         mock_time_sleep.assert_called_with(0.01)
 
 
+class TestGetTotalMessageCount(unittest.TestCase):
+    def test_without_rounding(self):
+        test_full_length_in_minutes = 7
+        test_messages_per_second = 100
+
+        # Arrange
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
+            sut = SingleIntervalTest(
+                full_length_in_minutes=test_full_length_in_minutes,
+                messages_per_second=test_messages_per_second,
+            )
+            sut.full_length_in_minutes = test_full_length_in_minutes
+            sut.messages_per_second = test_messages_per_second
+
+        # Act
+        returned_value = sut._SingleIntervalTest__get_total_message_count()  # noqa
+
+        # Assert
+        self.assertEqual(returned_value, 42000)
+
+    def test_with_rounding(self):
+        test_full_length_in_minutes = 7.4
+        test_messages_per_second = 92.9
+
+        # Arrange
+        with patch("benchmarking.src.test_types.base.BaseTest.__init__"):
+            sut = SingleIntervalTest(
+                full_length_in_minutes=test_full_length_in_minutes,
+                messages_per_second=test_messages_per_second,
+            )
+            sut.full_length_in_minutes = test_full_length_in_minutes
+            sut.messages_per_second = test_messages_per_second
+
+        # Act
+        returned_value = sut._SingleIntervalTest__get_total_message_count()  # noqa
+
+        # Assert
+        self.assertEqual(returned_value, 41248)  # without rounding: 41247.6
+
+
 if __name__ == "__main__":
     unittest.main()
