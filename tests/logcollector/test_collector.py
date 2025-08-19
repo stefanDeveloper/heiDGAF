@@ -72,25 +72,6 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         self.sut.fetch = MagicMock()
         await self.sut.start()
         self.sut.fetch.assert_called_once()
-
-    # async def test_start_handles_keyboard_interrupt(self):
-    #     # Arrange
-    #     self.sut.fetch = AsyncMock()
-
-    #     async def mock_gather(*args, **kwargs):
-    #         raise KeyboardInterrupt
-
-    #     with patch(
-    #         "src.logcollector.collector.asyncio.gather", side_effect=mock_gather
-    #     ) as mock:
-    #         # Act
-    #         await self.sut.start()
-
-    #         # Assert
-    #         mock.assert_called_once()
-    #         self.sut.fetch.assert_called_once()
-
-
 class _StopFetching(RuntimeError):
     """Raised inside the test to break the infinite fetch loop."""
 

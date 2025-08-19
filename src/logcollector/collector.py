@@ -47,6 +47,15 @@ class LogCollector:
     def __init__(
         self, collector_name, protocol, consume_topic, produce_topics, validation_config
     ) -> None:
+        """Initializes a new LogCollector instance with the specified configuration.
+
+        Args:
+            collector_name (str): Name of the collector instance
+            protocol (str): Protocol type of the log lines (e.g., 'dns', 'http')
+            consume_topic (str): Kafka topic to consume log lines from
+            produce_topics (list[str]): List of Kafka topics to produce validated log lines to
+            validation_config (list): Configuration for validating log line fields
+        """
         self.protocol = protocol
         self.consume_topic = consume_topic
         self.batch_configuration = utils.get_batch_configuration(collector_name)
@@ -73,7 +82,13 @@ class LogCollector:
         )
 
     async def start(self) -> None:
-        """Starts fetching messages from Kafka and sending them to the :class:`Prefilter`."""
+        """Starts the LogCollector processing loop.
+
+        This method initializes the Kafka message fetching process and runs it in an executor
+        to avoid blocking the asyncio event loop. It logs the startup information and
+        continues processing until interrupted.
+
+        """
         logger.info(
             "LogCollector started:\n"
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'"
@@ -84,8 +99,16 @@ class LogCollector:
         logger.info("LogCollector stopped.")
 
     def fetch(self) -> None:
-        """Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is
-        decoded and sent."""
+        """Continuously listens for messages on the configured Kafka topic.
+
+        This method runs in an infinite loop, consuming messages from Kafka and
+        processing them through the send method. It blocks until messages are
+        available on the Kafka topic.
+
+        Note:
+            This method is intended to be run in a separate thread via run_in_executor
+            since it contains a blocking loop.
+        """
 
         while True:
             key, value, topic = self.kafka_consume_handler.consume()
@@ -93,12 +116,17 @@ class LogCollector:
             self.send(datetime.datetime.now(), value)
 
     def send(self, timestamp_in: datetime.datetime, message: str) -> None:
-        """Sends the logline in JSON format to the BatchSender, where it is stored in
-        a temporary batch before being sent to the :class:`Prefilter`. Adds the subnet ID to the message.
+        """Processes and sends a log line to the batch handler after validation.
+
+        This method:
+        1. Validates the log line format and required fields
+        2. Stores valid log lines in the database
+        3. Calculates the subnet ID for batch processing
+        4. Adds the log line to the batch handler
 
         Args:
-            timestamp_in (datetime.datetime): Timestamp of entering the pipeline
-            message (str): Message to be stored
+            timestamp_in (datetime.datetime): Timestamp when the log line entered the pipeline
+            message (str): Raw log line message in JSON format
         """
         try:
             fields = self.logline_handler.validate_logline_and_get_fields_as_json(
@@ -155,14 +183,21 @@ class LogCollector:
     def _get_subnet_id(
         self, address: ipaddress.IPv4Address | ipaddress.IPv6Address
     ) -> str:
-        """
-        Returns the subnet ID of an IP address.
+        """Calculates the subnet ID for an IP address based on batch configuration.
+
+        This method normalizes the IP address to the configured subnet prefix length
+        and returns a string representation of the subnet.
 
         Args:
-            address (ipaddress.IPv4Address | ipaddress.IPv6Address): IP address to get the subnet ID for
+            address (ipaddress.IPv4Address | ipaddress.IPv6Address): IP address to process
 
         Returns:
-            subnet ID for the given IP address as string
+            str: Subnet ID in the format "network_address/prefix_length"
+                Example: "192.168.1.0_24" or "2001:db8::/64"
+
+        Raises:
+            ValueError: If the address is neither IPv4 nor IPv6 address type
+
         """
         if isinstance(address, ipaddress.IPv4Address):
             normalized_ip_address, prefix_length = utils.normalize_ipv4_address(
@@ -179,8 +214,14 @@ class LogCollector:
 
 
 async def main() -> None:
-    """
-    Creates the :class:`LogCollector` instance and starts it.
+    """Creates and starts all configured LogCollector instances.
+
+    This function:
+    1. Iterates through all collectors defined in the configuration
+    2. Creates a LogCollector instance for each collector
+    3. Starts each collector in its own asyncio task
+    4. Waits for all collectors to complete (which is effectively forever)
+
     """
     tasks = []
 
