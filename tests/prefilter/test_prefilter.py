@@ -1,13 +1,216 @@
 import datetime
 import unittest
 import uuid
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch, AsyncMock, call
 
 from src.base.data_classes.batch import Batch
 from src.base.kafka_handler import KafkaMessageFetchException
 from src.prefilter.prefilter import Prefilter, main
 
+class TestBootstrapPrefilteringProcess(unittest.TestCase):
+    @patch("src.prefilter.prefilter.logger")
+    @patch("src.prefilter.prefilter.LoglineHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
+    def test_bootstrap_prefiltering_process_one_iteration(
+        self,
+        mock_clickhouse,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
+    ):
+        """
+        Tests that the bootstrap_prefiltering_process method executes one complete iteration correctly.
+        Verifies the sequence of method calls and log messages.
+        """
+        # Setup
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+        mock_consume_handler_instance = MagicMock()
+        mock_consume_handler.return_value = mock_consume_handler_instance
+        mock_consume_handler_instance.consume_as_object.return_value = (
+            "127.0.0.0_24",
+            Batch(
+                batch_tree_row_id=f"{uuid.uuid4()}-{uuid.uuid4()}",
+                batch_id=uuid.uuid4(),
+                begin_timestamp=datetime.datetime.now(),
+                end_timestamp=datetime.datetime.now(),
+                data=["test_data_1", "test_data_2"],
+            ),
+        )
 
+        # Create Prefilter instance
+        sut = Prefilter(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic"],
+            relevance_function_name="no_relevance",
+            validation_config={}
+        )
+        
+        # Mock methods to break out of the infinite loop after one iteration
+        original_get_and_fill_data = sut.get_and_fill_data
+        original_check_relevance = sut.check_data_relevance_using_rules
+        original_send_filtered_data = sut.send_filtered_data
+        
+        def mock_send_filtered_data():
+            original_send_filtered_data()
+            # After first call, raise an exception to break the loop
+            raise StopIteration("Test exception to break loop")
+                      
+        sut.get_and_fill_data = MagicMock(side_effect=original_get_and_fill_data)
+        sut.check_data_relevance_using_rules = MagicMock(side_effect=original_check_relevance)
+        sut.send_filtered_data = mock_send_filtered_data
+
+        # Execute and verify
+        with self.assertRaises(StopIteration):
+            sut.bootstrap_prefiltering_process()
+        
+        # Verify logger calls
+        expected_log_calls = [
+            call('I am test_topic'),
+            call("test_topic Received message:\n    ⤷  Contains data field of 2 message(s) with subnet_id: '127.0.0.0_24'."),
+            call("Filtered data was successfully sent:\n    ⤷  Contains data field of 2 message(s). Originally: 2 message(s). Belongs to subnet_id '127.0.0.0_24'.")
+        ]
+        mock_logger.info.assert_has_calls(expected_log_calls)
+        
+        # Verify method calls
+        sut.get_and_fill_data.assert_called_once()
+        sut.check_data_relevance_using_rules.assert_called_once()
+
+    @patch("src.prefilter.prefilter.logger")
+    @patch("src.prefilter.prefilter.LoglineHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
+    def test_bootstrap_prefiltering_process_with_filtering(
+        self,
+        mock_clickhouse,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger
+        ):
+        """
+        Tests that the bootstrap_prefiltering_process method correctly processes data through
+        the filtering pipeline, including relevance checking.
+        """
+        # Setup test data
+        test_entry = {
+            "logline_id": str(uuid.uuid4()),
+            "ts": "2024-05-21T08:31:28.119Z",
+            "status_code": "NXDOMAIN",
+            "src_ip": "192.168.1.105",
+            "dns_ip": "8.8.8.8",
+            "host_domain_name": "www.heidelberg-botanik.de",
+            "record_type": "A",
+            "response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1",
+            "size": "150b",
+        }
+
+        # Mock dependencies
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+        mock_consume_handler_instance = MagicMock()
+        mock_consume_handler.return_value = mock_consume_handler_instance
+        mock_consume_handler_instance.consume_as_object.return_value = (
+            "127.0.0.0_24",
+            Batch(
+                batch_tree_row_id=f"{uuid.uuid4()}-{uuid.uuid4()}",
+                batch_id=uuid.uuid4(),
+                begin_timestamp=datetime.datetime.now(),
+                end_timestamp=datetime.datetime.now(),
+                data=[test_entry],
+            ),
+        )
+
+        # Create Prefilter instance
+        sut = Prefilter(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic"],
+            relevance_function_name="no_relevance",
+            validation_config=[
+                [ "ts", "Timestamp", "%Y-%m-%dT%H:%M:%S" ],
+                [ "status_code", "ListItem", [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ],
+                [ "src_ip", "IpAddress" ]
+            ]
+        )
+
+        # Mock get_and_fill_data to break loop after one iteration
+        def mock_send_filtered_data():
+            original_method = Prefilter.send_filtered_data
+            original_method(sut)
+            raise StopIteration("Test exception to break loop")
+        
+        sut.send_filtered_data = mock_send_filtered_data
+        
+        # Mock relevance check to return True
+        sut.logline_handler.check_relevance.return_value = True
+
+        # Execute and verify
+        with patch.object(Prefilter, "send_filtered_data", wraps=Prefilter.send_filtered_data) as spy:
+            with self.assertRaises(StopIteration):
+                sut.bootstrap_prefiltering_process()
+            spy.assert_called_once()
+        
+        # Verify data was correctly processed
+        self.assertEqual(sut.unfiltered_data, [test_entry])
+        self.assertEqual(sut.filtered_data, [test_entry])
+        self.assertEqual(sut.subnet_id, "127.0.0.0_24")
+
+    @patch("src.prefilter.prefilter.logger")
+    @patch("src.prefilter.prefilter.LoglineHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.prefilter.prefilter.ExactlyOnceKafkaProduceHandler")
+    @patch("src.prefilter.prefilter.ClickHouseKafkaSender")
+    def test_bootstrap_prefiltering_process_with_empty_data(
+        self,
+        mock_clickhouse,
+        mock_produce_handler,
+        mock_consume_handler,
+        mock_logline_handler,
+        mock_logger,
+    ):
+        """
+        Tests that the bootstrap_prefiltering_process method handles empty data correctly.
+        Verifies that no filtered data is sent and appropriate logs are generated.
+        """
+        # Setup
+        mock_produce_handler_instance = MagicMock()
+        mock_produce_handler.return_value = mock_produce_handler_instance
+        mock_consume_handler_instance = MagicMock()
+        mock_consume_handler.return_value = mock_consume_handler_instance
+        mock_consume_handler_instance.consume_as_object.return_value = (
+            "127.0.0.0_24",
+            Batch(
+                batch_tree_row_id=f"{uuid.uuid4()}-{uuid.uuid4()}",
+                batch_id=uuid.uuid4(),
+                begin_timestamp=datetime.datetime.now(),
+                end_timestamp=datetime.datetime.now(),
+                data=[],
+            ),
+        )
+
+        # Create Prefilter instance
+        sut = Prefilter(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic"],
+            relevance_function_name="no_relevance",
+            validation_config={}
+        )
+        
+        def mock_send_filtered_data():
+            original_method = Prefilter.send_filtered_data
+            original_method(sut)
+            raise StopIteration("Test exception to break loop")
+                
+        sut.send_filtered_data = mock_send_filtered_data
+
+        # Execute and verify
+        with patch.object(Prefilter, "send_filtered_data", wraps=Prefilter.send_filtered_data) as spy:
+            with self.assertRaises(ValueError):
+                sut.bootstrap_prefiltering_process()
 class TestInit(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")

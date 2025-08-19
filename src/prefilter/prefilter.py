@@ -57,6 +57,15 @@ class Prefilter:
     def __init__(
         self, validation_config, consume_topic, produce_topics, relevance_function_name
     ):
+        """Initializes a new ``Prefilter`` instance with the specified configuration.
+
+        Args:
+            validation_config (list): Configuration for validating log line fields
+            consume_topic (str): Kafka topic to consume data from
+            produce_topics (list[str]): Kafka topics to produce filtered data to
+            relevance_function_name (str): Name of the relevance function to apply
+            
+        """
         self.name = None
         self.consume_topic = consume_topic
         self.produce_topics = produce_topics
@@ -90,10 +99,20 @@ class Prefilter:
         )
 
     def get_and_fill_data(self) -> None:
+        """Retrieves and processes new data from Kafka.
+
+        This method:
+        1. Clears any existing data
+        2. Consumes a new batch of data from Kafka
+        3. Extracts batch metadata (ID, timestamps, subnet ID)
+        4. Stores the unfiltered data internally
+        5. Records processing timestamps and metrics
+
+        Note:
+            This method blocks until data is available on the Kafka topic.
+            Empty batches are handled gracefully but logged for monitoring.
         """
-        Clears data already stored and consumes new data. Unpacks the data and checks if it is empty. Data is stored
-        internally, including timestamps.
-        """
+        
         self.clear_data()  # clear in case we already have data stored
         key, data = self.kafka_consume_handler.consume_as_object()
         self.subnet_id = key
@@ -151,10 +170,20 @@ class Prefilter:
             )
 
     def check_data_relevance_using_rules(self) -> None:
+        """Applies relevance filtering to the unfiltered data.
+
+        This method:
+        1. Iterates through each log line in unfiltered_data
+        2. Applies the configured relevance function to determine if the log line is relevant
+        3. Adds relevant log lines to filtered_data
+        4. Records non-relevant log lines as filtered out in the database
+
+        Note:
+            The specific relevance function used is determined by the relevance_function_name
+            parameter provided during initialization.
+            
         """
-        Applies the filter to the data in ``unfiltered_data``, i.e. all loglines whose error status is in
-        the given error types are kept and added to ``filtered_data``, all other ones are discarded.
-        """
+        
         for logline in self.unfiltered_data:
             if self.logline_handler.check_relevance(
                 logline_dict=logline, function_name=self.relevance_function_name
@@ -183,9 +212,18 @@ class Prefilter:
         )
 
     def send_filtered_data(self):
+        """Sends the filtered data to the configured Kafka topics.
+
+        This method:
+        1. Verifies there is filtered data to send
+        2. Prepares the data in the required batch format
+        3. Records completion timestamps in the database
+        4. Sends the data to all configured produce topics
+
+        Raises:
+            ValueError: If there is no filtered data to send
         """
-        Sends the filtered data if available via the :class:`KafkaProduceHandler`.
-        """
+        
         row_id = generate_collisions_resistant_uuid()
 
         if not self.filtered_data:
@@ -253,30 +291,33 @@ class Prefilter:
         self.filtered_data = []
 
     def bootstrap_prefiltering_process(self):
+        """Runs the main prefiltering process loop.
+
+        This method implements an infinite loop that:
+        1. Fetches new data from Kafka
+        2. Filters the data for relevance
+        3. Sends the filtered data to inspectors
+
+        """
         logger.info(f"I am {self.consume_topic}")
         counter = 0
         while True:
-            logger.info(f"fetching data {self.consume_topic} - {counter}")
             self.get_and_fill_data()
-            logger.info(f"received data {self.consume_topic} - {counter}")
             self.check_data_relevance_using_rules()
-            logger.info(f"checked data {self.consume_topic} - {counter}")
             self.send_filtered_data()
-            logger.info(f"Send data {self.consume_topic} - {counter}")
             counter += 1
 
-    async def start(self):
-        """
-        Runs the main loop by
+    async def start(self): # pragma: no cover
+        """Starts the ``Prefilter`` processing loop.
 
-        1. Retrieving new data,
-        2. Filtering the data and
-        3. Sending the filtered data if not empty.
-
-        Stops by a ``KeyboardInterrupt``, any internal data is lost.
+        This method:
+        1. Logs startup information
+        2. Runs the main processing loop in a separate thread
+        3. Handles graceful shutdown on interruption
 
         Args:
-            one_iteration (bool): Only one iteration is done if True (for testing purposes). False by default.
+            one_iteration (bool): If True, processes only one batch (for testing). Default: False
+
         """
         loop = asyncio.get_running_loop()
         logger.info(
@@ -289,6 +330,18 @@ class Prefilter:
 
 
 async def main() -> None:
+    """Creates and starts all configured Prefilter instances.
+
+    This function:
+    1. Iterates through all prefilter configurations defined in config.yaml
+    2. For each prefilter:
+        - Determines the relevance function to use
+        - Sets up the validation configuration based on the config.yaml
+        - Determines the topics to consume from and produce to
+        - Creates an according ``Prefilter`` instance
+        - Runs the ``start`` method
+        
+    """
     tasks = []
     for prefilter in PREFILTERS:
         relevance_function_name = prefilter["relevance_method"]
