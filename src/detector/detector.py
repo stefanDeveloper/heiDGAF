@@ -44,7 +44,17 @@ class WrongChecksum(Exception):  # pragma: no cover
     pass
 
 
-class DetectorAbstractBase(ABC):    
+class DetectorAbstractBase(ABC):    # pragma: no cover
+    """
+    Abstract base class for all detector implementations.
+
+    This class defines the interface that all concrete detector implementations must follow.
+    It provides the essential methods that need to be implemented for a detector to function
+    within the pipeline.
+
+    Subclasses must implement all abstract methods to ensure proper integration with the
+    detection system.
+    """
     @abstractmethod
     def __init__(self, detector_config, consume_topic) -> None:
         pass
@@ -58,11 +68,30 @@ class DetectorAbstractBase(ABC):
         pass
 
 class DetectorBase(DetectorAbstractBase):
-    """Logs detection with probability score of requests. It runs the provided machine learning model.
-    In addition, it returns all individually probabilities of the anomalous batch.
+    """
+    Base implementation for detectors in the pipeline.
+
+    This class provides a concrete implementation of the detector interface with
+    common functionality shared across all detector types. It handles model
+    management, data processing, Kafka communication, and result reporting.
+
+    The class is designed to be extended by specific detector implementations
+    that provide model-specific prediction logic.
     """
 
     def __init__(self, detector_config, consume_topic) -> None:
+        """
+        Initialize the detector with configuration and Kafka topic settings.
+
+        Sets up all necessary components including model loading, Kafka handlers,
+        and database connections.
+
+        Args:
+            detector_config (dict): Configuration dictionary containing detector-specific
+                parameters such as name, model, checksum, and threshold.
+            consume_topic (str): Kafka topic from which the detector will consume messages.
+        """
+        
         self.name = detector_config["name"]
         self.model = detector_config["model"]
         self.checksum = detector_config["checksum"]
@@ -102,7 +131,16 @@ class DetectorBase(DetectorAbstractBase):
         )
 
     def get_and_fill_data(self) -> None:
-        """Consumes data from KafkaConsumeHandler and stores it for processing."""
+        """
+        Consume data from Kafka and store it for processing.
+
+        This method retrieves messages from the Kafka topic, processes them, and
+        prepares the data for detection. It handles batch management, timestamp
+        tracking, and database updates for monitoring purposes.
+
+        The method also manages the flow of data through the pipeline by updating
+        relevant database tables with processing status and metrics.
+        """
         if self.messages:
             logger.warning(
                 "Detector is busy: Not consuming new messages. Wait for the Detector to finish the "
@@ -165,13 +203,17 @@ class DetectorBase(DetectorAbstractBase):
 
 
     def _sha256sum(self, file_path: str) -> str:
-        """Return a SHA265 sum check to validate the model.
+        """
+        Calculate the SHA256 checksum of a file.
+
+        This utility method reads a file in chunks and computes its SHA256 hash,
+        which is used for model integrity verification.
 
         Args:
-            file_path (str): File path of model.
+            file_path (str): Path to the file for which the checksum should be calculated.
 
         Returns:
-            str: SHA256 sum
+            str: Hexadecimal string representation of the SHA256 checksum.
         """
         h = hashlib.sha256()
 
@@ -187,20 +229,34 @@ class DetectorBase(DetectorAbstractBase):
 
     def _get_model(self):
         """
-        Downloads model from server. If model already exists, it returns the current model. In addition, it checks the
-        sha256 sum in case a model has been updated.
+        Download and validate the detection model.
+
+        This method handles the model management process:
+        1. Checks if the model already exists locally
+        2. Downloads the model if not present
+        3. Verifies the model's integrity using SHA256 checksum
+        4. Loads the model for use in detection
+
+        The method ensures that only verified models are used for detection to
+        maintain system reliability.
+
+        Returns:
+            object: The loaded model object ready for prediction.
+
+        Raises:
+            WrongChecksum: If the downloaded model's checksum doesn't match the expected value.
+            requests.HTTPError: If there's an error downloading the model.
         """
         logger.info(f"Get model: {self.model} with checksum {self.checksum}")
+        # TODO test the if!
         if not os.path.isfile(self.model_path):
             download_url = self.get_model_download_url()
             logger.info(f"downloading model {self.model} from {download_url} with checksum {self.checksum}")
             response = requests.get(download_url)
             response.raise_for_status()
-
             with open(self.model_path, "wb") as f:
                 f.write(response.content)
 
-        # Check file sha256
         local_checksum = self._sha256sum(self.model_path)
 
         if local_checksum != self.checksum:
@@ -217,7 +273,19 @@ class DetectorBase(DetectorAbstractBase):
         return clf
 
     def detect(self) -> None:  # pragma: no cover
-        """Method to detect malicious requests in the network flows"""
+        """
+        Process messages to detect malicious requests.
+
+        This method applies the detection model to each message in the current batch,
+        identifies potential threats based on the model's predictions, and collects
+        warnings for further processing.
+
+        The detection uses a threshold to determine if a prediction indicates
+        malicious activity, and only warnings exceeding this threshold are retained.
+
+        Note:
+            This method relies on the implementation of ``predict``of the rspective subclass
+        """
         logger.info("Start detecting malicious requests.")
         for message in self.messages:
             # TODO predict all messages
@@ -244,7 +312,18 @@ class DetectorBase(DetectorAbstractBase):
         self.warnings = []
 
     def send_warning(self) -> None:
-        """Dispatch warnings saved to the object's warning list"""
+        """
+        Dispatch detected warnings to the appropriate systems.
+
+        This method handles the reporting of detected threats by:
+        1. Calculating an overall threat score
+        2. Storing detailed warning information
+        3. Updating database records with detection results
+        4. Marking processed loglines with appropriate status
+
+        The method updates multiple database tables to maintain the pipeline's
+        state tracking and provides detailed information about detected threats.
+        """
         logger.info("Store alert.")
         row_id = generate_collisions_resistant_uuid()
         if len(self.warnings) > 0:
@@ -351,8 +430,23 @@ class DetectorBase(DetectorAbstractBase):
         )
 
     
-
+    # TODO: test bootstrap!
     def bootstrap_detector_instance(self):
+        """
+        Main processing loop for the detector instance.
+
+        This method implements the core processing loop that continuously:
+        1. Fetches data from Kafka
+        2. Performs detection on the data
+        3. Sends warnings for detected threats
+        4. Handles exceptions and cleanup
+
+        The loop continues until interrupted by a keyboard interrupt (Ctrl+C),
+        at which point it performs a graceful shutdown.
+
+        Note:
+            This method is designed to run in a dedicated thread or process.
+        """
         while True:
             try:
                 logger.debug("Before getting and filling data")
@@ -374,20 +468,26 @@ class DetectorBase(DetectorAbstractBase):
             finally:
                 self.clear_data()
 
-    async def start(self):
+    async def start(self): # pragma: no cover
+        """
+        Start the detector instance asynchronously.
+
+        This method sets up the detector to run in an asynchronous execution context,
+        allowing it to operate concurrently with other components in the system.
+        """
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.bootstrap_detector_instance)
 
     
 async def main():  # pragma: no cover
     """
-    Creates the :class:`Detector` instance. Starts a loop that continously fetches data.
+    Initialize and start all detector instances defined in the configuration.
 
-    Args:
-        one_iteration (bool): For testing purposes: stops loop after one iteration
-
-    Raises:
-        KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
+    This function:
+    1. Reads detector configurations
+    2. Dynamically loads detector classes
+    3. Creates detector instances
+    4. Starts all detectors concurrently
     """
     tasks = []
     for detector_config in DETECTORS:
@@ -396,8 +496,6 @@ async def main():  # pragma: no cover
         module_name = f"{PLUGIN_PATH}.{detector_config['detector_module_name']}"
         module = importlib.import_module(module_name)
         DetectorClass = getattr(module, class_name)
-        # if not issubclass(DetectorClass, DetectorBase):
-        #     raise TypeError(f"{class_name} is not a subclass of DetectorBase")
         detector = DetectorClass(detector_config=detector_config, consume_topic=consume_topic)
         tasks.append(asyncio.create_task(detector.start()))
     await asyncio.gather(*tasks)
