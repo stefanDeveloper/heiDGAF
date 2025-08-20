@@ -46,7 +46,7 @@ KAFKA_BROKERS = ",".join(
         for broker in config["environment"]["kafka_brokers"]
     ]
 )
-class InspectorAbstractBase(ABC):
+class InspectorAbstractBase(ABC): # pragma: no cover
     @abstractmethod
     def __init__(self, consume_topic, produce_topics, config) -> None:
         pass
@@ -64,9 +64,26 @@ class InspectorBase(InspectorAbstractBase):
     """Finds anomalies in a batch of requests and produces it to the ``Detector``."""
 
     def __init__(self, consume_topic, produce_topics, config) -> None:
+        """
+        Initializes the InspectorBase with necessary configurations and connections.
+        
+        Sets up Kafka handlers, database connections, and configuration parameters based on
+        the provided configuration. For non-NoInspector implementations, initializes model
+        related parameters including mode, model configurations, thresholds, and time parameters.
+        
+        Args:
+            consume_topic (str): Kafka topic to consume messages from
+            produce_topics (list): List of Kafka topics to produce messages to
+            config (dict): Configuration dictionary containing inspector settings
+            
+        Note:
+            The "NoInspector" implementation skips model configuration initialization
+            as it doesn't perform actual anomaly detection.
+        """
+
         if not config["inspector_class_name"] == "NoInspector":
             self.mode = config["mode"]
-            self.model_configurations = config["models"]
+            self.model_configurations = config["models"] if "models" in config.keys() else None
             self.anomaly_threshold = config["anomaly_threshold"]
             self.score_threshold = config["score_threshold"]
             self.time_type = config["time_type"]
@@ -292,7 +309,18 @@ class InspectorBase(InspectorAbstractBase):
             )
         )
     def inspect(self):
-        """Runs anomaly detection on given StreamAD Model on either univariate, multivariate data, or as an ensemble."""
+        """
+        Executes the anomaly detection process with validation and fallback handling.
+        
+        This method:
+        1. Validates that model configurations exist
+        2. Logs a warning if multiple models are configured (only first is used)
+        3. Retrieves the models through _get_models()
+        4. Calls inspect_anomalies() to perform the actual detection
+        
+        Raises:
+            NotImplementedError: If no model configurations are provided
+        """
         if self.model_configurations == None or len(self.model_configurations) == 0:
             logger.warning("No model ist set!")
             raise NotImplementedError(f"No model is set!")
@@ -303,7 +331,20 @@ class InspectorBase(InspectorAbstractBase):
         self.models = self._get_models(self.model_configurations)
         self.inspect_anomalies()   
             
+    # TODO: test this!
     def bootstrap_inspection_process(self):
+        """
+        Implements the main inspection process loop that continuously:
+        1. Fetches new data from Kafka
+        2. Inspects the data for anomalies
+        3. Sends suspicious data to detectors
+        
+        The loop handles various exceptions:
+        - KafkaMessageFetchException: Logged as debug (transient issue)
+        - IOError: Logged as error and re-raised (critical failure)
+        - ValueError: Logged as debug (data validation issue)
+        - KeyboardInterrupt: Gracefully shuts down the inspector
+        """
         logger.info(f"Starting {self.name}")
         while True:
             try:
@@ -323,21 +364,32 @@ class InspectorBase(InspectorAbstractBase):
             finally:
                 self.clear_data()
 
-    async def start(self):
+    async def start(self): # pragma: no cover
+        """
+        Starts the inspector in an asynchronous context.
+        
+        This method runs the synchronous bootstrap_inspection_process() in a separate
+        thread using run_in_executor, allowing the inspector to operate concurrently
+        with other async components in the pipeline.
+        """
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, self.bootstrap_inspection_process)
 
 
 async def main():
     """
-    Creates the :class:`Inspector` instance. Starts a loop that continuously fetches data. Actual functionality
-    follows.
-
-    Args:
-        one_iteration (bool): For testing purposes: stops loop after one iteration
-
-    Raises:
-        KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
+    Entry point for the Inspector module.
+    
+    This function:
+    1. Iterates through all configured inspectors
+    2. Creates the appropriate inspector instance based on configuration
+    3. Starts each inspector as an asynchronous task
+    4. Gathers all tasks to run them concurrently
+    
+    The function dynamically loads inspector classes from the plugin system
+    based on configuration values, allowing for flexible extension of the
+    inspection capabilities.
+    
     """
     tasks = []
     for inspector in INSPECTORS:

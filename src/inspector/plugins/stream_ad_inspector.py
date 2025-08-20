@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 import numpy as np
 from streamad.util import StreamGenerator, CustomDS
-
+# TODO: test all of this!
 sys.path.append(os.getcwd())
 from src.base.utils import (
     setup_config
@@ -45,7 +45,7 @@ class StreamADInspector(InspectorBase):
 
     def __init__(self, consume_topic, produce_topics, config):
         super().__init__(consume_topic, produce_topics, config)
-        self.ensemble = config["ensemble"]
+        self.ensemble_config = config["ensemble"]
 
     def subnet_is_suspicious(self) -> bool: 
         total_anomalies = np.count_nonzero(
@@ -327,18 +327,18 @@ class StreamADInspector(InspectorBase):
 
     def _get_ensemble(self):
         logger.debug(
-            f"Load Model: {self.ensemble['model']} from {self.ensemble['module']}."
+            f"Load Model: {self.ensemble_config['model']} from {self.ensemble_config['module']}."
         )
-        if not self.ensemble["model"] in VALID_ENSEMBLE_MODELS:
-            logger.error(f"Model {self.ensemble} is not a valid ensemble model.")
+        if not self.ensemble_config["model"] in VALID_ENSEMBLE_MODELS:
+            logger.error(f"Model {self.ensemble_config} is not a valid ensemble model.")
             raise NotImplementedError(
-                f"Model {self.ensemble} is not a valid ensemble model."
+                f"Model {self.ensemble_config} is not a valid ensemble model."
             )
 
         if hasattr(self, "ensemble") and self.ensemble != None:
             logger.info("Ensemble have been successfully loaded!")
             return
 
-        module = importlib.import_module(self.ensemble["module"])
-        module_model = getattr(module, self.ensemble["model"])
-        self.ensemble = module_model(**self.ensemble["model_args"])
+        module = importlib.import_module(self.ensemble_config["module"])
+        module_model = getattr(module, self.ensemble_config["model"])
+        self.ensemble = module_model(**self.ensemble_config["model_args"])

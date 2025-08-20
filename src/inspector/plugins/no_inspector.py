@@ -4,7 +4,7 @@ from src.base.log_config import get_logger
 
 module_name = "data_inspection.inspector"
 logger = get_logger(module_name)
-
+# TODO: test this!
 class NoInspector(InspectorBase):    
     def __init__(self, consume_topic, produce_topics, config) -> None:
         super().__init__(consume_topic, produce_topics, config)

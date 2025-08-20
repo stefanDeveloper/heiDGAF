@@ -7,6 +7,9 @@ import marshmallow_dataclass
 import numpy as np
 from streamad.model import ZScoreDetector, RShashDetector
 
+from src.base.kafka_handler import (
+    KafkaMessageFetchException,
+)
 from src.base.data_classes.batch import Batch
 from src.inspector.inspector import InspectorBase, main
 # use no_inspector for testing, as it has almost 0 domain logic
@@ -360,6 +363,143 @@ class TestSend(unittest.TestCase):
         mock_produce_handler_instance.produce.assert_not_called()
 
 
+
+class TestInspector(InspectorBase):
+    def __init__(self, consume_topic, produce_topics, config) -> None:
+        super().__init__(consume_topic, produce_topics, config)
+        self.inspected = False
+        self.anomalies_detected = False
+    
+    def _get_models(self, models) -> list:
+        return ["mock_model"]
+    
+    def inspect_anomalies(self) -> None:
+        self.inspected = True
+        if self.messages:
+            self.anomalies_detected = True
+    
+    def subnet_is_suspicious(self) -> bool:
+        return self.anomalies_detected
+
+class TestInspectMethod(unittest.TestCase):
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    def test_inspect_no_models_configured(
+        self,
+        mock_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+    ):
+        """Tests that inspect() raises NotImplementedError when no models are configured."""
+        # Arrange
+
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update({
+            "inspector_class_name": "TestInspector",
+            "mode": "test_mode",
+            "anomaly_threshold": 0.5,
+            "score_threshold": 0.7,
+            "time_type": "test_time",
+            "time_range": "test_range"
+        })
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config
+        )
+        sut.messages = [{"test": "data"}]
+        
+        # Assert
+        with self.assertRaises(NotImplementedError):
+            sut.inspect()
+    
+    @patch("src.inspector.inspector.logger")
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    def test_inspect_multiple_models_configured(
+        self,
+        mock_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+        mock_logger,
+    ):
+        """Tests that inspect() uses only the first model when multiple models are configured."""
+        # Setup
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update({
+            "inspector_class_name": "TestInspector",
+            "mode": "test_mode",
+            "models": [
+                {"model": "Model1"},
+                {"model": "Model2"}
+            ],
+            "anomaly_threshold": 0.5,
+            "score_threshold": 0.7,
+            "time_type": "test_time",
+            "time_range": "test_range"
+        })
+        
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config
+        )
+        
+        # Mock data
+        sut.messages = [{"test": "data"}]
+        
+        # Execute
+        sut.inspect()
+        
+        # Verify
+        self.assertTrue(sut.inspected)
+        mock_logger.warning.assert_called_with(
+            "Model List longer than 1. Only the first one is taken: Model1!"
+        )
+    
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    def test_inspect_single_model_configured(
+        self,
+        mock_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+    ):
+        """Tests that inspect() works correctly with a single model configured."""
+        # Setup
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update({
+            "inspector_class_name": "TestInspector",
+
+            "mode": "test_mode",
+            "models": [
+                {"model": "Model1"}
+            ],
+            "anomaly_threshold": 0.5,
+            "score_threshold": 0.7,
+            "time_type": "test_time",
+            "time_range": "test_range"
+        })
+        
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config
+        )
+        
+        # Mock data
+        sut.messages = [{"test": "data"}]
+        
+        # Execute
+        sut.inspect()
+        
+        # Verify
+        self.assertTrue(sut.inspected)
+
+
 class TestBootStrapFunction(unittest.TestCase):
     
     def setUp(self):
@@ -371,44 +511,111 @@ class TestBootStrapFunction(unittest.TestCase):
                 "inspector_module_name": "no_inspector"
             }
         ]
-    
-    # TODO: test as bootstrap 
-    # @patch("src.inspector.inspector.logger")
-    # @patch("src.inspector.inspector.InspectorBase")
-    # def test_main_loop_execution(self, mock_inspector, mock_logger):
-    #     # Arrange
-    #     mock_inspector_instance = mock_inspector.return_value
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.logger")
+    def test_bootstrap_normal_execution(self, mock_logger,mock_consume_handler, mock_produce_handler, mock_clickhouse):
+        """Tests that the bootstrap process executes all steps in the correct order."""
+        # Setup
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update({
+            "inspector_class_name": "TestInspector",
+            "mode": "test_mode",
+            "models": [{"model": "ZScoreDetector"}],
+            "anomaly_threshold": 0.5,
+            "score_threshold": 0.7,
+            "time_type": "test_time",
+            "time_range": "test_range"
+        })
+        
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config
+        )
+        
+        # Mock data so send_data works
+        sut.messages = [{"src_ip": "192.168.0.1", "logline_id": "test_id"}]
+        sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
+        sut.begin_timestamp = datetime.now()
+        sut.end_timestamp = datetime.now() + timedelta(seconds=1)
+        
+        # Patch methods to control the loop
+        original_send_data = sut.send_data
+        def mock_send_data():
+            original_send_data()
+            # After first iteration, raise exception to break the loop
+            raise StopIteration("Test exception to break loop")
+        
+        sut.send_data = mock_send_data
+        # Track method calls
+        sut.inspect = MagicMock(wraps=sut.inspect)
+        sut.send_data = MagicMock(wraps=sut.send_data)
+        sut.clear_data = MagicMock(wraps=sut.clear_data)
+        
+        # Execute and verify
+        with self.assertRaises(StopIteration):
+            sut.bootstrap_inspection_process()
+        
+        # Verify method call order and count
+        sut.inspect.assert_called_once()
+        sut.send_data.assert_called_once()
+        sut.clear_data.assert_called_once()
+        
+        # Verify logger messages
+        mock_logger.info.assert_any_call("Starting test_inspector")
+        
 
-    #     mock_inspector_instance.get_and_fill_data = MagicMock()
-    #     mock_inspector_instance.clear_data = MagicMock()
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.logger")
+    def test_bootstrap_kafka_exception_handling(self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse):
+        """Tests that IOError is handled correctly (re-raised)."""
+        # Setup
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update({
+            "inspector_class_name": "TestInspector",
+            "mode": "test_mode",
+            "models": [{"model": "ZScoreDetector"}],
+            "anomaly_threshold": 0.5,
+            "score_threshold": 0.7,
+            "time_type": "test_time",
+            "time_range": "test_range"
+        })
+        
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config
+        )
+        
+        # Mock data so send_data works
+        sut.messages = [{"src_ip": "192.168.0.1", "logline_id": "test_id"}]
+        sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
+        sut.begin_timestamp = datetime.now()
+        sut.end_timestamp = datetime.now() + timedelta(seconds=1)
 
-    #     # Act
-    #     main()
-
-    #     # Assert
-    #     self.assertTrue(mock_inspector_instance.get_and_fill_data.called)
-    #     self.assertTrue(mock_inspector_instance.clear_data.called)
-
-    # TODO: TEST ERRORS IN BOOTSTRAP METHOD
-    # @patch("src.inspector.inspector.logger")
-    # @patch("src.inspector.inspector.InspectorBase")
-    # def test_main_io_error_handling(self, mock_inspector, mock_logger):
-    #     # Arrange
-    #     mock_inspector_instance = mock_inspector.return_value
-
-    #     # Act
-    #     with patch.object(
-    #         mock_inspector_instance,
-    #         "get_and_fill_data",
-    #         side_effect=IOError("Simulated IOError"),
-    #     ):
-    #         with self.assertRaises(IOError):
-    #             main()
-
-    #     # Assert
-    #     self.assertTrue(mock_inspector_instance.clear_data.called)
-    #     self.assertTrue(mock_inspector_instance.loop_exited)
-
+        # Patch inspect to raise IOError
+        def mock_inspect():
+            raise IOError("Test IO error")
+        
+        sut.inspect = mock_inspect
+        sut.get_and_fill_data = MagicMock()
+        sut.send_data = MagicMock()
+        sut.clear_data = MagicMock(wraps=sut.clear_data)
+        
+        # Execute and verify
+        with self.assertRaises(IOError) as context:
+            sut.bootstrap_inspection_process()
+            self.assertEqual(str(context.exception), "Test IO error")
+        
+        
+        # Verify method calls
+        sut.get_and_fill_data.assert_called_once()
+        sut.send_data.assert_not_called()
+        sut.clear_data.assert_called_once()
 class TestMainFunction(unittest.IsolatedAsyncioTestCase):
     
     def setUp(self):
@@ -438,21 +645,6 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
 
         # Assert
         mock_inspector_instance.start.assert_called_once()
-
-
-    # @patch("src.inspector.inspector.logger")
-    # @patch("src.inspector.inspector.Inspector")
-    # def test_main_keyboard_interrupt(self, mock_inspector, mock_logger):
-    #     # Arrange
-    #     mock_inspector_instance = mock_inspector.return_value
-    #     mock_inspector_instance.get_and_fill_data.side_effect = KeyboardInterrupt
-
-    #     # Act
-    #     main()
-
-    #     # Assert
-    #     self.assertTrue(mock_inspector_instance.clear_data.called)
-    #     self.assertTrue(mock_inspector_instance.loop_exited)
 
 
 if __name__ == "__main__":
