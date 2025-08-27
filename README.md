@@ -58,7 +58,7 @@
 
 ## About the Project
 
-![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/pipeline_overview.png?raw=true)
+![Pipeline overview](./assets/heidgaf_architecture.svg)
 
 ## Getting Started
 

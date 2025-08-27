@@ -83,6 +83,8 @@ pipeline:
 
   data_inspection:
     - name: dga_inspector
+      inspector_module_name: "stream_ad_inspector"
+      inspector_class_name: "StreamADInspector"
       prefilter_name: dga_filter
       mode: univariate # multivariate, ensemble
       # Only used when mode is set to ensemble
@@ -99,73 +101,104 @@ pipeline:
       score_threshold: 0.005
       time_type: ms
       time_range: 20
-    - name: domniator_inspector
-      prefilter_name: "dominator_filter"
-      mode: univariate # multivariate, ensemble
-      # Only used when mode is set to ensemble
-      ensemble:
-        model: WeightEnsemble
-        module: streamad.process
-        model_args:
-      models:
-        - model: ZScoreDetector
-          module: streamad.model
-          model_args:
-            is_global: false
-      anomaly_threshold: 0.01
-      score_threshold: 0.5
-      time_type: ms
-      time_range: 20
-    - name: exemplary_inspector
-      prefilter_name: dga_filter
-      mode: univariate # multivariate, ensemble
-      # Only used when mode is set to ensemble
-      ensemble:
-        model: WeightEnsemble
-        module: streamad.process
-        model_args:
-      models:
-        - model: ZScoreDetector
-          module: streamad.model
-          model_args:
-            is_global: false
-      anomaly_threshold: 0.01
-      score_threshold: 0.5
-      time_type: ms
-      time_range: 20
-    - name: xss_inspector
-      prefilter_name: xss_filter
-      mode: univariate # multivariate, ensemble
-      # Only used when mode is set to ensemble
-      ensemble:
-        model: WeightEnsemble
-        module: streamad.process
-        model_args:
-      models:
-        - model: ZScoreDetector
-          module: streamad.model
-          model_args:
-            is_global: false
-      anomaly_threshold: 0.01
-      score_threshold: 0.5
-      time_type: ms
-      time_range: 20
     - name: no_inspector
       prefilter_name: dga_filter
-      skip_inspector: True
+      inspector_module_name: "no_inspector"
+      inspector_class_name: "NoInspector"
+      anomaly_threshold: 0.0001
+      score_threshold: 0.005
+      time_type: ms
+      time_range: 20
+      mode: univariate # multivariate, ensemble
+      # Only used when mode is set to ensemble
+      ensemble:
+        model: WeightEnsemble
+        module: streamad.process
+        model_args:
+      models:
+        - model: ZScoreDetector
+          module: streamad.model
+          model_args:
+            is_global: false
     - name: skip_the_inspector_stage_as_well_with_this
       prefilter_name: dominator_filter
-      skip_inspector: True
-
-
+      inspector_module_name: "no_inspector"
+      inspector_class_name: "NoInspector"
+    # - name: domniator_inspector
+    #   inspector_module_name: "no_inspector"
+    #   inspector_class_name: "NoInspector"
+    #   prefilter_name: "dominator_filter"
+    #   mode: univariate # multivariate, ensemble
+    #   # Only used when mode is set to ensemble
+    #   ensemble:
+    #     model: WeightEnsemble
+    #     module: streamad.process
+    #     model_args:
+    #   models:
+    #     - model: ZScoreDetector
+    #       module: streamad.model
+    #       model_args:
+    #         is_global: false
+    #   anomaly_threshold: 0.01
+    #   score_threshold: 0.5
+    #   time_type: ms
+      # time_range: 20
+    # - name: exemplary_inspector
+    #   inspector_module_name: "no_inspector"
+    #   inspector_class_name: "NoInspector"
+    #   prefilter_name: dga_filter
+    #   mode: univariate # multivariate, ensemble
+    #   # Only used when mode is set to ensemble
+    #   ensemble:
+    #     model: WeightEnsemble
+    #     module: streamad.process
+    #     model_args:
+    #   models:
+    #     - model: ZScoreDetector
+    #       module: streamad.model
+    #       model_args:
+    #         is_global: false
+    #   anomaly_threshold: 0.01
+    #   score_threshold: 0.5
+    #   time_type: ms
+    #   time_range: 20
+    # - name: xss_inspector
+    #   inspector_module_name: "no_inspector"
+    #   inspector_class_name: "NoInspector"
+    #   prefilter_name: xss_filter
+    #   mode: univariate # multivariate, ensemble
+    #   # Only used when mode is set to ensemble
+    #   ensemble:
+    #     model: WeightEnsemble
+    #     module: streamad.process
+    #     model_args:
+    #   models:
+    #     - model: ZScoreDetector
+    #       module: streamad.model
+    #       model_args:
+    #         is_global: false
+    #   anomaly_threshold: 0.01
+    #   score_threshold: 0.5
+    #   time_type: ms
+    #   time_range: 20
 
   data_analysis:
     - name: "RF-dga_detector"
+      detector_module_name: "dga_detector"
+      detector_class_name: "DGADetector"
       model: rf # XGBoost
       checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
       base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
       threshold: 0.005
       inspector_name: dga_inspector
+    - name: "RF-dga_detector-no-inspector-basis"
+      detector_module_name: "dga_detector"
+      detector_class_name: "DGADetector"
+      model: rf # XGBoost
+      checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
+      base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
+      threshold: 0.005
+      inspector_name: no_inspector
     # - name: "XGBoost-dga_detector"
     #   model: XGBoost
     #   checksum: ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06
@@ -207,13 +240,13 @@ environment:
   kafka_brokers:
     - hostname: kafka1
       port: 8097
-      node_ip: 129.206.218.56
+      node_ip: 192.168.175.69
     - hostname: kafka2
       port: 8098
-      node_ip: 129.206.218.56
+      node_ip: 192.168.175.69
     - hostname: kafka3
       port: 8099
-      node_ip: 129.206.218.56
+      node_ip: 192.168.175.69
   kafka_topics_prefix:
     pipeline:
       logserver_in: "pipeline-logserver_in"

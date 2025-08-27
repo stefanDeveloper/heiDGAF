@@ -7,19 +7,64 @@ Overview
 The core component of the software's architecture is its data pipeline. It consists of five stages/modules, and data
 traverses through it using Apache Kafka.
 
-.. image:: media/pipeline_overview.png
+.. image:: media/heidgaf_architecture.png
 
 
-Stage 1: Log Storage
+Stage 1: Log Aggregation
 ====================
 
-This stage serves as the central contact point for all data.
+The Log Aggregation stage harnesses multiple Zeek sensors to ingest data from static (i.e. PCAP files) and dynamic sources (i.e. traffic from network interfaces).
+The traffic is split protocolwise into Kafka topics and send to the Logserver for the Log Storage phase.
 
 Overview
 --------
 
-The :class:`LogServer` class is the core component of this stage. It reads from several input sources and sends the
-data to Kafka, where it can be obtained by the following module.
+The :class:`ZeekConfigurationHandler` takes care of the setup of a containerized Zeek sensor. It reads in the main configuration file and 
+adjusts the protocols to listen on, the logformats of incoming traffic, and the Kafka queues to send to.
+
+The :class:`ZeekAnalysisHandler` starts the actual Zeek instance. Based on the configuration it either starts Zeek in a cluster for specified network interfaces 
+or in a single node instance for static analyses. 
+
+Main Classes
+----------
+
+.. py:currentmodule:: src.zeek.zeek_config_handler
+.. autoclass:: ZeekConfigurationHandler
+
+.. py:currentmodule:: src.zeek.zeek_analysis_handler
+.. autoclass:: ZeekAnalysisHandler
+
+Usage and configuration
+-----------------------
+
+An analysis can be performed via tapping network inerfaces and by injecting pcap files. 
+To adjust this, adapt the ``pipeline.zeek.sensors.[sensor_name].static_analysis`` value to True or false. 
+
+- **``pipeline.zeek.sensors.[sensor_name].static_analysis``** set to True:
+
+  - An static analysis is executed. The PCAP files are extracted from within the GitHub root directory under ``/data/test_pcaps"`` and mounted into the zeek container. All files ending in .PCAP are then read and analyzed by Zeek.
+    Please Note that we do not recommend to use several Zeek instances for a static analysis, as the data will be read in multiple times, which impacts the benchmarks accordingly. 
+
+- **``pipeline.zeek.sensors.[sensor_name].static_analysis``** set to False:
+
+  - A network analysis is performed for the interfaces listed in ``pipeline.zeek.sensors.[sensor_name].interfaces``
+
+
+You can start multiple instances of Zeek by adding more entries to the dictionary ``pipeline.zeek.sensors``.
+Necessary attributes are: 
+- ``pipeline.zeek.sensors.[sensor_name].static_analysis`` : **bool**
+  - if not static analysis: ``pipeline.zeek.sensors.[sensor_name].interfaces`` : **list**
+- ``pipeline.zeek.sensors.[sensor_name].protocols`` : **list**
+
+Stage 2: Log Storage
+====================
+
+This stage serves as the central ingestion point for all data. 
+
+Overview
+--------
+
+The :class:`LogServer` class is the core component of this stage. It reads the Zeek Sensors inputs and directs them via Kafka to the following stages.
 
 Main Class
 ----------
@@ -30,26 +75,13 @@ Main Class
 Usage and configuration
 -----------------------
 
-Currently, the :class:`LogServer` reads from both an input file and a Kafka topic, simultaneously. The configuration
-allows changing the file name to read from.
+Currently, the :class:`LogServer` reads from the Kafka Queues specified by Zeek. These have a common prefix, specified in ``environment.kafka_topics_prefix.pipeline.logserver_in``. The suffix is the protocol name in lower case of the traffic.
+The Logserver currently has no further configuration. 
 
-- **Without Docker**:
-
-  - To change the input file path, change ``pipeline.log_storage.logserver.input_file`` in the `config.yaml`. The
-    default setting is ``"/opt/file.txt"``.
-
-- **With Docker**:
-
-  - Docker mounts the file specified in ``MOUNT_PATH`` in the file `docker/.env`. By default, this is set to
-    ``../../default.txt``, which refers to the file `docker/default.txt`.
-  - By changing this variable, the file to be mounted can be set. Please note that in this case, the variable specified
-    in the `config.yaml` must be set to the default value.
-
-
-Stage 2: Log Collection
+Stage 3: Log Collection
 =======================
 
-The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<Stage 1: Log Storage>`,
+The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<Stage 2: Log Storage>`,
 parsing their information fields, and validating the data. Each field is checked to ensure it is of the correct type
 and format. This stage ensures that all data is accurate, reducing the need for further verification in subsequent
 stages. Any loglines that do not meet the required format are immediately discarded to maintain data integrity. Valid
@@ -115,16 +147,20 @@ validates. The logline is parsed into its respective fields, each checked for co
 
 - **Log Line Format**:
 
-  - By default, log lines have the following format:
+  As the log information differs for each protocol, there is a default format per protocol. 
+  This can be either adapted or a completely new one can be added as well. For more information
+  please refere to section :ref:`Logline format configuration`.
 
     .. code-block::
 
-        TIMESTAMP STATUS SRC_IP DNS_IP HOST_DOMAIN_NAME RECORD_TYPE RESPONSE_IP SIZE
+        DNS default logline format
+
+        TS STATUS SRC_IP DNS_IP HOST_DOMAIN_NAME RECORD_TYPE RESPONSE_IP SIZE
 
     +----------------------+------------------------------------------------+
     | **Field**            | **Description**                                |
     +======================+================================================+
-    | ``TIMESTAMP``        | The date and time when the log entry was       |
+    | ``TS``        | The date and time when the log entry was       |
     |                      | recorded. Formatted as                         |
     |                      | ``YYYY-MM-DDTHH:MM:SS.sssZ``.                  |
     |                      |                                                |
@@ -159,7 +195,51 @@ validates. The logline is parsed into its respective fields, each checked for co
     |                      | bytes.                                         |
     +----------------------+------------------------------------------------+
 
-  - Users can change the format and field types, as described in the :ref:`Logline format configuration` section.
+
+
+    .. code-block::
+
+        HTTP default logline format
+
+        TS SRC_IP SRC_PORT DST_IP DST_PORT METHOD URI STATUS_CODE REQUEST_BODY RESPONSE_BODY
+
+    +----------------------+------------------------------------------------+
+    | **Field**            | **Description**                                |
+    +======================+================================================+
+    | ``TS``        | The date and time when the log entry was       |
+    |                      | recorded. Formatted as                         |
+    |                      | ``YYYY-MM-DDTHH:MM:SS.sssZ``.                  |
+    |                      |                                                |
+    |                      | - **Format**: ``%Y-%m-%dT%H:%M:%S.%f`` (with   |
+    |                      |   microseconds truncated to milliseconds).     |
+    |                      | - **Time Zone**: ``Z``                         |
+    |                      |   indicates Zulu time (UTC).                   |
+    |                      | - **Example**: ``2024-07-28T14:45:30.123Z``    |
+    |                      |                                                |
+    |                      | This format closely resembles ISO 8601, with   |
+    |                      | milliseconds precision.                        |
+    +----------------------+------------------------------------------------+
+    | ``SRC_IP``           | The IP address of the client that made the     |
+    |                      | request.                                       |
+    +----------------------+------------------------------------------------+
+    | ``SRC_PORT``         | The source port of the cliend making the       |
+    |                      | request                                        |
+    +----------------------+------------------------------------------------+
+    | ``DST_IP``           | The IP address of the target server for the    |
+    |                      | request.                                       |
+    +----------------------+------------------------------------------------+
+    | ``DST_PORT``         | The port of the target server                  |
+    +----------------------+------------------------------------------------+
+    | ``METHOD``           | The HTTP method used (e.g. ``GET, POST``)      |
+    +----------------------+------------------------------------------------+
+    | ``URI``              | Path accessed in the request (e.g. ``/admin``) |
+    +----------------------+------------------------------------------------+
+    | ``STATUS_CODE``      | The HTTP status code returned (e.g. ``500``)   |
+    +----------------------+------------------------------------------------+
+    | ``REQUEST_BODY``     | The HTTP request payload (might be encrypted)  |
+    +----------------------+------------------------------------------------+
+    | ``RESPONSE_BODY``    | The HTTP response body (might be encrypted)    |
+    +----------------------+------------------------------------------------+
 
 BufferedBatch
 .............
@@ -171,7 +251,7 @@ The :class:`BufferedBatch` manages the buffering of validated loglines as well a
   - Collects log entries into a ``batch`` dictionary, with the ``subnet_id`` as key.
   - Uses a ``buffer`` per key to concatenate and send both the current and previous batches together.
   - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
-    :ref:`Stage 4: Data Inspection` and :ref:`Stage 5: Data Analysis`.
+    :ref:`Stage 5: Data Inspection` and :ref:`Stage 6: Data Analysis`.
   - All batches get sorted by their timestamps at completion to ensure correct chronological order.
   - A `begin_timestamp` and `end_timestamp` per key are extracted and send as metadata (needed for analysis). These
     are taken from the chronologically first and last message in a batch.
