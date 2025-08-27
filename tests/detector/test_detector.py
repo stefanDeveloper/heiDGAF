@@ -33,9 +33,22 @@ class TestDetector(DetectorBase):
 
     def get_model_download_url(self):
         return f"{self.model_base_url}/files/?p=%2F{self.model}_{self.checksum}.pickle&dl=1"
-     
+    def get_scaler_download_url(self):
+        return f"{self.model_base_url}/files/?p=%2F{self.model}_{self.checksum}_scaler.pickle&dl=1"
+          
     def predict(self, message):
         pass    
+
+DEFAULT_DATA = {
+    "client_ip": "192.168.0.167",
+    "dns_ip": "10.10.0.10",
+    "response_ip": "252.79.173.222",
+    "timestamp": "",
+    "status": "NXDOMAIN",
+    "domain_name": "IF356gEnJHPdRxnkDId4RDUSgtqxx9I+pZ5n1V53MdghOGQncZWAQgAPRx3kswi.750jnH6iSqmiAAeyDUMX0W6SHGpVsVsKSX8ZkKYDs0GFh/9qU5N9cwl00XSD8ID.NNhBdHZIb7nc0hDQXFPlABDLbRwkJS38LZ8RMX4yUmR2Mb6YqTTJBn+nUcB9P+v.jBQdwdS53XV9W2p1BHjh.16.f.1.6037.tunnel.example.org",
+    "record_type": "A",
+    "size": "100b",
+}
 
 
 class TestSha256Sum(unittest.TestCase):
@@ -73,6 +86,30 @@ class TestSha256Sum(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             sut._sha256sum("not_existing")
 
+
+class TestFeatures(unittest.TestCase):
+    def setUp(self):
+        patcher = patch("src.detector.detector.logger")
+        self.mock_logger = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
+    )
+    @patch("src.detector.detector.MODEL", "rf")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    )
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_get_model(self, mock_clickhouse, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = Detector()
+        sut._get_features("google.de")
 
 
 class TestGetModel(unittest.TestCase):
@@ -260,13 +297,13 @@ class TestSendWarning(unittest.TestCase):
                 "request": "google.de",
                 "probability": 0.8765,
                 "model": "rf",
-                "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+                "sha256": "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
             },
             {
                 "request": "request.de",
                 "probability": 0.12388,
                 "model": "rf",
-                "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+                "sha256": "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
             },
         ]
         sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
@@ -278,6 +315,26 @@ class TestSendWarning(unittest.TestCase):
         open_mock.assert_called_with(
             os.path.join(tempfile.gettempdir(), "warnings.json"), "a+"
         )
+
+    @patch(
+        "src.detector.detector.CHECKSUM",
+        "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
+    )
+    @patch("src.detector.detector.MODEL", "rf")
+    @patch(
+        "src.detector.detector.MODEL_BASE_URL",
+        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    )
+    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.detector.detector.ClickHouseKafkaSender")
+    def test_prediction(self, mock_clickhouse, mock_kafka_consume_handler):
+        mock_kafka_consume_handler_instance = MagicMock()
+        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
+
+        sut = Detector()
+        sut.messages = [DEFAULT_DATA]
+        sut.detect()
+        self.assertNotEqual([], sut.warnings)
 
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.detector.detector.ClickHouseKafkaSender")
@@ -323,7 +380,7 @@ class TestSendWarning(unittest.TestCase):
                 "request": "request.de",
                 "probability": "INVALID",
                 "model": "rf",
-                "sha256": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
+                "sha256": "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
             }
         ]
         with self.assertRaises(Exception):

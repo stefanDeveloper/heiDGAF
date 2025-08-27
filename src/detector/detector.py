@@ -58,14 +58,16 @@ class DetectorAbstractBase(ABC):    # pragma: no cover
     @abstractmethod
     def __init__(self, detector_config, consume_topic) -> None:
         pass
-
     @abstractmethod
     def get_model_download_url(self):
         pass
-     
+    @abstractmethod
+    def get_scaler_download_url(self):
+        pass     
     @abstractmethod
     def predict(self, message) -> np.ndarray :
         pass
+
 
 class DetectorBase(DetectorAbstractBase):
     """
@@ -105,12 +107,15 @@ class DetectorBase(DetectorAbstractBase):
         self.begin_timestamp = None
         self.end_timestamp = None
         self.model_path = os.path.join(
-            tempfile.gettempdir(), f"{self.model}_{self.checksum}.pickle"
+            tempfile.gettempdir(), f"{self.model}_{self.checksum}_model.pickle"
+        )
+        self.scaler_path = os.path.join(
+            tempfile.gettempdir(), f"{self.model}_{self.checksum}_scaler.pickle"
         )
 
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
 
-        self.model = self._get_model()
+        self.model, self.scaler = self._get_model()
 
         # databases
         self.batch_tree = ClickHouseKafkaSender("batch_tree")
@@ -250,13 +255,19 @@ class DetectorBase(DetectorAbstractBase):
         logger.info(f"Get model: {self.model} with checksum {self.checksum}")
         # TODO test the if!
         if not os.path.isfile(self.model_path):
-            download_url = self.get_model_download_url()
-            logger.info(f"downloading model {self.model} from {download_url} with checksum {self.checksum}")
-            response = requests.get(download_url)
+            model_download_url = self.get_model_download_url()
+            logger.info(f"downloading model {self.model} from {model_download_url} with checksum {self.checksum}")
+            response = requests.get(model_download_url)
             response.raise_for_status()
             with open(self.model_path, "wb") as f:
                 f.write(response.content)
-
+            scaler_download_url = self.get_scaler_download_url()
+            scaler_response = requests.get(model_download_url)
+            scaler_response.raise_for_status()
+            with open(self.scaler_path, "wb") as f:
+                f.write(scaler_response.content)
+                
+        # Check file sha256
         local_checksum = self._sha256sum(self.model_path)
 
         if local_checksum != self.checksum:
@@ -270,7 +281,10 @@ class DetectorBase(DetectorAbstractBase):
         with open(self.model_path, "rb") as input_file:
             clf = pickle.load(input_file)
 
-        return clf
+        with open(self.scaler_path, "rb") as input_file:
+            scaler = pickle.load(input_file)
+
+        return clf, scaler
 
     def detect(self) -> None:  # pragma: no cover
         """
@@ -311,6 +325,37 @@ class DetectorBase(DetectorAbstractBase):
         self.end_timestamp = None
         self.warnings = []
 
+    def detect(self) -> None:  # pragma: no cover
+        """
+        Process messages to detect malicious requests.
+
+        This method applies the detection model to each message in the current batch,
+        identifies potential threats based on the model's predictions, and collects
+        warnings for further processing.
+
+        The detection uses a threshold to determine if a prediction indicates
+        malicious activity, and only warnings exceeding this threshold are retained.
+
+        Note:
+            This method relies on the implementation of ``predict``of the rspective subclass
+        """
+        logger.info("Start detecting malicious requests.")
+        for message in self.messages:
+            # TODO predict all messages
+            y_pred = self.predict(message)
+            logger.info(f"Prediction: {y_pred}")
+            if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > self.threshold:
+                logger.info("Append malicious request to warning.")
+                warning = {
+                    "request": message,
+                    "probability": float(y_pred[0][1]),
+                    # TODO: what is the use of this? not even json serializabel ?
+                    # "model": self.model,
+                    "name": self.name,
+                    "sha256": self.checksum,
+                }
+                self.warnings.append(warning)
+                
     def send_warning(self) -> None:
         """
         Dispatch detected warnings to the appropriate systems.
