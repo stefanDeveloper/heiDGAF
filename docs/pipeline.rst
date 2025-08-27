@@ -121,7 +121,9 @@ LogCollector
 ............
 
 The :class:`LogCollector` connects to the :class:`LogServer` to retrieve one logline, which it then processes and
-validates. The logline is parsed into its respective fields, each checked for correct type and format:
+validates. The logline is parsed into its respective fields, each checked for correct type and format.
+For each configuration of a logg collector in ``pipeline.logcollection.collectors``, a process is spun up in the resulting docker container
+allowing for multiprocessing and threading. 
 
 - **Field Validation**:
 
@@ -160,7 +162,7 @@ validates. The logline is parsed into its respective fields, each checked for co
     +----------------------+------------------------------------------------+
     | **Field**            | **Description**                                |
     +======================+================================================+
-    | ``TS``        | The date and time when the log entry was       |
+    | ``TS``        | The date and time when the log entry was              |
     |                      | recorded. Formatted as                         |
     |                      | ``YYYY-MM-DDTHH:MM:SS.sssZ``.                  |
     |                      |                                                |
@@ -176,7 +178,7 @@ validates. The logline is parsed into its respective fields, each checked for co
     | ``STATUS``           | The status of the DNS query, e.g., ``NOERROR``,|
     |                      | ``NXDOMAIN``.                                  |
     +----------------------+------------------------------------------------+
-    | ``SRC_IP``        | The IP address of the client that made the     |
+    | ``SRC_IP``        | The IP address of the client that made the        |
     |                      | request.                                       |
     +----------------------+------------------------------------------------+
     | ``DNS_IP``           | The IP address of the DNS server processing    |
@@ -206,7 +208,7 @@ validates. The logline is parsed into its respective fields, each checked for co
     +----------------------+------------------------------------------------+
     | **Field**            | **Description**                                |
     +======================+================================================+
-    | ``TS``        | The date and time when the log entry was       |
+    | ``TS``        | The date and time when the log entry was              |
     |                      | recorded. Formatted as                         |
     |                      | ``YYYY-MM-DDTHH:MM:SS.sssZ``.                  |
     |                      |                                                |
@@ -271,15 +273,18 @@ The :class:`CollectorKafkaBatchSender` manages the sending of validated loglines
 Configuration
 -------------
 
-The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format`` configured
+The instances of the class :class:`LogCollector` check the validity of incoming loglines. For this, they use the ``required_log_information`` configured
 in the ``config.yaml``.
 
-- **LogCollector Analyzation Criteria**:
+Configurations can arbitrarily added, adjusted and removed. This is especially useful if certain detectors need specialized log fields.
+The following convention needs to be sticked to:
 
-  - Valid status codes: The accepted status codes for logline validation. This is defined in the field with name
-    ``"status_code"`` in the ``logline_format`` list.
-  - Valid record types: The accepted DNS record types for logline validation. This is defined in the field with name
-    ``"record_type"`` in the ``logline_format`` list.
+- Each entry in the ``required_log_information``  needs to be a list
+- The first item is the name of the datafield as adjusted in Zeek
+- The second item is the Class name the value should be mapped to for validation
+- Depending on the class, the third item is a list of valid inputs 
+- Depending on the class, the fourth item is a list of relevant inputs 
+
 
 Buffer Functionality
 --------------------
@@ -350,7 +355,7 @@ Example Workflow
 This class design effectively manages the batching and buffering of messages, allowing for precise timestamp tracking
 and efficient data processing across different message streams.
 
-Stage 3: Log Filtering
+Stage 4: Log Filtering
 ======================
 
 Overview
@@ -372,9 +377,10 @@ log data.
 Usage
 -----
 
-The :class:`Prefilter` loads data from the Kafka topic ``Prefilter``. It extracts the log entries and applies a filter
-to retain only those entries that match the specified error types. These error types are provided as a list of strings
-during the initialization of a :class:`Prefilter` instance.
+One :class:`Prefilter` per prefilter configuration in ``pipeline.log_filtering`` is started. Each instance loads from a Kafka topic name that depends on the logcollector the prefilter builds upon.
+The prefix for each topic is defined in ``environment.kafka_topics_prefix.batch_sender_to_prefilter.`` and the suffix is the configured log collector name.
+The prefilters extract the log entries and apply a filter function (or relevance function) to retain only those entries that match the specified requirements. 
+
 
 Once the filtering process is complete, the refined data is sent back to the Kafka Brokers under the topic ``Inspect``
 for further processing in subsequent stages.
@@ -382,49 +388,85 @@ for further processing in subsequent stages.
 Configuration
 -------------
 
-To customize the filtering behavior, the following options in the ``logline_format`` set
-in the ``config.yaml`` are used.
+To customize the filtering behavior, the relevance function can be extended and adjusted in ``"src/base/logline_handler"`` and can be referenced in the ``"configuration.yaml"`` by the function name. 
+Checks can be skipped by referencing the ``no_relevance_check`` function.
+We currently support the following relevance methods:
 
-- **Relevant Types**:
+    +----------------------+------------------------------------------------------------------+
+    | **Name**                  | **Description**                                             |
+    +======================+==================================================================+
+    | ``no_relevance_check ``   | Skip the relevance check of the prefilters entirely.        |
+    +----------------------+------------------------------------------------------------------+
+    | ``check_dga_relevance``   | Function to filter requests based on LisItems in the        |
+    |                           | logcollector configuration. Using the fourth item in the    |
+    |                           | list as a list of relevant status codes, only the request   |
+    |                           | and responses are forwarded that include a  **NXDOMAIN**    |
+    |                           | status code.                                                |
+    +----------------------+------------------------------------------------------------------+
 
-  - If the fourth entry of the field configuration with type ``ListItem`` in the ``logline_format`` list is defined for
-    any field name, the values in this list are the relevant values.
 
-
-Stage 4: Inspection
+Stage 5: Inspection
 ========================
 
 Overview
 --------
 
-The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage is essentiell to reduce
+The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage is essential to reduce
 the load on the `Detection` stage.
 Otherwise, resource complexity increases disproportionately.
 
-Main Class
-----------
+
+Main Classes
+------------
 
 .. py:currentmodule:: src.inspector.inspector
-.. autoclass:: Inspector
+.. autoclass:: InspectorAbstractBase
 
-The :class:`Inspector` is the primary class to run StreamAD models for time-series based anomaly detection, such as the Z-Score outlier detection.
-In addition, it features fine-tuning settings for models and anomaly thresholds.
+.. py:currentmodule:: src.inspector.inspector
+.. autoclass:: InspectorBase
 
-Usage
------
+The :class:`InspectorBase` is the primary class for inspecotrs. It holds common functionalities and is responsible for data ingesting, sending, etc.. Any inspector build on top of this
+class and needs to implement the methods specified by :class:`InspectorAbstractBase`. The class implementations need to go into ``"/src/inspector/plugins"``
 
-The :class:`Inspector` loads the StreamAD model to perform anomaly detection.
-It consumes batches on the topic ``inspect``, usually produced by the ``Prefilter``.
+
+
+Usage and Configuration
+-----------------------
+
+We currently support the following inspectors:
+
+  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+  | **Name**                  | **Description**                                             | **Configuration**                                                                          |                                               
+  +======================+==================================================================+============================================================================================+
+  | ``no_inspector ``         | Skip the anomaly inspection of data entirely.               | No additional configuration                                                                |
+  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+  | ``stream_ad_inspector``   | Uses StreamAD models for anomaly detection. All StreamAD    | ``mode``: univariate (options: multivariate, ensemble)                                     |
+  |                           | models are supported. This includes univariate, multivariate| ``ensemble.model``: WeightEnsemble (options: VoteEnsemble)         |
+  |                           | and ensembles.                                              | ``ensemble.module``: streamad.process (Python module for the ensemble model)               |
+  |                           |                                                             | ``ensemble.model_args``: Additional Arguments for the ensemble model.                      |
+  |                           |                                                             | ``models.model``: ZScoreDetector (Model to use for data inspection)                        |
+  |                           |                                                             | ``models.module``: streamad.model (Base python module for inspection models)               |
+  |                           |                                                             | ``models.model_args``: Additional arguments for the model                                  |
+  |                           |                                                             | ``anomaly_threshold``: 0.01 (Threshold for classifying an observation as an anomaly.)      |
+  |                           |                                                             | ``score_threshold``: 0.5 (Threshold for the anomaly score.)                                |
+  |                           |                                                             | ``time_type``: streamad.process (Unit of time used in time range calculations.)            |
+  |                           |                                                             | ``time_range``: 20 (Time window for data inspection)                                       |
+  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+
+Further inspectors can be added and referenced in the config by adjusting the ``pipeline.data_inspection.[inspector].inspector_module_name`` and ``pipeline.data_inspection.[inspector].inspector_class_name``.
+Each inspector might need special configurations. For the possible configuration values, please reference the table above. 
+
+StreamAD Inspector
+...................
+
+The inspector consumes batches on the topic ``inspect``, usually produced by the ``Prefilter``.
 For a new batch, it derives the timestamps ``begin_timestamp`` and ``end_timestamp``.
 Based on time type (e.g. ``s``, ``ms``) and time range (e.g. ``5``) the sliding non-overlapping window is created.
 For univariate time-series, it counts the number of occurances, whereas for multivariate, it considers the number of occurances and packet size. :cite:`schuppen_fanci_2018`
 
 An anomaly is noted when it is greater than a ``score_threshold``.
 In addition, we support a relative anomaly threshold.
-So, if the anomaly threshold is ``0.01``, it sends anomalies for further detection, if the amount of anomlies divided by the total amount of requests in the batch is greater than ``0.01``.
-
-Configuration
--------------
+So, if the anomaly threshold is ``0.01``, it sends anomalies for further detection, if the amount of anomalies divided by the total amount of requests in the batch is greater than ``0.01``.
 
 All StreamAD models are supported. This includes univariate, multivariate, and ensemble methods.
 In case special arguments are desired for your environment, the ``model_args`` as a dictionary ``dict`` can be passed for each model.
@@ -452,9 +494,9 @@ Ensemble prediction in ``streamad.process:
 - :class:`WeightEnsemble`
 - :class:`VoteEnsemble`
 
-It takes a list of ``streamad.model`` for perform the ensemble prediction.
+It takes a list of ``streamad.model`` to perform the ensemble prediction.
 
-Stage 5: Detection
+Stage 6: Detection
 ==================
 
 Overview
@@ -468,20 +510,50 @@ In total, we rely on the following data sets for the pre-trained models we offer
 - `DGTA-BENCH - Domain Generation and Tunneling Algorithms for Benchmark <https://data.mendeley.com/datasets/2wzf9bz7xr/1>`_
 - `DGArchive <https://dgarchive.caad.fkie.fraunhofer.de/>`_
 
-Main Class
-----------
+Main Classes
+------------
 
 .. py:currentmodule:: src.detector.detector
-.. autoclass:: Detector
+.. autoclass:: DetectorAbstractBase
 
-Usage
------
+.. py:currentmodule:: src.detector.detector
+.. autoclass:: DetectorBase
 
-The :class:`Detector` consumes anomalous batches of requests.
+.. py:currentmodule:: src.detector.plugins.dga_detector
+.. autoclass:: DGADetector
+
+
+The :class:`DetectorBase` is the primary class for Detectors. It holds common functionalities and is responsible for data ingesting, triggering alerts, logging, etc.. Any Detector is build on top of this
+class and needs to implement the methods specified by :class:`DetectorAbstractBase`. The class implementations need to go into ``"/src/detector/plugins"``
+
+
+Configuration and Usage
+-----------------------
+
+We currently support the following inspectors:
+
+
+  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+  | **Name**                  | **Description**                                             | **Configuration**                                                                          |                                               
+  +======================+==================================================================+============================================================================================+
+  | ``DGADetector``          | Uses StreamAD models for anomaly detection. All StreamAD    | ``mode``: univariate (options: multivariate, ensemble)                                     |
+  |                           | models are supported. This includes univariate, multivariate| ``ensemble.model``: WeightEnsemble (options: VoteEnsemble)         |
+  |                           | and ensembles.                                              | ``ensemble.module``: streamad.process (Python module for the ensemble model)               |
+  |                           |                                                             | ``ensemble.model_args``: Additional Arguments for the ensemble model.                      |
+  |                           |                                                             | ``models.model``: ZScoreDetector (Model to use for data inspection)                        |
+  |                           |                                                             | ``models.module``: streamad.model (Base python module for inspection models)               |
+  |                           |                                                             | ``models.model_args``: Additional arguments for the model                                  |
+  |                           |                                                             | ``anomaly_threshold``: 0.01 (Threshold for classifying an observation as an anomaly.)      |
+  |                           |                                                             | ``score_threshold``: 0.5 (Threshold for the anomaly score.)                                |
+  |                           |                                                             | ``time_type``: streamad.process (Unit of time used in time range calculations.)            |
+  |                           |                                                             | ``time_range``: 20 (Time window for data inspection)                                       |
+  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+
+In case you want to load self-trained models, the configuration acn be adapted to load the model from a different location. Since download link is assembled the following way:
+``<model_base_url>/files/?p=%2F<model_name>/<model_checksum>/<model_name>.pickle&dl=1"`` You can adapt the base url. If you need to adhere to another URL composition create 
+A new detector class by either implementing the necessary base functions from :class:`DetectorBase` or by deriving the new class from :class:`DGADetector` and just overwrite the ``"get_model_download_url"`` method.
+
+DGA Detector
+...................
+The :class:`DGADetector` consumes anomalous batches of requests.
 It calculates a probability score for each request, and at last, an overall score of the batch.
-Alerts are log to ``/tmp/warnings.json``.
-
-Configuration
--------------
-
-In case you want to load self-trained models, the :class:`Detector` needs a URL path, model name, and SHA256 checksum to download the model during start-up.
