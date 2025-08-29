@@ -1,13 +1,17 @@
 #!/bin/bash
-set -euo pipefail
+FILE_NAME="$1"
 
-FILE_NAME=$1
+if [[ ! "$FILE_NAME" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+  echo "Error: Invalid file name. Allowed characters are letters, numbers, '.', '_', and '-'."
+  exit 1
+fi
 
 # Configuration
+BASE_DIR="benchmark_results/${FILE_NAME}/data"
+SQL_DIR="benchmarking/sql"
+
 CONTAINER="clickhouse-server"
 CLICKHOUSE_CLIENT="clickhouse-client"
-BASE_DIR="benchmark_results/$FILE_NAME/data"
-SQL_DIR="benchmarking/sql"
 
 # Create output directories
 declare -a SUBDIRS=("entering_processed" "latencies" "log_volumes" "full_tables")
