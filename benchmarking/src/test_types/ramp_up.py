@@ -69,4 +69,4 @@ if __name__ == "__main__":
         messages_per_second_in_intervals=[int(e) for e in args.data_rates.split(",")],
         interval_lengths_in_seconds=[int(e) for e in args.durations.split(",")],
     )
-    ramp_up_test.execute()
+    ramp_up_test.execute_and_generate_report()

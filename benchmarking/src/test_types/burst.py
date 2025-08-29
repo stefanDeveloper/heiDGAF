@@ -92,4 +92,4 @@ if __name__ == "__main__":
         burst_rate_msg_per_sec=args.burst_data_rate,
         number_of_repetitions=args.number_of_repetitions,
     )
-    burst_test.execute()
+    burst_test.execute_and_generate_report()

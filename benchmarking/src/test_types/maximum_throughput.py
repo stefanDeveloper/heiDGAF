@@ -53,4 +53,4 @@ if __name__ == "__main__":
     maximum_throughput_test = MaximumThroughputTest(
         full_length_in_seconds=args.length,
     )
-    maximum_throughput_test.execute()
+    maximum_throughput_test.execute_and_generate_report()

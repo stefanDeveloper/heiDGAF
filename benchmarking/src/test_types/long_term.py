@@ -57,4 +57,4 @@ if __name__ == "__main__":
         full_length_in_minutes=args.length,
         messages_per_second=args.data_rate,
     )
-    long_term_test.execute()
+    long_term_test.execute_and_generate_report()
