@@ -11,7 +11,7 @@ traverses through it using Apache Kafka.
 
 
 Stage 1: Log Aggregation
-====================
+========================
 
 The Log Aggregation stage harnesses multiple Zeek sensors to ingest data from static (i.e. PCAP files) and dynamic sources (i.e. traffic from network interfaces).
 The traffic is split protocolwise into Kafka topics and send to the Logserver for the Log Storage phase.
@@ -26,7 +26,7 @@ The :class:`ZeekAnalysisHandler` starts the actual Zeek instance. Based on the c
 or in a single node instance for static analyses. 
 
 Main Classes
-----------
+------------
 
 .. py:currentmodule:: src.zeek.zeek_config_handler
 .. autoclass:: ZeekConfigurationHandler
@@ -53,7 +53,7 @@ To adjust this, adapt the ``pipeline.zeek.sensors.[sensor_name].static_analysis`
 You can start multiple instances of Zeek by adding more entries to the dictionary ``pipeline.zeek.sensors``.
 Necessary attributes are: 
 - ``pipeline.zeek.sensors.[sensor_name].static_analysis`` : **bool**
-  - if not static analysis: ``pipeline.zeek.sensors.[sensor_name].interfaces`` : **list**
+- if not static analysis: ``pipeline.zeek.sensors.[sensor_name].interfaces`` : **list**
 - ``pipeline.zeek.sensors.[sensor_name].protocols`` : **list**
 
 Stage 2: Log Storage
@@ -99,7 +99,7 @@ The `Log Collection` stage comprises three main classes:
    and content. Adds ``subnet_id`` that it retrieves from the client's IP address in the logline.
 2. :class:`BufferedBatch`: Buffers validated loglines with respect to their ``subnet_id``. Maintains the timestamps for
    accurate processing and analysis per key (``subnet_id``). Returns sorted batches.
-3. :class:`CollectorKafkaBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
+3. :class:`BufferedBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
    and checks the fill level of the key-specific batches. Sends the key's batches if full, sends all batches at timeout.
 
 Main Classes
@@ -112,7 +112,7 @@ Main Classes
 .. autoclass:: BufferedBatch
 
 .. py:currentmodule:: src.logcollector.batch_handler
-.. autoclass:: CollectorKafkaBatchSender
+.. autoclass:: BufferedBatchSender
 
 Usage
 -----
@@ -151,7 +151,7 @@ allowing for multiprocessing and threading.
 
   As the log information differs for each protocol, there is a default format per protocol. 
   This can be either adapted or a completely new one can be added as well. For more information
-  please refere to section :ref:`Logline format configuration`.
+  please reffer to section :ref:`Logline format configuration`.
 
     .. code-block::
 
@@ -253,7 +253,7 @@ The :class:`BufferedBatch` manages the buffering of validated loglines as well a
   - Collects log entries into a ``batch`` dictionary, with the ``subnet_id`` as key.
   - Uses a ``buffer`` per key to concatenate and send both the current and previous batches together.
   - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
-    :ref:`Stage 5: Data Inspection` and :ref:`Stage 6: Data Analysis`.
+    :ref:`Data-Inspection<inspection_stage>` and :ref:`Data-Analysis<detection_stage>`.
   - All batches get sorted by their timestamps at completion to ensure correct chronological order.
   - A `begin_timestamp` and `end_timestamp` per key are extracted and send as metadata (needed for analysis). These
     are taken from the chronologically first and last message in a batch.
@@ -392,21 +392,22 @@ To customize the filtering behavior, the relevance function can be extended and 
 Checks can be skipped by referencing the ``no_relevance_check`` function.
 We currently support the following relevance methods:
 
-    +----------------------+------------------------------------------------------------------+
+    +---------------------------+-------------------------------------------------------------+
     | **Name**                  | **Description**                                             |
-    +======================+==================================================================+
+    +===========================+=============================================================+
     | ``no_relevance_check ``   | Skip the relevance check of the prefilters entirely.        |
-    +----------------------+------------------------------------------------------------------+
+    +---------------------------+-------------------------------------------------------------+
     | ``check_dga_relevance``   | Function to filter requests based on LisItems in the        |
     |                           | logcollector configuration. Using the fourth item in the    |
     |                           | list as a list of relevant status codes, only the request   |
     |                           | and responses are forwarded that include a  **NXDOMAIN**    |
     |                           | status code.                                                |
-    +----------------------+------------------------------------------------------------------+
+    +---------------------------+-------------------------------------------------------------+
 
 
 Stage 5: Inspection
 ========================
+.. _inspection_stage:
 
 Overview
 --------
@@ -435,23 +436,32 @@ Usage and Configuration
 
 We currently support the following inspectors:
 
-  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
-  | **Name**                  | **Description**                                             | **Configuration**                                                                          |                                               
-  +======================+==================================================================+============================================================================================+
-  | ``no_inspector ``         | Skip the anomaly inspection of data entirely.               | No additional configuration                                                                |
-  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
-  | ``stream_ad_inspector``   | Uses StreamAD models for anomaly detection. All StreamAD    | ``mode``: univariate (options: multivariate, ensemble)                                     |
-  |                           | models are supported. This includes univariate, multivariate| ``ensemble.model``: WeightEnsemble (options: VoteEnsemble)         |
-  |                           | and ensembles.                                              | ``ensemble.module``: streamad.process (Python module for the ensemble model)               |
-  |                           |                                                             | ``ensemble.model_args``: Additional Arguments for the ensemble model.                      |
-  |                           |                                                             | ``models.model``: ZScoreDetector (Model to use for data inspection)                        |
-  |                           |                                                             | ``models.module``: streamad.model (Base python module for inspection models)               |
-  |                           |                                                             | ``models.model_args``: Additional arguments for the model                                  |
-  |                           |                                                             | ``anomaly_threshold``: 0.01 (Threshold for classifying an observation as an anomaly.)      |
-  |                           |                                                             | ``score_threshold``: 0.5 (Threshold for the anomaly score.)                                |
-  |                           |                                                             | ``time_type``: streamad.process (Unit of time used in time range calculations.)            |
-  |                           |                                                             | ``time_range``: 20 (Time window for data inspection)                                       |
-  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 30 55
+
+   * - **Name**
+     - **Description**
+     - **Configuration**
+   * - ``no_inspector``
+     - Skip the anomaly inspection of data entirely.
+     - No additional configuration
+   * - ``stream_ad_inspector``
+     - Uses StreamAD models for anomaly detection. All StreamAD models are supported (univariate, multivariate, ensembles).
+     - - ``mode``: univariate (options: multivariate, ensemble)
+       - ``ensemble.model``: WeightEnsemble (options: VoteEnsemble)
+       - ``ensemble.module``: streamad.process
+       - ``ensemble.model_args``: Additional Arguments for the ensemble model
+       - ``models.model``: ZScoreDetector
+       - ``models.module``: streamad.model
+       - ``models.model_args``: Additional arguments for the model
+       - ``anomaly_threshold``: 0.01
+       - ``score_threshold``: 0.5
+       - ``time_type``: streamad.process
+       - ``time_range``: 20
+
+
+
 
 Further inspectors can be added and referenced in the config by adjusting the ``pipeline.data_inspection.[inspector].inspector_module_name`` and ``pipeline.data_inspection.[inspector].inspector_class_name``.
 Each inspector might need special configurations. For the possible configuration values, please reference the table above. 
@@ -498,6 +508,7 @@ It takes a list of ``streamad.model`` to perform the ensemble prediction.
 
 Stage 6: Detection
 ==================
+.. _detection_stage:
 
 Overview
 --------
@@ -533,11 +544,11 @@ Configuration and Usage
 We currently support the following inspectors:
 
 
-  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+  +---------------------------+-------------------------------------------------------------+--------------------------------------------------------------------------------------------+
   | **Name**                  | **Description**                                             | **Configuration**                                                                          |                                               
-  +======================+==================================================================+============================================================================================+
-  | ``DGADetector``          | Uses StreamAD models for anomaly detection. All StreamAD    | ``mode``: univariate (options: multivariate, ensemble)                                     |
-  |                           | models are supported. This includes univariate, multivariate| ``ensemble.model``: WeightEnsemble (options: VoteEnsemble)         |
+  +===========================+=============================================================+============================================================================================+
+  | ``DGADetector``           | Uses StreamAD models for anomaly detection. All StreamAD    | ``mode``: univariate (options: multivariate, ensemble)                                     |
+  |                           | models are supported. This includes univariate, multivariate| ``ensemble.model``: WeightEnsemble (options: VoteEnsemble)                                 |
   |                           | and ensembles.                                              | ``ensemble.module``: streamad.process (Python module for the ensemble model)               |
   |                           |                                                             | ``ensemble.model_args``: Additional Arguments for the ensemble model.                      |
   |                           |                                                             | ``models.model``: ZScoreDetector (Model to use for data inspection)                        |
@@ -547,7 +558,7 @@ We currently support the following inspectors:
   |                           |                                                             | ``score_threshold``: 0.5 (Threshold for the anomaly score.)                                |
   |                           |                                                             | ``time_type``: streamad.process (Unit of time used in time range calculations.)            |
   |                           |                                                             | ``time_range``: 20 (Time window for data inspection)                                       |
-  +----------------------+------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+  +---------------------------+-------------------------------------------------------------+--------------------------------------------------------------------------------------------+
 
 In case you want to load self-trained models, the configuration acn be adapted to load the model from a different location. Since download link is assembled the following way:
 ``<model_base_url>/files/?p=%2F<model_name>/<model_checksum>/<model_name>.pickle&dl=1"`` You can adapt the base url. If you need to adhere to another URL composition create 

@@ -40,7 +40,7 @@ class TestDetector(DetectorBase):
         pass    
 
 DEFAULT_DATA = {
-    "client_ip": "192.168.0.167",
+    "src_ip": "192.168.0.167",
     "dns_ip": "10.10.0.10",
     "response_ip": "252.79.173.222",
     "timestamp": "",
