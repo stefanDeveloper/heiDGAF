@@ -22,7 +22,9 @@ PRODUCE_TO_TOPIC = config["environment"]["kafka_topics"]["pipeline"]["logserver_
 class BaseTest:
     """Base class for any benchmark test."""
 
-    def __init__(self, total_message_count: int, is_interval_based: bool = False):
+    def __init__(
+        self, name: str, total_message_count: int, is_interval_based: bool = False
+    ):
         """
         Args:
             total_message_count: Total number of messages to be sent during full test run
@@ -35,6 +37,7 @@ class BaseTest:
         self.progress_bar = None
         self.start_timestamp = None
 
+        self.test_name = name
         self.total_message_count = total_message_count
         self.is_interval_based = is_interval_based
 
@@ -44,7 +47,7 @@ class BaseTest:
     def execute(self):
         """Executes the test with the configured parameters."""
         self.start_timestamp = datetime.now()
-        logger.info(f"Start test at: {self.start_timestamp}")
+        logger.info(f"{self.test_name}: Start test at {self.start_timestamp}")
 
         self.progress_bar, self.custom_fields = self._setup_progress_bar()
 
@@ -56,7 +59,10 @@ class BaseTest:
         self.custom_fields = None
         self.start_timestamp = None
 
+        logger.info(f"{self.test_name}: Finish test at {datetime.now()}")
+
         logger.info(f"Finish test at: {datetime.now()}")
+        logger.info(f"{self.test_name} Cleanup: After-test database cleanup finished")
 
     @abstractmethod
     def _execute_core(self):
@@ -115,6 +121,7 @@ class IntervalBasedTest(BaseTest):
 
     def __init__(
         self,
+        name: str,
         interval_lengths_in_seconds: int | float | list[int | float],
         messages_per_second_in_intervals: list[float | int],
     ):
@@ -133,7 +140,9 @@ class IntervalBasedTest(BaseTest):
         self.__validate_interval_data()
 
         super().__init__(
-            is_interval_based=True, total_message_count=self.__get_total_message_count()
+            name=name,
+            is_interval_based=True,
+            total_message_count=self.__get_total_message_count(),
         )
 
     def _execute_core(self):
@@ -243,7 +252,10 @@ class SingleIntervalTest(BaseTest):
     Keeps a consistent rate for a specific time span."""
 
     def __init__(
-        self, full_length_in_minutes: float | int, messages_per_second: float | int
+        self,
+        name: str,
+        full_length_in_minutes: float | int,
+        messages_per_second: float | int,
     ):
         """
         Args:
@@ -254,6 +266,7 @@ class SingleIntervalTest(BaseTest):
         self.full_length_in_minutes = full_length_in_minutes
 
         super().__init__(
+            name=name,
             is_interval_based=False,
             total_message_count=self.__get_total_message_count(),
         )

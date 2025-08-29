@@ -26,6 +26,7 @@ class LongTermTest(SingleIntervalTest):
         self.full_length_in_minutes = full_length_in_minutes
 
         super().__init__(
+            "Long Term",
             full_length_in_minutes,
             messages_per_second,
         )

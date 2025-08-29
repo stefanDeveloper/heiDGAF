@@ -29,6 +29,7 @@ class RampUpTest(IntervalBasedTest):
                                               interval_lengths_in_seconds, if a list is specified there.
         """
         super().__init__(
+            "Ramp Up",
             interval_lengths_in_seconds,
             messages_per_second_in_intervals,
         )

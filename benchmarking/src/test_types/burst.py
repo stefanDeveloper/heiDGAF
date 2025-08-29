@@ -36,6 +36,7 @@ class BurstTest(IntervalBasedTest):
             interval_lengths_in_seconds.append(normal_rate_interval_length)
 
         super().__init__(
+            name="Burst",
             interval_lengths_in_seconds=interval_lengths_in_seconds,
             messages_per_second_in_intervals=messages_per_second_in_intervals,
         )

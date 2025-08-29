@@ -29,6 +29,7 @@ class MaximumThroughputTest(SingleIntervalTest):
             messages_per_second (float | int): Number of messages per second when sending messages
         """
         super().__init__(
+            name="Maximum Throughput",
             full_length_in_minutes=full_length_in_seconds / 60,
             messages_per_second=messages_per_second,
         )
