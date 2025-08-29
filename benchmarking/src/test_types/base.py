@@ -1,8 +1,12 @@
 import os
+import re
+import subprocess
 import sys
 import time
 from abc import abstractmethod
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Optional
 
 import progressbar
 from confluent_kafka import KafkaException
@@ -10,13 +14,42 @@ from confluent_kafka import KafkaException
 sys.path.append(os.getcwd())
 from benchmarking.src.dataset_generator import DatasetGenerator
 from src.base.kafka_handler import SimpleKafkaProduceHandler
+from benchmarking.src.plot_generator import PlotGenerator
 from src.base.utils import setup_config
 from src.base.log_config import get_logger
+from benchmarking.src.pdf_overview_generator import PDFOverviewGenerator
 
 logger = get_logger()
 config = setup_config()
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent  # heiDGAF directory
 PRODUCE_TO_TOPIC = config["environment"]["kafka_topics"]["pipeline"]["logserver_in"]
+LATENCIES_COMPARISON_FILENAME = "latency_comparison.png"
+MODULE_TO_CSV_FILENAME = {
+    "Batch Handler": "batch_handler.csv",
+    "Collector": "collector.csv",
+    "Detector": "detector.csv",
+    "Inspector": "inspector.csv",
+    "Log Server": "logserver.csv",
+    "Prefilter": "prefilter.csv",
+}
+
+CLICKHOUSE_CONTAINER_NAME = config["environment"]["monitoring"]["clickhouse_server"][
+    "hostname"
+]
+CLICKHOUSE_TABLES = [
+    "alerts",
+    "batch_timestamps",
+    "dns_loglines",
+    "failed_dns_loglines",
+    "fill_levels",
+    "logline_timestamps",
+    "logline_to_batches",
+    "server_logs",
+    "server_logs_timestamps",
+    "suspicious_batch_timestamps",
+    "suspicious_batches_to_batch",
+]
 
 
 class BaseTest:
@@ -36,6 +69,8 @@ class BaseTest:
         self.custom_fields = None
         self.progress_bar = None
         self.start_timestamp = None
+        self.plot_generator = None
+        self.test_run_directory: Optional[Path] = None
 
         self.test_name = name
         self.total_message_count = total_message_count
@@ -57,18 +92,81 @@ class BaseTest:
 
         self.progress_bar = None
         self.custom_fields = None
-        self.start_timestamp = None
 
         logger.info(f"{self.test_name}: Finish test at {datetime.now()}")
 
-        logger.info(f"Finish test at: {datetime.now()}")
+    def execute_and_generate_report(self):
+        self.__validate_filename(self.test_name)
+
+        self.__cleanup_clickhouse_database()
+        logger.info(f"{self.test_name} Preparation: Database cleanup finished")
+
+        self.execute()
+        self.__check_if_all_data_is_processed()
+
+        file_identifier = str(
+            datetime.now().strftime("%Y%m%d_%H%M%S")
+            + "_"
+            + self.test_name.lower().replace(" ", "_")
+        )
+        self.test_run_directory = Path(
+            f"{BASE_DIR}/benchmark_results/{file_identifier}"
+        )
+
+        self.__extract_all_data_from_clickhouse(file_identifier)
+        logger.info(
+            f"{self.test_name}: Database entries extracted under {file_identifier}"
+        )
+
+        self.__cleanup_clickhouse_database()
         logger.info(f"{self.test_name} Cleanup: After-test database cleanup finished")
+
+        self._generate_plots()
+        self._generate_report()
 
     @abstractmethod
     def _execute_core(self):
         """Actual test execution inside the execution environment.
         To be implemented by inheriting classes."""
         raise NotImplementedError
+
+    def _generate_plots(self):
+        self.plot_generator = PlotGenerator()
+
+        self.__plot_latency_comparison()
+
+        self.plot_generator = None
+
+    def _generate_report(self, output_filename: str = "report"):
+        """
+        Generates the report from the generated result graphs.
+
+        Args:
+            output_filename (str): Filename for the output report file without .pdf suffix. Default: "report"
+        """
+        generator = PDFOverviewGenerator()
+
+        # prepare directory paths
+        relative_input_graph_directory = self.test_run_directory / "graphs"
+        relative_output_directory_path = self.test_run_directory
+
+        # prepare file paths
+        relative_input_graph_filename = (
+            relative_input_graph_directory
+            / LATENCIES_COMPARISON_FILENAME  # latency_comparison.png
+        )
+
+        # add elements to report pdf
+        generator.setup_first_page_layout()
+        generator.insert_title()
+        generator.insert_box_titles()
+        generator.insert_main_graph(str(relative_input_graph_filename))
+
+        # generate and save report
+        generator.save_file(
+            relative_output_directory_path=relative_output_directory_path,
+            output_filename=output_filename,
+        )
 
     def _setup_progress_bar(self):
         """
@@ -114,6 +212,101 @@ class BaseTest:
             Time elapsed as datetime.timedelta since the start of the test
         """
         return datetime.now() - self.progress_bar.start_time
+
+    @staticmethod
+    def __cleanup_clickhouse_database():
+        for table in CLICKHOUSE_TABLES:
+            subprocess.run(
+                [
+                    "docker",
+                    "exec",
+                    CLICKHOUSE_CONTAINER_NAME,
+                    "clickhouse-client",
+                    "--query",
+                    f"TRUNCATE TABLE {table};",
+                ]
+            ).check_returncode()
+
+    @staticmethod
+    def __check_if_all_data_is_processed(
+        sleep_time: int = 30, number_of_retries: int = 1000
+    ):
+        sql_file = (
+            BASE_DIR
+            / "benchmarking"
+            / "sql"
+            / "entering_processed"
+            / "activity_last_three_minutes.sql"
+        )
+        with open(sql_file) as file:
+            sql_query = file.read()
+
+        logger.info("Wait until all data has been processed...")
+
+        for i in range(number_of_retries):
+            number_of_entries = subprocess.check_output(
+                [
+                    "docker",
+                    "exec",
+                    CLICKHOUSE_CONTAINER_NAME,
+                    "clickhouse-client",
+                    "--query",
+                    sql_query,
+                ]
+            )
+
+            logger.debug(f"Check #{i}, currently: {int(number_of_entries)} entries")
+
+            if int(number_of_entries) == 0:
+                return
+
+            time.sleep(sleep_time)
+
+        raise RuntimeError("Maximum number of retries exceeded.")
+
+    @staticmethod
+    def __extract_all_data_from_clickhouse(file_identifier: str):
+        subprocess.run(
+            [
+                "docker",
+                "exec",
+                CLICKHOUSE_CONTAINER_NAME,
+                "benchmarking/src/shell/extract_data.sh",
+                str(file_identifier),  # e.g. 20250709_202118_burst
+            ]
+        ).check_returncode()
+
+    @staticmethod
+    def __validate_filename(name: str):
+        if not bool(re.match(r"^[a-zA-Z0-9_-]", name)):
+            raise ValueError(
+                "Invalid file name. Allowed characters are letters, numbers, '.', '_', and '-'."
+            )
+
+    def __plot_latency_comparison(self):
+        """Plots the latency_comparison graph."""
+        # prepare directory paths
+        relative_data_path = self.test_run_directory / "data"
+        relative_output_graph_directory = self.test_run_directory / "graphs"
+
+        # create base output directory
+        os.makedirs(relative_output_graph_directory, exist_ok=True)
+
+        # prepare input file paths
+        module_to_filepath = (
+            MODULE_TO_CSV_FILENAME.copy()
+        )  # keep original dictionary unchanged
+        for module in MODULE_TO_CSV_FILENAME.keys():
+            filename = MODULE_TO_CSV_FILENAME[module]
+            module_to_filepath[module] = relative_data_path / "latencies" / filename
+
+        # generate and save plots
+        self.plot_generator.plot_latency(
+            datafiles_to_names=module_to_filepath,
+            relative_output_directory_path=relative_output_graph_directory,
+            title="Latency Comparison",
+            start_time=self.start_timestamp,
+        )
 
 
 class IntervalBasedTest(BaseTest):
