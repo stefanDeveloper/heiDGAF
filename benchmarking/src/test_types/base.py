@@ -268,17 +268,49 @@ class BaseTest:
 
         raise RuntimeError("Maximum number of retries exceeded.")
 
-    @staticmethod
-    def __extract_all_data_from_clickhouse(file_identifier: str):
-        subprocess.run(
-            [
-                "docker",
-                "exec",
-                CLICKHOUSE_CONTAINER_NAME,
-                "benchmarking/src/shell/extract_data.sh",
-                str(file_identifier),  # e.g. 20250709_202118_burst
-            ]
-        ).check_returncode()
+    def __extract_all_data_from_clickhouse(self, file_identifier: str):
+        self.__validate_filename(file_identifier)  # e.g. 20250709_202118_burst
+
+        sql_directory_path = BASE_DIR / "benchmarking" / "sql"
+        subdirectory_names = [
+            "entering_processed",
+            "latencies",
+            "log_volumes",
+            "full_tables",
+        ]
+
+        for subdirectory in subdirectory_names:
+            sql_subdirectory_path = sql_directory_path / subdirectory
+
+            for sql_file in sql_subdirectory_path.glob("*.sql"):
+                filename = sql_file.stem
+                output_filename = (
+                    BASE_DIR
+                    / "benchmark_results"
+                    / str(file_identifier)
+                    / "data"
+                    / subdirectory
+                    / f"{filename}.csv"
+                )
+
+                with open(sql_file) as file:
+                    sql_query = file.read()
+
+                query_output = subprocess.check_output(
+                    [
+                        "docker",
+                        "exec",
+                        "-i",
+                        CLICKHOUSE_CONTAINER_NAME,
+                        "clickhouse-client",
+                        "--query",
+                        sql_query,
+                    ]
+                )
+
+                output_filename.parent.mkdir(parents=True, exist_ok=True)
+                with open(output_filename, mode="wb") as file:
+                    file.write(query_output)
 
     @staticmethod
     def __validate_filename(name: str):
