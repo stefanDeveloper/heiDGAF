@@ -33,22 +33,8 @@ MODULE_TO_CSV_FILENAME = {
     "Log Server": "logserver.csv",
     "Prefilter": "prefilter.csv",
 }
-
 CLICKHOUSE_CONTAINER_NAME = config["environment"]["monitoring"]["clickhouse_server"][
     "hostname"
-]
-CLICKHOUSE_TABLES = [
-    "alerts",
-    "batch_timestamps",
-    "dns_loglines",
-    "failed_dns_loglines",
-    "fill_levels",
-    "logline_timestamps",
-    "logline_to_batches",
-    "server_logs",
-    "server_logs_timestamps",
-    "suspicious_batch_timestamps",
-    "suspicious_batches_to_batch",
 ]
 
 
@@ -215,7 +201,21 @@ class BaseTest:
 
     @staticmethod
     def __cleanup_clickhouse_database():
-        for table in CLICKHOUSE_TABLES:
+        clickhouse_tables = [
+            "alerts",
+            "batch_timestamps",
+            "dns_loglines",
+            "failed_dns_loglines",
+            "fill_levels",
+            "logline_timestamps",
+            "logline_to_batches",
+            "server_logs",
+            "server_logs_timestamps",
+            "suspicious_batch_timestamps",
+            "suspicious_batches_to_batch",
+        ]
+
+        for table in clickhouse_tables:
             subprocess.run(
                 [
                     "docker",
