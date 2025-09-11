@@ -262,7 +262,7 @@ class DetectorBase(DetectorAbstractBase):
             with open(self.model_path, "wb") as f:
                 f.write(response.content)
             scaler_download_url = self.get_scaler_download_url()
-            scaler_response = requests.get(model_download_url)
+            scaler_response = requests.get(scaler_download_url)
             scaler_response.raise_for_status()
             with open(self.scaler_path, "wb") as f:
                 f.write(scaler_response.content)
@@ -286,7 +286,7 @@ class DetectorBase(DetectorAbstractBase):
 
         return clf, scaler
 
-    def detect(self) -> None:  # pragma: no cover
+    def detect(self) -> None:
         """
         Process messages to detect malicious requests.
 
@@ -325,37 +325,7 @@ class DetectorBase(DetectorAbstractBase):
         self.end_timestamp = None
         self.warnings = []
 
-    def detect(self) -> None:  # pragma: no cover
-        """
-        Process messages to detect malicious requests.
 
-        This method applies the detection model to each message in the current batch,
-        identifies potential threats based on the model's predictions, and collects
-        warnings for further processing.
-
-        The detection uses a threshold to determine if a prediction indicates
-        malicious activity, and only warnings exceeding this threshold are retained.
-
-        Note:
-            This method relies on the implementation of ``predict``of the rspective subclass
-        """
-        logger.info("Start detecting malicious requests.")
-        for message in self.messages:
-            # TODO predict all messages
-            y_pred = self.predict(message)
-            logger.info(f"Prediction: {y_pred}")
-            if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > self.threshold:
-                logger.info("Append malicious request to warning.")
-                warning = {
-                    "request": message,
-                    "probability": float(y_pred[0][1]),
-                    # TODO: what is the use of this? not even json serializabel ?
-                    # "model": self.model,
-                    "name": self.name,
-                    "sha256": self.checksum,
-                }
-                self.warnings.append(warning)
-                
     def send_warning(self) -> None:
         """
         Dispatch detected warnings to the appropriate systems.

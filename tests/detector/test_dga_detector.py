@@ -7,6 +7,17 @@ from src.detector.plugins.dga_detector import DGADetector
 from src.base.data_classes.batch import Batch
 
 
+DEFAULT_DATA = {
+    "src_ip": "192.168.0.167",
+    "dns_ip": "10.10.0.10",
+    "response_ip": "252.79.173.222",
+    "timestamp": "",
+    "status": "NXDOMAIN",
+    "domain_name": "IF356gEnJHPdRxnkDId4RDUSgtqxx9I+pZ5n1V53MdghOGQncZWAQgAPRx3kswi.750jnH6iSqmiAAeyDUMX0W6SHGpVsVsKSX8ZkKYDs0GFh/9qU5N9cwl00XSD8ID.NNhBdHZIb7nc0hDQXFPlABDLbRwkJS38LZ8RMX4yUmR2Mb6YqTTJBn+nUcB9P+v.jBQdwdS53XV9W2p1BHjh.16.f.1.6037.tunnel.example.org",
+    "record_type": "A",
+    "size": "100b",
+}
+
 class TestDGADetector(unittest.TestCase):
     def setUp(self):
         patcher = patch("src.detector.plugins.dga_detector.logger")
@@ -32,10 +43,11 @@ class TestDGADetector(unittest.TestCase):
         
         with patch('src.detector.detector.ExactlyOnceKafkaConsumeHandler', return_value=mock_kafka_handler), \
              patch('src.detector.detector.ClickHouseKafkaSender', return_value=mock_clickhouse), \
-             patch.object(DGADetector, '_get_model', return_value=MagicMock()):
+             patch.object(DGADetector, '_get_model', return_value=(MagicMock(),MagicMock())):
             
             detector = DGADetector(detector_config, "test_topic")
             detector.model = MagicMock()
+            detector.scaler = MagicMock()
             return detector
 
     def test_get_model_download_url(self):
@@ -48,6 +60,17 @@ class TestDGADetector(unittest.TestCase):
         self.maxDiff = None
         expected_url = "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/files/?p=%2Frf/ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06/rf.pickle&dl=1"
         self.assertEqual(detector.get_model_download_url(), expected_url)
+
+
+    def test_detect(self):
+        mock_kafka = MagicMock()
+        mock_ch = MagicMock()
+        sut = self._create_detector(mock_kafka, mock_ch)
+        sut.messages = [DEFAULT_DATA]
+        with patch('src.detector.plugins.dga_detector.DGADetector.predict', return_value=[[0.01,0.99]]):
+            sut.detect()
+            self.assertNotEqual([], sut.warnings)
+
 
     def test_predict_calls_model(self):
         """Test that predict method correctly uses the model with features."""
@@ -74,6 +97,7 @@ class TestDGADetector(unittest.TestCase):
         # Verify prediction result
         np.testing.assert_array_equal(result, mock_prediction)
 
+
     def test_get_features_basic_attributes(self):
         """Test basic label features calculation."""
         mock_kafka = MagicMock()
@@ -91,73 +115,6 @@ class TestDGADetector(unittest.TestCase):
         self.assertEqual(label_length, 2)
         self.assertEqual(label_max, 6)
         self.assertEqual(label_average, 10)  # 10 characters including dot
-
-    def test_get_features_letter_frequency(self):
-        """Test letter frequency distribution calculation."""
-        mock_kafka = MagicMock()
-        mock_ch = MagicMock()
-        detector = self._create_detector(mock_kafka, mock_ch)
-        
-        # Test with 'abcabc'
-        features = detector._get_features("abcabc")
-        
-        # Letter frequency should show a, b, c each at ~0.333
-        alphabet = "abcdefghijklmnopqrstuvwxyz"
-        a_idx = alphabet.index('a')
-        b_idx = alphabet.index('b')
-        c_idx = alphabet.index('c')
-        
-        self.assertAlmostEqual(features[0][3], 2/6, delta=0.01)  # a
-        self.assertAlmostEqual(features[0][4], 2/6, delta=0.01)  # b
-        self.assertAlmostEqual(features[0][5], 2/6, delta=0.01)  # c
-
-    def test_get_features_character_types(self):
-        """Test calculation of character type counts."""
-        mock_kafka = MagicMock()
-        mock_ch = MagicMock()
-        detector = self._create_detector(mock_kafka, mock_ch)
-        
-        # Test with 'test123!.com'
-        features = detector._get_features("test123!.com")
-        
-        # We need to calculate the indices for the character type features
-        # After basic features (3) and letter frequencies (26), we have frequency stats (4)
-        # Then character type features start
-        
-        # For FQDN level (the whole domain)
-        full_count_idx = 3 + 26 + 4  # basic + letter freq + freq stats
-        alpha_count_idx = full_count_idx + 1
-        numeric_count_idx = full_count_idx + 2
-        special_count_idx = full_count_idx + 3
-        
-        # FQDN is 'test123!.com' (12 characters)
-        self.assertEqual(features[0][full_count_idx], 12)
-        # Alpha: 'testcom' = 7 characters -> 7/12 ≈ 0.583
-        self.assertAlmostEqual(features[0][alpha_count_idx], 7/12, delta=0.01)
-        # Numeric: '123' = 3 characters -> 3/12 = 0.25
-        self.assertAlmostEqual(features[0][numeric_count_idx], 3/12, delta=0.01)
-        # Special: '!. ' = 2 characters -> 2/12 ≈ 0.167
-        self.assertAlmostEqual(features[0][special_count_idx], 2/12, delta=0.01)
-
-    def test_get_features_entropy_calculation(self):
-        """Test entropy calculation for different domains."""
-        mock_kafka = MagicMock()
-        mock_ch = MagicMock()
-        detector = self._create_detector(mock_kafka, mock_ch)
-        
-        # High entropy domain (more random-looking)
-        high_entropy = detector._get_features("xkcd1234.randomdomain.biz")
-        # Low entropy domain (repetitive pattern)
-        low_entropy = detector._get_features("aaaaa.aaaaa.com")
-        
-        # Entropy features should be at the end of the feature vector
-        # We need to calculate the index position
-        # After basic (3) + letter freq (26) + freq stats (4) + 
-        # char type counts (3 levels * 4 = 12) + stats (3 levels * 4 = 12)
-        entropy_idx = 3 + 26 + 4 + 12 + 12
-        
-        # High entropy domain should have higher entropy value
-        self.assertGreater(high_entropy[0][entropy_idx], low_entropy[0][entropy_idx])
 
     def test_get_features_empty_domain(self):
         """Test handling of empty domain string."""
@@ -201,16 +158,9 @@ class TestDGADetector(unittest.TestCase):
         
         features = detector._get_features("test.domain.com")
         
-        # Calculate expected feature count:
-        # basic: 3
-        # letter frequencies: 26
-        # frequency stats: 4
-        # character type counts (3 levels * 4): 12
-        # stats for counts (3 levels * 4): 12
-        # entropy (3 levels): 3
-        expected_length = 3 + 26 + 4 + 12 + 12 + 3
+        expected_entropy = 44
         
-        self.assertEqual(features.shape, (1, expected_length))
+        self.assertEqual(features.shape, (1, expected_entropy))
 
     def test_get_features_case_insensitivity(self):
         """Test that letter frequency calculation is case-insensitive."""

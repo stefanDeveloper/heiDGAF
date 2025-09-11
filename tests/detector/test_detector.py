@@ -56,7 +56,7 @@ class TestSha256Sum(unittest.TestCase):
     @patch("src.detector.detector.ClickHouseKafkaSender")
     @patch("src.detector.detector.DetectorBase._get_model")
     def test_sha256_empty_file(self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value = (MagicMock(),MagicMock())
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -74,7 +74,7 @@ class TestSha256Sum(unittest.TestCase):
     def test_sha256_not_existing_file(
         self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler
     ):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -85,32 +85,6 @@ class TestSha256Sum(unittest.TestCase):
         )
         with self.assertRaises(FileNotFoundError):
             sut._sha256sum("not_existing")
-
-
-class TestFeatures(unittest.TestCase):
-    def setUp(self):
-        patcher = patch("src.detector.detector.logger")
-        self.mock_logger = patcher.start()
-        self.addCleanup(patcher.stop)
-
-    @patch(
-        "src.detector.detector.CHECKSUM",
-        "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
-    )
-    @patch("src.detector.detector.MODEL", "rf")
-    @patch(
-        "src.detector.detector.MODEL_BASE_URL",
-        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
-    )
-    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.detector.detector.ClickHouseKafkaSender")
-    def test_get_model(self, mock_clickhouse, mock_kafka_consume_handler):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-
-        sut = Detector()
-        sut._get_features("google.de")
-
 
 class TestGetModel(unittest.TestCase):
     def setUp(self):
@@ -149,7 +123,7 @@ class TestInit(unittest.TestCase):
     @patch("src.detector.detector.ClickHouseKafkaSender")
     @patch("src.detector.detector.DetectorBase._get_model")
     def test_init(self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler, mock_logger):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -171,7 +145,7 @@ class TestGetData(unittest.TestCase):
     def test_get_data_without_return_data(
         self, mock_get_model,mock_clickhouse, mock_kafka_consume_handler, mock_logger
     ):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         test_batch = Batch(
             batch_tree_row_id=f"{uuid.uuid4()}-{uuid.uuid4()}",
             batch_id=uuid.uuid4(),
@@ -203,7 +177,7 @@ class TestGetData(unittest.TestCase):
     def test_get_data_with_return_data(
         self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler, mock_logger
     ):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(
@@ -239,7 +213,7 @@ class TestGetData(unittest.TestCase):
     def test_get_data_while_busy(
         self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler, mock_logger
     ):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(
@@ -273,20 +247,11 @@ class TestSendWarning(unittest.TestCase):
         self.mock_logger = patcher.start()
         self.addCleanup(patcher.stop)
 
-    # @patch(
-    #     "src.detector.detector.CHECKSUM",
-    #     "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
-    # )
-    # @patch("src.detector.detector.MODEL", "rf")
-    # @patch(
-    #     "src.detector.detector.MODEL_BASE_URL",
-    #     "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
-    # )
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.detector.detector.ClickHouseKafkaSender")
     @patch("src.detector.detector.DetectorBase._get_model")
     def test_save_warning(self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -316,31 +281,11 @@ class TestSendWarning(unittest.TestCase):
             os.path.join(tempfile.gettempdir(), "warnings.json"), "a+"
         )
 
-    @patch(
-        "src.detector.detector.CHECKSUM",
-        "021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc",
-    )
-    @patch("src.detector.detector.MODEL", "rf")
-    @patch(
-        "src.detector.detector.MODEL_BASE_URL",
-        "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
-    )
-    @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.detector.detector.ClickHouseKafkaSender")
-    def test_prediction(self, mock_clickhouse, mock_kafka_consume_handler):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-
-        sut = Detector()
-        sut.messages = [DEFAULT_DATA]
-        sut.detect()
-        self.assertNotEqual([], sut.warnings)
-
     @patch("src.detector.detector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.detector.detector.ClickHouseKafkaSender")
     @patch("src.detector.detector.DetectorBase._get_model")
     def test_save_empty_warning(self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -370,7 +315,7 @@ class TestSendWarning(unittest.TestCase):
     @patch("src.detector.detector.ClickHouseKafkaSender")
     @patch("src.detector.detector.DetectorBase._get_model")
     def test_save_warning_error(self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
 
@@ -400,7 +345,7 @@ class TestClearData(unittest.TestCase):
     def test_clear_data_without_existing_data(
         self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler, mock_logger
     ):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(
@@ -432,7 +377,7 @@ class TestClearData(unittest.TestCase):
     def test_clear_data_with_existing_data(
         self, mock_get_model,mock_clickhouse, mock_kafka_consume_handler, mock_logger
     ):
-        mock_get_model.return_value=MagicMock()
+        mock_get_model.return_value=(MagicMock(),MagicMock())
         begin = datetime.now()
         end = begin + timedelta(0, 3)
         test_batch = Batch(
@@ -492,15 +437,15 @@ class TestGetModelMethod(unittest.TestCase):
         # Mock file operations
         with patch("src.detector.detector.os.path.isfile", return_value=False), \
              patch("src.detector.detector.open", mock_open()), \
-             patch("src.detector.detector.pickle.load", return_value="mock_model"), \
+             patch("src.detector.detector.pickle.load", return_value="mock_model_or_scaler"), \
              patch.object(sut, "_sha256sum", return_value=MINIMAL_DETECTOR_CONFIG["checksum"]):
             
             model = sut._get_model()
             
             # Verify download was attempted
-            mock_requests_get.assert_called_once()
+            mock_requests_get.assert_called()
             # Verify model was loaded
-            self.assertEqual(model, "mock_model")
+            self.assertEqual(model, ("mock_model_or_scaler","mock_model_or_scaler"))
             # Verify logger messages
             self.mock_logger.info.assert_any_call(f"Get model: {sut.model} with checksum {sut.checksum}")
             self.mock_logger.info.assert_any_call(f"downloading model {sut.model} from {sut.get_model_download_url()} with checksum {sut.checksum}")
@@ -520,16 +465,16 @@ class TestGetModelMethod(unittest.TestCase):
         # Mock file operations
         with patch("src.detector.detector.os.path.isfile", return_value=True), \
              patch("src.detector.detector.open", mock_open()), \
-             patch("src.detector.detector.pickle.load", return_value="mock_model"), \
+             patch("src.detector.detector.pickle.load", return_value="mock_model_or_scaler"), \
              patch.object(sut, "_sha256sum", return_value=MINIMAL_DETECTOR_CONFIG["checksum"]), \
              patch("src.detector.detector.requests.get") as mock_requests_get:
             
-            model = sut._get_model()
+            model_and_scaler = sut._get_model()
             
             # Verify no download was attempted
             mock_requests_get.assert_not_called()
             # Verify model was loaded
-            self.assertEqual(model, "mock_model")
+            self.assertEqual(model_and_scaler, ("mock_model_or_scaler", "mock_model_or_scaler"))
             # Verify logger messages
             self.mock_logger.info.assert_any_call(f"Get model: {sut.model} with checksum {sut.checksum}")
 
@@ -610,7 +555,7 @@ class TestBootstrapDetectorInstance(unittest.TestCase):
         self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler
     ):
         """Test normal execution flow of bootstrap_detector_instance."""
-        mock_get_model.return_value = MagicMock()
+        mock_get_model.return_value = (MagicMock(),MagicMock())
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         
@@ -644,7 +589,7 @@ class TestBootstrapDetectorInstance(unittest.TestCase):
         self, mock_get_model, mock_clickhouse, mock_kafka_consume_handler
     ):
         """Test graceful shutdown on KeyboardInterrupt in bootstrap_detector_instance."""
-        mock_get_model.return_value = MagicMock()
+        mock_get_model.return_value = (MagicMock(),MagicMock())
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         
