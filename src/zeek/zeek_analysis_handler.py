@@ -73,7 +73,7 @@ class ZeekAnalysisHandler:
         threads = []
         for file in files:
             logger.info(f"Starting Analysis for file {file}...")
-            command = ["zeek", "-r", file, self.zeek_config_location]
+            command = ["zeek", "-C","-r", file, self.zeek_config_location]
             thread = threading.Thread(target=subprocess.run, args=(command,))
             thread.start()
             threads.append(thread)
