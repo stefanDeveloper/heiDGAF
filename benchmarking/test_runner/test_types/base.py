@@ -1,4 +1,3 @@
-import datetime
 import ipaddress
 import os
 import random
@@ -13,13 +12,12 @@ from typing import Optional
 
 import polars as pl
 import progressbar
-from confluent_kafka import KafkaException
 
 sys.path.append(os.getcwd())
 from src.base.kafka_handler import SimpleKafkaProduceHandler
-from benchmarking.src.plot_generator import PlotGenerator
+from benchmarking.test_runner.plot_generator import PlotGenerator
 from src.base.utils import setup_config
-from benchmarking.src.pdf_overview_generator import PDFOverviewGenerator
+from benchmarking.test_runner.pdf_overview_generator import PDFOverviewGenerator
 from src.train.dataset import Dataset, DatasetLoader
 from src.base.log_config import get_logger
 
@@ -27,9 +25,11 @@ logger = get_logger()
 config = setup_config()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent  # heiDGAF directory
-PRODUCE_TO_TOPIC = config["environment"]["kafka_topics"]["pipeline"]["logserver_in"]
-LATENCIES_COMPARISON_FILENAME = "latency_comparison.png"
-MODULE_TO_CSV_FILENAME = {
+PRODUCE_TO_TOPIC: str = config["environment"]["kafka_topics"]["pipeline"][
+    "logserver_in"
+]
+LATENCIES_COMPARISON_FILENAME: str = "latency_comparison.png"
+MODULE_TO_CSV_FILENAME: dict[str, str] = {
     "Batch Handler": "batch_handler.csv",
     "Collector": "collector.csv",
     "Detector": "detector.csv",
@@ -37,9 +37,9 @@ MODULE_TO_CSV_FILENAME = {
     "Log Server": "logserver.csv",
     "Prefilter": "prefilter.csv",
 }
-CLICKHOUSE_CONTAINER_NAME = config["environment"]["monitoring"]["clickhouse_server"][
-    "hostname"
-]
+CLICKHOUSE_CONTAINER_NAME: str = config["environment"]["monitoring"][
+    "clickhouse_server"
+]["hostname"]
 
 
 class BaseTest:
@@ -86,6 +86,8 @@ class BaseTest:
         logger.info(f"{self.test_name}: Finish test at {datetime.now()}")
 
     def execute_and_generate_report(self):
+        """Handles the entire benchmark test procedure required for generating a report. Executes the test and
+        generates the report from the resulting data."""
         self.__validate_filename(self.test_name)
 
         self.__cleanup_clickhouse_database()
@@ -121,6 +123,7 @@ class BaseTest:
         raise NotImplementedError
 
     def _generate_plots(self):
+        """Generates all available plots from the obtained data."""
         self.plot_generator = PlotGenerator()
 
         self.__plot_latency_comparison()
@@ -205,6 +208,7 @@ class BaseTest:
 
     @staticmethod
     def __cleanup_clickhouse_database():
+        """Clears the entire ClickHouse database by emptying all benchmark-related tables."""
         clickhouse_tables = [
             "alerts",
             "batch_timestamps",
@@ -233,12 +237,20 @@ class BaseTest:
 
     @staticmethod
     def __check_if_all_data_is_processed(
-        sleep_time: int = 30, number_of_retries: int = 1000
+        sleep_time_in_seconds: int = 30, number_of_retries: int = 1000
     ):
+        """
+        Blocks until all data currently handled by the pipeline is processed, i.e. there have been no new database
+        entries in the last 3 minutes.
+
+        Args:
+            sleep_time_in_seconds (int): Time to sleep between checks in seconds; default: 30
+            number_of_retries (int): Number of total checks, upper bound to prevent infinite loop; default: 1000
+        """
         sql_file = (
             BASE_DIR
             / "benchmarking"
-            / "sql"
+            / "sql_queries"
             / "entering_processed"
             / "activity_last_three_minutes.sql"
         )
@@ -264,14 +276,21 @@ class BaseTest:
             if int(number_of_entries) == 0:
                 return
 
-            time.sleep(sleep_time)
+            time.sleep(sleep_time_in_seconds)
 
         raise RuntimeError("Maximum number of retries exceeded.")
 
     def __extract_all_data_from_clickhouse(self, file_identifier: str):
+        """
+        Extracts every benchmark-related table and more specific queries from ClickHouse and stores the data as
+        .csv files under the benchmark_results directory.
+
+        Args:
+            file_identifier (str): Identifying name of this specific test execution, e.g. 20250709_202118_burst
+        """
         self.__validate_filename(file_identifier)  # e.g. 20250709_202118_burst
 
-        sql_directory_path = BASE_DIR / "benchmarking" / "sql"
+        sql_directory_path = BASE_DIR / "benchmarking" / "sql_queries"
         subdirectory_names = [
             "entering_processed",
             "latencies",
@@ -343,203 +362,6 @@ class BaseTest:
             title="Latency Comparison",
             start_time=self.start_timestamp,
         )
-
-
-class IntervalBasedTest(BaseTest):
-    """Base class for interval-based benchmark tests."""
-
-    def __init__(
-        self,
-        name: str,
-        interval_lengths_in_seconds: int | float | list[int | float],
-        messages_per_second_in_intervals: list[float | int],
-    ):
-        """
-        Args:
-            interval_lengths_in_seconds: Single value to use for each interval, or list of lengths for each interval
-                                         separately
-            messages_per_second_in_intervals: List of message rates per interval. Must have same length as
-                                              interval_lengths_in_seconds, if a list is specified there.
-        """
-        self.messages_per_second_in_intervals = messages_per_second_in_intervals
-        self.interval_lengths_in_seconds = self.__normalize_intervals(
-            interval_lengths_in_seconds
-        )
-
-        self.__validate_interval_data()
-
-        super().__init__(
-            name=name,
-            is_interval_based=True,
-            total_message_count=self.__get_total_message_count(),
-        )
-
-    def _execute_core(self):
-        """Executes the test by repeatedly executing single intervals.
-        Updates the progress bar's interval information."""
-        current_index = 0
-        for i in range(len(self.messages_per_second_in_intervals)):
-            self.custom_fields["interval"].update_mapping(interval_number=i + 1)
-            current_index = self.__execute_single_interval(
-                current_index=current_index,
-                messages_per_second=self.messages_per_second_in_intervals[i],
-                length_in_seconds=self.interval_lengths_in_seconds[i],
-            )
-
-    def __execute_single_interval(
-        self,
-        current_index: int,
-        messages_per_second: float | int,
-        length_in_seconds: float | int,
-    ) -> int:
-        """Executes a single interval and updates the progress bar accordingly.
-
-        Args:
-            current_index (int): Index of the current iteration
-            messages_per_second (float | int): Data rate of the current iteration
-            length_in_seconds (float | int): Interval length of the current iteration
-
-        Returns:
-            Index of the iteration after this interval
-        """
-        start_of_interval_timestamp = datetime.now()
-
-        while datetime.now() - start_of_interval_timestamp < timedelta(
-            seconds=length_in_seconds
-        ):
-            try:
-                self.kafka_producer.produce(
-                    PRODUCE_TO_TOPIC,
-                    self.dataset_generator.generate_random_logline(),
-                )
-
-                self.custom_fields["message_count"].update_mapping(
-                    current_message_count=current_index
-                )
-                self.progress_bar.update(
-                    min(
-                        self._get_time_elapsed() / self.__get_total_duration() * 100,
-                        100,
-                    )
-                )
-
-                current_index += 1
-            except KafkaException:
-                logger.error(KafkaException)
-
-            time.sleep(1.0 / messages_per_second)
-
-        logger.info(f"Finish interval with {messages_per_second} msg/s")
-        return current_index
-
-    def __get_total_duration(self) -> timedelta:
-        """
-        Returns:
-            Duration of the full test run as datetime.timedelta, i.e. sum of all intervals
-        """
-        return timedelta(seconds=sum(self.interval_lengths_in_seconds))
-
-    def __get_total_message_count(self) -> int:
-        """
-        Returns:
-            Expected number of messages sent throughout the entire test run, rounded to integers.
-        """
-        total_message_count = 0
-        for i in range(len(self.interval_lengths_in_seconds)):
-            total_message_count += (
-                self.interval_lengths_in_seconds[i]
-                * self.messages_per_second_in_intervals[i]
-            )
-        return round(total_message_count)
-
-    def __normalize_intervals(
-        self, intervals: float | int | list[float | int]
-    ) -> list[float | int]:
-        """
-        Args:
-            intervals (float | int | list[float | int]): Single interval length or list of interval lengths
-
-        Returns:
-            List of interval lengths. If single value was given, all entries are the same.
-        """
-        if type(intervals) is not list:
-            intervals = [
-                intervals for _ in range(len(self.messages_per_second_in_intervals))
-            ]
-
-        return intervals
-
-    def __validate_interval_data(self):
-        if len(self.interval_lengths_in_seconds) != len(
-            self.messages_per_second_in_intervals
-        ):
-            raise ValueError("Different lengths of interval lists. Must be equal.")
-
-
-class SingleIntervalTest(BaseTest):
-    """Benchmark Test implementation for Long Term Test:
-    Keeps a consistent rate for a specific time span."""
-
-    def __init__(
-        self,
-        name: str,
-        full_length_in_minutes: float | int,
-        messages_per_second: float | int,
-    ):
-        """
-        Args:
-            full_length_in_minutes (float | int): Duration in minutes for which to send messages
-            messages_per_second (float | int): Number of messages per second when sending messages
-        """
-        self.messages_per_second = messages_per_second
-        self.full_length_in_minutes = full_length_in_minutes
-
-        super().__init__(
-            name=name,
-            is_interval_based=False,
-            total_message_count=self.__get_total_message_count(),
-        )
-
-    def _execute_core(self):
-        """Produces messages for the specified duration and updates the
-        progress bar accordingly."""
-        start_timestamp = datetime.now()
-        current_index = 0
-
-        while datetime.now() - start_timestamp < timedelta(
-            minutes=self.full_length_in_minutes
-        ):
-            try:
-                self.kafka_producer.produce(
-                    PRODUCE_TO_TOPIC,
-                    self.dataset_generator.generate_random_logline(),
-                )
-
-                self.custom_fields["message_count"].update_mapping(
-                    current_message_count=current_index
-                )
-                self.progress_bar.update(
-                    min(
-                        self._get_time_elapsed()
-                        / timedelta(minutes=self.full_length_in_minutes)
-                        * 100,
-                        100,
-                    )  # current time elapsed relative to full duration
-                )
-
-                current_index += 1
-            except KafkaException:
-                logger.error(KafkaException)
-            time.sleep(1.0 / self.messages_per_second)
-
-        self.progress_bar.update(100)
-
-    def __get_total_message_count(self):
-        """
-        Returns:
-            Expected number of messages sent throughout the entire test run, rounded to integers.
-        """
-        return round(self.messages_per_second * self.full_length_in_minutes * 60)
 
 
 class BenchmarkDatasetGenerator:

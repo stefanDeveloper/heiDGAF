@@ -2,7 +2,10 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from benchmarking.src.base_test_types import SingleIntervalTest, IntervalBasedTest
+from benchmarking.test_runner.test_types.extended import (
+    SingleIntervalTest,
+    IntervalBasedTest,
+)
 from src.base.log_config import get_logger
 
 logger = get_logger()
