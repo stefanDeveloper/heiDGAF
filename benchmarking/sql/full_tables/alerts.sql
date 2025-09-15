@@ -1,2 +1,0 @@
-SELECT *
-FROM alerts FORMAT CSVWithNames
