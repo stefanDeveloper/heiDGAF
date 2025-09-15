@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime, timedelta
 from unittest.mock import patch, Mock
 
-from benchmarking.src.test_types.base import BaseTest
+from benchmarking.src.base_test_types import BaseTest
 
 
 class TestInit(unittest.TestCase):
@@ -12,10 +12,10 @@ class TestInit(unittest.TestCase):
         test_is_interval_based = True
 
         # Act
-        with patch("benchmarking.src.test_types.base.BenchmarkDatasetGenerator"), patch(
-            "benchmarking.src.test_types.base.SimpleKafkaProduceHandler"
+        with patch("benchmarking.src.base_test_types.BenchmarkDatasetGenerator"), patch(
+            "benchmarking.src.base_test_types.SimpleKafkaProduceHandler"
         ):
-            sut = BaseTest(test_total_message_count, test_is_interval_based)
+            sut = BaseTest("SuT", test_total_message_count, test_is_interval_based)
 
         # Assert
         self.assertIsNone(sut.custom_fields)
@@ -30,10 +30,10 @@ class TestInit(unittest.TestCase):
         test_is_interval_based = False
 
         # Act
-        with patch("benchmarking.src.test_types.base.BenchmarkDatasetGenerator"), patch(
-            "benchmarking.src.test_types.base.SimpleKafkaProduceHandler"
+        with patch("benchmarking.src.base_test_types.BenchmarkDatasetGenerator"), patch(
+            "benchmarking.src.base_test_types.SimpleKafkaProduceHandler"
         ):
-            sut = BaseTest(test_total_message_count, test_is_interval_based)
+            sut = BaseTest("SuT", test_total_message_count, test_is_interval_based)
 
         # Assert
         self.assertIsNone(sut.custom_fields)
@@ -50,9 +50,9 @@ class TestInit(unittest.TestCase):
         # Act and Assert
         with self.assertRaises(ValueError):
             with patch(
-                "benchmarking.src.test_types.base.BenchmarkDatasetGenerator"
-            ), patch("benchmarking.src.test_types.base.SimpleKafkaProduceHandler"):
-                BaseTest(test_total_message_count, test_is_interval_based)
+                "benchmarking.src.base_test_types.BenchmarkDatasetGenerator"
+            ), patch("benchmarking.src.base_test_types.SimpleKafkaProduceHandler"):
+                BaseTest("SuT", test_total_message_count, test_is_interval_based)
 
     def test_failed_negative_message_count(self):
         # Arrange
@@ -62,24 +62,24 @@ class TestInit(unittest.TestCase):
         # Act and Assert
         with self.assertRaises(ValueError):
             with patch(
-                "benchmarking.src.test_types.base.BenchmarkDatasetGenerator"
-            ), patch("benchmarking.src.test_types.base.SimpleKafkaProduceHandler"):
-                BaseTest(test_total_message_count, test_is_interval_based)
+                "benchmarking.src.base_test_types.BenchmarkDatasetGenerator"
+            ), patch("benchmarking.src.base_test_types.SimpleKafkaProduceHandler"):
+                BaseTest("SuT", test_total_message_count, test_is_interval_based)
 
 
 class TestExecute(unittest.TestCase):
     def setUp(self):
         """Mocks the logger to deactivate logs in test run."""
-        patcher = patch("benchmarking.src.test_types.base.logger")
+        patcher = patch("benchmarking.src.base_test_types.logger")
         self.mock_logger = patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_successful(self):
         # Arrange
-        with patch("benchmarking.src.test_types.base.BenchmarkDatasetGenerator"), patch(
-            "benchmarking.src.test_types.base.SimpleKafkaProduceHandler"
+        with patch("benchmarking.src.base_test_types.BenchmarkDatasetGenerator"), patch(
+            "benchmarking.src.base_test_types.SimpleKafkaProduceHandler"
         ):
-            sut = BaseTest(120, True)
+            sut = BaseTest("SuT", 120, True)
 
         self.assertIsNone(sut.custom_fields)
         self.assertIsNone(sut.progress_bar)
@@ -88,9 +88,9 @@ class TestExecute(unittest.TestCase):
         mock_progress_bar_instance = Mock()
 
         with patch(
-            "benchmarking.src.test_types.base.BaseTest._setup_progress_bar"
+            "benchmarking.src.base_test_types.BaseTest._setup_progress_bar"
         ) as mock_setup_progress_bar_method, patch(
-            "benchmarking.src.test_types.base.BaseTest._execute_core"
+            "benchmarking.src.base_test_types.BaseTest._execute_core"
         ) as mock_execute_core_method:
             mock_setup_progress_bar_method.return_value = (
                 mock_progress_bar_instance,
@@ -109,16 +109,16 @@ class TestExecute(unittest.TestCase):
 
         self.assertIsNone(sut.custom_fields)
         self.assertIsNone(sut.progress_bar)
-        self.assertIsNone(sut.start_timestamp)
+        self.assertIsNotNone(sut.start_timestamp)
 
 
 class TestExecuteCore(unittest.TestCase):
     def test_not_implemented(self):
         # Arrange
-        with patch("benchmarking.src.test_types.base.BenchmarkDatasetGenerator"), patch(
-            "benchmarking.src.test_types.base.SimpleKafkaProduceHandler"
+        with patch("benchmarking.src.base_test_types.BenchmarkDatasetGenerator"), patch(
+            "benchmarking.src.base_test_types.SimpleKafkaProduceHandler"
         ):
-            sut = BaseTest(120, True)
+            sut = BaseTest("SuT", 120, True)
 
         # Act and Assert
         with self.assertRaises(NotImplementedError):
@@ -130,10 +130,10 @@ class TestSetupProgressBar(unittest.TestCase):
         # Arrange
         test_is_interval_based = True
 
-        with patch("benchmarking.src.test_types.base.BenchmarkDatasetGenerator"), patch(
-            "benchmarking.src.test_types.base.SimpleKafkaProduceHandler"
+        with patch("benchmarking.src.base_test_types.BenchmarkDatasetGenerator"), patch(
+            "benchmarking.src.base_test_types.SimpleKafkaProduceHandler"
         ):
-            sut = BaseTest(120, test_is_interval_based)
+            sut = BaseTest("SuT", 120, test_is_interval_based)
 
         # Act
         returned_progress_bar, returned_custom_fields = sut._setup_progress_bar()
@@ -141,16 +141,16 @@ class TestSetupProgressBar(unittest.TestCase):
         # Assert
         self.assertIsNotNone(returned_progress_bar)
         self.assertIsNotNone(returned_custom_fields.get("message_count"))
-        self.assertNotEquals("", returned_custom_fields.get("interval").format)
+        self.assertNotEqual("", returned_custom_fields.get("interval").format)
 
     def test_successful_without_intervals(self):
         # Arrange
         test_is_interval_based = False
 
-        with patch("benchmarking.src.test_types.base.BenchmarkDatasetGenerator"), patch(
-            "benchmarking.src.test_types.base.SimpleKafkaProduceHandler"
+        with patch("benchmarking.src.base_test_types.BenchmarkDatasetGenerator"), patch(
+            "benchmarking.src.base_test_types.SimpleKafkaProduceHandler"
         ):
-            sut = BaseTest(120, test_is_interval_based)
+            sut = BaseTest("SuT", 120, test_is_interval_based)
 
         # Act
         returned_progress_bar, returned_custom_fields = sut._setup_progress_bar()
@@ -158,16 +158,16 @@ class TestSetupProgressBar(unittest.TestCase):
         # Assert
         self.assertIsNotNone(returned_progress_bar)
         self.assertIsNotNone(returned_custom_fields.get("message_count"))
-        self.assertEquals("", returned_custom_fields.get("interval").format)
+        self.assertEqual("", returned_custom_fields.get("interval").format)
 
 
 class TestGetTimeElapsed(unittest.TestCase):
     def test_successful(self):
         # Arrange
-        with patch("benchmarking.src.test_types.base.BenchmarkDatasetGenerator"), patch(
-            "benchmarking.src.test_types.base.SimpleKafkaProduceHandler"
+        with patch("benchmarking.src.base_test_types.BenchmarkDatasetGenerator"), patch(
+            "benchmarking.src.base_test_types.SimpleKafkaProduceHandler"
         ):
-            sut = BaseTest(120, True)
+            sut = BaseTest("SuT", 120, True)
 
         sut.progress_bar = Mock()
         sut.progress_bar.start_time = datetime.now()
