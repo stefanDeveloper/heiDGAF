@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
 from src.base.utils import setup_config
-from benchmarking.src.setup_config import setup_config as setup_benchmark_config
+from benchmarking.controller.setup_config import setup_config as setup_benchmark_config
 
 logger = get_logger()
 config = setup_config()

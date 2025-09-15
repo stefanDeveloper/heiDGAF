@@ -10,8 +10,8 @@ RUN pip --disable-pip-version-check install --no-cache-dir --no-compile marshmal
 COPY src/base ./src/base
 COPY src/train ./src/train
 COPY config.yaml .
-COPY benchmarking/src ./benchmarking/src
-COPY benchmarking/sql/entering_processed/activity_last_three_minutes.sql benchmarking/sql/entering_processed/activity_last_three_minutes.sql
+COPY benchmarking/test_runner ./benchmarking/test_runner
+COPY benchmarking/sql_queries/entering_processed/activity_last_three_minutes.sql benchmarking/sql_queries/entering_processed/activity_last_three_minutes.sql
 COPY benchmarking/benchmark_config.yaml ./benchmarking/benchmark_config.yaml
 COPY data ./data
 
