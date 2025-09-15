@@ -4,7 +4,7 @@ from unittest.mock import patch, Mock, call, ANY
 
 from confluent_kafka import KafkaException
 
-from benchmarking.src.base_test_types import IntervalBasedTest
+from benchmarking.test_runner.test_types.extended import IntervalBasedTest
 
 
 class TestInit(unittest.TestCase):
@@ -14,13 +14,13 @@ class TestInit(unittest.TestCase):
         test_messages_per_second_in_intervals = [4, 5, 6]
 
         with patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__normalize_intervals"
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__normalize_intervals"
         ) as mock_normalize_intervals, patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
         ) as mock_validate_interval_data, patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__get_total_message_count"
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__get_total_message_count"
         ) as mock_get_total_message_count, patch(
-            "benchmarking.src.base_test_types.BaseTest.__init__"
+            "benchmarking.test_runner.test_types.extended.BaseTest.__init__"
         ) as mock_base_test_init:
             mock_get_total_message_count.return_value = 150
             mock_normalize_intervals.return_value = [1, 2, 3]
@@ -52,7 +52,7 @@ class TestExecuteCore(unittest.TestCase):
         test_interval_length = 4
         test_messages_per_second_in_intervals = [150]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_length,
@@ -61,7 +61,7 @@ class TestExecuteCore(unittest.TestCase):
             sut.custom_fields = {"interval": Mock()}
 
         with patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__execute_single_interval"
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__execute_single_interval"
         ) as mock_execute_single_interval:
             # Act
             sut._execute_core()
@@ -81,7 +81,7 @@ class TestExecuteCore(unittest.TestCase):
         test_interval_lengths_in_seconds = [3, 2, 1]
         test_messages_per_second_in_intervals = [170, 100, 50]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
@@ -90,7 +90,7 @@ class TestExecuteCore(unittest.TestCase):
             sut.custom_fields = {"interval": Mock()}
 
         with patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__execute_single_interval"
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__execute_single_interval"
         ) as mock_execute_single_interval:
             mock_execute_single_interval.side_effect = [1, 2, 3]
 
@@ -136,17 +136,19 @@ class TestExecuteCore(unittest.TestCase):
 class TestExecuteSingleInterval(unittest.TestCase):
     def setUp(self):
         """Mocks the logger to deactivate logs in test run."""
-        patcher = patch("benchmarking.src.base_test_types.logger")
+        patcher = patch("benchmarking.test_runner.test_types.extended.logger")
         self.mock_logger = patcher.start()
         self.addCleanup(patcher.stop)
 
-    @patch("benchmarking.src.base_test_types.PRODUCE_TO_TOPIC", "test_topic")
+    @patch(
+        "benchmarking.test_runner.test_types.extended.PRODUCE_TO_TOPIC", "test_topic"
+    )
     def test_successful(self):
         # Arrange
         test_interval_lengths_in_seconds = [3, 5, 1, 3, 2, 1]
         test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
@@ -157,12 +159,14 @@ class TestExecuteSingleInterval(unittest.TestCase):
             sut.custom_fields = {"message_count": Mock()}
             sut.progress_bar = Mock()
 
-        with patch("benchmarking.src.base_test_types.datetime") as mock_datetime, patch(
-            "benchmarking.src.base_test_types.time.sleep"
+        with patch(
+            "benchmarking.test_runner.test_types.extended.datetime"
+        ) as mock_datetime, patch(
+            "benchmarking.test_runner.test_types.extended.time.sleep"
         ) as mock_time_sleep, patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._get_time_elapsed"
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._get_time_elapsed"
         ) as mock_get_time_elapsed, patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__get_total_duration"
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__get_total_duration"
         ) as mock_get_total_duration:
             mock_datetime.now.side_effect = [
                 datetime.datetime(2025, 1, 1, 12, 0, 0, 0),
@@ -207,13 +211,15 @@ class TestExecuteSingleInterval(unittest.TestCase):
 
         self.assertEqual(returned_value, 3)
 
-    @patch("benchmarking.src.base_test_types.PRODUCE_TO_TOPIC", "test_topic")
+    @patch(
+        "benchmarking.test_runner.test_types.extended.PRODUCE_TO_TOPIC", "test_topic"
+    )
     def test_including_kafka_error(self):
         # Arrange
         test_interval_lengths_in_seconds = [3, 5, 1, 3, 2, 1]
         test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
@@ -226,12 +232,14 @@ class TestExecuteSingleInterval(unittest.TestCase):
 
             sut.kafka_producer.produce.side_effect = [KafkaException, None]
 
-        with patch("benchmarking.src.base_test_types.datetime") as mock_datetime, patch(
-            "benchmarking.src.base_test_types.time.sleep"
+        with patch(
+            "benchmarking.test_runner.test_types.extended.datetime"
+        ) as mock_datetime, patch(
+            "benchmarking.test_runner.test_types.extended.time.sleep"
         ) as mock_time_sleep, patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._get_time_elapsed"
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._get_time_elapsed"
         ) as mock_get_time_elapsed, patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__get_total_duration"
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__get_total_duration"
         ) as mock_get_total_duration:
             mock_datetime.now.side_effect = [
                 datetime.datetime(2025, 1, 1, 12, 0, 0, 0),
@@ -271,7 +279,7 @@ class TestGetTotalDuration(unittest.TestCase):
         test_interval_length = 47
         test_messages_per_second_in_intervals = [170]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_length,
@@ -289,7 +297,7 @@ class TestGetTotalDuration(unittest.TestCase):
         test_interval_lengths_in_seconds = [1, 2, 3, 4, 5, 6]  # sum = 21
         test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
@@ -309,7 +317,7 @@ class TestGetTotalMessageCount(unittest.TestCase):
         test_interval_length = 7
         test_messages_per_second_in_intervals = [170]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_length,
@@ -327,7 +335,7 @@ class TestGetTotalMessageCount(unittest.TestCase):
         test_interval_lengths_in_seconds = [1, 2, 3, 4, 5, 6]
         test_messages_per_second_in_intervals = [170, 100, 50, 15, 156, 135]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
@@ -347,7 +355,7 @@ class TestGetTotalMessageCount(unittest.TestCase):
         test_interval_lengths_in_seconds = [1, 2, 3, 4, 5, 6]
         test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
@@ -376,7 +384,7 @@ class TestNormalizeIntervals(unittest.TestCase):
             135,
         ]  # 6 intervals
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_length,
@@ -396,7 +404,7 @@ class TestNormalizeIntervals(unittest.TestCase):
         test_interval_lengths_in_seconds = [2, 2, 2, 2, 2, 2]
         test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = IntervalBasedTest(
                 name="SuT",
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
@@ -417,8 +425,10 @@ class TestNormalizeIntervals(unittest.TestCase):
         test_interval_lengths_in_seconds = [2]
         test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"), patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__normalize_intervals"
+        with patch(
+            "benchmarking.test_runner.test_types.extended.BaseTest.__init__"
+        ), patch(
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__normalize_intervals"
         ) as mock_normalize_intervals:
             mock_normalize_intervals.return_value = [
                 2,
@@ -450,8 +460,10 @@ class TestValidateIntervalData(unittest.TestCase):
         test_interval_lengths_in_seconds = [2, 2, 2, 2, 2, 2]
         test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"), patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
+        with patch(
+            "benchmarking.test_runner.test_types.extended.BaseTest.__init__"
+        ), patch(
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
         ):
             # validation deactivated
 
@@ -472,8 +484,10 @@ class TestValidateIntervalData(unittest.TestCase):
         test_interval_length = 2
         test_messages_per_second_in_intervals = [170, 100.7, 50, 15.2, 156, 135]
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"), patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
+        with patch(
+            "benchmarking.test_runner.test_types.extended.BaseTest.__init__"
+        ), patch(
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
         ):
             # validation deactivated
 
@@ -501,8 +515,10 @@ class TestValidateIntervalData(unittest.TestCase):
             135,
         ]  # 6 data rates
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"), patch(
-            "benchmarking.src.base_test_types.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
+        with patch(
+            "benchmarking.test_runner.test_types.extended.BaseTest.__init__"
+        ), patch(
+            "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__validate_interval_data"
         ):
             # validation deactivated
 

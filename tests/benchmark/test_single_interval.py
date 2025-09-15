@@ -4,7 +4,7 @@ from unittest.mock import patch, Mock, call, ANY
 
 from confluent_kafka import KafkaException
 
-from benchmarking.src.base_test_types import SingleIntervalTest
+from benchmarking.test_runner.test_types.extended import SingleIntervalTest
 
 
 class TestInit(unittest.TestCase):
@@ -14,9 +14,9 @@ class TestInit(unittest.TestCase):
         test_messages_per_second = 70
 
         with patch(
-            "benchmarking.src.base_test_types.SingleIntervalTest._SingleIntervalTest__get_total_message_count"
+            "benchmarking.test_runner.test_types.extended.SingleIntervalTest._SingleIntervalTest__get_total_message_count"
         ) as mock_get_total_message_count, patch(
-            "benchmarking.src.base_test_types.BaseTest.__init__"
+            "benchmarking.test_runner.test_types.extended.BaseTest.__init__"
         ) as mock_base_test_init:
             mock_get_total_message_count.return_value = 150
 
@@ -41,17 +41,19 @@ class TestInit(unittest.TestCase):
 class TestExecuteCore(unittest.TestCase):
     def setUp(self):
         """Mocks the logger to deactivate logs in test run."""
-        patcher = patch("benchmarking.src.base_test_types.logger")
+        patcher = patch("benchmarking.test_runner.test_types.extended.logger")
         self.mock_logger = patcher.start()
         self.addCleanup(patcher.stop)
 
-    @patch("benchmarking.src.base_test_types.PRODUCE_TO_TOPIC", "test_topic")
+    @patch(
+        "benchmarking.test_runner.test_types.extended.PRODUCE_TO_TOPIC", "test_topic"
+    )
     def test_successful(self):
         # Arrange
         test_full_length_in_minutes = 5 / 60  # 5 seconds
         test_messages_per_second = 100
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = SingleIntervalTest(
                 name="SuT",
                 full_length_in_minutes=test_full_length_in_minutes,
@@ -62,10 +64,12 @@ class TestExecuteCore(unittest.TestCase):
             sut.custom_fields = {"message_count": Mock()}
             sut.progress_bar = Mock()
 
-        with patch("benchmarking.src.base_test_types.datetime") as mock_datetime, patch(
-            "benchmarking.src.base_test_types.time.sleep"
+        with patch(
+            "benchmarking.test_runner.test_types.extended.datetime"
+        ) as mock_datetime, patch(
+            "benchmarking.test_runner.test_types.extended.time.sleep"
         ) as mock_time_sleep, patch(
-            "benchmarking.src.base_test_types.SingleIntervalTest._get_time_elapsed"
+            "benchmarking.test_runner.test_types.extended.SingleIntervalTest._get_time_elapsed"
         ) as mock_get_time_elapsed:
             mock_datetime.now.side_effect = [
                 datetime.datetime(2025, 1, 1, 12, 0, 0, 0),
@@ -105,13 +109,15 @@ class TestExecuteCore(unittest.TestCase):
         self.assertEqual(len(mock_time_sleep.mock_calls), 2)
         mock_time_sleep.assert_called_with(0.01)
 
-    @patch("benchmarking.src.base_test_types.PRODUCE_TO_TOPIC", "test_topic")
+    @patch(
+        "benchmarking.test_runner.test_types.extended.PRODUCE_TO_TOPIC", "test_topic"
+    )
     def test_including_kafka_error(self):
         # Arrange
         test_full_length_in_minutes = 5 / 60  # 5 seconds
         test_messages_per_second = 100
 
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = SingleIntervalTest(
                 name="SuT",
                 full_length_in_minutes=test_full_length_in_minutes,
@@ -124,10 +130,12 @@ class TestExecuteCore(unittest.TestCase):
 
             sut.kafka_producer.produce.side_effect = [KafkaException, None]
 
-        with patch("benchmarking.src.base_test_types.datetime") as mock_datetime, patch(
-            "benchmarking.src.base_test_types.time.sleep"
+        with patch(
+            "benchmarking.test_runner.test_types.extended.datetime"
+        ) as mock_datetime, patch(
+            "benchmarking.test_runner.test_types.extended.time.sleep"
         ) as mock_time_sleep, patch(
-            "benchmarking.src.base_test_types.SingleIntervalTest._get_time_elapsed"
+            "benchmarking.test_runner.test_types.extended.SingleIntervalTest._get_time_elapsed"
         ) as mock_get_time_elapsed:
             mock_datetime.now.side_effect = [
                 datetime.datetime(2025, 1, 1, 12, 0, 0, 0),
@@ -162,7 +170,7 @@ class TestGetTotalMessageCount(unittest.TestCase):
         test_messages_per_second = 100
 
         # Arrange
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = SingleIntervalTest(
                 name="SuT",
                 full_length_in_minutes=test_full_length_in_minutes,
@@ -182,7 +190,7 @@ class TestGetTotalMessageCount(unittest.TestCase):
         test_messages_per_second = 92.9
 
         # Arrange
-        with patch("benchmarking.src.base_test_types.BaseTest.__init__"):
+        with patch("benchmarking.test_runner.test_types.extended.BaseTest.__init__"):
             sut = SingleIntervalTest(
                 name="SuT",
                 full_length_in_minutes=test_full_length_in_minutes,
