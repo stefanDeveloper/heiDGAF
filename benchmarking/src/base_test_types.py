@@ -179,7 +179,7 @@ class BaseTest:
             custom_fields["interval"] = progressbar.FormatCustomText("")  # empty
 
         progress_bar = progressbar.ProgressBar(
-            maxval=100,
+            max_value=100,
             widgets=[
                 progressbar.Percentage(),
                 " ",
@@ -549,7 +549,7 @@ class BenchmarkDatasetGenerator:
         datasets = DatasetLoader(base_path=data_base_path, max_rows=10000)
 
         dataset = Dataset(
-            data_path="",
+            data_path=[""],
             data=pl.concat(
                 [
                     datasets.dgta_dataset.data,
