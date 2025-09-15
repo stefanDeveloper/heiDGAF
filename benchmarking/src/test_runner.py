@@ -3,10 +3,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from benchmarking.src.test_types.burst import BurstTest
-from benchmarking.src.test_types.long_term import LongTermTest
-from benchmarking.src.test_types.maximum_throughput import MaximumThroughputTest
-from benchmarking.src.test_types.ramp_up import RampUpTest
+from benchmarking.src.test_types import *
 from src.base.log_config import get_logger
 from benchmarking.src.setup_config import setup_config
 
@@ -30,6 +27,8 @@ class BenchmarkTestRunner:
 
         self.__add_burst_parser()
         self.__add_long_term_parser()
+        self.__add_maximum_throughput_parser()
+        self.__add_ramp_up_parser()
 
     def run(self):
         args = self.parser.parse_args()
