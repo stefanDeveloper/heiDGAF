@@ -3,9 +3,9 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from benchmarking.src.test_types import *
+from benchmarking.test_runner.test_types.main import *
 from src.base.log_config import get_logger
-from benchmarking.src.setup_config import setup_config
+from benchmarking.controller.setup_config import setup_config
 
 logger = get_logger()
 benchmark_test_config = setup_config()

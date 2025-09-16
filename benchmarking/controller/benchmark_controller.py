@@ -52,7 +52,8 @@ class BenchmarkController:
             # "exec",
             # docker_container_name,
             "python",
-            f"benchmarking/src/test_types/{test_name}.py",
+            f"benchmarking/test_runner/benchmark_test_runner.py",
+            test_name,
             *arguments,
         ]
         subprocess.run(cmd).check_returncode()

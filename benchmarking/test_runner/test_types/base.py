@@ -339,7 +339,7 @@ class BaseTest:
             )
 
     def __plot_latency_comparison(self):
-        """Plots the latency_comparison graph."""
+        """Plots the latency comparison graph."""
         # prepare directory paths
         relative_data_path = self.test_run_directory / "data"
         relative_output_graph_directory = self.test_run_directory / "graphs"
@@ -353,7 +353,9 @@ class BaseTest:
         )  # keep original dictionary unchanged
         for module in MODULE_TO_CSV_FILENAME.keys():
             filename = MODULE_TO_CSV_FILENAME[module]
-            module_to_filepath[module] = relative_data_path / "latencies" / filename
+            module_to_filepath[module] = str(
+                relative_data_path / "latencies" / filename
+            )
 
         # generate and save plots
         self.plot_generator.plot_latency(
@@ -371,7 +373,7 @@ class BenchmarkDatasetGenerator:
         datasets = DatasetLoader(base_path=data_base_path, max_rows=10000)
 
         dataset = Dataset(
-            data_path=[""],
+            data_path="",
             data=pl.concat(
                 [
                     datasets.dgta_dataset.data,
