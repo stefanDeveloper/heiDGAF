@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import os
 import sys
 import uuid
@@ -12,7 +11,7 @@ from src.base.kafka_handler import (
     ExactlyOnceKafkaProduceHandler,
 )
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.utils import setup_config
+from src.base.utils import setup_config, TimeUtils
 from src.base.log_config import get_logger
 
 module_name = "log_storage.logserver"
@@ -87,7 +86,7 @@ class LogServer:
             dict(
                 message_id=message_id,
                 event="timestamp_out",
-                event_timestamp=datetime.datetime.now(),
+                event_timestamp=TimeUtils.now(),
             )
         )
 
@@ -107,7 +106,7 @@ class LogServer:
             self.server_logs.insert(
                 dict(
                     message_id=message_id,
-                    timestamp_in=datetime.datetime.now(),
+                    timestamp_in=TimeUtils.now(),
                     message_text=value,
                 )
             )
@@ -144,7 +143,7 @@ class LogServer:
                     self.server_logs.insert(
                         dict(
                             message_id=message_id,
-                            timestamp_in=datetime.datetime.now(),
+                            timestamp_in=TimeUtils.now(),
                             message_text=cleaned_line,
                         )
                     )

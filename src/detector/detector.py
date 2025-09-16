@@ -1,4 +1,3 @@
-import datetime
 import hashlib
 import json
 import os
@@ -13,7 +12,7 @@ from numpy import median
 
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.utils import setup_config
+from src.base.utils import setup_config, TimeUtils
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
     KafkaMessageFetchException,
@@ -73,7 +72,7 @@ class Detector:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=0,
@@ -104,7 +103,7 @@ class Detector:
                 client_ip=key,
                 stage=module_name,
                 status="in_process",
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 is_active=True,
                 message_count=len(self.messages),
             )
@@ -112,7 +111,7 @@ class Detector:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=len(self.messages),
@@ -332,7 +331,7 @@ class Detector:
             self.alerts.insert(
                 dict(
                     client_ip=self.key,
-                    alert_timestamp=datetime.datetime.now(),
+                    alert_timestamp=TimeUtils.now(),
                     suspicious_batch_id=self.suspicious_batch_id,
                     overall_score=overall_score,
                     domain_names=json.dumps(
@@ -348,7 +347,7 @@ class Detector:
                     client_ip=self.key,
                     stage=module_name,
                     status="finished",
-                    timestamp=datetime.datetime.now(),
+                    timestamp=TimeUtils.now(),
                     is_active=False,
                     message_count=len(self.messages),
                 )
@@ -364,7 +363,7 @@ class Detector:
                         logline_id=logline_id,
                         stage=module_name,
                         status="detected",
-                        timestamp=datetime.datetime.now(),
+                        timestamp=TimeUtils.now(),
                         is_active=False,
                     )
                 )
@@ -377,7 +376,7 @@ class Detector:
                     client_ip=self.key,
                     stage=module_name,
                     status="filtered_out",
-                    timestamp=datetime.datetime.now(),
+                    timestamp=TimeUtils.now(),
                     is_active=False,
                     message_count=len(self.messages),
                 )
@@ -393,14 +392,14 @@ class Detector:
                         logline_id=logline_id,
                         stage=module_name,
                         status="filtered_out",
-                        timestamp=datetime.datetime.now(),
+                        timestamp=TimeUtils.now(),
                         is_active=False,
                     )
                 )
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=0,

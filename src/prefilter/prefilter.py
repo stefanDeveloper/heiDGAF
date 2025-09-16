@@ -1,4 +1,3 @@
-import datetime
 import os
 import sys
 import uuid
@@ -15,7 +14,7 @@ from src.base.kafka_handler import (
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
-from src.base.utils import setup_config
+from src.base.utils import setup_config, TimeUtils
 
 module_name = "log_filtering.prefilter"
 logger = get_logger(module_name)
@@ -61,7 +60,7 @@ class Prefilter:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=0,
@@ -89,7 +88,7 @@ class Prefilter:
                 batch_id=self.batch_id,
                 stage=module_name,
                 status="in_process",
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 is_active=True,
                 message_count=len(self.unfiltered_data),
             )
@@ -97,7 +96,7 @@ class Prefilter:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=len(self.unfiltered_data),
@@ -132,14 +131,14 @@ class Prefilter:
                         logline_id=logline_id,
                         stage=module_name,
                         status="filtered_out",
-                        timestamp=datetime.datetime.now(),
+                        timestamp=TimeUtils.now(),
                         is_active=False,
                     )
                 )
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=len(self.filtered_data),
@@ -165,7 +164,7 @@ class Prefilter:
                 batch_id=self.batch_id,
                 stage=module_name,
                 status="finished",
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 is_active=True,
                 message_count=len(self.filtered_data),
             )
@@ -173,7 +172,7 @@ class Prefilter:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=0,

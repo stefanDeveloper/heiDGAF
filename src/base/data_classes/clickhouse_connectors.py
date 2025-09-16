@@ -12,9 +12,7 @@ class ServerLogs:
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
     timestamp_in: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
     message_text: str = field(
         metadata={"marshmallow_field": marshmallow.fields.String()}
@@ -28,9 +26,7 @@ class ServerLogsTimestamps:
     )
     event: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     event_timestamp: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
 
 
@@ -40,14 +36,10 @@ class FailedDNSLoglines:
         metadata={"marshmallow_field": marshmallow.fields.String()}
     )
     timestamp_in: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
     timestamp_failed: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
     reason_for_failure: Optional[str] = field(
         metadata={"marshmallow_field": marshmallow.fields.String(allow_none=True)}
@@ -71,9 +63,7 @@ class DNSLoglines:
     )
     subnet_id: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     timestamp: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
     status_code: str = field(
         metadata={"marshmallow_field": marshmallow.fields.String()}
@@ -95,9 +85,7 @@ class LoglineTimestamps:
     stage: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     status: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     timestamp: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
     is_active: bool = field(
         metadata={"marshmallow_field": marshmallow.fields.Boolean()}
@@ -112,9 +100,7 @@ class BatchTimestamps:
     stage: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     status: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     timestamp: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
     is_active: bool = field(
         metadata={"marshmallow_field": marshmallow.fields.Boolean()}
@@ -143,9 +129,7 @@ class SuspiciousBatchTimestamps:
     stage: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     status: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     timestamp: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
     is_active: bool = field(
         metadata={"marshmallow_field": marshmallow.fields.Boolean()}
@@ -162,9 +146,7 @@ class Alerts:
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
     alert_timestamp: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
     overall_score: float = field(
         metadata={"marshmallow_field": marshmallow.fields.Float()}
@@ -178,9 +160,7 @@ class Alerts:
 @dataclass
 class FillLevels:
     timestamp: datetime.datetime = field(
-        metadata={
-            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
-        }
+        metadata={"marshmallow_field": marshmallow.fields.DateTime()}
     )
     stage: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     entry_type: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})

@@ -1,4 +1,3 @@
-import datetime
 import json
 import os
 import sys
@@ -11,7 +10,7 @@ sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
-from src.base.utils import setup_config
+from src.base.utils import setup_config, TimeUtils
 from src.base.log_config import get_logger
 
 module_name = "log_collection.batch_handler"
@@ -20,7 +19,6 @@ logger = get_logger(module_name)
 config = setup_config()
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
-TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "batch_sender_to_prefilter"
 ]
@@ -49,7 +47,7 @@ class BufferedBatch:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines_in_batches",
                 entry_count=0,
@@ -58,7 +56,7 @@ class BufferedBatch:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines_in_buffer",
                 entry_count=0,
@@ -89,7 +87,7 @@ class BufferedBatch:
                     batch_id=batch_id,
                     stage=module_name,
                     status="waiting",
-                    timestamp=datetime.datetime.now(),
+                    timestamp=TimeUtils.now(),
                     is_active=True,
                     message_count=self.get_message_count_for_batch_key(key),
                 )
@@ -113,7 +111,7 @@ class BufferedBatch:
                     batch_id=new_batch_id,
                     stage=module_name,
                     status="waiting",
-                    timestamp=datetime.datetime.now(),
+                    timestamp=TimeUtils.now(),
                     is_active=True,
                     message_count=1,
                 )
@@ -121,7 +119,7 @@ class BufferedBatch:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines_in_batches",
                 entry_count=self.get_message_count_for_batch(),
@@ -217,13 +215,9 @@ class BufferedBatch:
 
             data = {
                 "batch_id": batch_id,
-                "begin_timestamp": datetime.datetime.strptime(
-                    begin_timestamp,
-                    "%Y-%m-%dT%H:%M:%S.%fZ",
-                ),
-                "end_timestamp": datetime.datetime.strptime(
-                    _get_last_timestamp_of_batch(),
-                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                "begin_timestamp": TimeUtils.from_formatted_string(begin_timestamp),
+                "end_timestamp": TimeUtils.from_formatted_string(
+                    _get_last_timestamp_of_batch()
                 ),
                 "data": buffer_data + self.batch[key],
             }
@@ -233,7 +227,7 @@ class BufferedBatch:
                     batch_id=batch_id,
                     stage=module_name,
                     status="completed",
-                    timestamp=datetime.datetime.now(),
+                    timestamp=TimeUtils.now(),
                     is_active=True,
                     message_count=self.get_message_count_for_batch_key(key),
                 )
@@ -248,7 +242,7 @@ class BufferedBatch:
 
             self.fill_levels.insert(
                 dict(
-                    timestamp=datetime.datetime.now(),
+                    timestamp=TimeUtils.now(),
                     stage=module_name,
                     entry_type="total_loglines_in_batches",
                     entry_count=self.get_message_count_for_batch(),
@@ -257,7 +251,7 @@ class BufferedBatch:
 
             self.fill_levels.insert(
                 dict(
-                    timestamp=datetime.datetime.now(),
+                    timestamp=TimeUtils.now(),
                     stage=module_name,
                     entry_type="total_loglines_in_buffer",
                     entry_count=self.get_message_count_for_buffer(),
@@ -276,7 +270,7 @@ class BufferedBatch:
 
             self.fill_levels.insert(
                 dict(
-                    timestamp=datetime.datetime.now(),
+                    timestamp=TimeUtils.now(),
                     stage=module_name,
                     entry_type="total_loglines_in_buffer",
                     entry_count=self.get_message_count_for_buffer(),
@@ -322,11 +316,8 @@ class BufferedBatch:
     @staticmethod
     def _sort_by_timestamp(
         data: list[tuple[str, str]],
-        timestamp_format: str = TIMESTAMP_FORMAT,
     ) -> list[str]:
-        sorted_data = sorted(
-            data, key=lambda x: datetime.datetime.strptime(x[0], timestamp_format)
-        )
+        sorted_data = sorted(data, key=lambda x: TimeUtils.from_formatted_string(x[0]))
         loglines = [message for _, message in sorted_data]
 
         return loglines
@@ -377,7 +368,7 @@ class BufferedBatchSender:
                 logline_id=logline_id,
                 stage=module_name,
                 status="in_process",
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 is_active=True,
             )
         )
@@ -388,7 +379,7 @@ class BufferedBatchSender:
                 logline_id=logline_id,
                 stage=module_name,
                 status="batched",
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 is_active=True,
             )
         )

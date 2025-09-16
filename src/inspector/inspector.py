@@ -12,7 +12,7 @@ from streamad.util import StreamGenerator, CustomDS
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
-from src.base.utils import setup_config
+from src.base.utils import setup_config, TimeUtils
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
@@ -33,7 +33,6 @@ ANOMALY_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"][
 SCORE_THRESHOLD = config["pipeline"]["data_inspection"]["inspector"]["score_threshold"]
 TIME_TYPE = config["pipeline"]["data_inspection"]["inspector"]["time_type"]
 TIME_RANGE = config["pipeline"]["data_inspection"]["inspector"]["time_range"]
-TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "prefilter_to_inspector"
 ]
@@ -103,7 +102,7 @@ class Inspector:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=0,
@@ -133,7 +132,7 @@ class Inspector:
                 batch_id=self.batch_id,
                 stage=module_name,
                 status="in_process",
-                timestamp=datetime.now(),
+                timestamp=TimeUtils.now(),
                 is_active=True,
                 message_count=len(self.messages),
             )
@@ -141,7 +140,7 @@ class Inspector:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=len(self.messages),
@@ -184,7 +183,7 @@ class Inspector:
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
             [
-                np.datetime64(datetime.strptime(item["timestamp"], TIMESTAMP_FORMAT))
+                np.datetime64(TimeUtils.from_formatted_string(item["timestamp"]))
                 for item in messages
             ]
         )
@@ -248,7 +247,7 @@ class Inspector:
         return mean_sizes.reshape(-1, 1)
 
     def _count_errors(self, messages: list, begin_timestamp, end_timestamp):
-        """Counts occurances of messages between two timestamps given a time step.
+        """Counts occurrences of messages between two timestamps given a time step.
         By default, 1 ms time step is applied. Time steps are adjustable by "time_type" and "time_range"
         in config.yaml.
 
@@ -263,7 +262,7 @@ class Inspector:
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
             [
-                np.datetime64(datetime.strptime(item["timestamp"], TIMESTAMP_FORMAT))
+                np.datetime64(TimeUtils.from_formatted_string(item["timestamp"]))
                 for item in messages
             ]
         )
@@ -313,7 +312,7 @@ class Inspector:
 
     def inspect(self):
         """Runs anomaly detection on given StreamAD Model on either univariate, multivariate data, or as an ensemble."""
-        if MODELS == None or len(MODELS) == 0:
+        if MODELS is None or len(MODELS) == 0:
             logger.warning("No model ist set!")
             raise NotImplementedError(f"No model is set!")
         match MODE:
@@ -361,7 +360,7 @@ class Inspector:
 
         for x in stream.iter_item():
             score = self.model.fit_score(x)
-            if score != None:
+            if score is not None:
                 self.anomalies.append(score)
             else:
                 self.anomalies.append(0)
@@ -405,7 +404,7 @@ class Inspector:
                 scores.append(models.fit_score(x))
             # TODO Calibrators are missing
             score = ensemble.ensemble(scores)
-            if score != None:
+            if score is not None:
                 self.anomalies.append(score)
             else:
                 self.anomalies.append(0)
@@ -487,7 +486,7 @@ class Inspector:
                         client_ip=key,
                         stage=module_name,
                         status="finished",
-                        timestamp=datetime.now(),
+                        timestamp=TimeUtils.now(),
                         is_active=True,
                         message_count=len(value),
                     )
@@ -504,7 +503,7 @@ class Inspector:
                     batch_id=self.batch_id,
                     stage=module_name,
                     status="filtered_out",
-                    timestamp=datetime.now(),
+                    timestamp=TimeUtils.now(),
                     is_active=False,
                     message_count=len(self.messages),
                 )
@@ -520,14 +519,14 @@ class Inspector:
                         logline_id=logline_id,
                         stage=module_name,
                         status="filtered_out",
-                        timestamp=datetime.now(),
+                        timestamp=TimeUtils.now(),
                         is_active=False,
                     )
                 )
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=0,

@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+from datetime import datetime
 import ipaddress
 import json
 import os
@@ -10,21 +10,25 @@ sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 from src.base.logline_handler import LoglineHandler
-from src.base import utils
+from src.base.utils import (
+    setup_config,
+    normalize_ipv6_address,
+    normalize_ipv4_address,
+    TimeUtils,
+)
 from src.logcollector.batch_handler import BufferedBatchSender
 from src.base.log_config import get_logger
 
 module_name = "log_collection.collector"
 logger = get_logger(module_name)
 
-config = utils.setup_config()
+config = setup_config()
 IPV4_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
     "ipv4_prefix_length"
 ]
 IPV6_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
     "ipv6_prefix_length"
 ]
-TIMESTAMP_FORMAT = config["environment"]["timestamp_format"]
 REQUIRED_FIELDS = ["timestamp", "status_code", "client_ip", "record_type"]
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
@@ -51,7 +55,7 @@ class LogCollector:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=0,
@@ -90,7 +94,7 @@ class LogCollector:
             )
             logger.debug(f"From Kafka: '{value}'")
 
-            await self.store(datetime.datetime.now(), value)
+            await self.store(TimeUtils.now(), value)
 
     async def send(self) -> None:
         """Continuously sends the next logline in JSON format to the BatchSender, where it is stored in
@@ -103,7 +107,7 @@ class LogCollector:
 
                     self.fill_levels.insert(
                         dict(
-                            timestamp=datetime.datetime.now(),
+                            timestamp=TimeUtils.now(),
                             stage=module_name,
                             entry_type="total_loglines",
                             entry_count=self.loglines.qsize(),
@@ -119,7 +123,7 @@ class LogCollector:
                             dict(
                                 message_text=logline,
                                 timestamp_in=timestamp_in,
-                                timestamp_failed=datetime.datetime.now(),
+                                timestamp_failed=TimeUtils.now(),
                                 reason_for_failure=None,  # TODO: Add actual reason
                             )
                         )
@@ -139,8 +143,8 @@ class LogCollector:
                         dict(
                             logline_id=logline_id,
                             subnet_id=subnet_id,
-                            timestamp=datetime.datetime.strptime(
-                                fields.get("timestamp"), TIMESTAMP_FORMAT
+                            timestamp=TimeUtils.from_formatted_string(
+                                fields.get("timestamp")
                             ),
                             status_code=fields.get("status_code"),
                             client_ip=fields.get("client_ip"),
@@ -167,7 +171,7 @@ class LogCollector:
                             logline_id=logline_id,
                             stage=module_name,
                             status="finished",
-                            timestamp=datetime.datetime.now(),
+                            timestamp=TimeUtils.now(),
                             is_active=True,
                         )
                     )
@@ -184,7 +188,7 @@ class LogCollector:
 
                 self.fill_levels.insert(
                     dict(
-                        timestamp=datetime.datetime.now(),
+                        timestamp=TimeUtils.now(),
                         stage=module_name,
                         entry_type="total_loglines",
                         entry_count=self.loglines.qsize(),
@@ -200,7 +204,7 @@ class LogCollector:
 
                 self.batch_handler.add_message(subnet_id, json.dumps(fields))
 
-    async def store(self, timestamp_in: datetime.datetime, message: str):
+    async def store(self, timestamp_in: datetime, message: str):
         """Stores the message temporarily.
 
         Args:
@@ -211,7 +215,7 @@ class LogCollector:
 
         self.fill_levels.insert(
             dict(
-                timestamp=datetime.datetime.now(),
+                timestamp=TimeUtils.now(),
                 stage=module_name,
                 entry_type="total_loglines",
                 entry_count=self.loglines.qsize(),
@@ -230,11 +234,11 @@ class LogCollector:
             subnet ID for the given IP address as string
         """
         if isinstance(address, ipaddress.IPv4Address):
-            normalized_ip_address, prefix_length = utils.normalize_ipv4_address(
+            normalized_ip_address, prefix_length = normalize_ipv4_address(
                 address, IPV4_PREFIX_LENGTH
             )
         elif isinstance(address, ipaddress.IPv6Address):
-            normalized_ip_address, prefix_length = utils.normalize_ipv6_address(
+            normalized_ip_address, prefix_length = normalize_ipv6_address(
                 address, IPV6_PREFIX_LENGTH
             )
         else:

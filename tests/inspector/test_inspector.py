@@ -21,7 +21,7 @@ DEFAULT_DATA = {
     "size": "100b",
 }
 
-TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+TIMESTAMP_FORMAT: str = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 def get_batch(data):

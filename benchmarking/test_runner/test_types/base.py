@@ -71,8 +71,10 @@ class BaseTest:
 
     def execute(self):
         """Executes the test with the configured parameters."""
-        self.start_timestamp = datetime.now()
-        logger.info(f"{self.test_name}: Start test at {self.start_timestamp}")
+        self.start_timestamp = (
+            datetime.utcnow()
+        )  # UTC timestamp without timezone information
+        logger.info(f"{self.test_name}: Start test")
 
         self.progress_bar, self.custom_fields = self._setup_progress_bar()
 
@@ -83,7 +85,7 @@ class BaseTest:
         self.progress_bar = None
         self.custom_fields = None
 
-        logger.info(f"{self.test_name}: Finish test at {datetime.now()}")
+        logger.info(f"{self.test_name}: Finish test")
 
     def execute_and_generate_report(self):
         """Handles the entire benchmark test procedure required for generating a report. Executes the test and

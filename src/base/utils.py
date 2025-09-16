@@ -1,6 +1,7 @@
 import ipaddress
 import os
 import sys
+from datetime import datetime, timezone
 
 import yaml
 from confluent_kafka import KafkaError, Message
@@ -141,3 +142,27 @@ def normalize_ipv6_address(
 
     net = ipaddress.IPv6Network((address, prefix_length), strict=False)
     return net.network_address, prefix_length
+
+
+class TimeUtils:
+    @staticmethod
+    def now():
+        """Returns the current UTC time as datetime timestamp.
+        Must be used for all internal timestamps."""
+        return datetime.now(timezone.utc)
+
+    @staticmethod
+    def from_formatted_string(timestamp_as_string: str):
+        """
+        Returns the datetime timestamp for a given string,
+        that uses the TIMESTAMP_FORMAT set in the configuration.
+
+        Args:
+            timestamp_as_string (str): String of the timestamp in format TIMESTAMP_FORMAT
+        """
+        config = setup_config()
+
+        return datetime.strptime(
+            timestamp_as_string,
+            config["environment"]["timestamp_format"],
+        )
