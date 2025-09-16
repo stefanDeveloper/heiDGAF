@@ -1,7 +1,7 @@
 import re
 
 from src.base.log_config import get_logger
-from src.base.utils import setup_config, validate_host
+from src.base.utils import setup_config, ValidationUtils
 
 logger = get_logger()
 
@@ -83,7 +83,7 @@ class IpAddress(FieldType):
             True if the value is valid, False otherwise
         """
         try:
-            validate_host(value)
+            ValidationUtils.validate_host(value)
         except ValueError:
             return False
 

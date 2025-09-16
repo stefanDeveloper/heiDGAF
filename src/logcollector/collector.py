@@ -12,8 +12,7 @@ from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 from src.base.logline_handler import LoglineHandler
 from src.base.utils import (
     setup_config,
-    normalize_ipv6_address,
-    normalize_ipv4_address,
+    IpAddressUtils,
     TimeUtils,
 )
 from src.logcollector.batch_handler import BufferedBatchSender
@@ -234,12 +233,12 @@ class LogCollector:
             subnet ID for the given IP address as string
         """
         if isinstance(address, ipaddress.IPv4Address):
-            normalized_ip_address, prefix_length = normalize_ipv4_address(
-                address, IPV4_PREFIX_LENGTH
+            normalized_ip_address, prefix_length = (
+                IpAddressUtils.normalize_ipv4_address(address, IPV4_PREFIX_LENGTH)
             )
         elif isinstance(address, ipaddress.IPv6Address):
-            normalized_ip_address, prefix_length = normalize_ipv6_address(
-                address, IPV6_PREFIX_LENGTH
+            normalized_ip_address, prefix_length = (
+                IpAddressUtils.normalize_ipv6_address(address, IPV6_PREFIX_LENGTH)
             )
         else:
             raise ValueError("Unsupported IP address type")
