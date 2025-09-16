@@ -156,17 +156,31 @@ class TimeUtils:
         return datetime.now(timezone.utc)
 
     @staticmethod
-    def from_formatted_string(timestamp_as_string: str):
+    def from_formatted_string(timestamp_as_string: str) -> datetime:
         """
         Returns the datetime timestamp for a given string,
-        that uses the TIMESTAMP_FORMAT set in the configuration.
+        that uses the pattern/format set in the configuration for the 'timestamp' logline field.
 
         Args:
-            timestamp_as_string (str): String of the timestamp in format TIMESTAMP_FORMAT
+            timestamp_as_string (str): String of the timestamp in format of field 'timestamp'
+
+        Returns:
+            Timestamp as datetime.datetime
         """
         config = setup_config()
 
-        return datetime.strptime(
-            timestamp_as_string,
-            config["environment"]["timestamp_format"],
+        for field in config["pipeline"]["log_collection"]["collector"][
+            "logline_format"
+        ]:
+            if field[0] == "timestamp":
+                if len(field) != 3 or not isinstance(field[2], str):
+                    raise ValueError("Invalid Timestamp parameters")
+
+                return datetime.strptime(
+                    timestamp_as_string,
+                    field[2],  # corresponds to the pattern
+                )
+
+        raise RuntimeError(
+            f"Timestamp format could not be fetched from the configuration"
         )

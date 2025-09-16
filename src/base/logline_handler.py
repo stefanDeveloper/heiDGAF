@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 from src.base.log_config import get_logger
 from src.base.utils import setup_config, ValidationUtils
@@ -61,6 +62,34 @@ class RegEx(FieldType):
             True if the value is valid, False otherwise
         """
         return True if re.match(self.pattern, value) else False
+
+
+class Timestamp(FieldType):
+    """
+    A :cls:`Timestamp` object takes a name, and a pattern, which a value needs to have as format.
+    """
+
+    def __init__(self, name: str, pattern: str):
+        super().__init__(name)
+        self.pattern = pattern
+
+    def validate(self, value) -> bool:
+        """
+        Validates the input value.
+
+        Args:
+            value: The value to be validated
+
+        Returns:
+            True if the value is valid, False otherwise
+        """
+        try:
+            datetime.strptime(value, self.pattern)
+            return True
+        except ValueError:
+            pass
+
+        return False
 
 
 class IpAddress(FieldType):
@@ -292,27 +321,35 @@ class LoglineHandler:
         except KeyError:
             raise ValueError(f"Class '{cls_name}' not found")
 
-        if cls_name == "RegEx":
-            if len_of_field_list != 3 or not isinstance(field_list[2], str):
-                raise ValueError("Invalid RegEx parameters")
-            instance = cls(name=name, pattern=field_list[2])
+        match cls_name:
+            case "RegEx":
+                if len_of_field_list != 3 or not isinstance(field_list[2], str):
+                    raise ValueError("Invalid RegEx parameters")
+                instance = cls(name=name, pattern=field_list[2])
 
-        elif cls_name == "ListItem":
-            if len_of_field_list not in [3, 4] or not isinstance(field_list[2], list):
-                raise ValueError("Invalid ListItem parameters")
+            case "Timestamp":
+                if len_of_field_list != 3 or not isinstance(field_list[2], str):
+                    raise ValueError("Invalid Timestamp parameters")
+                instance = cls(name=name, pattern=field_list[2])
 
-            relevant_list = field_list[3] if len_of_field_list == 4 else None
-            instance = cls(
-                name=name, allowed_list=field_list[2], relevant_list=relevant_list
-            )
+            case "ListItem":
+                if len_of_field_list not in [3, 4] or not isinstance(
+                    field_list[2], list
+                ):
+                    raise ValueError("Invalid ListItem parameters")
 
-        elif cls_name == "IpAddress":
-            if len_of_field_list != 2:
-                raise ValueError("Invalid IpAddress parameters")
+                relevant_list = field_list[3] if len_of_field_list == 4 else None
+                instance = cls(
+                    name=name, allowed_list=field_list[2], relevant_list=relevant_list
+                )
 
-            instance = cls(name=name)
+            case "IpAddress":
+                if len_of_field_list != 2:
+                    raise ValueError("Invalid IpAddress parameters")
 
-        else:
-            raise ValueError(f"Unsupported class '{cls_name}'")
+                instance = cls(name=name)
+
+            case _:
+                raise ValueError(f"Unsupported class '{cls_name}'")
 
         return instance
