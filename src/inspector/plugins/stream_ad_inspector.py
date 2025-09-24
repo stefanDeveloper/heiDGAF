@@ -5,11 +5,10 @@ import sys
 from datetime import datetime
 import numpy as np
 from streamad.util import StreamGenerator, CustomDS
+
 # TODO: test all of this!
 sys.path.append(os.getcwd())
-from src.base.utils import (
-    setup_config
-)
+from src.base.utils import setup_config
 from src.base.log_config import get_logger
 
 module_name = "data_inspection.inspector"
@@ -47,13 +46,13 @@ class StreamADInspector(InspectorBase):
         super().__init__(consume_topic, produce_topics, config)
         self.ensemble_config = config["ensemble"]
 
-    def subnet_is_suspicious(self) -> bool: 
+    def subnet_is_suspicious(self) -> bool:
         total_anomalies = np.count_nonzero(
             np.greater_equal(np.array(self.anomalies), self.score_threshold)
         )
         logger.info(f"{self.name}: {total_anomalies} anomalies found")
         return True if total_anomalies / len(self.X) > self.anomaly_threshold else False
-    
+
     def _mean_packet_size(self, messages: list, begin_timestamp, end_timestamp):
         """Returns mean of packet size of messages between two timestamps given a time step.
         By default, 1 ms time step is applied. Time steps are adjustable by "time_type" and "time_range"
@@ -190,7 +189,7 @@ class StreamADInspector(InspectorBase):
 
         logger.debug("Reshape into the required shape (n, 1)")
         return counts.reshape(-1, 1)
-    
+
     def _get_models(self, models):
         if hasattr(self, "models") and self.models != None and self.models != []:
             logger.info("All models have been successfully loaded!")
@@ -219,6 +218,7 @@ class StreamADInspector(InspectorBase):
             module_model = getattr(module, model["model"])
             model_list.append(module_model(**model["model_args"]))
         return model_list
+
     def inspect_anomalies(self):
         match self.mode:
             case "univariate":
@@ -230,7 +230,7 @@ class StreamADInspector(InspectorBase):
                 self._inspect_ensemble()
             case _:
                 logger.warning(f"Mode {self.mode} is not supported!")
-                raise NotImplementedError(f"Mode {self.mode} is not supported!")     
+                raise NotImplementedError(f"Mode {self.mode} is not supported!")
 
     def _inspect_multivariate(self):
         """
@@ -322,8 +322,6 @@ class StreamADInspector(InspectorBase):
                 self.anomalies.append(score)
             else:
                 self.anomalies.append(0)
-
-
 
     def _get_ensemble(self):
         logger.debug(

@@ -19,11 +19,11 @@ The traffic is split protocolwise into Kafka topics and send to the Logserver fo
 Overview
 --------
 
-The :class:`ZeekConfigurationHandler` takes care of the setup of a containerized Zeek sensor. It reads in the main configuration file and 
+The :class:`ZeekConfigurationHandler` takes care of the setup of a containerized Zeek sensor. It reads in the main configuration file and
 adjusts the protocols to listen on, the logformats of incoming traffic, and the Kafka queues to send to.
 
-The :class:`ZeekAnalysisHandler` starts the actual Zeek instance. Based on the configuration it either starts Zeek in a cluster for specified network interfaces 
-or in a single node instance for static analyses. 
+The :class:`ZeekAnalysisHandler` starts the actual Zeek instance. Based on the configuration it either starts Zeek in a cluster for specified network interfaces
+or in a single node instance for static analyses.
 
 Main Classes
 ------------
@@ -37,13 +37,13 @@ Main Classes
 Usage and configuration
 -----------------------
 
-An analysis can be performed via tapping network inerfaces and by injecting pcap files. 
-To adjust this, adapt the ``pipeline.zeek.sensors.[sensor_name].static_analysis`` value to True or false. 
+An analysis can be performed via tapping network inerfaces and by injecting pcap files.
+To adjust this, adapt the ``pipeline.zeek.sensors.[sensor_name].static_analysis`` value to True or false.
 
 - **``pipeline.zeek.sensors.[sensor_name].static_analysis``** set to True:
 
   - An static analysis is executed. The PCAP files are extracted from within the GitHub root directory under ``/data/test_pcaps"`` and mounted into the zeek container. All files ending in .PCAP are then read and analyzed by Zeek.
-    Please Note that we do not recommend to use several Zeek instances for a static analysis, as the data will be read in multiple times, which impacts the benchmarks accordingly. 
+    Please Note that we do not recommend to use several Zeek instances for a static analysis, as the data will be read in multiple times, which impacts the benchmarks accordingly.
 
 - **``pipeline.zeek.sensors.[sensor_name].static_analysis``** set to False:
 
@@ -51,7 +51,7 @@ To adjust this, adapt the ``pipeline.zeek.sensors.[sensor_name].static_analysis`
 
 
 You can start multiple instances of Zeek by adding more entries to the dictionary ``pipeline.zeek.sensors``.
-Necessary attributes are: 
+Necessary attributes are:
 - ``pipeline.zeek.sensors.[sensor_name].static_analysis`` : **bool**
 - if not static analysis: ``pipeline.zeek.sensors.[sensor_name].interfaces`` : **list**
 - ``pipeline.zeek.sensors.[sensor_name].protocols`` : **list**
@@ -59,7 +59,7 @@ Necessary attributes are:
 Stage 2: Log Storage
 ====================
 
-This stage serves as the central ingestion point for all data. 
+This stage serves as the central ingestion point for all data.
 
 Overview
 --------
@@ -76,7 +76,7 @@ Usage and configuration
 -----------------------
 
 Currently, the :class:`LogServer` reads from the Kafka Queues specified by Zeek. These have a common prefix, specified in ``environment.kafka_topics_prefix.pipeline.logserver_in``. The suffix is the protocol name in lower case of the traffic.
-The Logserver currently has no further configuration. 
+The Logserver currently has no further configuration.
 
 Stage 3: Log Collection
 =======================
@@ -123,7 +123,7 @@ LogCollector
 The :class:`LogCollector` connects to the :class:`LogServer` to retrieve one logline, which it then processes and
 validates. The logline is parsed into its respective fields, each checked for correct type and format.
 For each configuration of a logg collector in ``pipeline.logcollection.collectors``, a process is spun up in the resulting docker container
-allowing for multiprocessing and threading. 
+allowing for multiprocessing and threading.
 
 - **Field Validation**:
 
@@ -149,7 +149,7 @@ allowing for multiprocessing and threading.
 
 - **Log Line Format**:
 
-  As the log information differs for each protocol, there is a default format per protocol. 
+  As the log information differs for each protocol, there is a default format per protocol.
   This can be either adapted or a completely new one can be added as well. For more information
   please reffer to section :ref:`Logline format configuration`.
 
@@ -282,8 +282,8 @@ The following convention needs to be sticked to:
 - Each entry in the ``required_log_information``  needs to be a list
 - The first item is the name of the datafield as adjusted in Zeek
 - The second item is the Class name the value should be mapped to for validation
-- Depending on the class, the third item is a list of valid inputs 
-- Depending on the class, the fourth item is a list of relevant inputs 
+- Depending on the class, the third item is a list of valid inputs
+- Depending on the class, the fourth item is a list of relevant inputs
 
 
 Buffer Functionality
@@ -379,7 +379,7 @@ Usage
 
 One :class:`Prefilter` per prefilter configuration in ``pipeline.log_filtering`` is started. Each instance loads from a Kafka topic name that depends on the logcollector the prefilter builds upon.
 The prefix for each topic is defined in ``environment.kafka_topics_prefix.batch_sender_to_prefilter.`` and the suffix is the configured log collector name.
-The prefilters extract the log entries and apply a filter function (or relevance function) to retain only those entries that match the specified requirements. 
+The prefilters extract the log entries and apply a filter function (or relevance function) to retain only those entries that match the specified requirements.
 
 
 Once the filtering process is complete, the refined data is sent back to the Kafka Brokers under the topic ``Inspect``
@@ -388,7 +388,7 @@ for further processing in subsequent stages.
 Configuration
 -------------
 
-To customize the filtering behavior, the relevance function can be extended and adjusted in ``"src/base/logline_handler"`` and can be referenced in the ``"configuration.yaml"`` by the function name. 
+To customize the filtering behavior, the relevance function can be extended and adjusted in ``"src/base/logline_handler"`` and can be referenced in the ``"configuration.yaml"`` by the function name.
 Checks can be skipped by referencing the ``no_relevance_check`` function.
 We currently support the following relevance methods:
 
@@ -464,7 +464,7 @@ We currently support the following inspectors:
 
 
 Further inspectors can be added and referenced in the config by adjusting the ``pipeline.data_inspection.[inspector].inspector_module_name`` and ``pipeline.data_inspection.[inspector].inspector_class_name``.
-Each inspector might need special configurations. For the possible configuration values, please reference the table above. 
+Each inspector might need special configurations. For the possible configuration values, please reference the table above.
 
 StreamAD Inspector
 ...................
@@ -545,7 +545,7 @@ We currently support the following inspectors:
 
 
   +---------------------------+-------------------------------------------------------------+--------------------------------------------------------------------------------------------+
-  | **Name**                  | **Description**                                             | **Configuration**                                                                          |                                               
+  | **Name**                  | **Description**                                             | **Configuration**                                                                          |
   +===========================+=============================================================+============================================================================================+
   | ``DGADetector``           | Uses StreamAD models for anomaly detection. All StreamAD    | ``mode``: univariate (options: multivariate, ensemble)                                     |
   |                           | models are supported. This includes univariate, multivariate| ``ensemble.model``: WeightEnsemble (options: VoteEnsemble)                                 |
@@ -561,7 +561,7 @@ We currently support the following inspectors:
   +---------------------------+-------------------------------------------------------------+--------------------------------------------------------------------------------------------+
 
 In case you want to load self-trained models, the configuration acn be adapted to load the model from a different location. Since download link is assembled the following way:
-``<model_base_url>/files/?p=%2F<model_name>/<model_checksum>/<model_name>.pickle&dl=1"`` You can adapt the base url. If you need to adhere to another URL composition create 
+``<model_base_url>/files/?p=%2F<model_name>/<model_checksum>/<model_name>.pickle&dl=1"`` You can adapt the base url. If you need to adhere to another URL composition create
 A new detector class by either implementing the necessary base functions from :class:`DetectorBase` or by deriving the new class from :class:`DGADetector` and just overwrite the ``"get_model_download_url"`` method.
 
 DGA Detector

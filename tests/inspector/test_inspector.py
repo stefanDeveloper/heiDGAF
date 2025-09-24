@@ -12,6 +12,7 @@ from src.base.kafka_handler import (
 )
 from src.base.data_classes.batch import Batch
 from src.inspector.inspector import InspectorBase, main
+
 # use no_inspector for testing, as it has almost 0 domain logic
 from src.inspector.plugins.no_inspector import NoInspector
 
@@ -28,7 +29,7 @@ DEFAULT_DATA = {
 
 MINIMAL_NO_INSPECTOR_CONFIG = {
     "name": "test_inspector",
-    "inspector_class_name": "NoInspector"
+    "inspector_class_name": "NoInspector",
 }
 
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -62,7 +63,7 @@ class TestInit(unittest.TestCase):
         sut = NoInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=MINIMAL_NO_INSPECTOR_CONFIG
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
         )
 
         self.assertEqual([], sut.messages)
@@ -91,10 +92,10 @@ class TestGetData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut =  NoInspector(
+        sut = NoInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=MINIMAL_NO_INSPECTOR_CONFIG
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
         )
 
         sut.get_and_fill_data()
@@ -122,10 +123,10 @@ class TestGetData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut =  NoInspector(
+        sut = NoInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=MINIMAL_NO_INSPECTOR_CONFIG
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
         )
 
         sut.messages = []
@@ -159,10 +160,10 @@ class TestGetData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut =  NoInspector(
+        sut = NoInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=MINIMAL_NO_INSPECTOR_CONFIG
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
         )
 
         sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
@@ -192,10 +193,10 @@ class TestGetData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut =  NoInspector(
+        sut = NoInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=MINIMAL_NO_INSPECTOR_CONFIG
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
         )
 
         sut.messages = ["test_data"]
@@ -221,10 +222,10 @@ class TestClearData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut =  NoInspector(
+        sut = NoInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=MINIMAL_NO_INSPECTOR_CONFIG
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
         )
 
         sut.messages = []
@@ -248,10 +249,10 @@ class TestClearData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_kafka_produce_handler.return_value = mock_produce_handler_instance
 
-        sut =  NoInspector(
+        sut = NoInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=MINIMAL_NO_INSPECTOR_CONFIG
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
         )
 
         sut.messages = ["test_data"]
@@ -262,6 +263,7 @@ class TestClearData(unittest.TestCase):
         self.assertEqual([], sut.messages)
         self.assertIsNone(sut.begin_timestamp)
         self.assertIsNone(sut.end_timestamp)
+
 
 class TestSend(unittest.TestCase):
     @patch("src.inspector.inspector.logger")
@@ -281,10 +283,10 @@ class TestSend(unittest.TestCase):
         mock_kafka_produce_handler.return_value = mock_produce_handler_instance
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
-        sut =  NoInspector(
+        sut = NoInspector(
             consume_topic="test_topic",
             produce_topics=["pipeline-inspector_to_detector"],
-            config=MINIMAL_NO_INSPECTOR_CONFIG
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
         )
 
         sut.anomalies = [0.9, 0.9]
@@ -300,7 +302,9 @@ class TestSend(unittest.TestCase):
         mock_batch_tree_row_id = f"{uuid.UUID('754a64f3-a461-4e7b-b4cb-ab29df9c4dce')}-{uuid.UUID('f9b3cbb7-b26c-41be-8e7f-a69a9c133668')}"
         mock_batch_id = uuid.UUID("5ae0872e-5bb9-472c-8c37-8c173213a51f")
         with patch("src.inspector.inspector.uuid") as mock_uuid:
-            with patch("src.inspector.inspector.generate_collisions_resistant_uuid") as mock_row_id:
+            with patch(
+                "src.inspector.inspector.generate_collisions_resistant_uuid"
+            ) as mock_row_id:
                 mock_row_id.return_value = mock_batch_tree_row_id
                 mock_uuid.uuid4.return_value = mock_batch_id
                 sut.send_data()
@@ -308,7 +312,7 @@ class TestSend(unittest.TestCase):
         mock_produce_handler_instance.produce.assert_called_once_with(
             topic="pipeline-inspector_to_detector",
             data=batch_schema.dumps(
-                {   
+                {
                     "batch_tree_row_id": mock_batch_tree_row_id,
                     "batch_id": mock_batch_id,
                     "begin_timestamp": sut.begin_timestamp,
@@ -336,10 +340,10 @@ class TestSend(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
-        sut =  NoInspector(
+        sut = NoInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=MINIMAL_NO_INSPECTOR_CONFIG
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
         )
 
         mock_is_subnet_suspicious = MagicMock(return_value=False)
@@ -363,23 +367,23 @@ class TestSend(unittest.TestCase):
         mock_produce_handler_instance.produce.assert_not_called()
 
 
-
 class TestInspector(InspectorBase):
     def __init__(self, consume_topic, produce_topics, config) -> None:
         super().__init__(consume_topic, produce_topics, config)
         self.inspected = False
         self.anomalies_detected = False
-    
+
     def _get_models(self, models) -> list:
         return ["mock_model"]
-    
+
     def inspect_anomalies(self) -> None:
         self.inspected = True
         if self.messages:
             self.anomalies_detected = True
-    
+
     def subnet_is_suspicious(self) -> bool:
         return self.anomalies_detected
+
 
 class TestInspectMethod(unittest.TestCase):
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
@@ -395,25 +399,27 @@ class TestInspectMethod(unittest.TestCase):
         # Arrange
 
         config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
-        config.update({
-            "inspector_class_name": "TestInspector",
-            "mode": "test_mode",
-            "anomaly_threshold": 0.5,
-            "score_threshold": 0.7,
-            "time_type": "test_time",
-            "time_range": "test_range"
-        })
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
         sut = TestInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=config
+            config=config,
         )
         sut.messages = [{"test": "data"}]
-        
+
         # Assert
         with self.assertRaises(NotImplementedError):
             sut.inspect()
-    
+
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
@@ -428,37 +434,36 @@ class TestInspectMethod(unittest.TestCase):
         """Tests that inspect() uses only the first model when multiple models are configured."""
         # Setup
         config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
-        config.update({
-            "inspector_class_name": "TestInspector",
-            "mode": "test_mode",
-            "models": [
-                {"model": "Model1"},
-                {"model": "Model2"}
-            ],
-            "anomaly_threshold": 0.5,
-            "score_threshold": 0.7,
-            "time_type": "test_time",
-            "time_range": "test_range"
-        })
-        
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "models": [{"model": "Model1"}, {"model": "Model2"}],
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
+
         sut = TestInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=config
+            config=config,
         )
-        
+
         # Mock data
         sut.messages = [{"test": "data"}]
-        
+
         # Execute
         sut.inspect()
-        
+
         # Verify
         self.assertTrue(sut.inspected)
         mock_logger.warning.assert_called_with(
             "Model List longer than 1. Only the first one is taken: Model1!"
         )
-    
+
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
@@ -471,126 +476,134 @@ class TestInspectMethod(unittest.TestCase):
         """Tests that inspect() works correctly with a single model configured."""
         # Setup
         config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
-        config.update({
-            "inspector_class_name": "TestInspector",
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "models": [{"model": "Model1"}],
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
 
-            "mode": "test_mode",
-            "models": [
-                {"model": "Model1"}
-            ],
-            "anomaly_threshold": 0.5,
-            "score_threshold": 0.7,
-            "time_type": "test_time",
-            "time_range": "test_range"
-        })
-        
         sut = TestInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=config
+            config=config,
         )
-        
+
         # Mock data
         sut.messages = [{"test": "data"}]
-        
+
         # Execute
         sut.inspect()
-        
+
         # Verify
         self.assertTrue(sut.inspected)
 
 
 class TestBootStrapFunction(unittest.TestCase):
-    
+
     def setUp(self):
         self.inspectors = [
             {
                 "name": "test_inspector",
                 "inspector_class_name": "NoInspector",
                 "prefilter_name": "dominator_filter",
-                "inspector_module_name": "no_inspector"
+                "inspector_module_name": "no_inspector",
             }
         ]
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.logger")
-    def test_bootstrap_normal_execution(self, mock_logger,mock_consume_handler, mock_produce_handler, mock_clickhouse):
-        """Tests that the bootstrap process executes all steps in the correct order."""
-        # Setup
-        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
-        config.update({
-            "inspector_class_name": "TestInspector",
-            "mode": "test_mode",
-            "models": [{"model": "ZScoreDetector"}],
-            "anomaly_threshold": 0.5,
-            "score_threshold": 0.7,
-            "time_type": "test_time",
-            "time_range": "test_range"
-        })
-        
-        sut = TestInspector(
-            consume_topic="test_topic",
-            produce_topics=["produce_topic_1"],
-            config=config
-        )
-        
-        # Mock data so send_data works
-        sut.messages = [{"src_ip": "192.168.0.1", "logline_id": "test_id"}]
-        sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
-        sut.begin_timestamp = datetime.now()
-        sut.end_timestamp = datetime.now() + timedelta(seconds=1)
-        
-        # Patch methods to control the loop
-        original_send_data = sut.send_data
-        def mock_send_data():
-            original_send_data()
-            # After first iteration, raise exception to break the loop
-            raise StopIteration("Test exception to break loop")
-        
-        sut.send_data = mock_send_data
-        # Track method calls
-        sut.inspect = MagicMock(wraps=sut.inspect)
-        sut.send_data = MagicMock(wraps=sut.send_data)
-        sut.clear_data = MagicMock(wraps=sut.clear_data)
-        
-        # Execute and verify
-        with self.assertRaises(StopIteration):
-            sut.bootstrap_inspection_process()
-        
-        # Verify method call order and count
-        sut.inspect.assert_called_once()
-        sut.send_data.assert_called_once()
-        sut.clear_data.assert_called_once()
-        
-        # Verify logger messages
-        mock_logger.info.assert_any_call("Starting test_inspector")
-        
 
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.logger")
-    def test_bootstrap_kafka_exception_handling(self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse):
-        """Tests that IOError is handled correctly (re-raised)."""
+    def test_bootstrap_normal_execution(
+        self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
+        """Tests that the bootstrap process executes all steps in the correct order."""
         # Setup
         config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
-        config.update({
-            "inspector_class_name": "TestInspector",
-            "mode": "test_mode",
-            "models": [{"model": "ZScoreDetector"}],
-            "anomaly_threshold": 0.5,
-            "score_threshold": 0.7,
-            "time_type": "test_time",
-            "time_range": "test_range"
-        })
-        
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "models": [{"model": "ZScoreDetector"}],
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
+
         sut = TestInspector(
             consume_topic="test_topic",
             produce_topics=["produce_topic_1"],
-            config=config
+            config=config,
         )
-        
+
+        # Mock data so send_data works
+        sut.messages = [{"src_ip": "192.168.0.1", "logline_id": "test_id"}]
+        sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
+        sut.begin_timestamp = datetime.now()
+        sut.end_timestamp = datetime.now() + timedelta(seconds=1)
+
+        # Patch methods to control the loop
+        original_send_data = sut.send_data
+
+        def mock_send_data():
+            original_send_data()
+            # After first iteration, raise exception to break the loop
+            raise StopIteration("Test exception to break loop")
+
+        sut.send_data = mock_send_data
+        # Track method calls
+        sut.inspect = MagicMock(wraps=sut.inspect)
+        sut.send_data = MagicMock(wraps=sut.send_data)
+        sut.clear_data = MagicMock(wraps=sut.clear_data)
+
+        # Execute and verify
+        with self.assertRaises(StopIteration):
+            sut.bootstrap_inspection_process()
+
+        # Verify method call order and count
+        sut.inspect.assert_called_once()
+        sut.send_data.assert_called_once()
+        sut.clear_data.assert_called_once()
+
+        # Verify logger messages
+        mock_logger.info.assert_any_call("Starting test_inspector")
+
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.logger")
+    def test_bootstrap_kafka_exception_handling(
+        self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
+        """Tests that IOError is handled correctly (re-raised)."""
+        # Setup
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "models": [{"model": "ZScoreDetector"}],
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
+
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config,
+        )
+
         # Mock data so send_data works
         sut.messages = [{"src_ip": "192.168.0.1", "logline_id": "test_id"}]
         sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
@@ -600,39 +613,42 @@ class TestBootStrapFunction(unittest.TestCase):
         # Patch inspect to raise IOError
         def mock_inspect():
             raise IOError("Test IO error")
-        
+
         sut.inspect = mock_inspect
         sut.get_and_fill_data = MagicMock()
         sut.send_data = MagicMock()
         sut.clear_data = MagicMock(wraps=sut.clear_data)
-        
+
         # Execute and verify
         with self.assertRaises(IOError) as context:
             sut.bootstrap_inspection_process()
             self.assertEqual(str(context.exception), "Test IO error")
-        
-        
+
         # Verify method calls
         sut.get_and_fill_data.assert_called_once()
         sut.send_data.assert_not_called()
         sut.clear_data.assert_called_once()
+
+
 class TestMainFunction(unittest.IsolatedAsyncioTestCase):
-    
+
     def setUp(self):
         self.inspectors = [
             {
                 "name": "test_inspector",
                 "inspector_class_name": "NoInspector",
                 "prefilter_name": "dominator_filter",
-                "inspector_module_name": "no_inspector"
+                "inspector_module_name": "no_inspector",
             }
         ]
-    
+
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.plugins.no_inspector.NoInspector")
-    @patch("asyncio.create_task")  
+    @patch("asyncio.create_task")
     @patch("asyncio.run")
-    async def test_main_succesful_start(self,mock_asyncio_run, mock_asyncio_create_task, mock_inspector, mock_logger):
+    async def test_main_succesful_start(
+        self, mock_asyncio_run, mock_asyncio_create_task, mock_inspector, mock_logger
+    ):
         # Arrange
         mock_inspector_instance = MagicMock()
         mock_inspector_instance.start = AsyncMock()

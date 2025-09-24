@@ -16,10 +16,10 @@ CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../../config.yaml")
 def get_zeek_sensor_topic_base_names(config: dict) -> set:
     """
     Method to retrieve the protocols monitored by the zeek sensors based on the ``config.yaml``
-    
+
     Args:
         config (dict): The configuration dictionary from config.yaml
-        
+
     Returns:
         Set of protocol names the zeek sensors are monitoring, e.g. (dns, http, sftp, ... )
     """
@@ -31,13 +31,14 @@ def get_zeek_sensor_topic_base_names(config: dict) -> set:
         ]
     )
 
+
 # TODO: test this method!
 def get_batch_configuration(collector_name: str) -> dict:
     """
-    Method to combine custom batch_handler configuartions per logcollector with the default ones. 
+    Method to combine custom batch_handler configuartions per logcollector with the default ones.
     Yields a dict where custom configurations override default ones. If no custom value is specified,
     deafult values are returned.
-    
+
     Args:
         collector_name (str): Name of the collector to retrieve the configuration for
     Returns:

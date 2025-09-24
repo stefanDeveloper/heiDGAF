@@ -24,7 +24,7 @@ class TestAddMessage(unittest.TestCase):
         key = "test_key"
         message = "test_message"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
 
         # Act
         sut.add_message(key, uuid.uuid4(), message)
@@ -42,7 +42,7 @@ class TestAddMessage(unittest.TestCase):
         message = "test_message"
         old_message = "old_message"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer = {key: [old_message]}
 
         # Act
@@ -65,7 +65,7 @@ class TestAddMessage(unittest.TestCase):
         message = "test_message"
         old_message = "old_message"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = {key: [old_message]}
 
         # Act
@@ -87,7 +87,7 @@ class TestAddMessage(unittest.TestCase):
         old_message_1 = "old_message_1"
         old_message_2 = "old_message_2"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = {key: [old_message_2]}
         sut.buffer = {key: [old_message_1]}
 
@@ -115,7 +115,7 @@ class TestAddMessage(unittest.TestCase):
         old_message_1 = "old_message_1"
         old_message_2 = "old_message_2"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = {old_key: [old_message_2]}
         sut.buffer = {old_key: [old_message_1]}
 
@@ -141,7 +141,7 @@ class TestGetNumberOfMessages(unittest.TestCase):
         # Arrange
         key = "test_key"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
 
         # Act and Assert
         self.assertEqual(0, sut.get_message_count_for_batch_key(key))
@@ -152,7 +152,7 @@ class TestGetNumberOfMessages(unittest.TestCase):
         key = "test_key"
         message = "test_message"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = {key: [message]}
 
         # Act and Assert
@@ -167,7 +167,7 @@ class TestGetNumberOfMessages(unittest.TestCase):
         other_key = "other_key"
         message = "test_message"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = {other_key: [message]}
 
         # Act and Assert
@@ -183,7 +183,7 @@ class TestGetNumberOfMessages(unittest.TestCase):
         other_key = "other_key"
         message = "test_message"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer = {other_key: [message]}
 
         # Act and Assert
@@ -205,7 +205,7 @@ class TestGetNumberOfMessages(unittest.TestCase):
         message_4 = "message_4"
         message_5 = "message_5"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = {
             key_3: [message_1, message_5],
             key_1: [message_2],
@@ -226,7 +226,7 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         # Arrange
         key = "test_key"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
 
         # Act and Assert
         self.assertEqual(0, sut.get_message_count_for_buffer_key(key))
@@ -239,7 +239,7 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         key = "test_key"
         message = "test_message"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer = {key: [message]}
 
         # Act and Assert
@@ -254,7 +254,7 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         other_key = "other_key"
         message = "test_message"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer = {other_key: [message]}
 
         # Act and Assert
@@ -270,7 +270,7 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         other_key = "other_key"
         message = "test_message"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = {other_key: [message]}
 
         # Act and Assert
@@ -292,7 +292,7 @@ class TestGetNumberOfBufferedMessages(unittest.TestCase):
         message_4 = "message_4"
         message_5 = "message_5"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer = {
             key_3: [message_1, message_5],
             key_1: [message_2],
@@ -312,7 +312,7 @@ class TestSortMessages(unittest.TestCase):
     def test_sort_with_empty_list(self, mock_clickhouse):
         # Arrange
         list_of_timestamps_and_loglines = []
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
 
         # Act
         result = sut._sort_by_timestamp(list_of_timestamps_and_loglines)
@@ -349,7 +349,7 @@ class TestSortMessages(unittest.TestCase):
             '"www.heidelberg-botanik.de", "record_type": "AAAA", "response_ip": '
             '"b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}',
         ]
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
 
         # Act
         result = sut._sort_by_timestamp(list_of_timestamps_and_loglines)
@@ -399,7 +399,7 @@ class TestExtractTuplesFromJson(unittest.TestCase):
     @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_empty_data(self, mock_clickhouse):
         # Arrange
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         data = []
 
         # Act
@@ -411,7 +411,7 @@ class TestExtractTuplesFromJson(unittest.TestCase):
     @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_with_data(self, mock_clickhouse):
         # Arrange
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         data = [
             '{"ts": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
@@ -451,7 +451,7 @@ class TestSortBuffer(unittest.TestCase):
     def test_sort_empty_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer = []
 
         # Act
@@ -464,7 +464,7 @@ class TestSortBuffer(unittest.TestCase):
     def test_sort_sorted_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer[key] = [
             '{"ts": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
@@ -491,7 +491,7 @@ class TestSortBuffer(unittest.TestCase):
     def test_sort_unsorted_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer[key] = [
             '{"ts": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
@@ -533,7 +533,7 @@ class TestSortBatch(unittest.TestCase):
     def test_sort_empty_batch(self, mock_clickhouse):
         # Arrange
         key = "test_key"
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = []
 
         # Act
@@ -546,7 +546,7 @@ class TestSortBatch(unittest.TestCase):
     def test_sort_sorted_batch(self, mock_clickhouse):
         # Arrange
         key = "test_key"
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch[key] = [
             '{"ts": "2024-05-21T08:31:28.119Z", "status": "NOERROR", "src_ip": '
             '"192.168.0.105", "dns_ip": "8.8.8.8", "host_domain_name": '
@@ -573,7 +573,7 @@ class TestSortBatch(unittest.TestCase):
     def test_sort_unsorted_buffer(self, mock_clickhouse):
         # Arrange
         key = "test_key"
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch[key] = [
             '{"ts": "2024-05-21T08:31:28.378Z", "status": "NXDOMAIN", "src_ip": '
             '"192.168.0.221", "dns_ip": "8.8.8.8", "host_domain_name": '
@@ -628,7 +628,7 @@ class TestCompleteBatch(unittest.TestCase):
 
         expected_messages = [message_1, message_2]
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
 
         # Act
         sut.add_message(key, uuid.uuid4(), message_2)
@@ -675,7 +675,7 @@ class TestCompleteBatch(unittest.TestCase):
             '"response_ip": "b937:2f2e:2c1c:82a:33ad:9e59:ceb9:8e1", "size": "100b"}'
         )
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
 
         # Act
         sut.add_message(key, uuid.uuid4(), message_1)
@@ -719,7 +719,7 @@ class TestCompleteBatch(unittest.TestCase):
         # Arrange
         key = "test_key"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer = {key: ["message"]}
 
         # Act and Assert
@@ -734,7 +734,7 @@ class TestCompleteBatch(unittest.TestCase):
         # Arrange
         key = "test_key"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
 
         # Act and Assert
         with self.assertRaises(ValueError):
@@ -748,7 +748,7 @@ class TestGetStoredKeys(unittest.TestCase):
     @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_get_stored_keys_without_any_keys_stored(self, mock_clickhouse):
         # Arrange
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
 
         # Act and Assert
         self.assertEqual(set(), sut.get_stored_keys())
@@ -760,7 +760,7 @@ class TestGetStoredKeys(unittest.TestCase):
         key_2 = "key_2"
         key_3 = "key_3"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = {key_1: "message_1", key_2: "message_2", key_3: "message_3"}
 
         # Act and Assert
@@ -773,7 +773,7 @@ class TestGetStoredKeys(unittest.TestCase):
         key_2 = "key_2"
         key_3 = "key_3"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.buffer = {key_1: "message_1", key_2: "message_2", key_3: "message_3"}
 
         # Act and Assert
@@ -788,7 +788,7 @@ class TestGetStoredKeys(unittest.TestCase):
         key_2 = "key_2"
         key_3 = "key_3"
 
-        sut = BufferedBatch(collector_name = "test_collector")
+        sut = BufferedBatch(collector_name="test_collector")
         sut.batch = {key_2: "message_2", key_3: "message_3"}
         sut.buffer = {key_1: "message_1"}
 

@@ -1,14 +1,14 @@
 Logline format configuration
 ............................
 
-Users can define logcollector formats by adding a new log collector to the main configuration file (``config.yaml``). 
-This enables users to let messages be forwarded to a new Kafka topic for a prefilter, inspector and detector to consume. 
+Users can define logcollector formats by adding a new log collector to the main configuration file (``config.yaml``).
+This enables users to let messages be forwarded to a new Kafka topic for a prefilter, inspector and detector to consume.
 This might be necessary if your detector is relying on information that is not in the required fields of preexisting log formats.
 For changes, adapt the
 ``pipeline.log_collection.collectors.[collector_name].required_log_information`` parameter.
 
 For example, a logline for the DNS protocol might look like this:
-TODO: add new logline 
+TODO: add new logline
 
 .. code-block:: console
   2025-04-04T14:45:32.458Z NXDOMAIN 192.168.3.152 10.10.0.3 test.com AAAA 192.168.15.34 196b
@@ -161,11 +161,11 @@ The following list shows the available configuration options.
    * - name
      - A unique name amongst the prefilter configurations top identify the prefitler instance.
    * - relevance_method
-     - The name of the method used to to check if a given logline is relevant for further inspection. 
-       This check can be skipped by choosing ``"no_relevance_check"``. 
+     - The name of the method used to to check if a given logline is relevant for further inspection.
+       This check can be skipped by choosing ``"no_relevance_check"``.
        Avalable configurations are: ``"no_relevance_check"``, ``"check_dga_relevance"``
    * - collector_name
-     - The name of the collector configuration the prefilter consumes data from. The same collector name can be referenced in multiple prefilter configurations. 
+     - The name of the collector configuration the prefilter consumes data from. The same collector name can be referenced in multiple prefilter configurations.
 
 ``pipeline.data_inspection``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -178,9 +178,9 @@ The following list shows the available configuration options.
    * - name
      - A unique name amongst the inspector configurations top identify the inspector instance.
    * - prefilter_name
-     - The name of the prefitler configuration the inspector consumes data from. The same prefilter name can be referenced in multiple inspector configurations. 
+     - The name of the prefitler configuration the inspector consumes data from. The same prefilter name can be referenced in multiple inspector configurations.
    * - inspector_module_name
-     - Name of the python file in ``"src/inspector/plugins/"`` the inspector should use. 
+     - Name of the python file in ``"src/inspector/plugins/"`` the inspector should use.
    * - inspector_class_name
      - Name of the class inside the ``inspector_module`` to use.
 
@@ -206,10 +206,10 @@ To entirely skip the anomaly detection phase, you can set ``inspector_module_nam
      - A unique name amongst the detector configurations top identify the detector instance.
    * - inspector_name
      -
-     - The name of the inspector configuration the detector consumes data from. The same inspector name can be referenced in multiple detector configurations. 
+     - The name of the inspector configuration the detector consumes data from. The same inspector name can be referenced in multiple detector configurations.
    * - detector_module_name
      -
-     - Name of the python file in ``"src/detector/plugins/"`` the detector should use. 
+     - Name of the python file in ``"src/detector/plugins/"`` the detector should use.
    * - detector_class_name
      -
      - Name of the class inside the ``detector_module`` to use.
@@ -232,8 +232,8 @@ To entirely skip the anomaly detection phase, you can set ``inspector_module_nam
 
 To configure the Zeek sensors to ingest data, an entry in ther ``pipeline.zeek.sensors`` must be adapted or added.
 Each of the configured sensores is meant to run on a different machine or network interface to collect data.
-Each instance configured needs to be setup using the ``docker-compose.yaml``. The dictionary name needs to exactly correspond with the 
-name of the instance configured there. 
+Each instance configured needs to be setup using the ``docker-compose.yaml``. The dictionary name needs to exactly correspond with the
+name of the instance configured there.
 Each sensore has the following configuration parameters:
 
 .. list-table:: ``zeek`` Parameters
@@ -243,7 +243,7 @@ Each sensore has the following configuration parameters:
    * - Parameter
      - Description
    * - static_analysis
-     - A bool to indicate whether or not a static analysis should be executed. If ``true``, the PCAPs from ``"data/test_pcaps"`` which are mounted to 
+     - A bool to indicate whether or not a static analysis should be executed. If ``true``, the PCAPs from ``"data/test_pcaps"`` which are mounted to
        each Zeek instance are analyzed. If set to ``false``, a network analysis is executed on the configured network interfaces.
    * - protocols
      - List of lowercase names of protocols the Zeek sensor should be monitoring and sending in the Kafka Queues. Currently supported: ``"dns"`` and ``http``.
@@ -275,4 +275,3 @@ The following parameters control the infrastructure of the software.
    * - monitoring.clickhouse_server.hostname
      - ``clickhouse-server``
      - Hostname of the ClickHouse server. Used by Grafana.
-

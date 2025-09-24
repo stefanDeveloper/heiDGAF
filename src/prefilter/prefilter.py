@@ -64,7 +64,7 @@ class Prefilter:
             consume_topic (str): Kafka topic to consume data from
             produce_topics (list[str]): Kafka topics to produce filtered data to
             relevance_function_name (str): Name of the relevance function to apply
-            
+
         """
         self.name = None
         self.consume_topic = consume_topic
@@ -112,7 +112,7 @@ class Prefilter:
             This method blocks until data is available on the Kafka topic.
             Empty batches are handled gracefully but logged for monitoring.
         """
-        
+
         self.clear_data()  # clear in case we already have data stored
         key, data = self.kafka_consume_handler.consume_as_object()
         self.subnet_id = key
@@ -181,9 +181,9 @@ class Prefilter:
         Note:
             The specific relevance function used is determined by the relevance_function_name
             parameter provided during initialization.
-            
+
         """
-        
+
         for logline in self.unfiltered_data:
             if self.logline_handler.check_relevance(
                 logline_dict=logline, function_name=self.relevance_function_name
@@ -223,7 +223,7 @@ class Prefilter:
         Raises:
             ValueError: If there is no filtered data to send
         """
-        
+
         row_id = generate_collisions_resistant_uuid()
 
         if not self.filtered_data:
@@ -307,7 +307,7 @@ class Prefilter:
             self.send_filtered_data()
             counter += 1
 
-    async def start(self): # pragma: no cover
+    async def start(self):  # pragma: no cover
         """Starts the ``Prefilter`` processing loop.
 
         This method:
@@ -340,7 +340,7 @@ async def main() -> None:
         - Determines the topics to consume from and produce to
         - Creates an according ``Prefilter`` instance
         - Runs the ``start`` method
-        
+
     """
     tasks = []
     for prefilter in PREFILTERS:

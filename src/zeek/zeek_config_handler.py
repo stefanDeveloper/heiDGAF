@@ -12,15 +12,15 @@ logger = get_logger("zeek.sensor")
 class ZeekConfigurationHandler:
     """
     Handles the configuration of Zeek sensors based on the pipeline configuration.
-    
+
     This class is responsible for setting up Zeek to process network traffic according
     to the specified configuration. It configures the Zeek Kafka plugin, sets up worker
     nodes for network interfaces, and integrates additional custom configurations.
-    
+
     The handler supports both static analysis (processing PCAP files) and network
     analysis (live traffic monitoring) modes, with configuration adapted to the
     specific sensor requirements defined in the pipeline configuration.
-    
+
     Example:
         >>> config = {
         ...     "environment": {
@@ -43,6 +43,7 @@ class ZeekConfigurationHandler:
         >>> handler = ZeekConfigurationHandler(config)
         >>> handler.configure()
     """
+
     def __init__(
         self,
         configuration_dict: dict,
@@ -53,7 +54,7 @@ class ZeekConfigurationHandler:
     ):
         """
         Initialize the Zeek configuration handler with the pipeline configuration.
-        
+
         Args:
             configuration_dict: The complete pipeline configuration dictionary
                 loaded from config.yaml, containing sensor, Kafka, and environment settings
@@ -117,16 +118,16 @@ class ZeekConfigurationHandler:
     def configure(self):
         """
         Execute the complete Zeek configuration process.
-        
+
         This method orchestrates the entire configuration workflow:
         1. For network analysis mode: Sets up node configuration for network interfaces
         2. Appends any additional custom configurations
         3. Creates and writes the Kafka plugin configuration
-        
+
         The method adapts the configuration based on whether the sensor is in
         static analysis mode (processing PCAP files) or network analysis mode
         (monitoring live traffic).
-        
+
         Note:
             This is the main entry point for configuring Zeek. After calling this
             method, Zeek should be fully configured and ready to process traffic
@@ -141,23 +142,23 @@ class ZeekConfigurationHandler:
     def append_additional_configurations(self):
         """
         Append custom configuration files to the main Zeek configuration.
-        
+
         This method:
         1. Finds all *.zeek files in the additional configurations directory
         2. Appends their contents to the main Zeek configuration file
-        
+
         Custom configuration files can be used to extend Zeek's functionality
         with custom scripts, event handlers, or protocol analyzers without
         modifying the core configuration.
-        
+
         Example:
             If additional_configurations="/opt/src/zeek/additional_configs/"
             contains a file custom_http.zeek with content:
                 @load base/protocols/http/main.zeek
                 redef HTTP::default_accept_gzip = T;
-            
+
             This content will be appended to the main Zeek configuration file.
-        
+
         Note:
             The method adds a newline before appending each file to ensure
             proper separation between configuration sections.
@@ -172,15 +173,15 @@ class ZeekConfigurationHandler:
     def create_plugin_configuration(self):
         """
         Generate and write the Kafka plugin configuration for Zeek.
-        
+
         This method:
         1. Creates the core Kafka plugin configuration
         2. Sets up topic mappings for each configured protocol
         3. Writes the complete configuration to the main Zeek configuration file
-        
+
         The configuration directs Zeek to send processed log data to Kafka topics
         following the naming convention: {kafka_topic_prefix}-{protocol}
-        
+
         """
         config_lines = [
             "@load packages/zeek-kafka\n",
@@ -213,13 +214,13 @@ class ZeekConfigurationHandler:
     def create_worker_configurations_for_interfaces(self):
         """
         Generate configuration lines for Zeek worker nodes.
-        
+
         This method creates the configuration blocks needed for Zeek's cluster mode,
         where each network interface gets its own worker node.
-        
+
         Returns:
             List[str]: Configuration lines that should be appended to node.cfg
-            
+
         Example:
             For network_interfaces=["eth0", "dummy"], returns:
                 [
@@ -230,7 +231,7 @@ class ZeekConfigurationHandler:
                     "type=worker\n",
                     "host=localhost\n"
                 ]
-        
+
         Note:
             This method is only called when in network analysis mode (not static analysis).
             Each worker is configured to run on the local host and process traffic
@@ -246,15 +247,15 @@ class ZeekConfigurationHandler:
     def template_and_copy_node_config(self):
         """
         Set up the node configuration for Zeek cluster mode.
-        
+
         This method:
         1. Copies the node configuration template to Zeek's expected location
         2. Appends worker configurations for each network interface
-        
+
         The node configuration (node.cfg) defines how Zeek should distribute
         processing across multiple worker processes, which is necessary for
         monitoring multiple network interfaces simultaneously.
-        
+
         Note:
             This method is only called when in network analysis mode. Static
             analysis mode does not require worker configuration as it processes

@@ -21,7 +21,9 @@ class TestInit(unittest.TestCase):
         mock_buffered_batch.return_value = mock_batch_instance
 
         # Act
-        sut = BufferedBatchSender(collector_name="test-collector", produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         # Assert
         self.assertEqual(["test_topic"], sut.topics)
@@ -64,7 +66,9 @@ class TestAddMessage(unittest.TestCase):
             )
         )
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         sut.timer = MagicMock()
 
@@ -74,32 +78,36 @@ class TestAddMessage(unittest.TestCase):
         # Assert
         mock_send_batch.assert_not_called()
         mock_reset_timer.assert_not_called()
-        
+
     @patch("src.logcollector.batch_handler.get_batch_configuration")
     @patch("src.logcollector.batch_handler.logger")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
     @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_add_message_full_messages(
-        self, mock_clickhouse, mock_send_batch, mock_produce_handler, mock_logger, mock_get_batch_config
+        self,
+        mock_clickhouse,
+        mock_send_batch,
+        mock_produce_handler,
+        mock_logger,
+        mock_get_batch_config,
     ):
         # Arrange
-        mock_get_batch_config.return_value =  {
+        mock_get_batch_config.return_value = {
             "batch_size": 100,
             "batch_timeout": 5.9,
-            "subnet_id": {
-                "ipv4_prefix_length": "16",
-                "ipv6_prefix_length": "32"
-            }    
+            "subnet_id": {"ipv4_prefix_length": "16", "ipv6_prefix_length": "32"},
         }
-        
+
         # Arrange
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
         key = "test_key"
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         sut.timer = MagicMock()
 
@@ -125,24 +133,26 @@ class TestAddMessage(unittest.TestCase):
             ),
         )
         mock_send_batch.assert_called_once()
-        
+
     @patch("src.logcollector.batch_handler.get_batch_configuration")
     @patch("src.logcollector.batch_handler.logger")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
     @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     def test_add_message_full_messages_with_different_keys(
-        self, mock_clickhouse, mock_send_batch, mock_produce_handler, mock_logger, mock_get_batch_config
+        self,
+        mock_clickhouse,
+        mock_send_batch,
+        mock_produce_handler,
+        mock_logger,
+        mock_get_batch_config,
     ):
-        mock_get_batch_config.return_value =  {
+        mock_get_batch_config.return_value = {
             "batch_size": 100,
             "batch_timeout": 5.9,
-            "subnet_id": {
-                "ipv4_prefix_length": "16",
-                "ipv6_prefix_length": "32"
-            }
-        }    
-        
+            "subnet_id": {"ipv4_prefix_length": "16", "ipv6_prefix_length": "32"},
+        }
+
         # Arrange
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -150,7 +160,9 @@ class TestAddMessage(unittest.TestCase):
         key = "test_key"
         other_key = "other_key"
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         sut.timer = MagicMock()
 
@@ -210,7 +222,9 @@ class TestAddMessage(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         sut.timer = None
 
@@ -248,8 +262,9 @@ class TestSendAllBatches(unittest.TestCase):
         mock_send_batch_instance = MagicMock()
         mock_send_batch.return_value = mock_send_batch_instance
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
-
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         # Act
         sut._send_all_batches(reset_timer=False)
@@ -272,8 +287,9 @@ class TestSendAllBatches(unittest.TestCase):
         mock_send_batch_instance = MagicMock()
         mock_send_batch.return_value = mock_send_batch_instance
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
-
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         # Act
         sut._send_all_batches(reset_timer=False)
@@ -301,8 +317,9 @@ class TestSendAllBatches(unittest.TestCase):
         mock_send_batch_instance = MagicMock()
         mock_send_batch.return_value = mock_send_batch_instance
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
-
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         # Act
         sut._send_all_batches(reset_timer=True)
@@ -326,8 +343,9 @@ class TestSendAllBatches(unittest.TestCase):
         mock_send_batch_instance = MagicMock()
         mock_send_batch.return_value = mock_send_batch_instance
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
-
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         # Act
         sut._send_all_batches(reset_timer=False)
@@ -348,7 +366,9 @@ class TestSendBatchForKey(unittest.TestCase):
         mock_batch.return_value = mock_batch_instance
         mock_batch_instance.complete_batch.return_value = "mock_data_packet"
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         key = "test_key"
 
@@ -370,7 +390,9 @@ class TestSendBatchForKey(unittest.TestCase):
         mock_batch.return_value = mock_batch_instance
         mock_batch_instance.complete_batch.side_effect = ValueError("Mock exception")
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         key = "test_key"
 
@@ -399,7 +421,9 @@ class TestSendDataPacket(unittest.TestCase):
             "data": ["test_data"],
         }
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         # Act
         sut._send_data_packet(key, data)
@@ -423,20 +447,19 @@ class TestResetTimer(unittest.TestCase):
         self, mock_clickhouse, mock_timer, mock_produce_handler, mock_get_batch_config
     ):
         # Arrange
-        mock_get_batch_config.return_value =  {
+        mock_get_batch_config.return_value = {
             "batch_size": "200000",
             "batch_timeout": 5.9,
-            "subnet_id": {
-                "ipv4_prefix_length": "16",
-                "ipv6_prefix_length": "32"
-            }    
+            "subnet_id": {"ipv4_prefix_length": "16", "ipv6_prefix_length": "32"},
         }
         mock_timer_instance = MagicMock()
         mock_timer.return_value = mock_timer_instance
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         sut.timer = mock_timer_instance
         sut._send_all_batches = MagicMock()
@@ -458,20 +481,19 @@ class TestResetTimer(unittest.TestCase):
     def test_reset_timer_without_existing_timer(
         self, mock_clickhouse, mock_timer, mock_produce_handler, mock_get_batch_config
     ):
-        
-        mock_get_batch_config.return_value =  {
+
+        mock_get_batch_config.return_value = {
             "batch_size": "200000",
             "batch_timeout": 4.6,
-            "subnet_id": {
-                "ipv4_prefix_length": "16",
-                "ipv6_prefix_length": "32"
-            }         
+            "subnet_id": {"ipv4_prefix_length": "16", "ipv6_prefix_length": "32"},
         }
         # Arrange
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = BufferedBatchSender(collector_name="test-collector",produce_topics=["test_topic"])
+        sut = BufferedBatchSender(
+            collector_name="test-collector", produce_topics=["test_topic"]
+        )
 
         sut._send_all_batches = MagicMock()
 

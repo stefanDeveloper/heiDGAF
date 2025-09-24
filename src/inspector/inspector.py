@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 import marshmallow_dataclass
 import numpy as np
 from streamad.util import StreamGenerator, CustomDS
+
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
@@ -46,36 +47,42 @@ KAFKA_BROKERS = ",".join(
         for broker in config["environment"]["kafka_brokers"]
     ]
 )
-class InspectorAbstractBase(ABC): # pragma: no cover
+
+
+class InspectorAbstractBase(ABC):  # pragma: no cover
     @abstractmethod
     def __init__(self, consume_topic, produce_topics, config) -> None:
         pass
+
     @abstractmethod
     def inspect_anomalies(self) -> None:
         pass
+
     @abstractmethod
     def _get_models(self, models) -> list:
         pass
+
     @abstractmethod
-    def subnet_is_suspicious(self) -> bool: 
+    def subnet_is_suspicious(self) -> bool:
         pass
-         
+
+
 class InspectorBase(InspectorAbstractBase):
     """Finds anomalies in a batch of requests and produces it to the ``Detector``."""
 
     def __init__(self, consume_topic, produce_topics, config) -> None:
         """
         Initializes the InspectorBase with necessary configurations and connections.
-        
+
         Sets up Kafka handlers, database connections, and configuration parameters based on
         the provided configuration. For non-NoInspector implementations, initializes model
         related parameters including mode, model configurations, thresholds, and time parameters.
-        
+
         Args:
             consume_topic (str): Kafka topic to consume messages from
             produce_topics (list): List of Kafka topics to produce messages to
             config (dict): Configuration dictionary containing inspector settings
-            
+
         Note:
             The "NoInspector" implementation skips model configuration initialization
             as it doesn't perform actual anomaly detection.
@@ -83,7 +90,9 @@ class InspectorBase(InspectorAbstractBase):
 
         if not config["inspector_class_name"] == "NoInspector":
             self.mode = config["mode"]
-            self.model_configurations = config["models"] if "models" in config.keys() else None
+            self.model_configurations = (
+                config["models"] if "models" in config.keys() else None
+            )
             self.anomaly_threshold = config["anomaly_threshold"]
             self.score_threshold = config["score_threshold"]
             self.time_type = config["time_type"]
@@ -198,7 +207,7 @@ class InspectorBase(InspectorAbstractBase):
     def send_data(self):
         """Pass the anomalous data for the detector unit for further processing"""
         row_id = generate_collisions_resistant_uuid()
-        if self.subnet_is_suspicious():            
+        if self.subnet_is_suspicious():
             buckets = {}
             for message in self.messages:
                 if message["src_ip"] in buckets.keys():
@@ -308,16 +317,17 @@ class InspectorBase(InspectorAbstractBase):
                 entry_count=0,
             )
         )
+
     def inspect(self):
         """
         Executes the anomaly detection process with validation and fallback handling.
-        
+
         This method:
         1. Validates that model configurations exist
         2. Logs a warning if multiple models are configured (only first is used)
         3. Retrieves the models through _get_models()
         4. Calls inspect_anomalies() to perform the actual detection
-        
+
         Raises:
             NotImplementedError: If no model configurations are provided
         """
@@ -327,10 +337,10 @@ class InspectorBase(InspectorAbstractBase):
         if len(self.model_configurations) > 1:
             logger.warning(
                 f"Model List longer than 1. Only the first one is taken: {self.model_configurations[0]['model']}!"
-            )        
+            )
         self.models = self._get_models(self.model_configurations)
-        self.inspect_anomalies()   
-            
+        self.inspect_anomalies()
+
     # TODO: test this!
     def bootstrap_inspection_process(self):
         """
@@ -338,7 +348,7 @@ class InspectorBase(InspectorAbstractBase):
         1. Fetches new data from Kafka
         2. Inspects the data for anomalies
         3. Sends suspicious data to detectors
-        
+
         The loop handles various exceptions:
         - KafkaMessageFetchException: Logged as debug (transient issue)
         - IOError: Logged as error and re-raised (critical failure)
@@ -364,10 +374,10 @@ class InspectorBase(InspectorAbstractBase):
             finally:
                 self.clear_data()
 
-    async def start(self): # pragma: no cover
+    async def start(self):  # pragma: no cover
         """
         Starts the inspector in an asynchronous context.
-        
+
         This method runs the synchronous bootstrap_inspection_process() in a separate
         thread using run_in_executor, allowing the inspector to operate concurrently
         with other async components in the pipeline.
@@ -379,17 +389,17 @@ class InspectorBase(InspectorAbstractBase):
 async def main():
     """
     Entry point for the Inspector module.
-    
+
     This function:
     1. Iterates through all configured inspectors
     2. Creates the appropriate inspector instance based on configuration
     3. Starts each inspector as an asynchronous task
     4. Gathers all tasks to run them concurrently
-    
+
     The function dynamically loads inspector classes from the plugin system
     based on configuration values, allowing for flexible extension of the
     inspection capabilities.
-    
+
     """
     tasks = []
     for inspector in INSPECTORS:
@@ -405,7 +415,9 @@ async def main():
         module = importlib.import_module(module_name)
         InspectorClass = getattr(module, class_name)
         logger.info(f"using {class_name} and {module_name}")
-        inspector_instance = InspectorClass(consume_topic=consume_topic, produce_topics=produce_topics, config=inspector)
+        inspector_instance = InspectorClass(
+            consume_topic=consume_topic, produce_topics=produce_topics, config=inspector
+        )
         tasks.append(asyncio.create_task(inspector_instance.start()))
     await asyncio.gather(*tasks)
 

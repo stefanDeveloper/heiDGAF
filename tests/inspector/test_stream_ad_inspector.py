@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 import marshmallow_dataclass
 import numpy as np
 from streamad.util import StreamGenerator, CustomDS
+
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
@@ -36,19 +37,18 @@ DEFAULT_DATA = {
 
 def create_test_batch():
     test_batch = Batch(
-                batch_tree_row_id=f"{uuid.uuid4()}-{uuid.uuid4()}",
-                batch_id=uuid.uuid4(),
-                begin_timestamp=datetime.now(),
-                end_timestamp=datetime.now(),
-                data=[],
-            )
+        batch_tree_row_id=f"{uuid.uuid4()}-{uuid.uuid4()}",
+        batch_id=uuid.uuid4(),
+        begin_timestamp=datetime.now(),
+        end_timestamp=datetime.now(),
+        data=[],
+    )
     test_batch.begin_timestamp = datetime.now()
     test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
     data = DEFAULT_DATA
-    data["ts"] = datetime.isoformat(
-        test_batch.begin_timestamp + timedelta(0, 0, 1)
-    )
+    data["ts"] = datetime.isoformat(test_batch.begin_timestamp + timedelta(0, 0, 1))
     return test_batch
+
 
 class TestStreamAdInspectorSetup(unittest.TestCase):
     @patch("src.inspector.inspector.PLUGIN_PATH", "src.inspector.plugins")
@@ -56,7 +56,9 @@ class TestStreamAdInspectorSetup(unittest.TestCase):
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.logger")
-    def setUp(self, mock_logger,mock_consume_handler, mock_produce_handler, mock_clickhouse):
+    def setUp(
+        self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
         """Initialize inspector instance before each test."""
         self.inspector = StreamADInspector(
             consume_topic="consume_topic",
@@ -73,10 +75,11 @@ class TestStreamAdInspectorSetup(unittest.TestCase):
                 "ensemble": {
                     "model": "WeightEnsemble",
                     "module": "streamad.process",
-                    "model_args": ""            
-                }
-            }
+                    "model_args": "",
+                },
+            },
         )
+
     def test_init_attributes(self):
         """Verify initial state of core attribute."""
         self.assertTrue(self.inspector.ensemble_config["model"] == "WeightEnsemble")
@@ -90,25 +93,27 @@ class TestStreamAdInspectorInvalidSetup(unittest.TestCase):
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.logger")
-    def setUp(self, mock_logger,mock_consume_handler, mock_produce_handler, mock_clickhouse):
-            self.consume_topic="consume_topic",
-            self.produce_topics=["produce_topic"],
-            self.config={
-                "inspector_class_name": "StreamADInspector",
-                "inspector_module_name": "stream_ad_inspector",
-                "mode": "univariate",
-                "anomaly_threshold": 0.05,
-                "score_threshold": 0.05,
-                "time_type": "ms",
-                "time_range": 20,
-                "name": "test-inspector",
-                "ensemble": {
-                    "model": "WeightEnsemble",
-                    "module": "streamad.process",
-                    "model_args": ""            
-                }
-            }
-        
+    def setUp(
+        self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
+        self.consume_topic = ("consume_topic",)
+        self.produce_topics = (["produce_topic"],)
+        self.config = {
+            "inspector_class_name": "StreamADInspector",
+            "inspector_module_name": "stream_ad_inspector",
+            "mode": "univariate",
+            "anomaly_threshold": 0.05,
+            "score_threshold": 0.05,
+            "time_type": "ms",
+            "time_range": 20,
+            "name": "test-inspector",
+            "ensemble": {
+                "model": "WeightEnsemble",
+                "module": "streamad.process",
+                "model_args": "",
+            },
+        }
+
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
@@ -125,14 +130,14 @@ class TestStreamAdInspectorInvalidSetup(unittest.TestCase):
             {"model": "SpotDetector", "module": "streamad.model", "model_args": {}},
         ]
         self.config["mode"] = "ensemble"
-        self.config["ensemble"] = {
-            "model": "WeightEnsemble",
-            "module": "streamad.process",
-            "model_args": {"ensemble_weights": [0.6, 0.4]},
-        },
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
+        self.config["ensemble"] = (
+            {
+                "model": "WeightEnsemble",
+                "module": "streamad.process",
+                "model_args": {"ensemble_weights": [0.6, 0.4]},
+            },
         )
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
 
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
@@ -141,14 +146,13 @@ class TestStreamAdInspectorInvalidSetup(unittest.TestCase):
             test_batch,
         )
         sut.kafka_consume_handler = mock_kafka_consume_handler_instance
-        
+
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
         sut.get_and_fill_data()
         with self.assertRaises(NotImplementedError):
             sut.inspect()
-
 
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
@@ -166,13 +170,10 @@ class TestStreamAdInspectorInvalidSetup(unittest.TestCase):
         # mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         # mock_produce_handler_instance = MagicMock()
         # mock_produce_handler.return_value = mock_produce_handler_instance
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         with self.assertRaises(NotImplementedError):
             sut.inspect()
-            
-            
+
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
@@ -186,18 +187,15 @@ class TestStreamAdInspectorInvalidSetup(unittest.TestCase):
     ):
         self.config["models"] = [{"model": "INVALID", "module": "streamad.model"}]
         self.config["mode"] = "multivariate"
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
 
         with self.assertRaises(NotImplementedError):
             sut.inspect()
-            
-   
+
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")   
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     def test_invalid_model_ensemble(
         self,
         mock_kafka_consume_handler,
@@ -212,9 +210,7 @@ class TestStreamAdInspectorInvalidSetup(unittest.TestCase):
         self.config["ensemble"] = [{"model": "INVALID", "module": "streamad.process"}]
         self.config["mode"] = "ensemble"
 
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
 
         with self.assertRaises(NotImplementedError):
             sut.inspect()
@@ -226,7 +222,9 @@ class TestStreamAdInspectorMeanPacketSize(unittest.TestCase):
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.logger")
-    def setUp(self, mock_logger,mock_consume_handler, mock_produce_handler, mock_clickhouse):
+    def setUp(
+        self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
         """Initialize inspector instance before each test."""
         self.sut = StreamADInspector(
             consume_topic="consume_topic",
@@ -243,10 +241,11 @@ class TestStreamAdInspectorMeanPacketSize(unittest.TestCase):
                 "ensemble": {
                     "model": "WeightEnsemble",
                     "module": "streamad.process",
-                    "model_args": ""            
-                }
-            }
+                    "model_args": "",
+                },
+            },
         )
+
     def test_count_errors(self):
         begin_timestamp = datetime.now()
         end_timestamp = datetime.now() + timedelta(0, 0, 2)
@@ -257,8 +256,8 @@ class TestStreamAdInspectorMeanPacketSize(unittest.TestCase):
             np.asarray([[1.0], [0.0]]),
             self.sut._count_errors(messages, begin_timestamp, end_timestamp),
         )
-    def test_mean_packet_size(
-        self):
+
+    def test_mean_packet_size(self):
         begin_timestamp = datetime.now()
         end_timestamp = datetime.now() + timedelta(0, 0, 2)
         data = DEFAULT_DATA
@@ -268,9 +267,8 @@ class TestStreamAdInspectorMeanPacketSize(unittest.TestCase):
             np.asarray([[100], [0.0]]),
             self.sut._mean_packet_size(messages, begin_timestamp, end_timestamp),
         )
-        
-    def test_count_errors_empty_messages(
-        self):
+
+    def test_count_errors_empty_messages(self):
 
         begin_timestamp = datetime.now()
         end_timestamp = datetime.now() + timedelta(0, 0, 2)
@@ -290,38 +288,40 @@ class TestStreamAdInspectorMeanPacketSize(unittest.TestCase):
             np.asarray([[0.0], [0.0]]),
             self.sut._mean_packet_size([], begin_timestamp, end_timestamp),
         )
-        
+
+
 class TestInspectFunction(unittest.TestCase):
     def setUp(self):
-            self.consume_topic="consume_topic",
-            self.produce_topics=["produce_topic"],
-            self.config={
-                "inspector_class_name": "StreamADInspector",
-                "inspector_module_name": "stream_ad_inspector",
-                "mode": "univariate",
-                "anomaly_threshold": 0.05,
-                "score_threshold": 0.05,
-                "time_type": "ms",
-                "time_range": 20,
-                "name": "test-inspector",
-                "ensemble": {
-                    "model": "WeightEnsemble",
-                    "module": "streamad.process",
-                    "model_args": ""            
-                }
-            }
+        self.consume_topic = ("consume_topic",)
+        self.produce_topics = (["produce_topic"],)
+        self.config = {
+            "inspector_class_name": "StreamADInspector",
+            "inspector_module_name": "stream_ad_inspector",
+            "mode": "univariate",
+            "anomaly_threshold": 0.05,
+            "score_threshold": 0.05,
+            "time_type": "ms",
+            "time_range": 20,
+            "name": "test-inspector",
+            "ensemble": {
+                "model": "WeightEnsemble",
+                "module": "streamad.process",
+                "model_args": "",
+            },
+        }
+
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.logger")
-    def test_inspect_none_models(self, mock_logger,mock_consume_handler, mock_produce_handler, mock_clickhouse):
+    def test_inspect_none_models(
+        self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
         self.config["models"] = None
 
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
-        
+
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler_instance.consume_as_object.return_value = (
             "test",
@@ -346,9 +346,7 @@ class TestInspectFunction(unittest.TestCase):
     ):
         self.config["models"] = []
 
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler_instance.consume_as_object.return_value = (
@@ -373,13 +371,13 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}]
+        self.config["models"] = [
+            {"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}
+        ]
         self.config["mode"] = "univariate"
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
-        
+
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
         mock_kafka_consume_handler_instance.consume_as_object.return_value = (
@@ -403,11 +401,11 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}]
+        self.config["models"] = [
+            {"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}
+        ]
         self.config["mode"] = "univariate"
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -416,9 +414,9 @@ class TestInspectFunction(unittest.TestCase):
             test_batch,
         )
         sut.kafka_consume_handler = mock_kafka_consume_handler_instance
-        
+
         sut.get_and_fill_data()
-        sut.models=sut._get_models(
+        sut.models = sut._get_models(
             [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}]
         )
         self.assertEqual(ZScoreDetector, type(sut.models[0]))
@@ -434,11 +432,15 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "ZScoreDetector","module": "streamad.model","model_args": {"window_len": 10}}]
-        self.config["mode"] = "univariate"        
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        self.config["models"] = [
+            {
+                "model": "ZScoreDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            }
+        ]
+        self.config["mode"] = "univariate"
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -463,11 +465,12 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}, {"model": "KNNDetector", "module": "streamad.model", "model_args": {}}]
-        self.config["mode"] = "univariate"        
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        self.config["models"] = [
+            {"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}},
+            {"model": "KNNDetector", "module": "streamad.model", "model_args": {}},
+        ]
+        self.config["mode"] = "univariate"
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -476,7 +479,6 @@ class TestInspectFunction(unittest.TestCase):
             test_batch,
         )
         sut.kafka_consume_handler = mock_kafka_consume_handler_instance
-
 
         sut.get_and_fill_data()
         sut.inspect()
@@ -494,11 +496,11 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "RShashDetector", "module": "streamad.model", "model_args": {}}]
-        self.config["mode"] = "multivariate"        
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        self.config["models"] = [
+            {"model": "RShashDetector", "module": "streamad.model", "model_args": {}}
+        ]
+        self.config["mode"] = "multivariate"
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -507,7 +509,6 @@ class TestInspectFunction(unittest.TestCase):
             test_batch,
         )
         sut.kafka_consume_handler = mock_kafka_consume_handler_instance
-
 
         sut.get_and_fill_data()
         sut.inspect()
@@ -524,11 +525,15 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "RShashDetector","module": "streamad.model","model_args": {"window_len": 10}}]
-        self.config["mode"] = "multivariate"        
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        self.config["models"] = [
+            {
+                "model": "RShashDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            }
+        ]
+        self.config["mode"] = "multivariate"
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -553,11 +558,12 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "RShashDetector", "module": "streamad.model", "model_args": {}},{"model": "xStreamDetector", "module": "streamad.model", "model_args": {}}]
-        self.config["mode"] = "multivariate"        
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        self.config["models"] = [
+            {"model": "RShashDetector", "module": "streamad.model", "model_args": {}},
+            {"model": "xStreamDetector", "module": "streamad.model", "model_args": {}},
+        ]
+        self.config["mode"] = "multivariate"
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -566,7 +572,6 @@ class TestInspectFunction(unittest.TestCase):
             test_batch,
         )
         sut.kafka_consume_handler = mock_kafka_consume_handler_instance
-
 
         sut.get_and_fill_data()
         sut.inspect()
@@ -584,12 +589,17 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "KNNDetector", "module": "streamad.model", "model_args": {}},{"model": "SpotDetector", "module": "streamad.model", "model_args": {}}]
-        self.config["ensemble"] = {"model": "WeightEnsemble","module": "streamad.process","model_args": {"ensemble_weights": [0.6, 0.4]}}
-        self.config["mode"] = "ensemble"        
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        self.config["models"] = [
+            {"model": "KNNDetector", "module": "streamad.model", "model_args": {}},
+            {"model": "SpotDetector", "module": "streamad.model", "model_args": {}},
+        ]
+        self.config["ensemble"] = {
+            "model": "WeightEnsemble",
+            "module": "streamad.process",
+            "model_args": {"ensemble_weights": [0.6, 0.4]},
+        }
+        self.config["mode"] = "ensemble"
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -614,12 +624,25 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "KNNDetector","module": "streamad.model","model_args": {"window_len": 10},},{"model": "SpotDetector","module": "streamad.model","model_args": {"window_len": 10},}]
-        self.config["ensemble"] = {"model": "WeightEnsemble","module": "streamad.process","model_args": {"ensemble_weights": [0.6, 0.4]}}
-        self.config["mode"] = "ensemble"        
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        self.config["models"] = [
+            {
+                "model": "KNNDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            },
+            {
+                "model": "SpotDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            },
+        ]
+        self.config["ensemble"] = {
+            "model": "WeightEnsemble",
+            "module": "streamad.process",
+            "model_args": {"ensemble_weights": [0.6, 0.4]},
+        }
+        self.config["mode"] = "ensemble"
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -650,12 +673,25 @@ class TestInspectFunction(unittest.TestCase):
         mock_produce_handler,
         mock_logger,
     ):
-        self.config["models"] = [{"model": "KNNDetector","module": "streamad.model","model_args": {"window_len": 10},},{"model": "SpotDetector","module": "streamad.model","model_args": {"window_len": 10},}]
-        self.config["ensemble"] = {"model": "WeightEnsemble","module": "streamad.process","model_args": {"ensemble_weights": [0.6, 0.4]}}
-        self.config["mode"] = "ensemble"        
-        sut = StreamADInspector(
-            self.consume_topic, self.produce_topics, self.config
-        )
+        self.config["models"] = [
+            {
+                "model": "KNNDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            },
+            {
+                "model": "SpotDetector",
+                "module": "streamad.model",
+                "model_args": {"window_len": 10},
+            },
+        ]
+        self.config["ensemble"] = {
+            "model": "WeightEnsemble",
+            "module": "streamad.process",
+            "model_args": {"ensemble_weights": [0.6, 0.4]},
+        }
+        self.config["mode"] = "ensemble"
+        sut = StreamADInspector(self.consume_topic, self.produce_topics, self.config)
         test_batch = create_test_batch()
         mock_kafka_consume_handler_instance = MagicMock()
         mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
@@ -665,9 +701,6 @@ class TestInspectFunction(unittest.TestCase):
         )
         sut.kafka_consume_handler = mock_kafka_consume_handler_instance
 
-
         sut.get_and_fill_data()
         sut.inspect()
         self.assertNotEqual([None, None], sut.anomalies)
-
-

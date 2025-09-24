@@ -8,7 +8,9 @@ from src.zeek.zeek_config_handler import ZeekConfigurationHandler
 
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
+
 logger = get_logger("zeek.sensor")
+
 
 @click.command()
 @click.option(
@@ -29,29 +31,29 @@ logger = get_logger("zeek.sensor")
 def setup_zeek(configuration_file_path, zeek_config_location):
     """
     Configure and start Zeek analysis based on pipeline configuration.
-    
+
     This is the main entry point for the Zeek configuration and analysis process.
     It handles the complete workflow from configuration setup to analysis execution.
-    
+
     The function:
     1. Manages Zeek configuration backups to ensure clean setup between runs
     2. Parses the pipeline configuration file
     3. Configures Zeek using the specified or default configuration location
     4. Starts analysis in the appropriate mode (static or network)
-    
+
     Args:
         configuration_file_path: File object pointing to the pipeline configuration
             YAML file that defines sensor settings, Kafka brokers, and other parameters
         zeek_config_location: Optional path to override the default Zeek configuration
             location. If not provided, uses /usr/local/zeek/share/zeek/site/local.zeek
-    
+
     Workflow:
         1. On first run: Backs up the default Zeek configuration
         2. On subsequent runs: Restores the backed-up configuration to ensure a clean state
         3. Parses the YAML configuration file
         4. Configures Zeek using ZeekConfigurationHandler
         5. Starts analysis using ZeekAnalysisHandler in the mode specified by the config
-    
+
     Raises:
         yaml.YAMLError: If the configuration file is not valid YAML
         Exception: If required environment variables (like CONTAINER_NAME) are missing
@@ -74,7 +76,7 @@ def setup_zeek(configuration_file_path, zeek_config_location):
         data = yaml.safe_load(configuration_file_content)
     except yaml.YAMLError as e:
         logger.error("Error parsing the config file. Is this proper yaml?")
-        raise(e)
+        raise (e)
 
     if zeek_config_location is None:
         zeek_config_location = default_zeek_config_location
@@ -91,5 +93,5 @@ def setup_zeek(configuration_file_path, zeek_config_location):
     zeekAnalysisHandler.start_analysis(zeekConfigHandler.is_analysis_static)
 
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     setup_zeek()

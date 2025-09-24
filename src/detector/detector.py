@@ -36,6 +36,8 @@ CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
 ]
 
 PLUGIN_PATH = "src.detector.plugins"
+
+
 class WrongChecksum(Exception):  # pragma: no cover
     """
     Exception if Checksum is not equal.
@@ -44,7 +46,7 @@ class WrongChecksum(Exception):  # pragma: no cover
     pass
 
 
-class DetectorAbstractBase(ABC):    # pragma: no cover
+class DetectorAbstractBase(ABC):  # pragma: no cover
     """
     Abstract base class for all detector implementations.
 
@@ -55,17 +57,21 @@ class DetectorAbstractBase(ABC):    # pragma: no cover
     Subclasses must implement all abstract methods to ensure proper integration with the
     detection system.
     """
+
     @abstractmethod
     def __init__(self, detector_config, consume_topic) -> None:
         pass
+
     @abstractmethod
     def get_model_download_url(self):
         pass
+
     @abstractmethod
     def get_scaler_download_url(self):
-        pass     
+        pass
+
     @abstractmethod
-    def predict(self, message) -> np.ndarray :
+    def predict(self, message) -> np.ndarray:
         pass
 
 
@@ -93,7 +99,7 @@ class DetectorBase(DetectorAbstractBase):
                 parameters such as name, model, checksum, and threshold.
             consume_topic (str): Kafka topic from which the detector will consume messages.
         """
-        
+
         self.name = detector_config["name"]
         self.model = detector_config["model"]
         self.checksum = detector_config["checksum"]
@@ -206,7 +212,6 @@ class DetectorBase(DetectorAbstractBase):
                 f"    ⤷  Contains data field of {len(self.messages)} message(s). Belongs to subnet_id {key}."
             )
 
-
     def _sha256sum(self, file_path: str) -> str:
         """
         Calculate the SHA256 checksum of a file.
@@ -256,7 +261,9 @@ class DetectorBase(DetectorAbstractBase):
         # TODO test the if!
         if not os.path.isfile(self.model_path):
             model_download_url = self.get_model_download_url()
-            logger.info(f"downloading model {self.model} from {model_download_url} with checksum {self.checksum}")
+            logger.info(
+                f"downloading model {self.model} from {model_download_url} with checksum {self.checksum}"
+            )
             response = requests.get(model_download_url)
             response.raise_for_status()
             with open(self.model_path, "wb") as f:
@@ -266,7 +273,7 @@ class DetectorBase(DetectorAbstractBase):
             scaler_response.raise_for_status()
             with open(self.scaler_path, "wb") as f:
                 f.write(scaler_response.content)
-                
+
         # Check file sha256
         local_checksum = self._sha256sum(self.model_path)
 
@@ -317,14 +324,12 @@ class DetectorBase(DetectorAbstractBase):
                 }
                 self.warnings.append(warning)
 
-
     def clear_data(self):
         """Clears the data in the internal data structures."""
         self.messages = []
         self.begin_timestamp = None
         self.end_timestamp = None
         self.warnings = []
-
 
     def send_warning(self) -> None:
         """
@@ -444,7 +449,6 @@ class DetectorBase(DetectorAbstractBase):
             )
         )
 
-    
     # TODO: test bootstrap!
     def bootstrap_detector_instance(self):
         """
@@ -483,7 +487,7 @@ class DetectorBase(DetectorAbstractBase):
             finally:
                 self.clear_data()
 
-    async def start(self): # pragma: no cover
+    async def start(self):  # pragma: no cover
         """
         Start the detector instance asynchronously.
 
@@ -493,7 +497,7 @@ class DetectorBase(DetectorAbstractBase):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.bootstrap_detector_instance)
 
-    
+
 async def main():  # pragma: no cover
     """
     Initialize and start all detector instances defined in the configuration.
@@ -511,9 +515,12 @@ async def main():  # pragma: no cover
         module_name = f"{PLUGIN_PATH}.{detector_config['detector_module_name']}"
         module = importlib.import_module(module_name)
         DetectorClass = getattr(module, class_name)
-        detector = DetectorClass(detector_config=detector_config, consume_topic=consume_topic)
+        detector = DetectorClass(
+            detector_config=detector_config, consume_topic=consume_topic
+        )
         tasks.append(asyncio.create_task(detector.start()))
     await asyncio.gather(*tasks)
+
 
 if __name__ == "__main__":  # pragma: no cover
     asyncio.run(main())

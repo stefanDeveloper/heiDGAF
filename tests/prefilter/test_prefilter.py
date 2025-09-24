@@ -7,6 +7,7 @@ from src.base.data_classes.batch import Batch
 from src.base.kafka_handler import KafkaMessageFetchException
 from src.prefilter.prefilter import Prefilter, main
 
+
 class TestBootstrapPrefilteringProcess(unittest.TestCase):
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.LoglineHandler")
@@ -46,35 +47,41 @@ class TestBootstrapPrefilteringProcess(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
-        
+
         # Mock methods to break out of the infinite loop after one iteration
         original_get_and_fill_data = sut.get_and_fill_data
         original_check_relevance = sut.check_data_relevance_using_rules
         original_send_filtered_data = sut.send_filtered_data
-        
+
         def mock_send_filtered_data():
             original_send_filtered_data()
             # After first call, raise an exception to break the loop
             raise StopIteration("Test exception to break loop")
-                      
+
         sut.get_and_fill_data = MagicMock(side_effect=original_get_and_fill_data)
-        sut.check_data_relevance_using_rules = MagicMock(side_effect=original_check_relevance)
+        sut.check_data_relevance_using_rules = MagicMock(
+            side_effect=original_check_relevance
+        )
         sut.send_filtered_data = mock_send_filtered_data
 
         # Execute and verify
         with self.assertRaises(StopIteration):
             sut.bootstrap_prefiltering_process()
-        
+
         # Verify logger calls
         expected_log_calls = [
-            call('I am test_topic'),
-            call("test_topic Received message:\n    ⤷  Contains data field of 2 message(s) with subnet_id: '127.0.0.0_24'."),
-            call("Filtered data was successfully sent:\n    ⤷  Contains data field of 2 message(s). Originally: 2 message(s). Belongs to subnet_id '127.0.0.0_24'.")
+            call("I am test_topic"),
+            call(
+                "test_topic Received message:\n    ⤷  Contains data field of 2 message(s) with subnet_id: '127.0.0.0_24'."
+            ),
+            call(
+                "Filtered data was successfully sent:\n    ⤷  Contains data field of 2 message(s). Originally: 2 message(s). Belongs to subnet_id '127.0.0.0_24'."
+            ),
         ]
         mock_logger.info.assert_has_calls(expected_log_calls)
-        
+
         # Verify method calls
         sut.get_and_fill_data.assert_called_once()
         sut.check_data_relevance_using_rules.assert_called_once()
@@ -90,8 +97,8 @@ class TestBootstrapPrefilteringProcess(unittest.TestCase):
         mock_produce_handler,
         mock_consume_handler,
         mock_logline_handler,
-        mock_logger
-        ):
+        mock_logger,
+    ):
         """
         Tests that the bootstrap_prefiltering_process method correctly processes data through
         the filtering pipeline, including relevance checking.
@@ -131,10 +138,10 @@ class TestBootstrapPrefilteringProcess(unittest.TestCase):
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
             validation_config=[
-                [ "ts", "Timestamp", "%Y-%m-%dT%H:%M:%S" ],
-                [ "status_code", "ListItem", [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ],
-                [ "src_ip", "IpAddress" ]
-            ]
+                ["ts", "Timestamp", "%Y-%m-%dT%H:%M:%S"],
+                ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
+                ["src_ip", "IpAddress"],
+            ],
         )
 
         # Mock get_and_fill_data to break loop after one iteration
@@ -142,18 +149,20 @@ class TestBootstrapPrefilteringProcess(unittest.TestCase):
             original_method = Prefilter.send_filtered_data
             original_method(sut)
             raise StopIteration("Test exception to break loop")
-        
+
         sut.send_filtered_data = mock_send_filtered_data
-        
+
         # Mock relevance check to return True
         sut.logline_handler.check_relevance.return_value = True
 
         # Execute and verify
-        with patch.object(Prefilter, "send_filtered_data", wraps=Prefilter.send_filtered_data) as spy:
+        with patch.object(
+            Prefilter, "send_filtered_data", wraps=Prefilter.send_filtered_data
+        ) as spy:
             with self.assertRaises(StopIteration):
                 sut.bootstrap_prefiltering_process()
             spy.assert_called_once()
-        
+
         # Verify data was correctly processed
         self.assertEqual(sut.unfiltered_data, [test_entry])
         self.assertEqual(sut.filtered_data, [test_entry])
@@ -197,20 +206,24 @@ class TestBootstrapPrefilteringProcess(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
-        
+
         def mock_send_filtered_data():
             original_method = Prefilter.send_filtered_data
             original_method(sut)
             raise StopIteration("Test exception to break loop")
-                
+
         sut.send_filtered_data = mock_send_filtered_data
 
         # Execute and verify
-        with patch.object(Prefilter, "send_filtered_data", wraps=Prefilter.send_filtered_data) as spy:
+        with patch.object(
+            Prefilter, "send_filtered_data", wraps=Prefilter.send_filtered_data
+        ) as spy:
             with self.assertRaises(ValueError):
                 sut.bootstrap_prefiltering_process()
+
+
 class TestInit(unittest.TestCase):
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
@@ -227,7 +240,7 @@ class TestInit(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
         self.assertIsNone(sut.begin_timestamp)
         self.assertIsNone(sut.end_timestamp)
@@ -277,9 +290,9 @@ class TestGetAndFillData(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
-        
+
         sut.get_and_fill_data()
 
         self.assertEqual([], sut.unfiltered_data)
@@ -320,7 +333,7 @@ class TestGetAndFillData(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
         sut.get_and_fill_data()
 
@@ -362,7 +375,7 @@ class TestGetAndFillData(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
         sut.unfiltered_data = ["old_test_data_1", "old_test_data_2"]
         sut.get_and_fill_data()
@@ -392,7 +405,7 @@ class TestFilterByError(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
         sut.unfiltered_data = []
 
@@ -453,9 +466,9 @@ class TestFilterByError(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
-        
+
         sut.unfiltered_data = [first_entry, second_entry, third_entry]
         sut.logline_handler.check_relevance.side_effect = [False, False, False]
 
@@ -516,7 +529,7 @@ class TestFilterByError(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
         sut.unfiltered_data = [first_entry, second_entry, third_entry]
         sut.logline_handler.check_relevance.side_effect = [False, True, True]
@@ -578,7 +591,7 @@ class TestFilterByError(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
         sut.unfiltered_data = [first_entry, second_entry, third_entry]
         sut.logline_handler.check_relevance.side_effect = [False, True, True]
@@ -602,7 +615,7 @@ class TestSendFilteredData(unittest.TestCase):
         mock_consume_handler,
         mock_logline_handler,
         mock_logger,
-        mock_generate_uuid
+        mock_generate_uuid,
     ):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
@@ -632,14 +645,16 @@ class TestSendFilteredData(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
-        mock_generate_uuid.return_value = uuid.UUID('35a21ad1-0bdb-481f-83b0-8c8d4c924f10')
+        mock_generate_uuid.return_value = uuid.UUID(
+            "35a21ad1-0bdb-481f-83b0-8c8d4c924f10"
+        )
         sut.unfiltered_data = [first_entry, second_entry]
         sut.filtered_data = [first_entry, second_entry]
         sut.subnet_id = "192.168.1.0_24"
         sut.batch_id = uuid.UUID("5236b147-5b0d-44a8-981f-bd7da8c54733")
-        sut.parent_row_id = uuid.UUID('35a21ad1-0bdb-481f-83b0-8c8d4c924f10')
+        sut.parent_row_id = uuid.UUID("35a21ad1-0bdb-481f-83b0-8c8d4c924f10")
         sut.begin_timestamp = datetime.datetime(2024, 5, 21, 8, 31, 27, 000000)
         sut.end_timestamp = datetime.datetime(2024, 5, 21, 8, 31, 29, 000000)
         expected_message = (
@@ -680,7 +695,7 @@ class TestSendFilteredData(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
         sut.unfiltered_data = ["message"]
         sut.filtered_data = []
@@ -708,8 +723,8 @@ class TestSendFilteredData(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
-        )        
+            validation_config={},
+        )
         sut.unfiltered_data = []
         sut.filtered_data = []
 
@@ -756,7 +771,7 @@ class TestClearData(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
         sut.unfiltered_data = [first_entry, second_entry]
         sut.filtered_data = [second_entry]
@@ -780,7 +795,7 @@ class TestClearData(unittest.TestCase):
             consume_topic="test_topic",
             produce_topics=["produce_topic"],
             relevance_function_name="no_relevance",
-            validation_config={}
+            validation_config={},
         )
         sut.unfiltered_data = []
         sut.filtered_data = []
@@ -794,17 +809,18 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.pf = [
             {
-            "name": "dga_filter",
-            "relevance_method": "no_relevance_check",
-            "collector_name": "dga_collector"
+                "name": "dga_filter",
+                "relevance_method": "no_relevance_check",
+                "collector_name": "dga_collector",
             }
         ]
-# Todo: test the start method instead!  and their submethods as well!
-# TODO: check_data_relevance_using_rules needs to be updated so that relevance checks are executed properly!
+
+    # Todo: test the start method instead!  and their submethods as well!
+    # TODO: check_data_relevance_using_rules needs to be updated so that relevance checks are executed properly!
 
     # @patch("src.prefilter.prefilter.logger")
     # @patch("src.prefilter.prefilter.Prefilter")
-    # @patch("asyncio.create_task")  
+    # @patch("asyncio.create_task")
     # @patch("asyncio.run")
     # async def test_main_normal_flow(self,mock_asyncio_run, mock_asyncio_create_task, mock_prefilter_cls, mock_logger):
     #     # Arrange
@@ -827,7 +843,7 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
 
     # @patch("src.prefilter.prefilter.logger")
     # @patch("src.prefilter.prefilter.Prefilter")
-    # @patch("asyncio.create_task")  
+    # @patch("asyncio.create_task")
     # @patch("asyncio.run")
     # async def test_main_ioerror(self, mock_asyncio_run, mock_asyncio_create_task, mock_prefilter_cls, mock_logger):
     #     mock_prefilter_instance = MagicMock()
@@ -844,23 +860,29 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.prefilter.prefilter.logger")
     @patch("src.prefilter.prefilter.Prefilter")
-    @patch("asyncio.create_task")  
+    @patch("asyncio.create_task")
     @patch("asyncio.run")
-    async def test_main_normal_flow(self, mock_asyncio_run, mock_asyncio_create_task, mock_prefilter_cls, mock_logger):
+    async def test_main_normal_flow(
+        self,
+        mock_asyncio_run,
+        mock_asyncio_create_task,
+        mock_prefilter_cls,
+        mock_logger,
+    ):
         # Arrange
         mock_prefilter_instance = MagicMock()
         mock_prefilter_instance.start = AsyncMock()
         mock_prefilter_cls.return_value = mock_prefilter_instance
         mock_asyncio_create_task.side_effect = lambda coro: coro
-        
+
         with patch("src.prefilter.prefilter.PREFILTERS", self.pf):
             await main()
 
         mock_prefilter_instance.start.assert_called_once()
-        
+
     # @patch("src.prefilter.prefilter.logger")
     # @patch("src.prefilter.prefilter.Prefilter")
-    # @patch("asyncio.create_task")  
+    # @patch("asyncio.create_task")
     # @patch("asyncio.run")
     # async def test_main_kafka_message_fetch_exception(
     #     self, mock_asyncio_run, mock_asyncio_create_task, mock_prefilter_cls, mock_logger
@@ -873,7 +895,7 @@ class TestMainFunction(unittest.IsolatedAsyncioTestCase):
     #     # Act
     #     with patch("src.prefilter.prefilter.PREFILTERS", self.pf):
     #         await main()
-            
+
     #     # Assert
     #     mock_prefilter_instance.clear_data.assert_called()
 

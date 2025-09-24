@@ -44,7 +44,9 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         mock_kafka_consume_handler,
         mock_logger,
     ):
-        self.sut = LogServer(consume_topic="consume-topic", produce_topics=["topic1","topic2"])
+        self.sut = LogServer(
+            consume_topic="consume-topic", produce_topics=["topic1", "topic2"]
+        )
 
     @patch("src.logserver.server.LogServer.fetch_from_kafka")
     @patch("src.logserver.server.ClickHouseKafkaSender")
@@ -110,12 +112,15 @@ class TestSend(unittest.TestCase):
         mock_kafka_produce_handler_instance.produce.assert_called_once_with(
             topic="test_topic",
             data=message,
-      
         )
+
 
 class _StopFetching(RuntimeError):
     """Raised inside the test to break the infinite fetch loop."""
+
     pass
+
+
 class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
     @patch("src.logserver.server.ExactlyOnceKafkaConsumeHandler")
@@ -141,10 +146,13 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
             _StopFetching(),
         ]
         mock_kafka_consume.return_value = mock_consume_handler
-        self.sut = LogServer(consume_topic="test-topic", produce_topics=["test_produce_topic"])
+        self.sut = LogServer(
+            consume_topic="test-topic", produce_topics=["test_produce_topic"]
+        )
 
         # Keep real fetch but stop after _StopFetching
         original_fetch = self.sut.fetch_from_kafka
+
         def fetch_wrapper(*args, **kwargs):
             try:
                 original_fetch(*args, **kwargs)
@@ -157,6 +165,7 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
         mock_send.assert_called_once_with(
             UUID("bd72ccb4-0ef2-4100-aa22-e787122d6875"), "value1"
         )
+
 
 # class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
 
@@ -209,19 +218,24 @@ class TestFetchFromKafka(unittest.IsolatedAsyncioTestCase):
 class TestMain(unittest.IsolatedAsyncioTestCase):
     @patch("src.logserver.server.logger")
     @patch("src.logserver.server.LogServer")
-    @patch("asyncio.create_task")  
+    @patch("asyncio.create_task")
     @patch("asyncio.run")
     @patch("src.logserver.server.SENSOR_PROTOCOLS", ["dns"])
     @patch("src.logserver.server.CONSUME_TOPIC_PREFIX", "consume_prefix")
     @patch("src.logserver.server.PRODUCE_TOPIC_PREFIX", "produce_prefix")
-    @patch("src.logserver.server.COLLECTORS", [{"name": "test-collector", "protocol_base": "dns"}])
-    async def test_main(self, mock_asyncio_run, mock_asyncio_create_task, mock_instance, mock_logger):
+    @patch(
+        "src.logserver.server.COLLECTORS",
+        [{"name": "test-collector", "protocol_base": "dns"}],
+    )
+    async def test_main(
+        self, mock_asyncio_run, mock_asyncio_create_task, mock_instance, mock_logger
+    ):
         # Arrange
         mock_instance_obj = MagicMock()
         mock_instance.return_value = mock_instance_obj
         mock_instance_obj.start = AsyncMock()
         mock_asyncio_create_task.side_effect = lambda coro: coro
-        
+
         # Act
         await main()
 
@@ -229,13 +243,15 @@ class TestMain(unittest.IsolatedAsyncioTestCase):
         mock_instance_obj.start.assert_called_once()
         args, kwargs = mock_asyncio_create_task.call_args_list[0]
         expected_call = args[0]
-        mock_asyncio_create_task.assert_called_once_with(expected_call)        
+        mock_asyncio_create_task.assert_called_once_with(expected_call)
 
     @patch("src.logserver.server.logger")
     @patch("src.logserver.server.LogServer")
-    @patch("asyncio.create_task")  
+    @patch("asyncio.create_task")
     @patch("asyncio.run")
-    async def test_main_multiple_protocols(self, mock_asyncio_run, mock_asyncio_create_task, mock_instance, mock_logger):
+    async def test_main_multiple_protocols(
+        self, mock_asyncio_run, mock_asyncio_create_task, mock_instance, mock_logger
+    ):
         # Arrange
         mock_instance_obj = MagicMock()
         mock_instance.return_value = mock_instance_obj
@@ -250,5 +266,7 @@ class TestMain(unittest.IsolatedAsyncioTestCase):
         args, kwargs = mock_asyncio_create_task.call_args_list[0]
         expected_call = args[0]
         assert mock_asyncio_create_task.call_count == 2
+
+
 if __name__ == "__main__":
     unittest.main()

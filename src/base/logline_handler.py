@@ -157,21 +157,22 @@ class ListItem(FieldType):
 class RelevanceHandler:
     """
     Handler class to check the relevance of a given logline. Loads the appropriate child method by the name, configured
-    in the config.yaml at the ``log_filtering`` section from the ``relevance_method`` attribute. 
+    in the config.yaml at the ``log_filtering`` section from the ``relevance_method`` attribute.
     """
+
     def __init__(self, log_configuration_instances):
         self.log_configuration_instances = log_configuration_instances
 
     def check_relevance(self, function_name: str, logline_dict: dict) -> bool:
         """
-            wrapper function to get the appropriate relevance function by name.
-            
-            Args: 
-                function_name (str): The name of the relevance_method to import
-                logline_dict (dict): The dictionary version of a logline
-                
-            Returns:
-                True, if the logline is relevant according to the relevance function, else False
+        wrapper function to get the appropriate relevance function by name.
+
+        Args:
+            function_name (str): The name of the relevance_method to import
+            logline_dict (dict): The dictionary version of a logline
+
+        Returns:
+            True, if the logline is relevant according to the relevance function, else False
         """
         is_relevant = False
         try:
@@ -184,10 +185,10 @@ class RelevanceHandler:
     def check_dga_relevance(self, logline_dict: dict) -> bool:
         """
         Method to check if a given logline is relevant for a dga analysis.
-                    
-        Args: 
+
+        Args:
             logline_dict (dict): The dictionary version of a logline
-            
+
         Returns:
             True, if the logline is relevant according to the relevance function, else False
         """
@@ -207,9 +208,9 @@ class RelevanceHandler:
         """
             Skip the relevance check by always returning True
 
-        Args: 
+        Args:
             logline_dict (dict): The dictionary version of a logline
-            
+
         Returns:
             Always returns True (all lines are relevant)
         """
@@ -225,7 +226,7 @@ class LoglineHandler:
     def __init__(self, validation_config: list):
         """
         Check all existing log configurations for validity.
-        
+
         Args:
             validation_config (list): A list containing the configured attributes a given logline needs to hold. Otherwise it gets discarded
         """
