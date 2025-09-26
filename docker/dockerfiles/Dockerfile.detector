@@ -18,6 +18,5 @@ FROM gcr.io/distroless/python3-debian12
 COPY --from=build-venv /venv /venv
 COPY src/base /app/src/base
 COPY src/detector /app/src/detector
-COPY config.yaml /app
 WORKDIR /app
 ENTRYPOINT ["/venv/bin/python3", "src/detector/detector.py"]

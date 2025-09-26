@@ -7,19 +7,64 @@ Overview
 The core component of the software's architecture is its data pipeline. It consists of five stages/modules, and data
 traverses through it using Apache Kafka.
 
-.. image:: media/pipeline_overview.png
+.. image:: media/heidgaf_architecture.png
 
 
-Stage 1: Log Storage
-====================
+Stage 1: Log Aggregation
+========================
 
-This stage serves as the central contact point for all data.
+The Log Aggregation stage harnesses multiple Zeek sensors to ingest data from static (i.e. PCAP files) and dynamic sources (i.e. traffic from network interfaces).
+The traffic is split protocolwise into Kafka topics and send to the Logserver for the Log Storage phase.
 
 Overview
 --------
 
-The :class:`LogServer` class is the core component of this stage. It reads from several input sources and sends the
-data to Kafka, where it can be obtained by the following module.
+The :class:`ZeekConfigurationHandler` takes care of the setup of a containerized Zeek sensor. It reads in the main configuration file and
+adjusts the protocols to listen on, the logformats of incoming traffic, and the Kafka queues to send to.
+
+The :class:`ZeekAnalysisHandler` starts the actual Zeek instance. Based on the configuration it either starts Zeek in a cluster for specified network interfaces
+or in a single node instance for static analyses.
+
+Main Classes
+------------
+
+.. py:currentmodule:: src.zeek.zeek_config_handler
+.. autoclass:: ZeekConfigurationHandler
+
+.. py:currentmodule:: src.zeek.zeek_analysis_handler
+.. autoclass:: ZeekAnalysisHandler
+
+Usage and configuration
+-----------------------
+
+An analysis can be performed via tapping network inerfaces and by injecting pcap files.
+To adjust this, adapt the ``pipeline.zeek.sensors.[sensor_name].static_analysis`` value to True or false.
+
+- **``pipeline.zeek.sensors.[sensor_name].static_analysis``** set to True:
+
+  - An static analysis is executed. The PCAP files are extracted from within the GitHub root directory under ``/data/test_pcaps"`` and mounted into the zeek container. All files ending in .PCAP are then read and analyzed by Zeek.
+    Please Note that we do not recommend to use several Zeek instances for a static analysis, as the data will be read in multiple times, which impacts the benchmarks accordingly.
+
+- **``pipeline.zeek.sensors.[sensor_name].static_analysis``** set to False:
+
+  - A network analysis is performed for the interfaces listed in ``pipeline.zeek.sensors.[sensor_name].interfaces``
+
+
+You can start multiple instances of Zeek by adding more entries to the dictionary ``pipeline.zeek.sensors``.
+Necessary attributes are:
+- ``pipeline.zeek.sensors.[sensor_name].static_analysis`` : **bool**
+- if not static analysis: ``pipeline.zeek.sensors.[sensor_name].interfaces`` : **list**
+- ``pipeline.zeek.sensors.[sensor_name].protocols`` : **list**
+
+Stage 2: Log Storage
+====================
+
+This stage serves as the central ingestion point for all data.
+
+Overview
+--------
+
+The :class:`LogServer` class is the core component of this stage. It reads the Zeek Sensors inputs and directs them via Kafka to the following stages.
 
 Main Class
 ----------
@@ -30,26 +75,13 @@ Main Class
 Usage and configuration
 -----------------------
 
-Currently, the :class:`LogServer` reads from both an input file and a Kafka topic, simultaneously. The configuration
-allows changing the file name to read from.
+Currently, the :class:`LogServer` reads from the Kafka Queues specified by Zeek. These have a common prefix, specified in ``environment.kafka_topics_prefix.pipeline.logserver_in``. The suffix is the protocol name in lower case of the traffic.
+The Logserver currently has no further configuration.
 
-- **Without Docker**:
-
-  - To change the input file path, change ``pipeline.log_storage.logserver.input_file`` in the `config.yaml`. The
-    default setting is ``"/opt/file.txt"``.
-
-- **With Docker**:
-
-  - Docker mounts the file specified in ``MOUNT_PATH`` in the file `docker/.env`. By default, this is set to
-    ``../../default.txt``, which refers to the file `docker/default.txt`.
-  - By changing this variable, the file to be mounted can be set. Please note that in this case, the variable specified
-    in the `config.yaml` must be set to the default value.
-
-
-Stage 2: Log Collection
+Stage 3: Log Collection
 =======================
 
-The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<Stage 1: Log Storage>`,
+The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<Stage 2: Log Storage>`,
 parsing their information fields, and validating the data. Each field is checked to ensure it is of the correct type
 and format. This stage ensures that all data is accurate, reducing the need for further verification in subsequent
 stages. Any loglines that do not meet the required format are immediately discarded to maintain data integrity. Valid
@@ -67,7 +99,7 @@ The `Log Collection` stage comprises three main classes:
    and content. Adds ``subnet_id`` that it retrieves from the client's IP address in the logline.
 2. :class:`BufferedBatch`: Buffers validated loglines with respect to their ``subnet_id``. Maintains the timestamps for
    accurate processing and analysis per key (``subnet_id``). Returns sorted batches.
-3. :class:`CollectorKafkaBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
+3. :class:`BufferedBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
    and checks the fill level of the key-specific batches. Sends the key's batches if full, sends all batches at timeout.
 
 Main Classes
@@ -80,7 +112,7 @@ Main Classes
 .. autoclass:: BufferedBatch
 
 .. py:currentmodule:: src.logcollector.batch_handler
-.. autoclass:: CollectorKafkaBatchSender
+.. autoclass:: BufferedBatchSender
 
 Usage
 -----
@@ -89,7 +121,9 @@ LogCollector
 ............
 
 The :class:`LogCollector` connects to the :class:`LogServer` to retrieve one logline, which it then processes and
-validates. The logline is parsed into its respective fields, each checked for correct type and format:
+validates. The logline is parsed into its respective fields, each checked for correct type and format.
+For each configuration of a logg collector in ``pipeline.logcollection.collectors``, a process is spun up in the resulting docker container
+allowing for multiprocessing and threading.
 
 - **Field Validation**:
 
@@ -115,16 +149,20 @@ validates. The logline is parsed into its respective fields, each checked for co
 
 - **Log Line Format**:
 
-  - By default, log lines have the following format:
+  As the log information differs for each protocol, there is a default format per protocol.
+  This can be either adapted or a completely new one can be added as well. For more information
+  please reffer to section :ref:`Logline format configuration`.
 
     .. code-block::
 
-        TIMESTAMP STATUS CLIENT_IP DNS_IP HOST_DOMAIN_NAME RECORD_TYPE RESPONSE_IP SIZE
+        DNS default logline format
+
+        TS STATUS SRC_IP DNS_IP HOST_DOMAIN_NAME RECORD_TYPE RESPONSE_IP SIZE
 
     +----------------------+------------------------------------------------+
     | **Field**            | **Description**                                |
     +======================+================================================+
-    | ``TIMESTAMP``        | The date and time when the log entry was       |
+    | ``TS``        | The date and time when the log entry was              |
     |                      | recorded. Formatted as                         |
     |                      | ``YYYY-MM-DDTHH:MM:SS.sssZ``.                  |
     |                      |                                                |
@@ -140,7 +178,7 @@ validates. The logline is parsed into its respective fields, each checked for co
     | ``STATUS``           | The status of the DNS query, e.g., ``NOERROR``,|
     |                      | ``NXDOMAIN``.                                  |
     +----------------------+------------------------------------------------+
-    | ``CLIENT_IP``        | The IP address of the client that made the     |
+    | ``SRC_IP``        | The IP address of the client that made the        |
     |                      | request.                                       |
     +----------------------+------------------------------------------------+
     | ``DNS_IP``           | The IP address of the DNS server processing    |
@@ -159,7 +197,51 @@ validates. The logline is parsed into its respective fields, each checked for co
     |                      | bytes.                                         |
     +----------------------+------------------------------------------------+
 
-  - Users can change the format and field types, as described in the :ref:`Logline format configuration` section.
+
+
+    .. code-block::
+
+        HTTP default logline format
+
+        TS SRC_IP SRC_PORT DST_IP DST_PORT METHOD URI STATUS_CODE REQUEST_BODY RESPONSE_BODY
+
+    +----------------------+------------------------------------------------+
+    | **Field**            | **Description**                                |
+    +======================+================================================+
+    | ``TS``        | The date and time when the log entry was              |
+    |                      | recorded. Formatted as                         |
+    |                      | ``YYYY-MM-DDTHH:MM:SS.sssZ``.                  |
+    |                      |                                                |
+    |                      | - **Format**: ``%Y-%m-%dT%H:%M:%S.%f`` (with   |
+    |                      |   microseconds truncated to milliseconds).     |
+    |                      | - **Time Zone**: ``Z``                         |
+    |                      |   indicates Zulu time (UTC).                   |
+    |                      | - **Example**: ``2024-07-28T14:45:30.123Z``    |
+    |                      |                                                |
+    |                      | This format closely resembles ISO 8601, with   |
+    |                      | milliseconds precision.                        |
+    +----------------------+------------------------------------------------+
+    | ``SRC_IP``           | The IP address of the client that made the     |
+    |                      | request.                                       |
+    +----------------------+------------------------------------------------+
+    | ``SRC_PORT``         | The source port of the cliend making the       |
+    |                      | request                                        |
+    +----------------------+------------------------------------------------+
+    | ``DST_IP``           | The IP address of the target server for the    |
+    |                      | request.                                       |
+    +----------------------+------------------------------------------------+
+    | ``DST_PORT``         | The port of the target server                  |
+    +----------------------+------------------------------------------------+
+    | ``METHOD``           | The HTTP method used (e.g. ``GET, POST``)      |
+    +----------------------+------------------------------------------------+
+    | ``URI``              | Path accessed in the request (e.g. ``/admin``) |
+    +----------------------+------------------------------------------------+
+    | ``STATUS_CODE``      | The HTTP status code returned (e.g. ``500``)   |
+    +----------------------+------------------------------------------------+
+    | ``REQUEST_BODY``     | The HTTP request payload (might be encrypted)  |
+    +----------------------+------------------------------------------------+
+    | ``RESPONSE_BODY``    | The HTTP response body (might be encrypted)    |
+    +----------------------+------------------------------------------------+
 
 BufferedBatch
 .............
@@ -171,7 +253,7 @@ The :class:`BufferedBatch` manages the buffering of validated loglines as well a
   - Collects log entries into a ``batch`` dictionary, with the ``subnet_id`` as key.
   - Uses a ``buffer`` per key to concatenate and send both the current and previous batches together.
   - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
-    :ref:`Stage 4: Data Inspection` and :ref:`Stage 5: Data Analysis`.
+    :ref:`Data-Inspection<inspection_stage>` and :ref:`Data-Analysis<detection_stage>`.
   - All batches get sorted by their timestamps at completion to ensure correct chronological order.
   - A `begin_timestamp` and `end_timestamp` per key are extracted and send as metadata (needed for analysis). These
     are taken from the chronologically first and last message in a batch.
@@ -191,15 +273,18 @@ The :class:`CollectorKafkaBatchSender` manages the sending of validated loglines
 Configuration
 -------------
 
-The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format`` configured
+The instances of the class :class:`LogCollector` check the validity of incoming loglines. For this, they use the ``required_log_information`` configured
 in the ``config.yaml``.
 
-- **LogCollector Analyzation Criteria**:
+Configurations can arbitrarily added, adjusted and removed. This is especially useful if certain detectors need specialized log fields.
+The following convention needs to be sticked to:
 
-  - Valid status codes: The accepted status codes for logline validation. This is defined in the field with name
-    ``"status_code"`` in the ``logline_format`` list.
-  - Valid record types: The accepted DNS record types for logline validation. This is defined in the field with name
-    ``"record_type"`` in the ``logline_format`` list.
+- Each entry in the ``required_log_information``  needs to be a list
+- The first item is the name of the datafield as adjusted in Zeek
+- The second item is the Class name the value should be mapped to for validation
+- Depending on the class, the third item is a list of valid inputs
+- Depending on the class, the fourth item is a list of relevant inputs
+
 
 Buffer Functionality
 --------------------
@@ -270,7 +355,7 @@ Example Workflow
 This class design effectively manages the batching and buffering of messages, allowing for precise timestamp tracking
 and efficient data processing across different message streams.
 
-Stage 3: Log Filtering
+Stage 4: Log Filtering
 ======================
 
 Overview
@@ -292,9 +377,10 @@ log data.
 Usage
 -----
 
-The :class:`Prefilter` loads data from the Kafka topic ``Prefilter``. It extracts the log entries and applies a filter
-to retain only those entries that match the specified error types. These error types are provided as a list of strings
-during the initialization of a :class:`Prefilter` instance.
+One :class:`Prefilter` per prefilter configuration in ``pipeline.log_filtering`` is started. Each instance loads from a Kafka topic name that depends on the logcollector the prefilter builds upon.
+The prefix for each topic is defined in ``environment.kafka_topics_prefix.batch_sender_to_prefilter.`` and the suffix is the configured log collector name.
+The prefilters extract the log entries and apply a filter function (or relevance function) to retain only those entries that match the specified requirements.
+
 
 Once the filtering process is complete, the refined data is sent back to the Kafka Brokers under the topic ``Inspect``
 for further processing in subsequent stages.
@@ -302,49 +388,95 @@ for further processing in subsequent stages.
 Configuration
 -------------
 
-To customize the filtering behavior, the following options in the ``logline_format`` set
-in the ``config.yaml`` are used.
+To customize the filtering behavior, the relevance function can be extended and adjusted in ``"src/base/logline_handler"`` and can be referenced in the ``"configuration.yaml"`` by the function name.
+Checks can be skipped by referencing the ``no_relevance_check`` function.
+We currently support the following relevance methods:
 
-- **Relevant Types**:
+    +---------------------------+-------------------------------------------------------------+
+    | **Name**                  | **Description**                                             |
+    +===========================+=============================================================+
+    | ``no_relevance_check ``   | Skip the relevance check of the prefilters entirely.        |
+    +---------------------------+-------------------------------------------------------------+
+    | ``check_dga_relevance``   | Function to filter requests based on LisItems in the        |
+    |                           | logcollector configuration. Using the fourth item in the    |
+    |                           | list as a list of relevant status codes, only the request   |
+    |                           | and responses are forwarded that include a  **NXDOMAIN**    |
+    |                           | status code.                                                |
+    +---------------------------+-------------------------------------------------------------+
 
-  - If the fourth entry of the field configuration with type ``ListItem`` in the ``logline_format`` list is defined for
-    any field name, the values in this list are the relevant values.
 
-
-Stage 4: Inspection
+Stage 5: Inspection
 ========================
+.. _inspection_stage:
 
 Overview
 --------
 
-The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage is essentiell to reduce
+The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage is essential to reduce
 the load on the `Detection` stage.
 Otherwise, resource complexity increases disproportionately.
 
-Main Class
-----------
+
+Main Classes
+------------
 
 .. py:currentmodule:: src.inspector.inspector
-.. autoclass:: Inspector
+.. autoclass:: InspectorAbstractBase
 
-The :class:`Inspector` is the primary class to run StreamAD models for time-series based anomaly detection, such as the Z-Score outlier detection.
-In addition, it features fine-tuning settings for models and anomaly thresholds.
+.. py:currentmodule:: src.inspector.inspector
+.. autoclass:: InspectorBase
 
-Usage
------
+The :class:`InspectorBase` is the primary class for inspecotrs. It holds common functionalities and is responsible for data ingesting, sending, etc.. Any inspector build on top of this
+class and needs to implement the methods specified by :class:`InspectorAbstractBase`. The class implementations need to go into ``"/src/inspector/plugins"``
 
-The :class:`Inspector` loads the StreamAD model to perform anomaly detection.
-It consumes batches on the topic ``inspect``, usually produced by the ``Prefilter``.
+
+
+Usage and Configuration
+-----------------------
+
+We currently support the following inspectors:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 30 55
+
+   * - **Name**
+     - **Description**
+     - **Configuration**
+   * - ``no_inspector``
+     - Skip the anomaly inspection of data entirely.
+     - No additional configuration
+   * - ``stream_ad_inspector``
+     - Uses StreamAD models for anomaly detection. All StreamAD models are supported (univariate, multivariate, ensembles).
+     - - ``mode``: univariate (options: multivariate, ensemble)
+       - ``ensemble.model``: WeightEnsemble (options: VoteEnsemble)
+       - ``ensemble.module``: streamad.process
+       - ``ensemble.model_args``: Additional Arguments for the ensemble model
+       - ``models.model``: ZScoreDetector
+       - ``models.module``: streamad.model
+       - ``models.model_args``: Additional arguments for the model
+       - ``anomaly_threshold``: 0.01
+       - ``score_threshold``: 0.5
+       - ``time_type``: streamad.process
+       - ``time_range``: 20
+
+
+
+
+Further inspectors can be added and referenced in the config by adjusting the ``pipeline.data_inspection.[inspector].inspector_module_name`` and ``pipeline.data_inspection.[inspector].inspector_class_name``.
+Each inspector might need special configurations. For the possible configuration values, please reference the table above.
+
+StreamAD Inspector
+...................
+
+The inspector consumes batches on the topic ``inspect``, usually produced by the ``Prefilter``.
 For a new batch, it derives the timestamps ``begin_timestamp`` and ``end_timestamp``.
 Based on time type (e.g. ``s``, ``ms``) and time range (e.g. ``5``) the sliding non-overlapping window is created.
 For univariate time-series, it counts the number of occurances, whereas for multivariate, it considers the number of occurances and packet size. :cite:`schuppen_fanci_2018`
 
 An anomaly is noted when it is greater than a ``score_threshold``.
 In addition, we support a relative anomaly threshold.
-So, if the anomaly threshold is ``0.01``, it sends anomalies for further detection, if the amount of anomlies divided by the total amount of requests in the batch is greater than ``0.01``.
-
-Configuration
--------------
+So, if the anomaly threshold is ``0.01``, it sends anomalies for further detection, if the amount of anomalies divided by the total amount of requests in the batch is greater than ``0.01``.
 
 All StreamAD models are supported. This includes univariate, multivariate, and ensemble methods.
 In case special arguments are desired for your environment, the ``model_args`` as a dictionary ``dict`` can be passed for each model.
@@ -372,10 +504,11 @@ Ensemble prediction in ``streamad.process:
 - :class:`WeightEnsemble`
 - :class:`VoteEnsemble`
 
-It takes a list of ``streamad.model`` for perform the ensemble prediction.
+It takes a list of ``streamad.model`` to perform the ensemble prediction.
 
-Stage 5: Detection
+Stage 6: Detection
 ==================
+.. _detection_stage:
 
 Overview
 --------
@@ -388,20 +521,50 @@ In total, we rely on the following data sets for the pre-trained models we offer
 - `DGTA-BENCH - Domain Generation and Tunneling Algorithms for Benchmark <https://data.mendeley.com/datasets/2wzf9bz7xr/1>`_
 - `DGArchive <https://dgarchive.caad.fkie.fraunhofer.de/>`_
 
-Main Class
-----------
+Main Classes
+------------
 
 .. py:currentmodule:: src.detector.detector
-.. autoclass:: Detector
+.. autoclass:: DetectorAbstractBase
 
-Usage
------
+.. py:currentmodule:: src.detector.detector
+.. autoclass:: DetectorBase
 
-The :class:`Detector` consumes anomalous batches of requests.
+.. py:currentmodule:: src.detector.plugins.dga_detector
+.. autoclass:: DGADetector
+
+
+The :class:`DetectorBase` is the primary class for Detectors. It holds common functionalities and is responsible for data ingesting, triggering alerts, logging, etc.. Any Detector is build on top of this
+class and needs to implement the methods specified by :class:`DetectorAbstractBase`. The class implementations need to go into ``"/src/detector/plugins"``
+
+
+Configuration and Usage
+-----------------------
+
+We currently support the following inspectors:
+
+
+  +---------------------------+-------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+  | **Name**                  | **Description**                                             | **Configuration**                                                                          |
+  +===========================+=============================================================+============================================================================================+
+  | ``DGADetector``           | Uses StreamAD models for anomaly detection. All StreamAD    | ``mode``: univariate (options: multivariate, ensemble)                                     |
+  |                           | models are supported. This includes univariate, multivariate| ``ensemble.model``: WeightEnsemble (options: VoteEnsemble)                                 |
+  |                           | and ensembles.                                              | ``ensemble.module``: streamad.process (Python module for the ensemble model)               |
+  |                           |                                                             | ``ensemble.model_args``: Additional Arguments for the ensemble model.                      |
+  |                           |                                                             | ``models.model``: ZScoreDetector (Model to use for data inspection)                        |
+  |                           |                                                             | ``models.module``: streamad.model (Base python module for inspection models)               |
+  |                           |                                                             | ``models.model_args``: Additional arguments for the model                                  |
+  |                           |                                                             | ``anomaly_threshold``: 0.01 (Threshold for classifying an observation as an anomaly.)      |
+  |                           |                                                             | ``score_threshold``: 0.5 (Threshold for the anomaly score.)                                |
+  |                           |                                                             | ``time_type``: streamad.process (Unit of time used in time range calculations.)            |
+  |                           |                                                             | ``time_range``: 20 (Time window for data inspection)                                       |
+  +---------------------------+-------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+
+In case you want to load self-trained models, the configuration acn be adapted to load the model from a different location. Since download link is assembled the following way:
+``<model_base_url>/files/?p=%2F<model_name>/<model_checksum>/<model_name>.pickle&dl=1"`` You can adapt the base url. If you need to adhere to another URL composition create
+A new detector class by either implementing the necessary base functions from :class:`DetectorBase` or by deriving the new class from :class:`DGADetector` and just overwrite the ``"get_model_download_url"`` method.
+
+DGA Detector
+...................
+The :class:`DGADetector` consumes anomalous batches of requests.
 It calculates a probability score for each request, and at last, an overall score of the batch.
-Alerts are log to ``/tmp/warnings.json``.
-
-Configuration
--------------
-
-In case you want to load self-trained models, the :class:`Detector` needs a URL path, model name, and SHA256 checksum to download the model during start-up.

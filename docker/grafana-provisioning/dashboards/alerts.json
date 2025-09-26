@@ -117,7 +117,7 @@
           },
           "pluginVersion": "4.5.1",
           "queryType": "table",
-          "rawSql": "SELECT \n    toStartOf${Granularity}(toDateTime64(alert_timestamp, 6)) AS time_bucket,\n    count(client_ip) AS \"count\"\nFROM alerts\nWHERE alert_timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND alert_timestamp <= $__toTime\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\nTO toStartOf${Granularity}(toDateTime64($__toTime, 6))\nSTEP toInterval${Granularity}(1);",
+          "rawSql": "SELECT \n    toStartOf${Granularity}(toDateTime64(alert_timestamp, 6)) AS time_bucket,\n    count(src_ip) AS \"count\"\nFROM alerts\nWHERE alert_timestamp >= toStartOf${Granularity}(toDateTime64($__fromTime, 6)) AND alert_timestamp <= $__toTime\nGROUP BY time_bucket\nORDER BY time_bucket\nWITH FILL\nFROM toStartOf${Granularity}(toDateTime64($__fromTime, 6))\nTO toStartOf${Granularity}(toDateTime64($__toTime, 6))\nSTEP toInterval${Granularity}(1);",
           "refId": "B"
         }
       ],
@@ -197,7 +197,7 @@
           },
           "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT client_ip\n  FROM alerts\n  WHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\n);",
+          "rawSql": "SELECT count(*)\nFROM (\n  SELECT DISTINCT src_ip\n  FROM alerts\n  WHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\n);",
           "refId": "A"
         }
       ],
@@ -629,7 +629,7 @@
           },
           "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT DISTINCT client_ip AS \"Client IP address\", arrayStringConcat(JSONExtract(domain_names, 'Array(String)'), ', ') AS \"Domains used\"\nFROM alerts\nORDER BY alert_timestamp DESC\nLIMIT 20",
+          "rawSql": "SELECT DISTINCT src_ip AS \"Client IP address\", arrayStringConcat(JSONExtract(domain_names, 'Array(String)'), ', ') AS \"Domains used\"\nFROM alerts\nORDER BY alert_timestamp DESC\nLIMIT 20",
           "refId": "A"
         }
       ],
@@ -714,7 +714,7 @@
           },
           "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT concat(rowNumberInAllBlocks() + 1, '.') AS \"Rank\", client_ip AS \"Client IP address\", count(logline_id) AS \"# Total Requests\"\nFROM dns_loglines\nWHERE \"Client IP address\" IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n  WHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\n)\nGROUP BY \"Client IP address\"\nORDER BY \"# Total Requests\" DESC\nLIMIT 5",
+          "rawSql": "SELECT concat(rowNumberInAllBlocks() + 1, '.') AS \"Rank\", src_ip AS \"Client IP address\", count(logline_id) AS \"# Total Requests\"\nFROM loglines\nWHERE \"Client IP address\" IN (\n  SELECT DISTINCT src_ip\n  FROM alerts\n  WHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\n)\nGROUP BY \"Client IP address\"\nORDER BY \"# Total Requests\" DESC\nLIMIT 5",
           "refId": "A"
         }
       ],

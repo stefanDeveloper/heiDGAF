@@ -44,15 +44,16 @@ class MonitoringAgent:
         self.table_names = [
             "server_logs",
             "server_logs_timestamps",
-            "failed_dns_loglines",
+            "failed_loglines",
             "logline_to_batches",
-            "dns_loglines",
+            "loglines",
             "logline_timestamps",
             "batch_timestamps",
             "suspicious_batches_to_batch",
             "suspicious_batch_timestamps",
             "alerts",
             "fill_levels",
+            "batch_tree",
         ]
 
         self.topics = [f"clickhouse_{table_name}" for table_name in self.table_names]

@@ -1,0 +1,22 @@
+services:
+  zeek:
+    build:
+      context: ../../../
+      dockerfile: docker/dockerfiles/Dockerfile.zeek
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
+      grafana:
+        condition: service_healthy
+    network_mode: host
+    volumes:
+      - ../../../src:/opt/src
+      - ../../../config.yaml:/opt/config.yaml

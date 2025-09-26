@@ -1,17 +1,23 @@
 import unittest
 import uuid
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 
 import marshmallow_dataclass
 import numpy as np
 from streamad.model import ZScoreDetector, RShashDetector
 
+from src.base.kafka_handler import (
+    KafkaMessageFetchException,
+)
 from src.base.data_classes.batch import Batch
-from src.inspector.inspector import Inspector, main
+from src.inspector.inspector import InspectorBase, main
+
+# use no_inspector for testing, as it has almost 0 domain logic
+from src.inspector.plugins.no_inspector import NoInspector
 
 DEFAULT_DATA = {
-    "client_ip": "192.168.0.167",
+    "src_ip": "192.168.0.167",
     "dns_ip": "10.10.0.10",
     "response_ip": "252.79.173.222",
     "timestamp": "",
@@ -21,6 +27,11 @@ DEFAULT_DATA = {
     "size": "100b",
 }
 
+MINIMAL_NO_INSPECTOR_CONFIG = {
+    "name": "test_inspector",
+    "inspector_class_name": "NoInspector",
+}
+
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
@@ -28,6 +39,7 @@ def get_batch(data):
     begin = datetime.now()
     end = begin + timedelta(0, 3)
     test_batch = Batch(
+        batch_tree_row_id=f"{uuid.uuid4()}-{uuid.uuid4()}",
         batch_id=uuid.uuid4(),
         begin_timestamp=begin,
         end_timestamp=end,
@@ -37,7 +49,6 @@ def get_batch(data):
 
 
 class TestInit(unittest.TestCase):
-    @patch("src.inspector.inspector.CONSUME_TOPIC", "test_topic")
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
@@ -49,7 +60,11 @@ class TestInit(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = Inspector()
+        sut = NoInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
+        )
 
         self.assertEqual([], sut.messages)
         self.assertEqual(mock_kafka_consume_handler_instance, sut.kafka_consume_handler)
@@ -77,7 +92,12 @@ class TestGetData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = Inspector()
+        sut = NoInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
+        )
+
         sut.get_and_fill_data()
 
         self.assertEqual([], sut.messages)
@@ -103,7 +123,12 @@ class TestGetData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = Inspector()
+        sut = NoInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
+        )
+
         sut.messages = []
         sut.get_and_fill_data()
 
@@ -135,7 +160,13 @@ class TestGetData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = Inspector()
+        sut = NoInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
+        )
+
+        sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
         sut.messages = []
         sut.get_and_fill_data()
 
@@ -162,7 +193,12 @@ class TestGetData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = Inspector()
+        sut = NoInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
+        )
+
         sut.messages = ["test_data"]
         sut.get_and_fill_data()
 
@@ -186,7 +222,12 @@ class TestClearData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = Inspector()
+        sut = NoInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
+        )
+
         sut.messages = []
         sut.clear_data()
 
@@ -208,7 +249,12 @@ class TestClearData(unittest.TestCase):
         mock_produce_handler_instance = MagicMock()
         mock_kafka_produce_handler.return_value = mock_produce_handler_instance
 
-        sut = Inspector()
+        sut = NoInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
+        )
+
         sut.messages = ["test_data"]
         sut.begin_timestamp = "2024-05-21T08:31:27.000Z"
         sut.end_timestamp = "2024-05-21T08:31:29.000Z"
@@ -219,777 +265,10 @@ class TestClearData(unittest.TestCase):
         self.assertIsNone(sut.end_timestamp)
 
 
-class TestDataFunction(unittest.TestCase):
-
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.inspector.inspector.TIME_TYPE", "ms")
-    @patch("src.inspector.inspector.TIME_RANGE", 1)
-    def test_count_errors(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        begin_timestamp = datetime.now()
-        end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        messages = [data]
-        np.testing.assert_array_equal(
-            np.asarray([[1.0], [0.0]]),
-            sut._count_errors(messages, begin_timestamp, end_timestamp),
-        )
-
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.inspector.inspector.TIME_TYPE", "ms")
-    @patch("src.inspector.inspector.TIME_RANGE", 1)
-    def test_mean_packet_size(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        begin_timestamp = datetime.now()
-        end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        messages = [data]
-        np.testing.assert_array_equal(
-            np.asarray([[100], [0.0]]),
-            sut._mean_packet_size(messages, begin_timestamp, end_timestamp),
-        )
-
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    def test_count_errors_empty_messages(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        begin_timestamp = datetime.now()
-        end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        np.testing.assert_array_equal(
-            np.asarray([[0.0], [0.0]]),
-            sut._count_errors([], begin_timestamp, end_timestamp),
-        )
-
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    def test_mean_packet_size_empty_messages(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        begin_timestamp = datetime.now()
-        end_timestamp = begin_timestamp + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        np.testing.assert_array_equal(
-            np.asarray([[0.0], [0.0]]),
-            sut._mean_packet_size([], begin_timestamp, end_timestamp),
-        )
-
-
-class TestInspectFunction(unittest.TestCase):
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        None,
-    )
-    def test_inspect_none_models(
-        self,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_clickhouse,
-        mock_logger,
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            get_batch(None),
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        with self.assertRaises(NotImplementedError):
-            sut.inspect()
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        "",
-    )
-    def test_inspect_empty_models(
-        self,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_clickhouse,
-        mock_logger,
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            get_batch(None),
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        with self.assertRaises(NotImplementedError):
-            sut.inspect()
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}],
-    )
-    @patch("src.inspector.inspector.TIME_TYPE", "ms")
-    @patch("src.inspector.inspector.TIME_RANGE", 1)
-    @patch("src.inspector.inspector.MODE", "univariate")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_univariate(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut.inspect()
-        self.assertEqual([0, 0], sut.anomalies)
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}],
-    )
-    @patch("src.inspector.inspector.TIME_TYPE", "ms")
-    @patch("src.inspector.inspector.TIME_RANGE", 1)
-    @patch("src.inspector.inspector.MODE", "univariate")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_univariate_model_init(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut._get_models(
-            [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}]
-        )
-        models = sut.models
-        sut.models = None
-        sut._get_models(
-            [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}]
-        )
-        self.assertEqual(type(models), type(sut.models))
-        models = sut.models
-        sut._get_models(
-            [{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}}]
-        )
-        self.assertEqual(models, sut.models)
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [
-            {
-                "model": "ZScoreDetector",
-                "module": "streamad.model",
-                "model_args": {"window_len": 10},
-            }
-        ],
-    )
-    @patch("src.inspector.inspector.TIME_TYPE", "ms")
-    @patch("src.inspector.inspector.TIME_RANGE", 1)
-    @patch("src.inspector.inspector.MODE", "univariate")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_univariate_2(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut.inspect()
-        self.assertNotEqual([None, None], sut.anomalies)
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [
-            {"model": "ZScoreDetector", "module": "streamad.model", "model_args": {}},
-            {"model": "KNNDetector", "module": "streamad.model", "model_args": {}},
-        ],
-    )
-    @patch("src.inspector.inspector.TIME_TYPE", "ms")
-    @patch("src.inspector.inspector.TIME_RANGE", 1)
-    @patch("src.inspector.inspector.MODE", "univariate")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_univariate_two_models(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut.inspect()
-        self.assertEqual([0, 0], sut.anomalies)
-        self.assertTrue(isinstance(sut.models[0], ZScoreDetector))
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [{"model": "RShashDetector", "module": "streamad.model", "model_args": {}}],
-    )
-    @patch("src.inspector.inspector.MODE", "multivariate")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_multivariate(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut.inspect()
-        self.assertEqual([0, 0], sut.anomalies)
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [
-            {
-                "model": "RShashDetector",
-                "module": "streamad.model",
-                "model_args": {"window_len": 10},
-            }
-        ],
-    )
-    @patch("src.inspector.inspector.MODE", "multivariate")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_multivariate_window_len(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut.inspect()
-        self.assertNotEqual([None, None], sut.anomalies)
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [
-            {"model": "RShashDetector", "module": "streamad.model", "model_args": {}},
-            {"model": "xStreamDetector", "module": "streamad.model", "model_args": {}},
-        ],
-    )
-    @patch("src.inspector.inspector.MODE", "multivariate")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_multivariate_two_models(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut.inspect()
-        self.assertEqual([0, 0], sut.anomalies)
-        self.assertTrue(isinstance(sut.models[0], RShashDetector))
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [
-            {"model": "KNNDetector", "module": "streamad.model", "model_args": {}},
-            {"model": "SpotDetector", "module": "streamad.model", "model_args": {}},
-        ],
-    )
-    @patch(
-        "src.inspector.inspector.ENSEMBLE",
-        {
-            "model": "WeightEnsemble",
-            "module": "streamad.process",
-            "model_args": {"ensemble_weights": [0.6, 0.4]},
-        },
-    )
-    @patch("src.inspector.inspector.MODE", "ensemble")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_ensemble(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut.inspect()
-        self.assertEqual([0, 0], sut.anomalies)
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [
-            {"model": "KNNDetector", "module": "streamad.model", "model_args": {}},
-            {"model": "SpotDetector", "module": "streamad.model", "model_args": {}},
-        ],
-    )
-    @patch(
-        "src.inspector.inspector.ENSEMBLE",
-        {
-            "model": "WeightEnsemble",
-            "module": "streamad.process",
-            "model_args": {"ensemble_weights": [0.6, 0.4]},
-        },
-    )
-    @patch("src.inspector.inspector.MODE", "ensemble")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_ensemble_model_init(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut._get_ensemble()
-        ensemble = sut.ensemble
-        sut.ensemble = None
-        sut._get_ensemble()
-        self.assertEqual(type(ensemble), type(sut.ensemble))
-        ensemble = sut.ensemble
-        sut._get_ensemble()
-        self.assertEqual(ensemble, sut.ensemble)
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [
-            {
-                "model": "KNNDetector",
-                "module": "streamad.model",
-                "model_args": {"window_len": 10},
-            },
-            {
-                "model": "SpotDetector",
-                "module": "streamad.model",
-                "model_args": {"window_len": 10},
-            },
-        ],
-    )
-    @patch(
-        "src.inspector.inspector.ENSEMBLE",
-        {
-            "model": "WeightEnsemble",
-            "module": "streamad.process",
-            "model_args": {"ensemble_weights": [0.6, 0.4]},
-        },
-    )
-    @patch("src.inspector.inspector.MODE", "ensemble")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_ensemble_window_len(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        sut.inspect()
-        self.assertNotEqual([None, None], sut.anomalies)
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [
-            {"model": "RShashDetector", "module": "streamad.model", "model_args": {}},
-            {"model": "SpotDetector", "module": "streamad.model", "model_args": {}},
-        ],
-    )
-    @patch(
-        "src.inspector.inspector.ENSEMBLE",
-        {
-            "model": "WeightEnsemble",
-            "module": "streamad.process",
-            "model_args": {"ensemble_weights": [0.6, 0.4]},
-        },
-    )
-    @patch("src.inspector.inspector.MODE", "ensemble")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    def test_inspect_ensemble_invalid(
-        self,
-        mock_clickhouse,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_logger,
-    ):
-        test_batch = get_batch(None)
-        test_batch.begin_timestamp = datetime.now()
-        test_batch.end_timestamp = datetime.now() + timedelta(0, 0, 2)
-        data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
-            test_batch.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
-        )
-        test_batch.data = [data]
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_kafka_consume_handler_instance.consume_as_object.return_value = (
-            "test",
-            test_batch,
-        )
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        sut.get_and_fill_data()
-        with self.assertRaises(NotImplementedError):
-            sut.inspect()
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [{"model": "INVALID", "module": "streamad.model"}],
-    )
-    def test_invalid_model_univariate(
-        self,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_clickhouse,
-        mock_logger,
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        with self.assertRaises(NotImplementedError):
-            sut.inspect()
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.MODELS",
-        [{"model": "INVALID", "module": "streamad.model"}],
-    )
-    @patch("src.inspector.inspector.MODE", "multivariate")
-    def test_invalid_model_multivariate(
-        self,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_clickhouse,
-        mock_logger,
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        with self.assertRaises(NotImplementedError):
-            sut.inspect()
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch(
-        "src.inspector.inspector.ENSEMBLE",
-        {"model": "INVALID", "module": "streamad.process"},
-    )
-    @patch("src.inspector.inspector.MODE", "ensemble")
-    def test_invalid_model_ensemble(
-        self,
-        mock_kafka_consume_handler,
-        mock_produce_handler,
-        mock_clickhouse,
-        mock_logger,
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        with self.assertRaises(NotImplementedError):
-            sut.inspect()
-
-    @patch("src.inspector.inspector.ClickHouseKafkaSender")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
-    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.inspector.inspector.MODE", "INVALID")
-    def test_invalid_mode(
-        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
-    ):
-        mock_kafka_consume_handler_instance = MagicMock()
-        mock_kafka_consume_handler.return_value = mock_kafka_consume_handler_instance
-        mock_produce_handler_instance = MagicMock()
-        mock_produce_handler.return_value = mock_produce_handler_instance
-
-        sut = Inspector()
-        with self.assertRaises(NotImplementedError):
-            sut.inspect()
-
-
 class TestSend(unittest.TestCase):
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.inspector.inspector.SCORE_THRESHOLD", 0.1)
-    @patch("src.inspector.inspector.ANOMALY_THRESHOLD", 0.01)
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     def test_send(
         self,
@@ -1004,9 +283,15 @@ class TestSend(unittest.TestCase):
         mock_kafka_produce_handler.return_value = mock_produce_handler_instance
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
-        sut = Inspector()
+        sut = NoInspector(
+            consume_topic="test_topic",
+            produce_topics=["pipeline-inspector_to_detector"],
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
+        )
+
         sut.anomalies = [0.9, 0.9]
         sut.X = np.array([[0.0], [0.0]])
+        sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
         sut.begin_timestamp = datetime.now()
         sut.end_timestamp = datetime.now() + timedelta(0, 0, 2)
         data = DEFAULT_DATA
@@ -1014,15 +299,21 @@ class TestSend(unittest.TestCase):
             sut.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
         )
         sut.messages = [data]
+        mock_batch_tree_row_id = f"{uuid.UUID('754a64f3-a461-4e7b-b4cb-ab29df9c4dce')}-{uuid.UUID('f9b3cbb7-b26c-41be-8e7f-a69a9c133668')}"
         mock_batch_id = uuid.UUID("5ae0872e-5bb9-472c-8c37-8c173213a51f")
         with patch("src.inspector.inspector.uuid") as mock_uuid:
-            mock_uuid.uuid4.return_value = mock_batch_id
-            sut.send_data()
+            with patch(
+                "src.inspector.inspector.generate_collisions_resistant_uuid"
+            ) as mock_row_id:
+                mock_row_id.return_value = mock_batch_tree_row_id
+                mock_uuid.uuid4.return_value = mock_batch_id
+                sut.send_data()
 
         mock_produce_handler_instance.produce.assert_called_once_with(
             topic="pipeline-inspector_to_detector",
             data=batch_schema.dumps(
                 {
+                    "batch_tree_row_id": mock_batch_tree_row_id,
                     "batch_id": mock_batch_id,
                     "begin_timestamp": sut.begin_timestamp,
                     "end_timestamp": sut.end_timestamp,
@@ -1035,8 +326,6 @@ class TestSend(unittest.TestCase):
     @patch("src.inspector.inspector.logger")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
-    @patch("src.inspector.inspector.SCORE_THRESHOLD", 0.1)
-    @patch("src.inspector.inspector.ANOMALY_THRESHOLD", 0.01)
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     def test_send_not_suspicious(
         self,
@@ -1051,16 +340,24 @@ class TestSend(unittest.TestCase):
         mock_produce_handler.return_value = mock_produce_handler_instance
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
-        sut = Inspector()
+        sut = NoInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=MINIMAL_NO_INSPECTOR_CONFIG,
+        )
+
+        mock_is_subnet_suspicious = MagicMock(return_value=False)
+        sut.subnet_is_suspicious = mock_is_subnet_suspicious
         sut.anomalies = [0.0, 0.0]
         sut.X = np.array([[0.0], [0.0]])
+        sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
         sut.begin_timestamp = datetime.now()
         sut.end_timestamp = datetime.now() + timedelta(0, 0, 2)
         data = DEFAULT_DATA
         data["timestamp"] = datetime.strftime(
             sut.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
         )
-        data["logline_id"] = uuid.UUID("99a427a6-ba3f-4aa2-b848-210d994d9108")
+        data["logline_id"] = str(uuid.UUID("99a427a6-ba3f-4aa2-b848-210d994d9108"))
         sut.messages = [data]
         mock_batch_id = uuid.UUID("5ae0872e-5bb9-472c-8c37-8c173213a51f")
         with patch("src.inspector.inspector.uuid") as mock_uuid:
@@ -1070,73 +367,300 @@ class TestSend(unittest.TestCase):
         mock_produce_handler_instance.produce.assert_not_called()
 
 
-class TestMainFunction(unittest.TestCase):
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.Inspector")
-    def test_main_loop_execution(self, mock_inspector, mock_logger):
+class TestInspector(InspectorBase):
+    def __init__(self, consume_topic, produce_topics, config) -> None:
+        super().__init__(consume_topic, produce_topics, config)
+        self.inspected = False
+        self.anomalies_detected = False
+
+    def _get_models(self, models) -> list:
+        return ["mock_model"]
+
+    def inspect_anomalies(self) -> None:
+        self.inspected = True
+        if self.messages:
+            self.anomalies_detected = True
+
+    def subnet_is_suspicious(self) -> bool:
+        return self.anomalies_detected
+
+
+class TestInspectMethod(unittest.TestCase):
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    def test_inspect_no_models_configured(
+        self,
+        mock_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+    ):
+        """Tests that inspect() raises NotImplementedError when no models are configured."""
         # Arrange
-        mock_inspector_instance = mock_inspector.return_value
 
-        mock_inspector_instance.get_and_fill_data = MagicMock()
-        mock_inspector_instance.clear_data = MagicMock()
-
-        # Act
-        main(one_iteration=True)
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config,
+        )
+        sut.messages = [{"test": "data"}]
 
         # Assert
-        self.assertTrue(mock_inspector_instance.get_and_fill_data.called)
-        self.assertTrue(mock_inspector_instance.clear_data.called)
+        with self.assertRaises(NotImplementedError):
+            sut.inspect()
 
     @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.Inspector")
-    def test_main_io_error_handling(self, mock_inspector, mock_logger):
-        # Arrange
-        mock_inspector_instance = mock_inspector.return_value
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    def test_inspect_multiple_models_configured(
+        self,
+        mock_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+        mock_logger,
+    ):
+        """Tests that inspect() uses only the first model when multiple models are configured."""
+        # Setup
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "models": [{"model": "Model1"}, {"model": "Model2"}],
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
 
-        # Act
-        with patch.object(
-            mock_inspector_instance,
-            "get_and_fill_data",
-            side_effect=IOError("Simulated IOError"),
-        ):
-            with self.assertRaises(IOError):
-                main(one_iteration=True)
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config,
+        )
 
-        # Assert
-        self.assertTrue(mock_inspector_instance.clear_data.called)
-        self.assertTrue(mock_inspector_instance.loop_exited)
+        # Mock data
+        sut.messages = [{"test": "data"}]
+
+        # Execute
+        sut.inspect()
+
+        # Verify
+        self.assertTrue(sut.inspected)
+        mock_logger.warning.assert_called_with(
+            "Model List longer than 1. Only the first one is taken: Model1!"
+        )
+
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    def test_inspect_single_model_configured(
+        self,
+        mock_consume_handler,
+        mock_produce_handler,
+        mock_clickhouse,
+    ):
+        """Tests that inspect() works correctly with a single model configured."""
+        # Setup
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "models": [{"model": "Model1"}],
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
+
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config,
+        )
+
+        # Mock data
+        sut.messages = [{"test": "data"}]
+
+        # Execute
+        sut.inspect()
+
+        # Verify
+        self.assertTrue(sut.inspected)
+
+
+class TestBootStrapFunction(unittest.TestCase):
+
+    def setUp(self):
+        self.inspectors = [
+            {
+                "name": "test_inspector",
+                "inspector_class_name": "NoInspector",
+                "prefilter_name": "dominator_filter",
+                "inspector_module_name": "no_inspector",
+            }
+        ]
+
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.logger")
+    def test_bootstrap_normal_execution(
+        self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
+        """Tests that the bootstrap process executes all steps in the correct order."""
+        # Setup
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "models": [{"model": "ZScoreDetector"}],
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
+
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config,
+        )
+
+        # Mock data so send_data works
+        sut.messages = [{"src_ip": "192.168.0.1", "logline_id": "test_id"}]
+        sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
+        sut.begin_timestamp = datetime.now()
+        sut.end_timestamp = datetime.now() + timedelta(seconds=1)
+
+        # Patch methods to control the loop
+        original_send_data = sut.send_data
+
+        def mock_send_data():
+            original_send_data()
+            # After first iteration, raise exception to break the loop
+            raise StopIteration("Test exception to break loop")
+
+        sut.send_data = mock_send_data
+        # Track method calls
+        sut.inspect = MagicMock(wraps=sut.inspect)
+        sut.send_data = MagicMock(wraps=sut.send_data)
+        sut.clear_data = MagicMock(wraps=sut.clear_data)
+
+        # Execute and verify
+        with self.assertRaises(StopIteration):
+            sut.bootstrap_inspection_process()
+
+        # Verify method call order and count
+        sut.inspect.assert_called_once()
+        sut.send_data.assert_called_once()
+        sut.clear_data.assert_called_once()
+
+        # Verify logger messages
+        mock_logger.info.assert_any_call("Starting test_inspector")
+
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.logger")
+    def test_bootstrap_kafka_exception_handling(
+        self, mock_logger, mock_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
+        """Tests that IOError is handled correctly (re-raised)."""
+        # Setup
+        config = MINIMAL_NO_INSPECTOR_CONFIG.copy()
+        config.update(
+            {
+                "inspector_class_name": "TestInspector",
+                "mode": "test_mode",
+                "models": [{"model": "ZScoreDetector"}],
+                "anomaly_threshold": 0.5,
+                "score_threshold": 0.7,
+                "time_type": "test_time",
+                "time_range": "test_range",
+            }
+        )
+
+        sut = TestInspector(
+            consume_topic="test_topic",
+            produce_topics=["produce_topic_1"],
+            config=config,
+        )
+
+        # Mock data so send_data works
+        sut.messages = [{"src_ip": "192.168.0.1", "logline_id": "test_id"}]
+        sut.parent_row_id = f"{uuid.uuid4()}-{uuid.uuid4()}"
+        sut.begin_timestamp = datetime.now()
+        sut.end_timestamp = datetime.now() + timedelta(seconds=1)
+
+        # Patch inspect to raise IOError
+        def mock_inspect():
+            raise IOError("Test IO error")
+
+        sut.inspect = mock_inspect
+        sut.get_and_fill_data = MagicMock()
+        sut.send_data = MagicMock()
+        sut.clear_data = MagicMock(wraps=sut.clear_data)
+
+        # Execute and verify
+        with self.assertRaises(IOError) as context:
+            sut.bootstrap_inspection_process()
+            self.assertEqual(str(context.exception), "Test IO error")
+
+        # Verify method calls
+        sut.get_and_fill_data.assert_called_once()
+        sut.send_data.assert_not_called()
+        sut.clear_data.assert_called_once()
+
+
+class TestMainFunction(unittest.IsolatedAsyncioTestCase):
+
+    def setUp(self):
+        self.inspectors = [
+            {
+                "name": "test_inspector",
+                "inspector_class_name": "NoInspector",
+                "prefilter_name": "dominator_filter",
+                "inspector_module_name": "no_inspector",
+            }
+        ]
 
     @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.Inspector")
-    def test_main_value_error_handling(self, mock_inspector, mock_logger):
+    @patch("src.inspector.plugins.no_inspector.NoInspector")
+    @patch("asyncio.create_task")
+    @patch("asyncio.run")
+    async def test_main_succesful_start(
+        self, mock_asyncio_run, mock_asyncio_create_task, mock_inspector, mock_logger
+    ):
         # Arrange
-        mock_inspector_instance = mock_inspector.return_value
+        mock_inspector_instance = MagicMock()
+        mock_inspector_instance.start = AsyncMock()
+        mock_inspector.return_value = mock_inspector_instance
+        mock_asyncio_create_task.side_effect = lambda coro: coro
 
         # Act
-        with patch.object(
-            mock_inspector_instance,
-            "get_and_fill_data",
-            side_effect=ValueError("Simulated ValueError"),
-        ):
-            main(one_iteration=True)
+        with patch("src.inspector.inspector.INSPECTORS", self.inspectors):
+            await main()
 
         # Assert
-        self.assertTrue(mock_inspector_instance.clear_data.called)
-        self.assertTrue(mock_inspector_instance.loop_exited)
-
-    @patch("src.inspector.inspector.logger")
-    @patch("src.inspector.inspector.Inspector")
-    def test_main_keyboard_interrupt(self, mock_inspector, mock_logger):
-        # Arrange
-        mock_inspector_instance = mock_inspector.return_value
-        mock_inspector_instance.get_and_fill_data.side_effect = KeyboardInterrupt
-
-        # Act
-        main()
-
-        # Assert
-        self.assertTrue(mock_inspector_instance.clear_data.called)
-        self.assertTrue(mock_inspector_instance.loop_exited)
+        mock_inspector_instance.start.assert_called_once()
 
 
 if __name__ == "__main__":

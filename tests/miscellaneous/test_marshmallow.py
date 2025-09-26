@@ -8,7 +8,9 @@ from src.base.data_classes.batch import Batch
 
 class TestClearData(unittest.TestCase):
     def test_clear_data_with_existing_data(self):
+        batch_tree_row_id = f"{str(uuid.uuid4())}-{str(uuid.uuid4())}"
         json_data = {
+            "batch_tree_row_id": batch_tree_row_id,
             "batch_id": str(uuid.uuid4()),
             "begin_timestamp": "2024-05-21T08:31:27",
             "end_timestamp": "2024-05-21T08:31:29",
@@ -16,7 +18,7 @@ class TestClearData(unittest.TestCase):
                 {
                     "timestamp": "2024-05-21T08:31:28.119",
                     "status": "NOERROR",
-                    "client_ip": "192.168.0.105",
+                    "src_ip": "192.168.0.105",
                     "dns_ip": "8.8.8.8",
                     "host_domain_name": "www.heidelberg-botanik.de",
                     "record_type": "A",

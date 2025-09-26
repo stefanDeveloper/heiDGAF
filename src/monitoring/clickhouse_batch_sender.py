@@ -84,8 +84,8 @@ class ClickHouseBatchSender:
                     "event_timestamp": datetime.datetime,
                 },
             ),
-            "failed_dns_loglines": Table(
-                "failed_dns_loglines",
+            "failed_loglines": Table(
+                "failed_loglines",
                 {
                     "message_text": str,
                     "timestamp_in": datetime.datetime,
@@ -100,15 +100,13 @@ class ClickHouseBatchSender:
                     "batch_id": uuid.UUID,
                 },
             ),
-            "dns_loglines": Table(
-                "dns_loglines",
+            "loglines": Table(
+                "loglines",
                 {
                     "logline_id": uuid.UUID,
                     "subnet_id": str,
                     "timestamp": datetime.datetime,
-                    "status_code": str,
-                    "client_ip": str,
-                    "record_type": str,
+                    "src_ip": str,
                     "additional_fields": Optional[str],
                 },
             ),
@@ -126,6 +124,7 @@ class ClickHouseBatchSender:
                 "batch_timestamps",
                 {
                     "batch_id": uuid.UUID,
+                    "instance_name": str,
                     "stage": str,
                     "status": str,
                     "timestamp": datetime.datetime,
@@ -144,7 +143,8 @@ class ClickHouseBatchSender:
                 "suspicious_batch_timestamps",
                 {
                     "suspicious_batch_id": uuid.UUID,
-                    "client_ip": str,
+                    "src_ip": str,
+                    "instance_name": str,
                     "stage": str,
                     "status": str,
                     "timestamp": datetime.datetime,
@@ -155,7 +155,7 @@ class ClickHouseBatchSender:
             "alerts": Table(
                 "alerts",
                 {
-                    "client_ip": str,
+                    "src_ip": str,
                     "suspicious_batch_id": uuid.UUID,
                     "alert_timestamp": datetime.datetime,
                     "overall_score": float,
@@ -170,6 +170,18 @@ class ClickHouseBatchSender:
                     "stage": str,
                     "entry_type": str,
                     "entry_count": int,
+                },
+            ),
+            "batch_tree": Table(
+                "batch_tree",
+                {
+                    "batch_row_id": str,
+                    "batch_id": uuid.UUID,
+                    "parent_batch_row_id": Optional[str],
+                    "instance_name": str,
+                    "stage": str,
+                    "status": str,
+                    "timestamp": datetime.datetime,
                 },
             ),
         }

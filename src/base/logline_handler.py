@@ -1,20 +1,14 @@
 import datetime
 import re
-
+import json
 from src.base.log_config import get_logger
 from src.base.utils import setup_config, validate_host
 
 logger = get_logger()
 
 CONFIG = setup_config()
-LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["logline_format"]
-REQUIRED_FIELDS = [
-    "timestamp",
-    "status_code",
-    "client_ip",
-    "record_type",
-    "domain_name",
-]
+
+REQUIRED_FIELDS = ["ts", "src_ip"]
 FORBIDDEN_FIELD_NAMES = [
     "logline_id",
     "batch_id",
@@ -61,7 +55,7 @@ class RegEx(FieldType):
         Returns:
             True if the value is valid, False otherwise
         """
-        return True if re.match(self.pattern, value) else False
+        return True if re.match(self.pattern, str(value)) else False
 
 
 class Timestamp(FieldType):
@@ -159,19 +153,67 @@ class ListItem(FieldType):
         """
         return True if value in self.allowed_list else False
 
-    def check_relevance(self, value) -> bool:
+
+class RelevanceHandler:
+    """
+    Handler class to check the relevance of a given logline. Loads the appropriate child method by the name, configured
+    in the config.yaml at the ``log_filtering`` section from the ``relevance_method`` attribute.
+    """
+
+    def __init__(self, log_configuration_instances):
+        self.log_configuration_instances = log_configuration_instances
+
+    def check_relevance(self, function_name: str, logline_dict: dict) -> bool:
         """
-        Checks if the given value is a relevant value.
+        wrapper function to get the appropriate relevance function by name.
 
         Args:
-            value: Value to be checked for relevance
+            function_name (str): The name of the relevance_method to import
+            logline_dict (dict): The dictionary version of a logline
 
         Returns:
-            True if the value is relevant, else False
+            True, if the logline is relevant according to the relevance function, else False
         """
-        if self.relevant_list:
-            return True if value in self.relevant_list else False
+        is_relevant = False
+        try:
+            is_relevant = getattr(self, function_name)(logline_dict)
+        except AttributeError as e:
+            logger.error(f"Function {function_name} is not implemented!")
+            raise Exception(f"Function {function_name} is not implemented!")
+        return is_relevant
 
+    def check_dga_relevance(self, logline_dict: dict) -> bool:
+        """
+        Method to check if a given logline is relevant for a dga analysis.
+
+        Args:
+            logline_dict (dict): The dictionary version of a logline
+
+        Returns:
+            True, if the logline is relevant according to the relevance function, else False
+        """
+        relevant = True
+        for _, instance_configuartion in self.log_configuration_instances.items():
+            if isinstance(instance_configuartion, ListItem):
+                if instance_configuartion.relevant_list:
+                    relevant = (
+                        logline_dict[instance_configuartion.name]
+                        in instance_configuartion.relevant_list
+                    )
+                    if not relevant:
+                        return relevant
+        return relevant
+
+    def no_relevance_check(self, logline_dict: dict) -> bool:
+        """
+            Skip the relevance check by always returning True
+
+        Args:
+            logline_dict (dict): The dictionary version of a logline
+
+        Returns:
+            Always returns True (all lines are relevant)
+        """
         return True
 
 
@@ -181,38 +223,41 @@ class LoglineHandler:
     logline has the format given in the configuration. Can also return the validated logline as dictionary.
     """
 
-    def __init__(self):
-        self.instances_by_name = {}
-        self.instances_by_position = {}
-        self.number_of_fields = 0
+    def __init__(self, validation_config: list):
+        """
+        Check all existing log configurations for validity.
 
-        for field in LOGLINE_FIELDS:
-            instance = self._create_instance_from_list_entry(field)
-
+        Args:
+            validation_config (list): A list containing the configured attributes a given logline needs to hold. Otherwise it gets discarded
+        """
+        self.logformats = validation_config
+        log_configuration_instances = {}
+        if not validation_config:
+            raise ValueError("No fields configured")
+        for log_config_item in validation_config:
+            instance = self._create_instance_from_list_entry(log_config_item)
             if instance.name in FORBIDDEN_FIELD_NAMES:
                 raise ValueError(
                     f"Forbidden field name included. These fields are used internally "
                     f"and cannot be used as names: {FORBIDDEN_FIELD_NAMES}"
                 )
-
-            if self.instances_by_name.get(instance.name):
+            if log_configuration_instances.get(instance.name):
                 raise ValueError("Multiple fields with same name")
-
-            self.instances_by_position[self.number_of_fields] = instance
-            self.instances_by_name[instance.name] = instance
-            self.number_of_fields += 1
-
+            else:
+                log_configuration_instances[instance.name] = instance
         for required_field in REQUIRED_FIELDS:
-            if required_field not in self.instances_by_name:
+
+            if required_field not in log_configuration_instances.keys():
                 raise ValueError("Not all needed fields are set in the configuration")
 
-        if self.number_of_fields == 0:
-            raise ValueError("No fields configured")
+        self.relvance_handler = RelevanceHandler(
+            log_configuration_instances=log_configuration_instances
+        )
 
     def validate_logline(self, logline: str) -> bool:
         """
-        Validates the given input logline by checking if the number of fields is correct as well as all the fields, by
-        calling the :meth:`validate` method of each field. If the logline is incorrect, it shows an error with the
+        Validates the given input logline by checking if the fields presented are corresponding to a given logformat of a protocol.
+        Calls the :meth:`validate` method for each field. If the logline is incorrect, it shows an error with the
         incorrect fields being highlighted.
 
         Args:
@@ -221,36 +266,25 @@ class LoglineHandler:
         Returns:
             True if the logline contains correct fields in the configured format, False otherwise
         """
-        parts = logline.split()
-        number_of_entries = len(parts)
-
-        # check number of entries
-        if number_of_entries != self.number_of_fields:
-            logger.warning(
-                f"Logline contains {number_of_entries} value(s), not {self.number_of_fields}."
-            )
-            return False
-
+        logline = json.loads(logline)
         valid_values = []
-        for i in range(self.number_of_fields):
-            valid_values.append(self.instances_by_position.get(i).validate(parts[i]))
-
-        if not all(valid_values):
-            # handle logging
-            error_line = len("[yyyy-mm-dd hh:mm:ss, WARNING] ") * " "
-            error_line += len("Incorrect logline: ") * " "
-
-            for i in range(self.number_of_fields):
-                if valid_values[i]:
-                    error_line += len(parts[i]) * " "  # keep all valid fields unchanged
-                else:
-                    error_line += len(parts[i]) * "^"  # underline all wrong fields
-                error_line += " "
-
-            logger.warning(f"Incorrect logline: {logline}\n{error_line}")
-            return False
-
-        return True
+        invalid_value_names = []
+        for log_config_item in self.logformats:
+            # by convention the first item is always the key present in a logline
+            log_line_property_key = log_config_item[0]
+            instance = self._create_instance_from_list_entry(log_config_item)
+            try:
+                is_value_valid = instance.validate(logline.get(log_line_property_key))
+                valid_values.append(is_value_valid)
+                if not is_value_valid:
+                    invalid_value_names.append(log_line_property_key)
+            except:
+                logger.error(
+                    f"line {logline} does not contain the specified field of {log_line_property_key}"
+                )
+        if all(valid_values):
+            return True
+        return False
 
     def __get_fields_as_json(self, logline: str) -> dict:
         """
@@ -263,56 +297,36 @@ class LoglineHandler:
         Returns:
             Dictionary of field names as keys and field values as value
         """
-        parts = logline.split()
-        return_dict = {}
-
-        for i in range(self.number_of_fields):
-            if not isinstance(self.instances_by_position[i], Timestamp):
-                return_dict[self.instances_by_position[i].name] = parts[i]
-            else:
-                return_dict[self.instances_by_position[i].name] = (
-                    self.instances_by_position[i].get_timestamp_as_str(parts[i])
-                )
-
-        return return_dict.copy()
+        return json.loads(logline)
 
     def validate_logline_and_get_fields_as_json(self, logline: str) -> dict:
         """Validates the fields and returns them as dictionary, with the names of the fields as key, and the field
         value as value.
 
         Args:
-            logline (str): Logline as string to be validated
+            logline (dict): Logline parsed from zeek
 
         Returns:
             Dictionary of field names as keys and field values as value
         """
         if not self.validate_logline(logline):
             raise ValueError("Incorrect logline, validation unsuccessful")
-
         return self.__get_fields_as_json(logline)
 
-    def check_relevance(self, logline_dict: dict) -> bool:
+    def check_relevance(self, logline_dict: dict, function_name: str) -> bool:
         """
         Checks if the given logline is relevant.
 
         Args:
             logline_dict (dict): Logline parts to be checked for relevance as dictionary
+            function_name (str): A string that points to the relevance function to use
 
         Returns:
-            True if the logline is relevant, else False
+            Propagates the bool from the subordinate relevance method
         """
-        relevant = True
-
-        for i in self.instances_by_position:
-            current_instance = self.instances_by_position[i]
-            if isinstance(current_instance, ListItem):
-                if not current_instance.check_relevance(
-                    logline_dict[current_instance.name]
-                ):
-                    relevant = False
-                    break
-
-        return relevant
+        return self.relvance_handler.check_relevance(
+            function_name=function_name, logline_dict=logline_dict
+        )
 
     @staticmethod
     def _create_instance_from_list_entry(field_list: list):

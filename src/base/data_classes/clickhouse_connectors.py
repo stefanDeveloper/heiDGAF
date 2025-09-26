@@ -35,7 +35,7 @@ class ServerLogsTimestamps:
 
 
 @dataclass
-class FailedDNSLoglines:
+class FailedLoglines:
     message_text: str = field(
         metadata={"marshmallow_field": marshmallow.fields.String()}
     )
@@ -65,7 +65,7 @@ class LoglineToBatches:
 
 
 @dataclass
-class DNSLoglines:
+class Loglines:
     logline_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
@@ -75,13 +75,7 @@ class DNSLoglines:
             "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
         }
     )
-    status_code: str = field(
-        metadata={"marshmallow_field": marshmallow.fields.String()}
-    )
-    client_ip: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
-    record_type: str = field(
-        metadata={"marshmallow_field": marshmallow.fields.String()}
-    )
+    src_ip: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     additional_fields: Optional[str] = field(
         metadata={"marshmallow_field": marshmallow.fields.String(allow_none=True)}
     )
@@ -109,6 +103,9 @@ class BatchTimestamps:
     batch_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
+    instance_name: str = field(
+        metadata={"marshmallow_field": marshmallow.fields.String()}
+    )
     stage: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     status: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     timestamp: datetime.datetime = field(
@@ -135,11 +132,37 @@ class SuspiciousBatchesToBatch:
 
 
 @dataclass
+class BatchTree:
+    batch_row_id: str = field(
+        metadata={"marshmallow_field": marshmallow.fields.String()}
+    )
+    batch_id: uuid.UUID = field(
+        metadata={"marshmallow_field": marshmallow.fields.UUID()}
+    )
+    parent_batch_row_id: Optional[str] = field(
+        metadata={"marshmallow_field": marshmallow.fields.String(allow_none=True)}
+    )
+    instance_name: str = field(
+        metadata={"marshmallow_field": marshmallow.fields.String()}
+    )
+    stage: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    status: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    timestamp: datetime.datetime = field(
+        metadata={
+            "marshmallow_field": marshmallow.fields.DateTime("%Y-%m-%d %H:%M:%S.%f")
+        }
+    )
+
+
+@dataclass
 class SuspiciousBatchTimestamps:
     suspicious_batch_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
-    client_ip: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    src_ip: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    instance_name: str = field(
+        metadata={"marshmallow_field": marshmallow.fields.String()}
+    )
     stage: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     status: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     timestamp: datetime.datetime = field(
@@ -157,7 +180,7 @@ class SuspiciousBatchTimestamps:
 
 @dataclass
 class Alerts:
-    client_ip: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
+    src_ip: str = field(metadata={"marshmallow_field": marshmallow.fields.String()})
     suspicious_batch_id: uuid.UUID = field(
         metadata={"marshmallow_field": marshmallow.fields.UUID()}
     )
@@ -192,13 +215,14 @@ class FillLevels:
 TABLE_NAME_TO_TYPE = {
     "server_logs": ServerLogs,
     "server_logs_timestamps": ServerLogsTimestamps,
-    "failed_dns_loglines": FailedDNSLoglines,
+    "failed_loglines": FailedLoglines,
     "logline_to_batches": LoglineToBatches,
-    "dns_loglines": DNSLoglines,
+    "loglines": Loglines,
     "logline_timestamps": LoglineTimestamps,
     "batch_timestamps": BatchTimestamps,
     "suspicious_batches_to_batch": SuspiciousBatchesToBatch,
     "suspicious_batch_timestamps": SuspiciousBatchTimestamps,
     "alerts": Alerts,
     "fill_levels": FillLevels,
+    "batch_tree": BatchTree,
 }

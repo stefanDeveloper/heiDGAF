@@ -20,6 +20,7 @@ services:
       zookeeper:
         condition: service_healthy
 
+
   kafka3:
     extends:
       file: "docker-compose/base/docker-compose.kafka.yml"
@@ -27,6 +28,7 @@ services:
     depends_on:
       zookeeper:
         condition: service_healthy
+
 
   logserver:
     extends:
@@ -51,6 +53,7 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
+
 
   prefilter:
     extends:
@@ -98,6 +101,24 @@ services:
       file: "docker-compose/prod/docker-compose.grafana.yml"
       service: grafana
 
+  prometheus:
+    extends:
+      file: "docker-compose/prod/docker-compose.prometheus.yml"
+      service: prometheus
+
+  kafka-exporter:
+    extends:
+      file: "docker-compose/base/docker-compose.kafka-exporter.yml"
+      service: kafka-exporter
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
   monitoring_agent:
     extends:
       file: "docker-compose/base/docker-compose.monitoring.yml"
@@ -112,6 +133,14 @@ services:
       clickhouse-server:
         condition: service_healthy
 
+  zeek1:
+    extends:
+      file: "docker-compose/base/docker-compose.zeek.yml"
+      service: zeek
+    environment:
+      - CONTAINER_NAME=zeek1
+    volumes:
+      - ../data/test_pcaps/:/opt/static_files
 networks:
   heidgaf:
     driver: bridge

@@ -18,9 +18,9 @@ services:
           memory: 256m
     volumes:
       - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
+      - ../../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=log_storage
-
   logcollector:
     build:
       context: ../../..
@@ -40,7 +40,8 @@ services:
           memory: 256m
     environment:
       - GROUP_ID=log_collection
-
+    volumes:
+      - ../../../config.yaml:/app/config.yaml
   prefilter:
     build:
       context: ../../..
@@ -61,7 +62,8 @@ services:
           memory: 256m
     environment:
       - GROUP_ID=log_filtering
-
+    volumes:
+      - ../../../config.yaml:/app/config.yaml
   inspector:
     build:
       context: ../../..
@@ -72,7 +74,7 @@ services:
       heidgaf:
     deploy:
       mode: "replicated"
-      replicas: 2
+      replicas: 1
       resources:
         limits:
           cpus: '2'
@@ -82,8 +84,9 @@ services:
           memory: 256m
     environment:
       - GROUP_ID=data_inspection
-      - NUMBER_OF_INSTANCES=2
-
+      - NUMBER_OF_INSTANCES=1
+    volumes:
+      - ../../../config.yaml:/app/config.yaml
   detector:
     build:
       context: ../../..
@@ -108,3 +111,5 @@ services:
 #              capabilities: [ gpu ]
     environment:
       - GROUP_ID=data_analysis
+    volumes:
+      - ../../../config.yaml:/app/config.yaml

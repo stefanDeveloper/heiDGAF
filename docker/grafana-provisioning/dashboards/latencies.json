@@ -18,6 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 2,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -160,7 +161,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -252,13 +253,13 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.7.0",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT *\nFROM (\n      SELECT 'LogServer' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n            FROM server_logs sl\n            INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n            WHERE slt.event = 'timestamp_out' AND\n                  sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Collector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                  lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'BatchHandler' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                  lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Prefilter' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) as value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                  bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Inspector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n            UNION ALL\n\n            SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n            FROM batch_timestamps bt\n            INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n            INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n            WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                  sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                  bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Detector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n            FROM suspicious_batch_timestamps sbt1\n            INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n            WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                  sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                  sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n      )\n)\nWHERE name IN (${include_modules:csv});\n",
+          "rawSql": "SELECT *\nFROM (\n      SELECT 'LogServer' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n            FROM server_logs sl\n            INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n            WHERE slt.event = 'timestamp_out' AND\n                  sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Collector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                  lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'BatchHandler' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                  lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Prefilter' AS name, median(value) as median\n      FROM (\n            SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_tree bt1\n            INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n            WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                  bt1.instance_name = bt2.instance_name AND\n                  bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n\n\n\n\n      UNION ALL\n\n      SELECT 'Inspector' AS name, median(value) as median\n      FROM (\n            SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_tree bt1\n            INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n            WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n                  bt1.instance_name = bt2.instance_name AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Detector' AS name, median(value) as median\n      FROM (\n            SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_tree bt1\n            INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n            WHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n                  bt1.instance_name = bt2.instance_name AND\n                  dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n)\nWHERE name IN (${include_modules:csv});\n",
           "refId": "A"
         }
       ],
-      "title": "Module latency comparison",
+      "title": "Module latency comparison ",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -402,7 +403,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -494,9 +495,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.7.0",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT *\nFROM (\n      SELECT 'Data analysis phase' AS name, sum(Median)\n      FROM (\n            SELECT 'Inspector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                        bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n                  UNION ALL\n\n                  SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n                  FROM batch_timestamps bt\n                  INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n                  INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n                  WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                        sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                        bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Detector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n                  FROM suspicious_batch_timestamps sbt1\n                  INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n                  WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                        sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                        sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n            )\n      )\n\n      UNION ALL\n\n      SELECT 'Data preparation phase' AS name, sum(Median) as median\n      FROM (\n            SELECT 'LogServer' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n                  FROM server_logs sl\n                  INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n                  WHERE slt.event = 'timestamp_out' AND\n                        sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'LogCollector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                        lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'BatchHandler' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                        lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Prefilter' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_timestamps bt1\n                  INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n                  WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n            )\n      )\n);\n",
+          "rawSql": "SELECT *\nFROM (\n      SELECT 'Data analysis phase' AS name, sum(Median)\n      FROM (\n            SELECT 'Inspector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_tree bt1\n                  INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n                  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                        bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n                        bt1.instance_name = bt2.instance_name AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Detector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_tree bt1\n                  INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n                  WHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n                        bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n                        bt1.instance_name = bt2.instance_name AND\n                        dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n            )\n      )\n\n      UNION ALL\n\n      SELECT 'Data preparation phase' AS name, sum(Median) as median\n      FROM (\n            SELECT 'LogServer' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT slt.event_timestamp AS time, dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n                  FROM server_logs sl\n                  INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n                  WHERE slt.event = 'timestamp_out' AND\n                        sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'LogCollector' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp as time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                        lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'BatchHandler' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT lt2.timestamp AS time, dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n                  FROM logline_timestamps lt1\n                  INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n                  WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                        lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                        lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n            )\n\n            UNION ALL\n\n            SELECT 'Prefilter' AS name, median(value) AS \"Median\"\n            FROM (\n                  SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n                  FROM batch_tree bt1\n                  INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n                  WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                        bt1.instance_name = bt2.instance_name AND\n                        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n            )\n      )\n);\n",
           "refId": "phases"
         }
       ],
@@ -523,7 +524,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -615,9 +616,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.6.0",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT 'Including transport and wait time' AS name, sum(median)\nFROM (\n      SELECT 'LogServer' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n            FROM server_logs sl\n            INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n            WHERE slt.event = 'timestamp_out' AND\n                  sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'LogCollection' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                  lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'BatchHandler' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, bt2.timestamp) AS value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_to_batches ltb ON ltb.logline_id = lt1.logline_id\n            INNER JOIN batch_timestamps bt2 ON bt2.batch_id = ltb.batch_id\n            WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                  bt2.stage = 'log_collection.batch_handler' AND bt2.status = 'completed' AND\n                  lt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Between BatchHandler and Prefilter' AS name, median(value) AS median\n      FROM (\n        SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n        FROM batch_timestamps bt1\n        INNER JOIN batch_timestamps bt2\n                ON bt1.batch_id = bt2.batch_id\n        WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n          AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n              bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Prefilter' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) as value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                  bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Between Prefilter and Inspector' AS name, median(value) AS median\n      FROM (\n        SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n        FROM batch_timestamps bt1\n        INNER JOIN batch_timestamps bt2\n                ON bt1.batch_id = bt2.batch_id\n        WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n          AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n              bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Inspector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n            UNION ALL\n\n            SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n            FROM batch_timestamps bt\n            INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n            INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n            WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                  sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                  bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n      )\n\n      UNION ALL\n      \n      SELECT 'Between Inspector and Detector' AS name, median(value) AS median\n      FROM (\n        SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n        FROM suspicious_batch_timestamps bt1\n        INNER JOIN suspicious_batch_timestamps bt2\n                ON bt1.suspicious_batch_id = bt2.suspicious_batch_id\n        WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n          AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n              bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n      \n      UNION ALL\n\n      SELECT 'Detector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n            FROM suspicious_batch_timestamps sbt1\n            INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n            WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                  sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                  sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n      )\n)\n\nUNION ALL\n\nSELECT 'Excluding transport and wait time' AS name, sum(median)\nFROM (\n      SELECT 'LogServer' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n            FROM server_logs sl\n            INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n            WHERE slt.event = 'timestamp_out' AND\n                  sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'LogCollection' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                  lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'BatchHandler' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt2.logline_id = lt1.logline_id\n            WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                  lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Prefilter' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) as value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                  bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Inspector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_timestamps bt1\n            INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n            WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n            UNION ALL\n\n            SELECT dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n            FROM batch_timestamps bt\n            INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n            INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n            WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n                  sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n                  bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Detector' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n            FROM suspicious_batch_timestamps sbt1\n            INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n            WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n                  sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n                  sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n      )\n);\n",
+          "rawSql": "SELECT 'Including transport and wait time' AS name, sum(median)\nFROM (\n      SELECT 'LogServer' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n            FROM server_logs sl\n            INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n            WHERE slt.event = 'timestamp_out' AND\n                  sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'LogCollection' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                  lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'BatchHandler' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, bt2.timestamp) AS value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_to_batches ltb ON ltb.logline_id = lt1.logline_id\n            INNER JOIN batch_timestamps bt2 ON bt2.batch_id = ltb.batch_id\n            WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                  bt2.stage = 'log_collection.batch_handler' AND bt2.status = 'completed' AND\n                  lt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Between BatchHandler and Prefilter' AS name, median(value) AS median\n      FROM (\n      SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2\n            ON bt1.batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n      AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\n\n      UNION ALL\n\n      SELECT 'Prefilter' AS name, median(value) as median\n      FROM (\n            SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_tree bt1\n            INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n            WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                  bt1.instance_name = bt2.instance_name AND\n                  bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n\n\n\n\n      UNION ALL\n\n      SELECT 'Between Prefilter and Inspector' AS name, median(value) AS median\n      FROM (\n      SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2\n            ON bt1.batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n      AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Inspector' AS name, median(value) as median\n      FROM (\n            SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_tree bt1\n            INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n            WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n                  bt1.instance_name = bt2.instance_name AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n      \n      SELECT 'Between Inspector and Detector' AS name, median(value) AS median\n      FROM (\n      SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2\n            ON bt1.batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n      AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n            dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n\n      \n      UNION ALL\n\n      SELECT 'Detector' AS name, median(value) as median\n      FROM (\n            SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_tree bt1\n            INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n            WHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n                  bt1.instance_name = bt2.instance_name AND\n                  dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n)\n\nUNION ALL\n\nSELECT 'Excluding transport and wait time' AS name, sum(median)\nFROM (\n      SELECT 'LogServer' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff(microsecond, sl.timestamp_in, slt.event_timestamp) AS value\n            FROM server_logs sl\n            INNER JOIN server_logs_timestamps slt ON sl.message_id = slt.message_id\n            WHERE slt.event = 'timestamp_out' AND\n                  sl.timestamp_in >= $__fromTime AND slt.event_timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'LogCollection' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) as value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt1.logline_id = lt2.logline_id\n            WHERE lt1.status = 'in_process' AND lt2.status = 'finished' AND\n                  lt1.stage = 'log_collection.collector' AND lt2.stage = 'log_collection.collector' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'BatchHandler' AS name, median(value) as median\n      FROM (\n            SELECT dateDiff('microsecond', lt1.timestamp, lt2.timestamp) AS value\n            FROM logline_timestamps lt1\n            INNER JOIN logline_timestamps lt2 ON lt2.logline_id = lt1.logline_id\n            WHERE lt1.stage = 'log_collection.batch_handler' AND lt1.status = 'in_process' AND\n                  lt2.stage = 'log_collection.batch_handler' AND lt2.status = 'batched' AND\n                  lt1.timestamp >= $__fromTime AND lt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Prefilter' AS name, median(value) as median\n      FROM (\n            SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_tree bt1\n            INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n            WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n                  bt1.instance_name = bt2.instance_name AND\n                  bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n\n      UNION ALL\n\n      SELECT 'Inspector' AS name, median(value) as median\n      FROM (\n            SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_tree bt1\n            INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n            WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n                  bt1.instance_name = bt2.instance_name AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n\n      UNION ALL\n\n      SELECT 'Detector' AS name, median(value) as median\n      FROM (\n            SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n            FROM batch_tree bt1\n            INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n            WHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n                  bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n                  bt1.instance_name = bt2.instance_name AND\n                  dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n                  bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n      )\n);\n",
           "refId": "A"
         }
       ],
@@ -925,7 +926,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -1076,9 +1077,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "timeseries",
-          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_timestamps bt1\nINNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\nWHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n      bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;",
+          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_tree bt1\nINNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\nWHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n      bt1.instance_name = bt2.instance_name AND\n      bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;\n\n\n",
           "refId": "Latency"
         },
         {
@@ -1099,9 +1100,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS latency\n    FROM batch_timestamps bt1\n    INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n    WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS latency\n    FROM batch_tree bt1\n    INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n    WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n        bt1.instance_name = bt2.instance_name AND\n        bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
           "refId": "Median"
         }
       ],
@@ -1110,7 +1111,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -1180,9 +1181,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\n\n\n\n",
           "refId": "A"
         }
       ],
@@ -1271,7 +1272,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -1339,9 +1340,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.status = 'in_process' AND bt2.status = 'finished' AND\n            bt1.stage = 'log_filtering.prefilter' AND bt2.stage = 'log_filtering.prefilter' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\n",
           "refId": "A"
         }
       ],
@@ -1618,7 +1619,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -1769,9 +1770,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "timeseries",
-          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_timestamps bt1\nINNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\nWHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n      bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC\n\nUNION ALL\n\nSELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\nFROM batch_timestamps bt\nINNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\nINNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\nWHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n      sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n      bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\nORDER BY time ASC;",
+          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\nWHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n      bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n      bt1.instance_name = bt2.instance_name AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;",
           "refId": "Latency"
         },
         {
@@ -1792,9 +1793,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) as value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS latency\n    FROM batch_timestamps bt1\n    INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n    WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n        bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n    ORDER BY time ASC\n\n    UNION ALL\n\n    SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS latency\n    FROM batch_timestamps bt\n    INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n    INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n    WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n        sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n        bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) as value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS latency\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n    )\nGROUP BY time_bucket\nORDER BY time_bucket;",
           "refId": "Median"
         }
       ],
@@ -1803,7 +1804,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -1873,9 +1874,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n      FROM batch_timestamps bt\n      INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n      INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n      WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n            sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n            bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime)",
           "refId": "A"
         }
       ],
@@ -1964,7 +1965,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -2032,9 +2033,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_timestamps bt1\n      INNER JOIN batch_timestamps bt2 ON bt1.batch_id = bt2.batch_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.is_active = False AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n\n      UNION ALL\n\n      SELECT sbt.timestamp AS time, dateDiff('microsecond', bt.timestamp, sbt.timestamp) AS value\n      FROM batch_timestamps bt\n      INNER JOIN suspicious_batches_to_batch sbtb ON bt.batch_id = sbtb.batch_id\n      INNER JOIN suspicious_batch_timestamps sbt ON sbtb.suspicious_batch_id = sbt.suspicious_batch_id\n      WHERE bt.stage = 'data_inspection.inspector' AND bt.status = 'in_process' AND\n            sbt.stage = 'data_inspection.inspector' AND sbt.status = 'finished' AND\n            bt.timestamp >= $__fromTime AND sbt.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_inspection.inspector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
           "refId": "A"
         }
       ],
@@ -2310,7 +2311,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -2461,9 +2462,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "timeseries",
-          "rawSql": "SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\nFROM suspicious_batch_timestamps sbt1\nINNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\nWHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n      sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n      sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\nORDER BY time ASC;",
+          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\nWHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n      bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n      bt1.instance_name = bt2.instance_name AND\n      dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;",
           "refId": "Latency"
         },
         {
@@ -2484,9 +2485,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n    SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS latency\n    FROM suspicious_batch_timestamps sbt1\n    INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n    WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n        sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n        sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(latency) AS value\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS latency\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
           "refId": "Median"
         }
       ],
@@ -2495,7 +2496,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -2565,9 +2566,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n      FROM suspicious_batch_timestamps sbt1\n      INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n      WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n            sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n            sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT median(value) AS \"Median\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
           "refId": "A"
         }
       ],
@@ -2656,7 +2657,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -2724,9 +2725,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT sbt2.timestamp AS time, dateDiff('microsecond', sbt1.timestamp, sbt2.timestamp) AS value\n      FROM suspicious_batch_timestamps sbt1\n      INNER JOIN suspicious_batch_timestamps sbt2 ON sbt1.suspicious_batch_id = sbt2.suspicious_batch_id\n      WHERE sbt1.stage = 'data_analysis.detector' AND sbt1.status = 'in_process' AND\n            sbt2.stage = 'data_analysis.detector' AND sbt2.is_active = False AND\n            sbt1.timestamp >= $__fromTime AND sbt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n      SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n      FROM batch_tree bt1\n      INNER JOIN batch_tree bt2 ON bt1.parent_batch_row_id = bt2.parent_batch_row_id\n      WHERE bt1.stage = 'data_analysis.detector' AND bt1.status = 'in_process' AND\n            bt2.stage = 'data_analysis.detector' AND bt2.status = 'finished' AND\n            bt1.instance_name = bt2.instance_name AND\n            dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\n",
           "refId": "A"
         }
       ],
@@ -2748,7 +2749,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -2901,9 +2902,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "timeseries",
-          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_timestamps bt1\nINNER JOIN batch_timestamps bt2\n        ON bt1.batch_id = bt2.batch_id\nWHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n  AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;",
+          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n    AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;\n\n\n\n\n",
           "refId": "Latency"
         },
         {
@@ -2924,9 +2925,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(value) AS value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n    FROM batch_timestamps bt1\n    INNER JOIN batch_timestamps bt2\n            ON bt1.batch_id = bt2.batch_id\n    WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n        AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(value) AS value\nFROM (\n  SELECT bt2.timestamp AS time, dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n    AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
           "refId": "Median"
         }
       ],
@@ -2935,7 +2936,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -3086,9 +3087,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "timeseries",
-          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM batch_timestamps bt1\nINNER JOIN batch_timestamps bt2\n        ON bt1.batch_id = bt2.batch_id\nWHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n  AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;",
+          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;",
           "refId": "Latency"
         },
         {
@@ -3109,9 +3110,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(value) AS value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n    FROM batch_timestamps bt1\n    INNER JOIN batch_timestamps bt2\n            ON bt1.batch_id = bt2.batch_id\n    WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n        AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(value) AS value\nFROM (\n  SELECT bt2.timestamp AS time, dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
           "refId": "Median"
         }
       ],
@@ -3120,7 +3121,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -3271,9 +3272,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "timeseries",
-          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\nFROM suspicious_batch_timestamps bt1\nINNER JOIN suspicious_batch_timestamps bt2\n        ON bt1.suspicious_batch_id = bt2.suspicious_batch_id\nWHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n  AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n      bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;",
+          "rawSql": "SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n        dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\nORDER BY time ASC;\n\n\n",
           "refId": "Latency"
         },
         {
@@ -3294,9 +3295,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(value) AS value\nFROM (\n    SELECT bt2.timestamp AS time, dateDiff('microsecond', bt1.timestamp, bt2.timestamp) AS value\n    FROM suspicious_batch_timestamps bt1\n    INNER JOIN suspicious_batch_timestamps bt2\n            ON bt1.suspicious_batch_id = bt2.suspicious_batch_id\n    WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n        AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n            bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
+          "rawSql": "SELECT\n    toStartOfMinute(time) AS time_bucket,\n    median(value) AS value\nFROM (\n  SELECT bt2.timestamp AS time, dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\nGROUP BY time_bucket\nORDER BY time_bucket;",
           "refId": "Median"
         }
       ],
@@ -3305,7 +3306,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -3388,9 +3389,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_timestamps bt1\n  INNER JOIN batch_timestamps bt2\n          ON bt1.batch_id = bt2.batch_id\n  WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n    AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'log_collection.batch_handler' AND bt1.status = 'completed'\n    AND bt2.stage = 'log_filtering.prefilter' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
           "refId": "A"
         }
       ],
@@ -3398,7 +3399,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -3481,9 +3482,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.5.1",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_timestamps bt1\n  INNER JOIN batch_timestamps bt2\n          ON bt1.batch_id = bt2.batch_id\n  WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'log_filtering.prefilter' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_inspection.inspector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
           "refId": "A"
         }
       ],
@@ -3491,7 +3492,7 @@
     },
     {
       "datasource": {
-        "default": true,
+        "default": false,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -3574,16 +3575,16 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.6.0",
+          "pluginVersion": "4.10.1",
           "queryType": "table",
-          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM suspicious_batch_timestamps bt1\n  INNER JOIN suspicious_batch_timestamps bt2\n          ON bt1.suspicious_batch_id = bt2.suspicious_batch_id\n  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)",
+          "rawSql": "SELECT min(value) AS \"Minimum\", median(value) AS \"Median\", avg(value) AS \"Average\", max(value) AS \"Maximum\"\nFROM (\n  SELECT dateDiff('microseconds', bt1.timestamp, bt2.timestamp) as value\n  FROM batch_tree bt1\n  INNER JOIN batch_tree bt2\n          ON bt1.batch_row_id = bt2.parent_batch_row_id\n  WHERE bt1.stage = 'data_inspection.inspector' AND bt1.status = 'finished'\n    AND bt2.stage = 'data_analysis.detector' AND bt2.status = 'in_process' AND\n        dateDiff('microsecond', bt1.timestamp, bt2.timestamp) > 0 AND\n        bt1.timestamp >= $__fromTime AND bt2.timestamp <= $__toTime\n)\n\n",
           "refId": "A"
         }
       ],
       "type": "stat"
     }
   ],
-  "refresh": "auto",
+  "refresh": "5s",
   "schemaVersion": 39,
   "tags": [],
   "templating": {

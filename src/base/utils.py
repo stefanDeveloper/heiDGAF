@@ -1,7 +1,7 @@
 import ipaddress
 import os
 import sys
-
+import uuid
 import yaml
 from confluent_kafka import KafkaError, Message
 
@@ -11,6 +11,54 @@ from src.base.log_config import get_logger
 logger = get_logger()
 
 CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../../config.yaml")
+
+
+def get_zeek_sensor_topic_base_names(config: dict) -> set:
+    """
+    Method to retrieve the protocols monitored by the zeek sensors based on the ``config.yaml``
+
+    Args:
+        config (dict): The configuration dictionary from config.yaml
+
+    Returns:
+        Set of protocol names the zeek sensors are monitoring, e.g. (dns, http, sftp, ... )
+    """
+    return set(
+        [
+            protocol
+            for sensor in config["pipeline"]["zeek"]["sensors"].values()
+            for protocol in sensor.get("protocols", [])
+        ]
+    )
+
+
+# TODO: test this method!
+def get_batch_configuration(collector_name: str) -> dict:
+    """
+    Method to combine custom batch_handler configuartions per logcollector with the default ones.
+    Yields a dict where custom configurations override default ones. If no custom value is specified,
+    deafult values are returned.
+
+    Args:
+        collector_name (str): Name of the collector to retrieve the configuration for
+    Returns:
+        Dictionairy with the complete batch_handler configuration (e.g. ipv4_prefix_length, batch_size, etc. )
+    """
+    config = setup_config()
+    default_configuration = config["pipeline"]["log_collection"][
+        "default_batch_handler_config"
+    ]
+    collector_configs = config["pipeline"]["log_collection"]["collectors"]
+
+    for collector in collector_configs:
+        if collector["name"] == collector_name:
+            override = collector.get("batch_handler_config_override")
+            if override:
+                # Merge override into a copy of the default configuration
+                merged = {**default_configuration, **override}
+                return merged
+
+    return default_configuration
 
 
 def setup_config():
@@ -137,3 +185,7 @@ def normalize_ipv6_address(
 
     net = ipaddress.IPv6Network((address, prefix_length), strict=False)
     return net.network_address, prefix_length
+
+
+def generate_collisions_resistant_uuid():
+    return f"{uuid.uuid4()}-{uuid.uuid4()}"

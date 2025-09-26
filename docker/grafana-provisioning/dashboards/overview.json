@@ -193,7 +193,7 @@
           },
           "pluginVersion": "4.6.0",
           "queryType": "table",
-          "rawSql": "SELECT concat(rowNumberInAllBlocks() + 1, '.') AS \"Rank\", client_ip AS \"Client IP address\", count(logline_id) AS \"# Total Requests\"\nFROM dns_loglines\nWHERE \"Client IP address\" IN (\n  SELECT DISTINCT client_ip\n  FROM alerts\n  WHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\n)\nGROUP BY \"Client IP address\"\nORDER BY \"# Total Requests\" DESC\nLIMIT 5",
+          "rawSql": "SELECT concat(rowNumberInAllBlocks() + 1, '.') AS \"Rank\", src_ip AS \"Client IP address\", count(logline_id) AS \"# Total Requests\"\nFROM loglines\nWHERE \"Client IP address\" IN (\n  SELECT DISTINCT src_ip\n  FROM alerts\n  WHERE alert_timestamp >= $__fromTime AND alert_timestamp <= $__toTime\n)\nGROUP BY \"Client IP address\"\nORDER BY \"# Total Requests\" DESC\nLIMIT 5",
           "refId": "A"
         }
       ],

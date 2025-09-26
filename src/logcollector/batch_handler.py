@@ -11,18 +11,18 @@ sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
-from src.base.utils import setup_config
+from src.base.utils import (
+    setup_config,
+    get_batch_configuration,
+    generate_collisions_resistant_uuid,
+)
 from src.base.log_config import get_logger
 
 module_name = "log_collection.batch_handler"
 logger = get_logger(module_name)
 
 config = setup_config()
-BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
-BATCH_TIMEOUT = config["pipeline"]["log_collection"]["batch_handler"]["batch_timeout"]
-PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
-    "batch_sender_to_prefilter"
-]
+
 KAFKA_BROKERS = ",".join(
     [
         f"{broker['hostname']}:{broker['port']}"
@@ -36,7 +36,8 @@ class BufferedBatch:
     buffer that stores the previous batch messages. Sorts the batches and can return timestamps.
     """
 
-    def __init__(self):
+    def __init__(self, collector_name):
+        self.name = f"buffered-batch-for-{collector_name}"
         self.batch = {}  # Batch for the latest messages coming in
         self.buffer = {}  # Former batch with previous messages
         self.batch_id = {}  # Batch ID per key
@@ -45,7 +46,7 @@ class BufferedBatch:
         self.logline_to_batches = ClickHouseKafkaSender("logline_to_batches")
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
         self.fill_levels = ClickHouseKafkaSender("fill_levels")
-
+        self.batch_tree = ClickHouseKafkaSender("batch_tree")
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -87,6 +88,7 @@ class BufferedBatch:
                 dict(
                     batch_id=batch_id,
                     stage=module_name,
+                    instance_name=self.name,
                     status="waiting",
                     timestamp=datetime.datetime.now(),
                     is_active=True,
@@ -111,6 +113,7 @@ class BufferedBatch:
                 dict(
                     batch_id=new_batch_id,
                     stage=module_name,
+                    instance_name=self.name,
                     status="waiting",
                     timestamp=datetime.datetime.now(),
                     is_active=True,
@@ -180,7 +183,8 @@ class BufferedBatch:
                 def _get_first_timestamp_of_batch() -> str | None:
                     entries = self.batch.get(key)
                     return (
-                        json.loads(entries[0])["timestamp"]
+                        # TODO remove hardcoded ts value
+                        json.loads(entries[0])["ts"]
                         if entries and entries[0]
                         else None
                     )
@@ -196,9 +200,7 @@ class BufferedBatch:
                 def _get_first_timestamp_of_buffer() -> str | None:
                     entries = self.buffer.get(key)
                     return (
-                        json.loads(entries[0])["timestamp"]
-                        if entries and entries[0]
-                        else None
+                        json.loads(entries[0])["ts"] if entries and entries[0] else None
                     )
 
                 begin_timestamp = _get_first_timestamp_of_buffer()
@@ -209,12 +211,13 @@ class BufferedBatch:
                 entries = self.batch.get(key)
 
                 return (
-                    json.loads(entries[-1])["timestamp"]
-                    if entries and entries[-1]
-                    else None
+                    json.loads(entries[-1])["ts"] if entries and entries[-1] else None
                 )
 
+            row_id = generate_collisions_resistant_uuid()
+
             data = {
+                "batch_tree_row_id": row_id,
                 "batch_id": batch_id,
                 "begin_timestamp": datetime.datetime.fromisoformat(begin_timestamp),
                 "end_timestamp": datetime.datetime.fromisoformat(
@@ -223,14 +226,27 @@ class BufferedBatch:
                 "data": buffer_data + self.batch[key],
             }
 
+            timestamp = datetime.datetime.now()
             self.batch_timestamps.insert(
                 dict(
                     batch_id=batch_id,
                     stage=module_name,
+                    instance_name=self.name,
                     status="completed",
-                    timestamp=datetime.datetime.now(),
+                    timestamp=timestamp,
                     is_active=True,
                     message_count=self.get_message_count_for_batch_key(key),
+                )
+            )
+            self.batch_tree.insert(
+                dict(
+                    batch_row_id=row_id,
+                    parent_batch_row_id=None,
+                    stage=module_name,
+                    instance_name=self.name,
+                    timestamp=timestamp,
+                    status="completed",
+                    batch_id=batch_id,
                 )
             )
 
@@ -308,8 +324,8 @@ class BufferedBatch:
 
         for item in data:
             record = json.loads(item)
-
-            timestamp = record.get("timestamp", "")
+            # TODO remove hardcoded ts value
+            timestamp = record.get("ts", "")
             tuples.append((str(timestamp), item))
 
         return tuples
@@ -339,9 +355,10 @@ class BufferedBatch:
 class BufferedBatchSender:
     """Adds messages to the :class:`BufferedBatch` and sends them after a timer ran out or a key's batch is full."""
 
-    def __init__(self):
-        self.topic = PRODUCE_TOPIC
-        self.batch = BufferedBatch()
+    def __init__(self, produce_topics, collector_name):
+        self.topics = produce_topics
+        self.batch_configuration = get_batch_configuration(collector_name)
+        self.batch = BufferedBatch(collector_name)
         self.timer = None
 
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
@@ -388,7 +405,7 @@ class BufferedBatchSender:
         logger.debug(f"Batch: {self.batch.batch}")
         number_of_messages_for_key = self.batch.get_message_count_for_batch_key(key)
 
-        if number_of_messages_for_key >= BATCH_SIZE:
+        if number_of_messages_for_key >= self.batch_configuration["batch_size"]:
             self._send_batch_for_key(key)
             logger.info(
                 f"Full batch: Successfully sent batch messages for subnet_id {key}.\n"
@@ -452,7 +469,7 @@ class BufferedBatchSender:
 
     def _send_data_packet(self, key: str, data: dict) -> None:
         """
-        Sends a packet of a Batch to the defined Kafka topic
+        Sends a packet of a Batch to the defined Kafka topics
 
         Args:
             key (str): key to identify the batch
@@ -460,16 +477,20 @@ class BufferedBatchSender:
         """
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
-        self.kafka_produce_handler.produce(
-            topic=self.topic,
-            data=batch_schema.dumps(data),
-            key=key,
-        )
+        for topic in self.topics:
+            self.kafka_produce_handler.produce(
+                topic=topic,
+                data=batch_schema.dumps(data),
+                key=key,
+            )
+            logger.info(f"send data to {topic}")
 
     def _reset_timer(self) -> None:
         """Restarts the internal timer of the object"""
         if self.timer:
             self.timer.cancel()
 
-        self.timer = Timer(BATCH_TIMEOUT, self._send_all_batches)
+        self.timer = Timer(
+            self.batch_configuration["batch_timeout"], self._send_all_batches
+        )
         self.timer.start()

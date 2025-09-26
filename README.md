@@ -58,7 +58,7 @@
 
 ## About the Project
 
-![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/pipeline_overview.png?raw=true)
+![Pipeline overview](./assets/heidgaf_architecture.svg)
 
 ## Getting Started
 
@@ -241,7 +241,7 @@ loglines:
   fields:
     - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
     - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
-    - [ "client_ip", IpAddress ]
+    - [ "src_ip", IpAddress ]
     - [ "dns_server_ip", IpAddress ]
     - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
     - [ "record_type", ListItem, [ "A", "AAAA" ] ]
