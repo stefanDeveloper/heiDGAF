@@ -325,3 +325,6 @@ cython_debug/
 # Others
 docs/api/
 !/docs/api/index.rst
+
+# requirements.txt
+!*/requirements.*.txt
