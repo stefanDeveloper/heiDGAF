@@ -51,16 +51,6 @@ class LogCollector:
         self.failed_dns_loglines = ClickHouseKafkaSender("failed_dns_loglines")
         self.dns_loglines = ClickHouseKafkaSender("dns_loglines")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
-        self.fill_levels = ClickHouseKafkaSender("fill_levels")
-
-        self.fill_levels.insert(
-            dict(
-                timestamp=datetime.datetime.now(),
-                stage=module_name,
-                entry_type="total_loglines",
-                entry_count=0,
-            )
-        )
 
     async def start(self) -> None:
         """Starts fetching messages from Kafka and sending them to the :class:`Prefilter`."""
