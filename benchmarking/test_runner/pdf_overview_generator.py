@@ -511,10 +511,14 @@ if __name__ == "__main__":
     generator.setup_first_page_layout()
     generator.insert_title()
     generator.insert_box_titles()
-    generator.insert_main_graph("latencies_comparison.png")
-    generator.insert_top_left_graph("latencies_boxplot.png")
-    generator.insert_top_right_graph("fill_levels_comparison.png")
-    generator.insert_bottom_left_graph("entering_processed_sum_at_time.png")
-    generator.insert_bottom_right_graph("entering_processed_bars.png")
+    generator.insert_main_graph("benchmarking/graphs/latencies_comparison.png")
+    generator.insert_top_left_graph("benchmarking/graphs/latencies_boxplot.png")
+    generator.insert_top_right_graph("benchmarking/graphs/fill_levels_comparison.png")
+    generator.insert_bottom_left_graph(
+        "benchmarking/graphs/entering_processed_sum_at_time.png"
+    )
+    generator.insert_bottom_right_graph(
+        "benchmarking/graphs/entering_processed_bars.png"
+    )
 
     generator.save_file()
