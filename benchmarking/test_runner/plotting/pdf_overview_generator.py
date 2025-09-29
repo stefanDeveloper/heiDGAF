@@ -39,8 +39,8 @@ class PDFOverviewGenerator:
                 page=self.document[0],  # first page
                 page_margin=page_margin,
                 width=usable_width,
-                height=self.row_heights["overview_page"]["main_title_row"]
-                * usable_height,
+                height=self.row_heights["overview_page"][0] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:0]) * usable_height,
             ).fill(
                 test_name="ramp-up",
                 date=datetime.date.today(),  # TODO: Update to use actual date
@@ -52,10 +52,8 @@ class PDFOverviewGenerator:
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width,
-                height=self.row_heights["overview_page"]["metadata_title_row"]
-                * usable_height,
-                top_padding=self.row_heights["overview_page"]["main_title_row"]
-                * usable_height,
+                height=self.row_heights["overview_page"][1] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:1]) * usable_height,
             ).fill(text="Metadata and parameters")
         )
 
@@ -64,13 +62,8 @@ class PDFOverviewGenerator:
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width,
-                height=self.row_heights["overview_page"]["metadata_row"]
-                * usable_height,
-                top_padding=(
-                    self.row_heights["overview_page"]["main_title_row"]
-                    + self.row_heights["overview_page"]["metadata_title_row"]
-                )
-                * usable_height,
+                height=self.row_heights["overview_page"][2] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:2]) * usable_height,
             ).fill(
                 # TODO: Add metadata content
             )
@@ -81,14 +74,8 @@ class PDFOverviewGenerator:
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width,
-                height=self.row_heights["overview_page"]["main_graph_title_row"]
-                * usable_height,
-                top_padding=(
-                    self.row_heights["overview_page"]["main_title_row"]
-                    + self.row_heights["overview_page"]["metadata_title_row"]
-                    + self.row_heights["overview_page"]["metadata_row"]
-                )
-                * usable_height,
+                height=self.row_heights["overview_page"][3] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:3]) * usable_height,
             ).fill(text="Latency graphs")
         )
 
@@ -97,15 +84,8 @@ class PDFOverviewGenerator:
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width,
-                height=self.row_heights["overview_page"]["main_graph_subtitle_row"]
-                * usable_height,
-                top_padding=(
-                    self.row_heights["overview_page"]["main_title_row"]
-                    + self.row_heights["overview_page"]["metadata_title_row"]
-                    + self.row_heights["overview_page"]["metadata_row"]
-                    + self.row_heights["overview_page"]["main_graph_title_row"]
-                )
-                * usable_height,
+                height=self.row_heights["overview_page"][4] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:4]) * usable_height,
             ).fill(text="Comparison of all modules")
         )
 
@@ -114,16 +94,8 @@ class PDFOverviewGenerator:
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width,
-                height=self.row_heights["overview_page"]["main_graph_row"]
-                * usable_height,
-                top_padding=(
-                    self.row_heights["overview_page"]["main_title_row"]
-                    + self.row_heights["overview_page"]["metadata_title_row"]
-                    + self.row_heights["overview_page"]["metadata_row"]
-                    + self.row_heights["overview_page"]["main_graph_title_row"]
-                    + self.row_heights["overview_page"]["main_graph_subtitle_row"]
-                )
-                * usable_height,
+                height=self.row_heights["overview_page"][5] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:5]) * usable_height,
             ).fill(
                 # TODO: Add metadata content
             )
@@ -134,19 +106,8 @@ class PDFOverviewGenerator:
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width,
-                height=self.row_heights["overview_page"][
-                    "first_detail_graphs_titles_row"
-                ]
-                * usable_height,
-                top_padding=(
-                    self.row_heights["overview_page"]["main_title_row"]
-                    + self.row_heights["overview_page"]["metadata_title_row"]
-                    + self.row_heights["overview_page"]["metadata_row"]
-                    + self.row_heights["overview_page"]["main_graph_title_row"]
-                    + self.row_heights["overview_page"]["main_graph_subtitle_row"]
-                    + self.row_heights["overview_page"]["main_graph_row"]
-                )
-                * usable_height,
+                height=self.row_heights["overview_page"][6] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:6]) * usable_height,
             ).fill(text="Latency graphs")
         )
 
@@ -188,20 +149,20 @@ class PDFOverviewGenerator:
         }
 
     def __prepare_overview_page_row_heights(self):
-        self.row_heights["overview_page"] = {
-            "main_title_row": 0.05,  # 1st row
-            "metadata_title_row": 0.025,  # 2nd row
-            "metadata_row": 0.10,  # 3rd row
-            "main_graph_title_row": 0.025,  # 4th row
-            "main_graph_subtitle_row": 0.025,  # 5th row
-            "main_graph_row": 0.30,  # 6th row
-            "first_detail_graphs_titles_row": 0.025,  # 7th row
-            "first_detail_graphs_subtitles_row": 0.025,  # 8th row
-            "first_detail_graphs_row": 0.05,  # 9th row
-            "second_detail_graphs_title_row": 0.025,  # 10th row
-            "second_detail_graphs_subtitles_row": 0.025,  # 11th row
-            "second_detail_graphs_row": 0.05,  # 12th row
-        }
+        self.row_heights["overview_page"] = [
+            0.05,  # 1st row: main_title_row
+            0.025,  # 2nd row: metadata_title_row
+            0.10,  # 3rd row: metadata_row
+            0.025,  # 4th row: main_graph_title_row
+            0.025,  # 5th row: main_graph_subtitle_row
+            0.30,  # 6th row: main_graph_row
+            0.025,  # 7th row: first_detail_graphs_titles_row
+            0.025,  # 8th row: first_detail_graphs_subtitles_row
+            0.05,  # 9th row: first_detail_graphs_row
+            0.025,  # 10th row: second_detail_graphs_title_row
+            0.025,  # 11th row: second_detail_graphs_subtitles_row
+            0.05,  # 12th row: second_detail_graphs_row
+        ]
 
     def save_file(self, relative_output_directory_path: Path, output_filename: str):
         """Stores the document as a file.
