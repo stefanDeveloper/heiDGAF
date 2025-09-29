@@ -10,11 +10,11 @@ class BaseBox(pymupdf.Rect):
     def __init__(
         self,
         page,
-        page_margin: dict[str, int],
-        width: int,
-        height: int,
-        top_padding: int = 0,
-        left_padding: int = 0,
+        page_margin: dict[str, float],
+        width: float,
+        height: float,
+        top_padding: float = 0,
+        left_padding: float = 0,
     ):
         self.page = page
 
@@ -82,6 +82,37 @@ class SectionTitleBox(BaseBox):
         )
 
 
+class SectionDoubleTitleBox(BaseBox):
+    """Contains the section titles for double-column sections."""
+
+    def fill(self, text_1: str, text_2: str):
+        self.page.draw_rect(self, fill=(0,), fill_opacity=0.3, width=0.5)  # border
+
+        width = self.x1 - self.x0
+        horizontal_padding = 8
+        vertical_padding = 4
+        self.page.insert_htmlbox(  # first title
+            pymupdf.Rect(
+                x0=self.x0 + horizontal_padding,
+                y0=self.y0 + vertical_padding,
+                x1=(self.x1 / 2) - horizontal_padding,
+                y1=self.y1 - vertical_padding,
+            ),
+            text_1,
+            css="* {font-family: sans-serif; font-size: 8px}",
+        )
+        self.page.insert_htmlbox(  # second title
+            pymupdf.Rect(
+                x0=self.x0 + (width / 2) + horizontal_padding,
+                y0=self.y0 + vertical_padding,
+                x1=self.x1 - horizontal_padding,
+                y1=self.y1 - vertical_padding,
+            ),
+            text_2,
+            css="* {font-family: sans-serif; font-size: 8px}",
+        )
+
+
 class SectionSubtitleBox(BaseBox):
     """Contains the section subtitle."""
 
@@ -90,6 +121,58 @@ class SectionSubtitleBox(BaseBox):
         self.page.insert_htmlbox(  # subtitle
             self._get_padded(vertical_padding=4),
             text,
+            css="* {font-family: sans-serif; font-size: 7px; font-style: italic}",
+        )
+
+
+class SectionDoubleSubtitleBox(BaseBox):
+    """Contains the section subtitles for double-column sections."""
+
+    def fill(self, text_1: str, text_2: str):
+        width = self.x1 - self.x0
+        self.page.draw_rect(
+            pymupdf.Rect(  # first border
+                x0=self.x0,
+                y0=self.y0,
+                x1=self.x1 - (width / 2),
+                y1=self.y1,
+            ),
+            fill=(0,),
+            fill_opacity=0.1,
+            width=0.5,
+        )  # first border
+        self.page.draw_rect(
+            pymupdf.Rect(  # second border
+                x0=self.x0 + (width / 2),
+                y0=self.y0,
+                x1=self.x1,
+                y1=self.y1,
+            ),
+            fill=(0,),
+            fill_opacity=0.1,
+            width=0.5,
+        )
+
+        horizontal_padding = 8
+        vertical_padding = 4
+        self.page.insert_htmlbox(  # first subtitle
+            pymupdf.Rect(
+                x0=self.x0 + horizontal_padding,
+                y0=self.y0 + vertical_padding,
+                x1=self.x1 - (width / 2) - horizontal_padding,
+                y1=self.y1 - vertical_padding,
+            ),
+            text_1,
+            css="* {font-family: sans-serif; font-size: 7px; font-style: italic}",
+        )
+        self.page.insert_htmlbox(  # second subtitle
+            pymupdf.Rect(
+                x0=self.x0 + (width / 2) + horizontal_padding,
+                y0=self.y0 + vertical_padding,
+                x1=self.x1 - horizontal_padding,
+                y1=self.y1 - vertical_padding,
+            ),
+            text_2,
             css="* {font-family: sans-serif; font-size: 7px; font-style: italic}",
         )
 

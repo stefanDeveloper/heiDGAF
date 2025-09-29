@@ -12,6 +12,8 @@ from benchmarking.test_runner.plotting.boxes import (
     SectionTitleBox,
     SectionContentBox,
     SectionSubtitleBox,
+    SectionDoubleTitleBox,
+    SectionDoubleSubtitleBox,
 )
 
 logger = get_logger()
@@ -24,7 +26,7 @@ class PDFOverviewGenerator:
 
     def __init__(self):
         self.page_width, self.page_height = 595, 842  # page dimension: A4 portrait
-        self.standard_page_margin = {"left": 50, "right": 50, "top": 50, "bottom": 80}
+        self.standard_page_margin = {"left": 50, "right": 50, "top": 50, "bottom": 50}
 
         self.document = pymupdf.open()
         self.boxes = {}
@@ -102,13 +104,85 @@ class PDFOverviewGenerator:
         )
 
         self.boxes["overview_page"]["first_detail_graphs_titles_row"].append(
-            SectionTitleBox(
+            SectionDoubleTitleBox(
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width,
                 height=self.row_heights["overview_page"][6] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:6]) * usable_height,
-            ).fill(text="Latency graphs")
+            ).fill(text_1="Latency comparison boxplot", text_2="Fill levels")
+        )
+
+        self.boxes["overview_page"]["first_detail_graphs_subtitles_row"].append(
+            SectionDoubleSubtitleBox(
+                page=self.document[0],
+                page_margin=page_margin,
+                width=usable_width,
+                height=self.row_heights["overview_page"][7] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:7]) * usable_height,
+            ).fill(
+                text_1="Min/max/median per module", text_2="Comparison of all modules"
+            )
+        )
+
+        self.boxes["overview_page"]["first_detail_graphs_row"].append(
+            SectionContentBox(
+                page=self.document[0],
+                page_margin=page_margin,
+                width=usable_width / 2,
+                height=self.row_heights["overview_page"][8] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:8]) * usable_height,
+            ).fill()
+        )
+        self.boxes["overview_page"]["first_detail_graphs_row"].append(
+            SectionContentBox(
+                page=self.document[0],
+                page_margin=page_margin,
+                width=usable_width / 2,
+                height=self.row_heights["overview_page"][8] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:8]) * usable_height,
+                left_padding=usable_width / 2,
+            ).fill()
+        )
+
+        self.boxes["overview_page"]["second_detail_graphs_title_row"].append(
+            SectionTitleBox(
+                page=self.document[0],
+                page_margin=page_margin,
+                width=usable_width,
+                height=self.row_heights["overview_page"][9] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:9]) * usable_height,
+            ).fill(text="Total number of incoming and completely processed loglines")
+        )
+
+        self.boxes["overview_page"]["second_detail_graphs_subtitles_row"].append(
+            SectionDoubleSubtitleBox(
+                page=self.document[0],
+                page_margin=page_margin,
+                width=usable_width,
+                height=self.row_heights["overview_page"][10] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:10]) * usable_height,
+            ).fill(text_1="Accumulated to points in time", text_2="Per time period")
+        )
+
+        self.boxes["overview_page"]["second_detail_graphs_row"].append(
+            SectionContentBox(
+                page=self.document[0],
+                page_margin=page_margin,
+                width=usable_width / 2,
+                height=self.row_heights["overview_page"][11] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:11]) * usable_height,
+            ).fill()
+        )
+        self.boxes["overview_page"]["second_detail_graphs_row"].append(
+            SectionContentBox(
+                page=self.document[0],
+                page_margin=page_margin,
+                width=usable_width / 2,
+                height=self.row_heights["overview_page"][11] * usable_height,
+                top_padding=sum(self.row_heights["overview_page"][:11]) * usable_height,
+                left_padding=usable_width / 2,
+            ).fill()
         )
 
     def __prepare_overview_page(self):
@@ -150,18 +224,18 @@ class PDFOverviewGenerator:
 
     def __prepare_overview_page_row_heights(self):
         self.row_heights["overview_page"] = [
-            0.05,  # 1st row: main_title_row
+            0.045,  # 1st row: main_title_row
             0.025,  # 2nd row: metadata_title_row
-            0.10,  # 3rd row: metadata_row
+            0.1,  # 3rd row: metadata_row
             0.025,  # 4th row: main_graph_title_row
             0.025,  # 5th row: main_graph_subtitle_row
-            0.30,  # 6th row: main_graph_row
+            0.28,  # 6th row: main_graph_row
             0.025,  # 7th row: first_detail_graphs_titles_row
             0.025,  # 8th row: first_detail_graphs_subtitles_row
-            0.05,  # 9th row: first_detail_graphs_row
+            0.2,  # 9th row: first_detail_graphs_row
             0.025,  # 10th row: second_detail_graphs_title_row
             0.025,  # 11th row: second_detail_graphs_subtitles_row
-            0.05,  # 12th row: second_detail_graphs_row
+            0.2,  # 12th row: second_detail_graphs_row
         ]
 
     def save_file(self, relative_output_directory_path: Path, output_filename: str):
