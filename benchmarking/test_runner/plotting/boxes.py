@@ -1,9 +1,14 @@
 import datetime
+import os
+import sys
 from abc import abstractmethod
 from pathlib import Path
 from typing import Optional
 
 import pymupdf
+
+sys.path.append(os.getcwd())
+from test_runner.plotting.metadata_information import SingleMetadataInformation
 
 
 class BaseBox(pymupdf.Rect):
@@ -189,8 +194,8 @@ class SectionDoubleSubtitleBox(BaseBox):
         return self
 
 
-class SectionContentBox(BaseBox):
-    """Contains the section content."""
+class SectionContentImageBox(BaseBox):
+    """Contains the section content in the form of an image, e.g. a plotted graph."""
 
     def fill(self, file_path: Optional[Path] = None):
         self.page.draw_rect(self, width=0.5)  # border
@@ -201,3 +206,81 @@ class SectionContentBox(BaseBox):
             )
 
         return self
+
+
+class SectionContentMetadataBox(BaseBox):
+    """Contains the section content for the metadata section, consisting of several boxes."""
+
+    def fill(
+        self,
+        metadata_information: dict[tuple[int, int], SingleMetadataInformation],
+        boxes_per_row: int = 5,
+    ):
+        """
+        Fills the box with content.
+
+        Args:
+            metadata_information (dict[tuple[int, int], SingleMetadataInformation]): Dictionary of a
+                tuple, containing the row and column in the grid to position the box in, and a
+                SingleMetadataInformation.
+                Row must be 1 or 2, column must be at least 1 and at most boxes_per_row.
+                Per position, at most one information is allowed.
+            boxes_per_row (int): Maximum number of boxes per row. Default: 5
+
+        Raises:
+            ValueError if multiple entries point to the same position, or if position is invalid.
+
+        Returns:
+            self
+        """
+        self.page.draw_rect(self, width=0.5)  # outer border
+
+        number_of_rows: int = 2
+        row_height = (self.y1 - self.y0) / number_of_rows
+        box_width = (self.x1 - self.x0) / boxes_per_row
+
+        for row in range(0, number_of_rows):
+            for column in range(0, boxes_per_row):
+                if (row + 1, column + 1) in metadata_information.keys():
+                    box = pymupdf.Rect(
+                        x0=self.x0 + column * box_width,
+                        y0=self.y0 + row * row_height,
+                        x1=self.x0 + (column + 1) * box_width,
+                        y1=self.y0 + (row + 1) * row_height,
+                    )
+
+                    self.page.draw_rect(box, width=0.5)
+
+                    # TODO: Handle long strings that do not fit in the box
+
+                    self.page.insert_htmlbox(  # title
+                        self._get_padded_rectangle(box, vertical_padding=5),
+                        metadata_information[(row + 1, column + 1)].title,
+                        css="* {font-family: sans-serif; font-size: 6px; text-align: center}",
+                    )
+                    self.page.insert_htmlbox(  # value
+                        self._get_padded_rectangle(box, vertical_padding=5),
+                        metadata_information[(row + 1, column + 1)].value,
+                        css="* {font-family: sans-serif; font-size: 13px; text-align: center;"
+                        "padding: 5px 0}",
+                    )
+
+        return self
+
+    @staticmethod
+    def _get_padded_rectangle(
+        rect: pymupdf.Rect, horizontal_padding: int = 8, vertical_padding: int = 3
+    ):
+        """
+        Returns the given rectangle with inner padding.
+
+        Args:
+            horizontal_padding (int): Padding in horizontal direction; default: 8
+            vertical_padding (int): Padding in vertical direction; default: 3
+        """
+        return pymupdf.Rect(
+            rect.x0 + horizontal_padding,
+            rect.y0 + vertical_padding,
+            rect.x1 - horizontal_padding,
+            rect.y1 - vertical_padding,
+        )

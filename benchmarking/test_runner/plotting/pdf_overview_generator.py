@@ -10,10 +10,16 @@ from src.base.log_config import get_logger
 from benchmarking.test_runner.plotting.boxes import (
     MainTitleBox,
     SectionTitleBox,
-    SectionContentBox,
+    SectionContentImageBox,
     SectionSubtitleBox,
     SectionDoubleTitleBox,
     SectionDoubleSubtitleBox,
+    SectionContentMetadataBox,
+)
+from benchmarking.test_runner.plotting.metadata_information import (
+    IntegerMetadataInformation,
+    DurationMetadataInformation,
+    NumberPerTimeMetadataInformation,
 )
 
 logger = get_logger()
@@ -60,14 +66,28 @@ class PDFOverviewGenerator:
         )
 
         self.boxes["overview_page"]["metadata_row"].append(
-            SectionContentBox(
+            SectionContentMetadataBox(
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width,
                 height=self.row_heights["overview_page"][2] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:2]) * usable_height,
             ).fill(
-                # TODO: Add metadata content
+                {
+                    (1, 1): IntegerMetadataInformation(
+                        title="Total ingoing loglines",
+                        value=29748,
+                    ),
+                    (1, 2): DurationMetadataInformation(
+                        title="Total duration",
+                        value=datetime.timedelta(minutes=14, seconds=17),
+                    ),
+                    (1, 3): NumberPerTimeMetadataInformation(
+                        title="Total duration",
+                        value=34.7,
+                        per="s",
+                    ),
+                }
             )
         )
 
@@ -92,7 +112,7 @@ class PDFOverviewGenerator:
         )
 
         self.boxes["overview_page"]["main_graph_row"].append(
-            SectionContentBox(
+            SectionContentImageBox(
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width,
@@ -128,7 +148,7 @@ class PDFOverviewGenerator:
         )
 
         self.boxes["overview_page"]["first_detail_graphs_row"].append(
-            SectionContentBox(
+            SectionContentImageBox(
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width / 2,
@@ -139,7 +159,7 @@ class PDFOverviewGenerator:
             )  # TODO: Use correct path
         )
         self.boxes["overview_page"]["first_detail_graphs_row"].append(
-            SectionContentBox(
+            SectionContentImageBox(
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width / 2,
@@ -174,7 +194,7 @@ class PDFOverviewGenerator:
         )
 
         self.boxes["overview_page"]["second_detail_graphs_row"].append(
-            SectionContentBox(
+            SectionContentImageBox(
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width / 2,
@@ -187,7 +207,7 @@ class PDFOverviewGenerator:
             )  # TODO: Use correct path
         )
         self.boxes["overview_page"]["second_detail_graphs_row"].append(
-            SectionContentBox(
+            SectionContentImageBox(
                 page=self.document[0],
                 page_margin=page_margin,
                 width=usable_width / 2,
