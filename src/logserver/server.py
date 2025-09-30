@@ -34,8 +34,9 @@ KAFKA_BROKERS = ",".join(
 
 class LogServer:
     """
-    Receives and sends single log lines. Listens for messages via Kafka and reads newly added lines from an input
-    file.
+    Receives and sends single log lines. Simultaneously, listens for messages via Kafka and reads
+    newly added lines from an input file. Sends every log line to a Kafka topic under which it is obtained by
+    the next stage.
     """
 
     def __init__(self) -> None:
@@ -47,9 +48,7 @@ class LogServer:
         self.server_logs_timestamps = ClickHouseKafkaSender("server_logs_timestamps")
 
     async def start(self) -> None:
-        """
-        Starts fetching messages from Kafka and from the input file.
-        """
+        """Starts the tasks to both fetch messages from Kafka and read them from the input file."""
         logger.info(
             "LogServer started:\n"
             f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'\n"
@@ -74,11 +73,11 @@ class LogServer:
 
     def send(self, message_id: uuid.UUID, message: str) -> None:
         """
-        Sends a received message using Kafka.
+        Sends a message using Kafka. Logs the time of sending the message to Kafka as a "timestamp_out" event.
 
         Args:
-            message_id (uuid.UUID): UUID of the message
-            message (str): Message to be sent
+            message_id (uuid.UUID): UUID of the message to be sent.
+            message (str): Message to be sent.
         """
         self.kafka_produce_handler.produce(topic=PRODUCE_TOPIC, data=message)
         logger.debug(f"Sent: '{message}'")
@@ -93,7 +92,8 @@ class LogServer:
 
     async def fetch_from_kafka(self) -> None:
         """
-        Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is sent.
+        Starts a loop to continuously fetch new data from the Kafka topic. When a message is consumed, the
+        unprocessed log line string including its timestamp ("timestamp_in") is logged.
         """
         loop = asyncio.get_running_loop()
 
@@ -116,11 +116,14 @@ class LogServer:
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
         """
-        Continuously checks for new lines at the end of the input file. If one or multiple new lines are found, any
-        empty lines are removed and the remaining lines are sent individually.
+        Starts a loop to continuously (every 0.1 seconds) check for new lines at the end of the input file.
+        If one or multiple new lines are found, any empty lines are removed and the remaining lines are sent
+        individually. For each fetched log line, the unprocessed log line string including its
+        timestamp ("timestamp_in") is logged.
 
         Args:
-            file (str): Filename of the file to be read
+            file (str): Filename of the file to be read.
+                        Default: File configured in `config.yaml` (``pipeline.log_storage.logserver.input_file``)
         """
         async with aiofiles.open(file, mode="r") as file:
             await file.seek(0, 2)  # jump to end of file
@@ -153,9 +156,7 @@ class LogServer:
 
 
 def main() -> None:
-    """
-    Creates the :class:`LogServer` instance and starts it.
-    """
+    """Creates the :class:`LogServer` instance and starts it."""
     server_instance = LogServer()
     asyncio.run(server_instance.start())
 
