@@ -13,13 +13,14 @@ traverses through it using Apache Kafka.
 Stage 1: Log Storage
 ====================
 
-This stage serves as the central contact point for all data.
+This stage serves as the central contact point for all data. Data is read and entered into the pipeline.
 
 Overview
 --------
 
-The :class:`LogServer` class is the core component of this stage. It reads from several input sources and sends the
-data to Kafka, where it can be obtained by the following module.
+The :class:`LogServer` class is the core component of this stage. It reads data from one or multiple data sources and
+enters it into the pipeline by sending it to Kafka, where it can be obtained by the following module. For monitoring,
+it logs all ingoing log lines including their timestamps of entering and leaving the module.
 
 Main Class
 ----------
@@ -30,8 +31,11 @@ Main Class
 Usage and configuration
 -----------------------
 
-Currently, the :class:`LogServer` reads from both an input file and a Kafka topic, simultaneously. The configuration
-allows changing the file name to read from.
+The :class:`LogServer` simultaneously listens on a Kafka topic and reads from an input file. The configuration
+allows changing the Kafka topic to listen on, as well as the file name to read from.
+
+The Kafka topic to listen on can be changed through setting the ``environment.kafka_topics.pipeline.logserver_in``
+field in `config.yaml`. Changing the file name to read from differs depending on your environment:
 
 - **Without Docker**:
 
