@@ -17,7 +17,6 @@ sys.path.append(os.getcwd())
 from src.base.kafka_handler import SimpleKafkaProduceHandler
 from benchmarking.test_runner.plot_generator import PlotGenerator
 from src.base.utils import setup_config
-from benchmarking.test_runner.pdf_overview_generator import PDFOverviewGenerator
 from src.train.dataset import Dataset, DatasetLoader
 from src.base.log_config import get_logger
 
@@ -116,7 +115,7 @@ class BaseTest:
         logger.info(f"{self.test_name} Cleanup: After-test database cleanup finished")
 
         self._generate_plots()
-        self._generate_report()
+        # self._generate_report()  # TODO: Update and re-enable
 
     @abstractmethod
     def _execute_core(self):
@@ -132,36 +131,37 @@ class BaseTest:
 
         self.plot_generator = None
 
-    def _generate_report(self, output_filename: str = "report"):
-        """
-        Generates the report from the generated result graphs.
-
-        Args:
-            output_filename (str): Filename for the output report file without .pdf suffix. Default: "report"
-        """
-        generator = PDFOverviewGenerator()
-
-        # prepare directory paths
-        relative_input_graph_directory = self.test_run_directory / "graphs"
-        relative_output_directory_path = self.test_run_directory
-
-        # prepare file paths
-        relative_input_graph_filename = (
-            relative_input_graph_directory
-            / LATENCIES_COMPARISON_FILENAME  # latency_comparison.png
-        )
-
-        # add elements to report pdf
-        generator.setup_first_page_layout()
-        generator.insert_title()
-        generator.insert_box_titles()
-        generator.insert_main_graph(str(relative_input_graph_filename))
-
-        # generate and save report
-        generator.save_file(
-            relative_output_directory_path=relative_output_directory_path,
-            output_filename=output_filename,
-        )
+    # TODO: Update and re-enable
+    # def _generate_report(self, output_filename: str = "report"):
+    #     """
+    #     Generates the report from the generated result graphs.
+    #
+    #     Args:
+    #         output_filename (str): Filename for the output report file without .pdf suffix. Default: "report"
+    #     """
+    #     generator = PDFOverviewGenerator()
+    #
+    #     # prepare directory paths
+    #     relative_input_graph_directory = self.test_run_directory / "graphs"
+    #     relative_output_directory_path = self.test_run_directory
+    #
+    #     # prepare file paths
+    #     relative_input_graph_filename = (
+    #         relative_input_graph_directory
+    #         / LATENCIES_COMPARISON_FILENAME  # latency_comparison.png
+    #     )
+    #
+    #     # add elements to report pdf
+    #     generator.setup_first_page_layout()
+    #     generator.insert_title()
+    #     generator.insert_box_titles()
+    #     generator.insert_main_graph(str(relative_input_graph_filename))
+    #
+    #     # generate and save report
+    #     generator.save_file(
+    #         relative_output_directory_path=relative_output_directory_path,
+    #         output_filename=output_filename,
+    #     )
 
     def _setup_progress_bar(self):
         """
