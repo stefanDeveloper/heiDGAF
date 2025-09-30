@@ -1,5 +1,7 @@
 import datetime
 from abc import abstractmethod
+from pathlib import Path
+from typing import Optional
 
 import pymupdf
 
@@ -190,8 +192,12 @@ class SectionDoubleSubtitleBox(BaseBox):
 class SectionContentBox(BaseBox):
     """Contains the section content."""
 
-    def fill(self):
+    def fill(self, file_path: Optional[Path] = None):
         self.page.draw_rect(self, width=0.5)  # border
-        # TODO: Add content
+        if file_path is not None:  # content
+            self.page.insert_image(
+                self._get_padded(vertical_padding=4),
+                filename=file_path,
+            )
 
         return self

@@ -18,7 +18,7 @@ from benchmarking.test_runner.plotting.boxes import (
 
 logger = get_logger()
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent  # heiDGAF directory
 
 
 class PDFOverviewGenerator:
@@ -99,8 +99,10 @@ class PDFOverviewGenerator:
                 height=self.row_heights["overview_page"][5] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:5]) * usable_height,
             ).fill(
-                # TODO: Add metadata content
-            )
+                file_path=Path(
+                    BASE_DIR / "benchmarking/graphs/latencies_comparison.png"
+                )
+            )  # TODO: Use correct path
         )
 
         self.boxes["overview_page"]["first_detail_graphs_titles_row"].append(
@@ -132,7 +134,9 @@ class PDFOverviewGenerator:
                 width=usable_width / 2,
                 height=self.row_heights["overview_page"][8] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:8]) * usable_height,
-            ).fill()
+            ).fill(
+                file_path=Path(BASE_DIR / "benchmarking/graphs/latencies_boxplot.png")
+            )  # TODO: Use correct path
         )
         self.boxes["overview_page"]["first_detail_graphs_row"].append(
             SectionContentBox(
@@ -142,7 +146,11 @@ class PDFOverviewGenerator:
                 height=self.row_heights["overview_page"][8] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:8]) * usable_height,
                 left_padding=usable_width / 2,
-            ).fill()
+            ).fill(
+                file_path=Path(
+                    BASE_DIR / "benchmarking/graphs/fill_levels_comparison.png"
+                )
+            )  # TODO: Use correct path
         )
 
         self.boxes["overview_page"]["second_detail_graphs_title_row"].append(
@@ -172,7 +180,11 @@ class PDFOverviewGenerator:
                 width=usable_width / 2,
                 height=self.row_heights["overview_page"][11] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:11]) * usable_height,
-            ).fill()
+            ).fill(
+                file_path=Path(
+                    BASE_DIR / "benchmarking/graphs/entering_processed_sum_at_time.png"
+                )
+            )  # TODO: Use correct path
         )
         self.boxes["overview_page"]["second_detail_graphs_row"].append(
             SectionContentBox(
@@ -182,7 +194,11 @@ class PDFOverviewGenerator:
                 height=self.row_heights["overview_page"][11] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:11]) * usable_height,
                 left_padding=usable_width / 2,
-            ).fill()
+            ).fill(
+                file_path=Path(
+                    BASE_DIR / "benchmarking/graphs/entering_processed_bars.png"
+                )
+            )  # TODO: Use correct path
         )
 
     def __prepare_overview_page(self):
@@ -271,4 +287,4 @@ if __name__ == "__main__":
 
     generator.setup_first_page_layout()
 
-    generator.save_file(Path("testing_reports"), "report")
+    generator.save_file(Path("benchmarking/testing_reports"), "report")
