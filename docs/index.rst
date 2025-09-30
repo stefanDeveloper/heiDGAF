@@ -24,5 +24,6 @@ Contents
    pipeline
    monitoring
    training
+   developer_guide
    api/index
    references
