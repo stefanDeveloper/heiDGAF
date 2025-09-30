@@ -7,7 +7,7 @@ Commit Hook
 ------------
 
 Contributing to the project you might be noting failed pipeline runs.
-This can be due to the pre.commit hook finding errors in the formatting. Therefore, we suggest you run
+This can be due to the pre-commit hook finding errors in the formatting. Therefore, we suggest you run
 
 .. code-block:: console
 
