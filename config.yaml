@@ -76,6 +76,13 @@ environment:
       port: 8098
     - hostname: kafka3
       port: 8099
+#  kafka_brokers:
+#    - hostname: localhost
+#      port: 29092
+#    - hostname: localhost
+#      port: 29093
+#    - hostname: localhost
+#      port: 29094
   kafka_topics:
     pipeline:
       logserver_in: "pipeline-logserver_in"
