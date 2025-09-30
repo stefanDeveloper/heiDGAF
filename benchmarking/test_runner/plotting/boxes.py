@@ -26,7 +26,7 @@ class BaseBox(pymupdf.Rect):
         super().__init__(x0, y0, x1, y1)
 
     @abstractmethod
-    def fill(self, *args):
+    def fill(self, *args) -> pymupdf.Rect:
         """Fills the box with content."""
         raise NotImplementedError
 
@@ -69,6 +69,8 @@ class MainTitleBox(BaseBox):
             css="* {font-family: sans-serif; font-size: 13px; text-align: right}",
         )
 
+        return self
+
 
 class SectionTitleBox(BaseBox):
     """Contains the section title."""
@@ -80,6 +82,8 @@ class SectionTitleBox(BaseBox):
             text,
             css="* {font-family: sans-serif; font-size: 8px}",
         )
+
+        return self
 
 
 class SectionDoubleTitleBox(BaseBox):
@@ -112,6 +116,8 @@ class SectionDoubleTitleBox(BaseBox):
             css="* {font-family: sans-serif; font-size: 8px}",
         )
 
+        return self
+
 
 class SectionSubtitleBox(BaseBox):
     """Contains the section subtitle."""
@@ -123,6 +129,8 @@ class SectionSubtitleBox(BaseBox):
             text,
             css="* {font-family: sans-serif; font-size: 7px; font-style: italic}",
         )
+
+        return self
 
 
 class SectionDoubleSubtitleBox(BaseBox):
@@ -140,7 +148,7 @@ class SectionDoubleSubtitleBox(BaseBox):
             fill=(0,),
             fill_opacity=0.1,
             width=0.5,
-        )  # first border
+        )
         self.page.draw_rect(
             pymupdf.Rect(  # second border
                 x0=self.x0 + (width / 2),
@@ -176,6 +184,8 @@ class SectionDoubleSubtitleBox(BaseBox):
             css="* {font-family: sans-serif; font-size: 7px; font-style: italic}",
         )
 
+        return self
+
 
 class SectionContentBox(BaseBox):
     """Contains the section content."""
@@ -183,3 +193,5 @@ class SectionContentBox(BaseBox):
     def fill(self):
         self.page.draw_rect(self, width=0.5)  # border
         # TODO: Add content
+
+        return self
