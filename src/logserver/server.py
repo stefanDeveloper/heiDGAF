@@ -93,8 +93,9 @@ class LogServer:
         )
 
     async def fetch_from_kafka(self) -> None:
-        """Starts a loop to continuously fetch new data from the Kafka topic.
+        """Fetches data from the configured Kafka topic in a loop
 
+        Starts an asynchronous loop to continuously fetch new data from the Kafka topic.
         When a message is consumed, the unprocessed log line string including
         its timestamp ("timestamp_in") is logged.
         """
@@ -118,7 +119,7 @@ class LogServer:
             self.send(message_id, value)
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
-        """Starts a loop to continuously check for new lines at the end of the input file and sends them.
+        """Starts a loop to continuously check for new lines at the end of the input file and sends them
 
         Checks are done every 0.1 seconds. If one or multiple new lines are found, any empty lines are removed
         and the remaining lines are sent individually. For each fetched log line, the unprocessed log line string
