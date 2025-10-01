@@ -33,7 +33,8 @@ KAFKA_BROKERS = ",".join(
 
 
 class LogServer:
-    """
+    """Main component of the Log Storage stage to enter data into the pipeline
+
     Receives and sends single log lines. Simultaneously, listens for messages via Kafka and reads
     newly added lines from an input file. Sends every log line to a Kafka topic under which it is obtained by
     the next stage.
@@ -72,8 +73,9 @@ class LogServer:
             logger.info("LogServer stopped.")
 
     def send(self, message_id: uuid.UUID, message: str) -> None:
-        """
-        Sends a message using Kafka. Logs the time of sending the message to Kafka as a "timestamp_out" event.
+        """Sends a message using Kafka.
+
+        Logs the time of sending the message to Kafka as a "timestamp_out" event.
 
         Args:
             message_id (uuid.UUID): UUID of the message to be sent.
@@ -91,9 +93,10 @@ class LogServer:
         )
 
     async def fetch_from_kafka(self) -> None:
-        """
-        Starts a loop to continuously fetch new data from the Kafka topic. When a message is consumed, the
-        unprocessed log line string including its timestamp ("timestamp_in") is logged.
+        """Starts a loop to continuously fetch new data from the Kafka topic.
+
+        When a message is consumed, the unprocessed log line string including
+        its timestamp ("timestamp_in") is logged.
         """
         loop = asyncio.get_running_loop()
 
@@ -115,11 +118,11 @@ class LogServer:
             self.send(message_id, value)
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
-        """
-        Starts a loop to continuously (every 0.1 seconds) check for new lines at the end of the input file.
-        If one or multiple new lines are found, any empty lines are removed and the remaining lines are sent
-        individually. For each fetched log line, the unprocessed log line string including its
-        timestamp ("timestamp_in") is logged.
+        """Starts a loop to continuously check for new lines at the end of the input file and sends them.
+
+        Checks are done every 0.1 seconds. If one or multiple new lines are found, any empty lines are removed
+        and the remaining lines are sent individually. For each fetched log line, the unprocessed log line string
+        including its timestamp ("timestamp_in") is logged.
 
         Args:
             file (str): Filename of the file to be read.
