@@ -49,7 +49,7 @@ class LogServer:
         self.server_logs_timestamps = ClickHouseKafkaSender("server_logs_timestamps")
 
     async def start(self) -> None:
-        """Starts the tasks to both fetch messages from Kafka and read them from the input file"""
+        """Starts the tasks to both fetch messages from Kafka and read them from the input file."""
         logger.info(
             "LogServer started:\n"
             f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'\n"
@@ -73,7 +73,7 @@ class LogServer:
             logger.info("LogServer stopped.")
 
     def send(self, message_id: uuid.UUID, message: str) -> None:
-        """Sends a message using Kafka
+        """Sends a message using Kafka.
 
         Logs the time of sending the message to Kafka as a "timestamp_out" event.
 
@@ -93,7 +93,7 @@ class LogServer:
         )
 
     async def fetch_from_kafka(self) -> None:
-        """Fetches data from the configured Kafka topic in a loop
+        """Fetches data from the configured Kafka topic in a loop.
 
         Starts an asynchronous loop to continuously fetch new data from the Kafka topic.
         When a message is consumed, the unprocessed log line string including
@@ -119,7 +119,7 @@ class LogServer:
             self.send(message_id, value)
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
-        """Starts a loop to continuously check for new lines at the end of the input file and sends them
+        """Starts a loop to continuously check for new lines at the end of the input file and sends them.
 
         Checks are done every 0.1 seconds. If one or multiple new lines are found, any empty lines are removed
         and the remaining lines are sent individually. For each fetched log line, the unprocessed log line string
@@ -160,7 +160,7 @@ class LogServer:
 
 
 def main() -> None:
-    """Creates the :class:`LogServer` instance and starts it"""
+    """Creates the :class:`LogServer` instance and starts it."""
     server_instance = LogServer()
     asyncio.run(server_instance.start())
 
