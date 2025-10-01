@@ -49,7 +49,7 @@ class LogServer:
         self.server_logs_timestamps = ClickHouseKafkaSender("server_logs_timestamps")
 
     async def start(self) -> None:
-        """Starts the tasks to both fetch messages from Kafka and read them from the input file."""
+        """Starts the tasks to both fetch messages from Kafka and read them from the input file"""
         logger.info(
             "LogServer started:\n"
             f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'\n"
@@ -73,7 +73,7 @@ class LogServer:
             logger.info("LogServer stopped.")
 
     def send(self, message_id: uuid.UUID, message: str) -> None:
-        """Sends a message using Kafka.
+        """Sends a message using Kafka
 
         Logs the time of sending the message to Kafka as a "timestamp_out" event.
 
@@ -160,7 +160,7 @@ class LogServer:
 
 
 def main() -> None:
-    """Creates the :class:`LogServer` instance and starts it."""
+    """Creates the :class:`LogServer` instance and starts it"""
     server_instance = LogServer()
     asyncio.run(server_instance.start())
 
