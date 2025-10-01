@@ -37,8 +37,10 @@ CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
 
 
 class LogCollector:
-    """Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
-    value, invalid loglines are discarded. All valid loglines are sent to the batch sender.
+    """Main component of the Log Collection stage to pre-process and format data
+
+    Consumes incoming loglines from the LogServer. Validates all data fields by type and
+    value, invalid loglines are discarded. All valid loglines are sent to the BatchSender.
     """
 
     def __init__(self) -> None:
@@ -53,7 +55,7 @@ class LogCollector:
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
 
     async def start(self) -> None:
-        """Starts fetching messages from Kafka and sending them to the :class:`Prefilter`."""
+        """Starts the task to fetch data from Kafka."""
         logger.info(
             "LogCollector started:\n"
             f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'"
@@ -71,8 +73,11 @@ class LogCollector:
             logger.info("LogCollector stopped.")
 
     async def fetch(self) -> None:
-        """Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is
-        decoded and sent."""
+        """Fetches data from the configured Kafka topic in a loop.
+
+        Starts an asynchronous loop to continuously listen on the configured Kafka topic and fetch new messages.
+        If a message is consumed, it is decoded and sent.
+        """
         loop = asyncio.get_running_loop()
 
         while True:
@@ -84,12 +89,18 @@ class LogCollector:
             self.send(datetime.datetime.now(), value)
 
     def send(self, timestamp_in: datetime.datetime, message: str) -> None:
-        """Sends the logline in JSON format to the BatchSender, where it is stored in
-        a temporary batch before being sent to the :class:`Prefilter`. Adds the subnet ID to the message.
+        """Adds a message to the BatchSender to be stored temporarily.
+
+        The message is added in JSON format to the BatchSender, where it is stored in
+        a temporary batch before being sent to the Prefilter. The subnet ID is added to the message.
+        In the case that a message does not have a valid logline format, it is logged as a failed logline
+        including timestamps of entering and being detected as invalid. In the case of a valid message, the logline's
+        fields as well as an "in_process" event are logged using the timestamp of it entering the module. After
+        processing, a "finished" event is logged for it.
 
         Args:
-            timestamp_in (datetime.datetime): Timestamp of entering the pipeline
-            message (str): Message to be stored
+            timestamp_in (datetime.datetime): Timestamp of entering the pipeline.
+            message (str): Message to be stored.
         """
 
         try:
@@ -154,14 +165,20 @@ class LogCollector:
 
     @staticmethod
     def _get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
-        """
-        Returns the subnet ID of an IP address.
+        """Returns the subnet ID of an IP address.
+
+        The subnet ID is formatted as `[NORMALIZED_IP_ADDRESS]_[PREFIX_LENGTH]`.
+        Depending on the IP address, the configuration value
+        ``pipeline.log_collection.batch_handler.subnet_id.[ipv4_prefix_length | ipv6_prefix_length]``
+        is used as `PREFIX_LENGTH`.
+
+        For example, the IPv4 address `192.168.1.1` with prefix length `24` is formatted to ``192.168.1.0_24``.
 
         Args:
-            address (ipaddress.IPv4Address | ipaddress.IPv6Address): IP address to get the subnet ID for
+            address (ipaddress.IPv4Address | ipaddress.IPv6Address): IP address to get the subnet ID for.
 
         Returns:
-            subnet ID for the given IP address as string
+            Subnet ID for the given IP address as string.
         """
         if isinstance(address, ipaddress.IPv4Address):
             normalized_ip_address, prefix_length = utils.normalize_ipv4_address(
@@ -178,9 +195,7 @@ class LogCollector:
 
 
 def main() -> None:
-    """
-    Creates the :class:`LogCollector` instance and starts it.
-    """
+    """Creates the :class:`LogCollector` instance and starts it."""
     collector_instance = LogCollector()
     asyncio.run(collector_instance.start())
 
