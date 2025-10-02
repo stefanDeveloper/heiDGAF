@@ -18,6 +18,7 @@ services:
           memory: 256m
     volumes:
       - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
+      - ../../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=log_storage
 
@@ -27,6 +28,8 @@ services:
       dockerfile: docker/dockerfiles/Dockerfile.logcollector
       network: host
     restart: "unless-stopped"
+    volumes:
+      - ../../../config.yaml:/app/config.yaml
     networks:
       heidgaf:
     memswap_limit: 768m
@@ -47,6 +50,8 @@ services:
       dockerfile: docker/dockerfiles/Dockerfile.prefilter
       network: host
     restart: "unless-stopped"
+    volumes:
+      - ../../../config.yaml:/app/config.yaml
     networks:
       heidgaf:
     deploy:
@@ -68,6 +73,8 @@ services:
       dockerfile: docker/dockerfiles/Dockerfile.inspector
       network: host
     restart: "unless-stopped"
+    volumes:
+      - ../../../config.yaml:/app/config.yaml
     networks:
       heidgaf:
     deploy:
@@ -90,6 +97,8 @@ services:
       dockerfile: docker/dockerfiles/Dockerfile.detector
       network: host
     restart: "unless-stopped"
+    volumes:
+      - ../../../config.yaml:/app/config.yaml
     networks:
       heidgaf:
     deploy:

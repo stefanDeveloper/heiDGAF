@@ -26,12 +26,11 @@ services:
       - heidgaf
     ports:
       - "8097:8097"
-      - "19092:19092"
     depends_on:
       zookeeper:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka1:8097", "--list" ]
+      test: ["CMD-SHELL", "nc -z localhost 19092"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -52,19 +51,18 @@ services:
       - kafka-data1:/var/lib/kafka/data
 
   kafka2:
-    image: confluentinc/cp-kafka:7.3.2
+    image: confluentinc/cp-kafka:7.9.3
     container_name: kafka2
     restart: "unless-stopped"
     networks:
       - heidgaf
     ports:
       - "8098:8098"
-      - "19093:19093"
     depends_on:
       zookeeper:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka2:8098", "--list" ]
+      test: ["CMD-SHELL", "nc -z localhost 19093"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -86,19 +84,18 @@ services:
       - kafka-data2:/var/lib/kafka/data
 
   kafka3:
-    image: confluentinc/cp-kafka:7.3.2
+    image: confluentinc/cp-kafka:7.9.3
     container_name: kafka3
     restart: "unless-stopped"
     networks:
       - heidgaf
     ports:
       - "8099:8099"
-      - "19094:19094"
     depends_on:
       zookeeper:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka3:8099", "--list" ]
+      test: ["CMD-SHELL", "nc -z localhost 19094"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -122,10 +119,3 @@ services:
 networks:
   heidgaf:
     external: true
-
-volumes:
-  kafka-data1:
-  kafka-data2:
-  kafka-data3:
-  zk-data:
-  zk-txn-logs:
