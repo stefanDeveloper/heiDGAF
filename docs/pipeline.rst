@@ -53,14 +53,27 @@ field in `config.yaml`. Changing the file name to read from differs depending on
 Stage 2: Log Collection
 =======================
 
-The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<Stage 1: Log Storage>`,
-parsing their information fields, and validating the data. Each field is checked to ensure it is of the correct type
-and format. This stage ensures that all data is accurate, reducing the need for further verification in subsequent
-stages. Any loglines that do not meet the required format are immediately discarded to maintain data integrity. Valid
-loglines are then buffered and transmitted in batches after a pre-defined timeout or when the buffer reaches its
-capacity. This minimizes the number of messages sent to the next stage and optimizes performance. The client's IP
-address is retrieved from the logline and used to create the ``subnet_id`` with the number of subnet bits specified in
-the configuration. The functionality of the buffer is detailed in the subsection, :ref:`Buffer Functionality`.
+The Log Collection stage validates and processes incoming loglines from the Log Storage stage, organizes them into batches based on subnet IDs, and forwards them to the next pipeline stage for further analysis.
+
+Core Functionality
+------------------
+
+The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<Stage 1: Log Storage>`, parsing their information fields, and validating the data. Each field is checked to ensure it is of the correct type and format. This stage ensures that all data is accurate, reducing the need for further verification in subsequent stages.
+
+Data Processing and Validation
+..............................
+
+Any loglines that do not meet the required format are immediately discarded to maintain data integrity. The validation process includes data type verification and value range checks (e.g., verifying that IP addresses are valid). Only validated loglines proceed to the batching phase.
+
+Batching and Performance Optimization
+.....................................
+
+Valid loglines are buffered and transmitted in batches after a pre-defined timeout or when the buffer reaches its capacity. This minimizes the number of messages sent to the next stage and optimizes performance. The client's IP address is retrieved from the logline and used to create the ``subnet_id`` with the number of subnet bits specified in the configuration.
+
+Advanced Features
+................
+
+The functionality of the buffer system is detailed in the subsection :ref:`Buffer Functionality`. This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in later pipeline stages.
 
 Overview
 --------
