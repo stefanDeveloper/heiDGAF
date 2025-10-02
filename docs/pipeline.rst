@@ -71,7 +71,7 @@ The `Log Collection` stage comprises three main classes:
    and content. Adds ``subnet_id`` that it retrieves from the client's IP address in the logline.
 2. :class:`BufferedBatch`: Buffers validated loglines with respect to their ``subnet_id``. Maintains the timestamps for
    accurate processing and analysis per key (``subnet_id``). Returns sorted batches.
-3. :class:`CollectorKafkaBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
+3. :class:`BufferedBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
    and checks the fill level of the key-specific batches. Sends the key's batches if full, sends all batches at timeout.
 
 Main Classes
@@ -84,7 +84,7 @@ Main Classes
 .. autoclass:: BufferedBatch
 
 .. py:currentmodule:: src.logcollector.batch_handler
-.. autoclass:: CollectorKafkaBatchSender
+.. autoclass:: BufferedBatchSender
 
 Usage
 -----
@@ -98,7 +98,7 @@ validates. The logline is parsed into its respective fields, each checked for co
 - **Field Validation**:
 
   - Checks include data type verification and value range checks (e.g., verifying that an IP address is valid).
-  - Only loglines meeting the criteria are forwarded to the :class:`CollectorKafkaBatchSender`.
+  - Only loglines meeting the criteria are forwarded to the :class:`BufferedBatchSender`.
 
 - **Subnet Identification**:
 
@@ -129,17 +129,16 @@ validates. The logline is parsed into its respective fields, each checked for co
     | **Field**            | **Description**                                |
     +======================+================================================+
     | ``TIMESTAMP``        | The date and time when the log entry was       |
-    |                      | recorded. Formatted as                         |
-    |                      | ``YYYY-MM-DDTHH:MM:SS.sssZ``.                  |
+    |                      | recorded. The format is configurable through   |
+    |                      | the ``logline_format`` in ``config.yaml``.     |
     |                      |                                                |
-    |                      | - **Format**: ``%Y-%m-%dT%H:%M:%S.%f`` (with   |
-    |                      |   microseconds truncated to milliseconds).     |
-    |                      | - **Time Zone**: ``Z``                         |
-    |                      |   indicates Zulu time (UTC).                   |
-    |                      | - **Example**: ``2024-07-28T14:45:30.123Z``    |
+    |                      | - **Default Format**: ``%Y-%m-%dT%H:%M:%S.%fZ``|
+    |                      |   (ISO 8601 with microseconds and UTC).        |
+    |                      | - **Example**: ``2024-07-28T14:45:30.123456Z`` |
     |                      |                                                |
-    |                      | This format closely resembles ISO 8601, with   |
-    |                      | milliseconds precision.                        |
+    |                      | The format can be customized by modifying the  |
+    |                      | timestamp configuration in the pipeline        |
+    |                      | configuration file.                            |
     +----------------------+------------------------------------------------+
     | ``STATUS``           | The status of the DNS query, e.g., ``NOERROR``,|
     |                      | ``NXDOMAIN``.                                  |
@@ -168,7 +167,7 @@ validates. The logline is parsed into its respective fields, each checked for co
 BufferedBatch
 .............
 
-The :class:`BufferedBatch` manages the buffering of validated loglines as well as their timestamps:
+The :class:`BufferedBatch` manages the buffering of validated loglines as well as their timestamps and batch metadata:
 
 - **Batching Logic and Buffering Strategy**:
 
@@ -177,20 +176,37 @@ The :class:`BufferedBatch` manages the buffering of validated loglines as well a
   - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
     :ref:`Stage 4: Data Inspection` and :ref:`Stage 5: Data Analysis`.
   - All batches get sorted by their timestamps at completion to ensure correct chronological order.
-  - A `begin_timestamp` and `end_timestamp` per key are extracted and send as metadata (needed for analysis). These
+  - A `begin_timestamp` and `end_timestamp` per key are extracted and sent as metadata (needed for analysis). These
     are taken from the chronologically first and last message in a batch.
+  - Tracks batch IDs, timestamps, and fill levels for comprehensive monitoring and debugging.
 
-CollectorKafkaBatchSender
-.........................
+- **Monitoring and Metadata**:
 
-The :class:`CollectorKafkaBatchSender` manages the sending of validated loglines stored in the :class:`BufferedBatch`:
+  - Each batch is assigned a unique batch ID for tracking purposes.
+  - Logs associations between loglines and their respective batches.
+  - Maintains fill level statistics for both batches and buffers.
+  - Records batch status changes (waiting, completed) with timestamps.
 
-- Starts a timer upon receiving the first log entry.
-- When a batch reaches the configured size (e.g., 1000 entries), the current and previous
-  batches of this key are concatenated and sent to the Kafka Broker(s) with topic ``Prefilter``.
-- Upon timer expiration, the currently stored batches of all keys are sent. Serves as backup if batches don't reach
-  the configured size.
-- If no messages are present when the timer expires, nothing is sent.
+BufferedBatchSender
+...................
+
+The :class:`BufferedBatchSender` manages the sending of validated loglines stored in the :class:`BufferedBatch`:
+
+- **Timer-based and Size-based Triggers**:
+
+  - Starts a timer upon receiving the first log entry.
+  - When a batch reaches the configured size (e.g., 1000 entries), the current and previous
+    batches of this key are concatenated and sent to the Kafka topic ``batch_sender_to_prefilter``.
+  - Upon timer expiration, the currently stored batches of all keys are sent. Serves as backup if batches don't reach
+    the configured size.
+  - If no messages are present when the timer expires, nothing is sent.
+
+- **Message Processing and Monitoring**:
+
+  - Extracts logline IDs from JSON messages for tracking purposes.
+  - Logs processing timestamps (in_process, batched) for each message.
+  - Provides detailed logging about the number of messages and batches sent.
+  - Uses the Batch schema for serialization before sending to Kafka.
 
 Configuration
 -------------
@@ -218,7 +234,11 @@ Class Overview
 
 - **Batch**: Stores the latest incoming messages associated with a particular key.
 
-- **Buffer**: Stores the previous batch of messages associated with a particular key, including the timestamps.
+- **Buffer**: Stores the previous batch of messages associated with a particular key.
+
+- **Batch ID**: Unique identifier assigned to each batch for tracking and monitoring purposes.
+
+- **Monitoring Databases**: Tracks logline-to-batch associations, batch timestamps, and fill levels for comprehensive monitoring.
 
 Key Procedures
 ..............
@@ -227,14 +247,17 @@ Key Procedures
 
   - When a new message arrives, the ``add_message()`` method is called.
   - If the key already exists in the batch, the message is appended to the list of messages for that key.
-  - If the key does not exist, a new entry is created in the batch.
+  - If the key does not exist, a new entry is created in the batch with a unique batch ID.
+  - Batch timestamps and logline-to-batch associations are logged for monitoring.
   - **Example**:
     - ``message_1`` arrives for ``key_1`` and is added to ``batch["key_1"]``.
 
 2. **Retrieving Message Counts**:
 
-  - Use ``get_number_of_messages(key)`` to get the count of messages in the current batch for a specific key.
-  - Use ``get_number_of_buffered_messages(key)`` to get the count of messages in the buffer for a specific key.
+  - Use ``get_message_count_for_batch_key(key)`` to get the count of messages in the current batch for a specific key.
+  - Use ``get_message_count_for_buffer_key(key)`` to get the count of messages in the buffer for a specific key.
+  - Use ``get_message_count_for_batch()`` to get the total count across all batches.
+  - Use ``get_message_count_for_buffer()`` to get the total count across all buffers.
 
 3. **Completing a Batch**:
 
