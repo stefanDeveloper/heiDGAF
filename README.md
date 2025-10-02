@@ -28,8 +28,6 @@
     <a href="https://heidgaf.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://mybinder.org/v2/gh/stefanDeveloper/heiDGAF-tutorials/HEAD?labpath=demo_notebook.ipynb">View Demo</a>
-    ·
     <a href="https://github.com/stefanDeveloper/heiDGAF/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
     <a href="https://github.com/stefanDeveloper/heiDGAF/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
@@ -58,14 +56,14 @@
 
 ## About the Project
 
-![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/pipeline_overview.png?raw=true)
+![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/heidgaf_overview_detailed.drawio.png?raw=true)
 
-## Getting Started
+## 🛠️ Getting Started
 
-If you want to use heiDGAF, just use the provided Docker compose to quickly bootstrap your environment:
+Run `heiDGAF` using Docker Compose:
 
-```
-docker compose -f docker/docker-compose.yml up
+```sh
+HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
 ```
 <p align="center">
   <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
@@ -129,9 +127,9 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 </details>
 
 
-### Developing
+## Developing
 
-Install all Python requirements:
+Install `Python` requirements:
 
 ```sh
 python -m venv .venv
@@ -167,24 +165,23 @@ The full list of configuration parameters is available at the [documentation](ht
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Insert test data
+### Insert Data
 
 >[!IMPORTANT]
-> To be able to train and test our or your own models, you will need to download the datasets.
+> We rely on the following datasets to train and test our or your own models:
 
 For training our models, we currently rely on the following data sets:
 - [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)
 - [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
 - [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
 - [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
-- [Real-CyberSecurity-Datasets](https://github.com/gfek/Real-CyberSecurity-Datasets/)
+- [DGArchive](https://dgarchive.caad.fkie.fraunhofer.de/)
 
-However, we compute all feature separately and only rely on the `domain` and `class`.
-Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
+We compute all feature separately and only rely on the `domain` and `class` for binary classification.
 
 After downloading the dataset and storing it under `<project-root>/data` you can run
-```
-docker compose -f docker/docker-compose.send-real-logs.yml up
+```sh
+python scripts/real_logs.dev.py
 ```
 to start inserting the dataset traffic.
 
@@ -192,36 +189,51 @@ to start inserting the dataset traffic.
 
 
 ### Train your own models
+
 > [!IMPORTANT]
 > This is only a brief wrap-up of a custom training process.
 > We highly encourage you to have a look at the [documentation](https://heidgaf.readthedocs.io/en/latest/training.html)
 > for a full description and explanation of the configuration parameters.
 
-Currently, we feature two trained models, namely XGBoost and RandomForest.
+We feature two trained models: XGBoost (`src/train/model.py#XGBoostModel`) and RandomForest (`src/train/model.py#RandomForestModel`).
 
 ```sh
-python -m venv .venv
-source .venv/bin/activate
+> python -m venv .venv
+> source .venv/bin/activate
 
-pip install -r requirements/requirements.train.txt
+> pip install -r requirements/requirements.train.txt
+
+> python src/train/train.py
+Usage: train.py [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  explain
+  test
+  train
 ```
 
-After setting up the [dataset directories](#insert-test-data) (and adding the code for your model class if applicable), you can start the training process by running the following commands:
+Setting up the [dataset directories](#insert-test-data) (and adding the code for your model class if applicable) let's you start the training process by running the following commands:
 
 **Model Training**
-```
-python src/train/train.py train  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name>
+
+```sh
+> python src/train/train.py train  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name>
 ```
 The results will be saved per default to `./results`, if not configured otherwise. <br>
 
 **Model Tests**
-```
-python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
+
+```sh
+> python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
 ```
 
 **Model Explain**
-```
-python src/train/train.py explain  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
+
+```sh
+> python src/train/train.py explain  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
 ```
 This will create a rules.txt file containing the innards of the model, explaining the rules it created.
 
