@@ -273,6 +273,7 @@ Key Procedures
   - If the key does not exist, a new entry is created in the batch with a unique batch ID.
   - Batch timestamps and logline-to-batch associations are logged for monitoring.
   - **Example**:
+
     - ``message_1`` arrives for ``key_1`` and is added to ``batch["key_1"]``.
 
 2. **Retrieving Message Counts**:
