@@ -4,6 +4,8 @@ services:
     container_name: clickhouse-server
     volumes:
       - ../../create_tables:/docker-entrypoint-initdb.d
+      - ch_data:/var/lib/clickhouse/
+      - ch_logs:/var/log/clickhouse-server/
     networks:
       - heidgaf
     restart: "unless-stopped"
@@ -15,3 +17,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+volumes:
+  ch_data:
+  ch_logs:

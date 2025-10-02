@@ -8,6 +8,8 @@ services:
       - ../../insert_datatest_data:/insert_datatest_data
       - ../../insert_datatest_data/data:/var/lib/clickhouse/user_files/data
       - ../../init_datatests.sh:/docker-entrypoint-initdb.d/init.sh
+      - ch_data:/var/lib/clickhouse/
+      - ch_logs:/var/log/clickhouse-server/
     networks:
       - heidgaf
     restart: "unless-stopped"
@@ -19,3 +21,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+volumes:
+  ch_data:
+  ch_logs:

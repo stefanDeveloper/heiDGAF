@@ -3,6 +3,8 @@ services:
     image: clickhouse/clickhouse-server:24.3.12.75-alpine
     volumes:
       - ../create_tables:/docker-entrypoint-initdb.d
+      - ch_data:/var/lib/clickhouse/
+      - ch_logs:/var/log/clickhouse-server/
     networks:
       - heidgaf
     ports:
@@ -64,3 +66,7 @@ services:
 networks:
   heidgaf:
     external: true
+
+volumes:
+  ch_data:
+  ch_logs:
