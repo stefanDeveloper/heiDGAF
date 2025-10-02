@@ -4,7 +4,7 @@ Training
 Overview
 ========
 
-In total, we support ``RandomForest``, and ``XGBoost``.
+In total, we support ``RandomForest``, ``XGBoost``, and ``LightGBM``.
 The :class:`DetectorTraining` resembles the main function to fit any model.
 After initialisation,
 

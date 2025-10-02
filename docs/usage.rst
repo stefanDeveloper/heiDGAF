@@ -16,15 +16,17 @@ To use heiDGAF, just use the provided ``docker-compose.yml`` to quickly bootstra
 
 .. code-block:: console
 
-   $ docker compose -f docker/docker-compose.yml up
+   $ HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
 
 If you want to run containers individually, use:
 
 .. code-block:: console
 
-   $ docker compose -f docker/docker-compose.kafka.yml up
+   $ HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.kafka.yml up
    $ docker run ...
 
+
+Make sure you set the environment variable ``HOST_IP`` to your host's IP address, so that the services can communicate with each other.
 
 Installation
 ------------

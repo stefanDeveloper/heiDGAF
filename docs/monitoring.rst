@@ -25,7 +25,7 @@ when executing:
 
 .. code-block:: console
 
-   $ docker compose -f docker/docker-compose.yml up
+   $ HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
 
 
 All modules send their monitoring-relevant information to Kafka, from which it is then collected by the
@@ -41,9 +41,11 @@ stage, the monitoring functionality can be started in the `datatest` mode:
 
 .. code-block:: console
 
-   $ docker compose -f docker/docker-compose.datatests.yml up
+   $ HOST_IP=127.0.0.1 docker compose --profile datatest -f docker-compose.yml -f ./docker-compose/prod/docker-compose.datatest.yml up
 
 `Grafana` then shows one more dashboard view, `Datatests`, that shows the confusion matrix for a testing dataset.
+Make sure that you set the profile to `datatest` and use the additional docker-compose file
+``docker-compose/prod/docker-compose.datatest.yml``.
 
 .. warning::
 
