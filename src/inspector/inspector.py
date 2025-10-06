@@ -77,7 +77,12 @@ class EnsembleModels(str, Enum):
 
 
 class Inspector:
-    """Finds anomalies in a batch of requests and produces it to the ``Detector``."""
+    """Main component of the Data Inspection stage to detect anomalies in request batches
+
+    Analyzes batches of DNS requests using configurable streaming anomaly detection models.
+    Processes batches to identify suspicious patterns and forwards anomalous batches to the
+    Detector for further analysis. Supports both univariate and multivariate detection models.
+    """
 
     def __init__(self) -> None:
         self.batch_id = None
