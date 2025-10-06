@@ -22,7 +22,7 @@ FORBIDDEN_FIELD_NAMES = [
 
 
 class FieldType:
-    """Base class for all field validation types in the logline format configuration.
+    """Base class for all field validation types in the logline format configuration
 
     Provides the common interface for field validation. All specific field types inherit
     from this class and implement their own validation logic in the :meth:`validate` method.
