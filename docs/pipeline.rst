@@ -10,6 +10,8 @@ traverses through it using Apache Kafka.
 .. image:: media/pipeline_overview.png
 
 
+.. _stage-1-log-storage:
+
 Stage 1: Log Storage
 ====================
 
@@ -59,7 +61,7 @@ batches based on subnet IDs, and forwards them to the next pipeline stage for fu
 Core Functionality
 ------------------
 
-The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<Stage 1: Log Storage>`,
+The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<stage-1-log-storage>`,
 parsing their information fields, and validating the data. Each field is checked to ensure it is of the correct type
 and format. This stage ensures that all data is accurate, reducing the need for further verification
 in subsequent stages.
@@ -82,7 +84,7 @@ in the configuration.
 Advanced Features
 .................
 
-The functionality of the buffer system is detailed in the subsection :ref:`Buffer Functionality`. This approach helps
+The functionality of the buffer system is detailed in the subsection :ref:`buffer-functionality`. This approach helps
 detect errors or attacks that may occur at the boundary between two batches when analyzed in later pipeline stages.
 
 Overview
@@ -185,7 +187,7 @@ validates. The logline is parsed into its respective fields, each checked for co
     |                      | bytes.                                         |
     +----------------------+------------------------------------------------+
 
-  - Users can change the format and field types, as described in the :ref:`Logline format configuration` section.
+  - Users can change the format and field types, as described in the :ref:`logline-format-configuration` section.
 
 BufferedBatch
 .............
@@ -197,7 +199,7 @@ The :class:`BufferedBatch` manages the buffering of validated loglines as well a
   - Collects log entries into a ``batch`` dictionary, with the ``subnet_id`` as key.
   - Uses a ``buffer`` per key to concatenate and send both the current and previous batches together.
   - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
-    :ref:`Stage 4: Inspection` and :ref:`Stage 5: Detection`.
+    :ref:`stage-4-inspection` and :ref:`stage-5-detection`.
   - All batches get sorted by their timestamps at completion to ensure correct chronological order.
   - A `begin_timestamp` and `end_timestamp` per key are extracted and sent as metadata (needed for analysis). These
     are taken from the chronologically first and last message in a batch.
@@ -234,7 +236,10 @@ The :class:`BufferedBatchSender` manages the sending of validated loglines store
 Configuration
 -------------
 
-The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format`` configured in the ``config.yaml``. Section :ref:`Logline format configuration` provides detailed information on how to customize the logline format and field definitions. The LogCollector uses the following configuration options from the configuration:
+The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format``
+configured in the ``config.yaml``. Section :ref:`logline-format-configuration` provides detailed information
+on how to customize the logline format and field definitions. The LogCollector uses the following
+configuration options from the configuration:
 
 - **LogCollector Analyzation Criteria**:
 
@@ -242,6 +247,9 @@ The :class:`LogCollector` checks the validity of incoming loglines. For this, it
     ``"status_code"`` in the ``logline_format`` list.
   - Valid record types: The accepted DNS record types for logline validation. This is defined in the field with name
     ``"record_type"`` in the ``logline_format`` list.
+
+
+.. _buffer-functionality:
 
 Buffer Functionality
 --------------------
@@ -416,6 +424,9 @@ The :class:`Prefilter` provides comprehensive monitoring:
 - **Performance Metrics**: Logs processing statistics for each batch
 
 
+
+.. _stage-4-inspection:
+
 Stage 4: Inspection
 ===================
 
@@ -471,12 +482,15 @@ Currently, we rely on the packet size and number occurances for multivariate pro
 - :class:`OCSVMDetector`
 - :class:`RrcfDetector`
 
-Ensemble prediction in ``streamad.process:
+Ensemble prediction in ``streamad.process``:
 
 - :class:`WeightEnsemble`
 - :class:`VoteEnsemble`
 
 It takes a list of ``streamad.model`` for perform the ensemble prediction.
+
+
+.. _stage-5-detection:
 
 Stage 5: Detection
 ==================

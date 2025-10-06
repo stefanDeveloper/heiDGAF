@@ -365,7 +365,7 @@ class KafkaConsumeHandler(KafkaHandler):
         """
         raise NotImplementedError
 
-    def consume_as_json(self) -> tuple[None | str, dict]:
+    def consume_as_json(self) -> tuple[Optional[str], dict]:
         """Consume messages and return them in JSON format.
 
         Consumes available messages from subscribed topics, decodes the data,
@@ -373,7 +373,7 @@ class KafkaConsumeHandler(KafkaHandler):
         until a message is available.
 
         Returns:
-            tuple[None | str, dict]: A tuple containing:
+            tuple[Optional[str], dict]: A tuple containing:
                 - Message key (str or None)
                 - Message value as dictionary (empty dict if no message)
 
@@ -466,7 +466,8 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
                 - Message key (str or None)
                 - Message value (str or None)
                 - Topic name (str or None)
-                Returns (None, None, None) if no valid message is retrieved.
+
+            Returns (None, None, None) if no valid message is retrieved.
 
         Raises:
             ValueError: If the received message is invalid.
@@ -531,7 +532,8 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
                 - Message key (str or None)
                 - Message value (str or None)
                 - Topic name (str or None)
-                Returns (None, None, None) if no valid message is retrieved.
+
+            Returns (None, None, None) if no valid message is retrieved.
 
         Raises:
             ValueError: If the received message is invalid.

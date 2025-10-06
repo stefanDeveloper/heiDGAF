@@ -54,4 +54,6 @@ Now, you can start each module, e.g. the `Inspector`:
 Configuration
 -------------
 
+.. _logline-format-configuration:
+
 .. include:: configuration.rst

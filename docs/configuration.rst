@@ -149,8 +149,8 @@ functionality of the modules.
    * - Parameter
      - Description
    * - logline_format
-     - Defines the expected format for incoming log lines. See the :ref:`Logline format configuration` section for more
-       details.
+     - Defines the expected format for incoming log lines. See the :ref:`logline-format-configuration`
+       section for more details.
 
 .. list-table:: ``batch_handler`` Parameters
    :header-rows: 1

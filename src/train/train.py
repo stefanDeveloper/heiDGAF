@@ -1,19 +1,18 @@
 import hashlib
 import json
+import os
 import pickle
 import sys
-import os
-from enum import Enum, unique
 import tempfile
+from enum import Enum, unique
 
 import click
 import joblib
 import numpy as np
+import polars as pl
 import torch
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import StandardScaler
-import polars as pl
-
 
 sys.path.append(os.getcwd())
 from src.train.dataset import DatasetLoader
