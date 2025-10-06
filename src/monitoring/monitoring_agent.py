@@ -22,6 +22,15 @@ CLICKHOUSE_HOSTNAME = CONFIG["environment"]["monitoring"]["clickhouse_server"][
 
 
 def prepare_all_tables():
+    """Prepare and create all ClickHouse tables from SQL files.
+
+    Reads all SQL files from the CREATE_TABLES_DIRECTORY and executes them
+    to create the required database tables for monitoring data storage.
+
+    Raises:
+        Exception: If any CREATE TABLE statement fails to execute.
+    """
+
     def _load_contents(file_name: str) -> str:
         with open(file_name, "r") as file:
             return file.read()
@@ -40,7 +49,18 @@ def prepare_all_tables():
 
 
 class MonitoringAgent:
+    """Main component of the Monitoring stage to collect and store pipeline data
+
+    Consumes monitoring data from Kafka topics and batches them for efficient
+    insertion into ClickHouse. Handles data deserialization and forwards it to
+    the batch sender for persistent storage.
+    """
+
     def __init__(self):
+        """
+        Sets up consumption from all ClickHouse-related Kafka topics and
+        initializes the batch sender for efficient data insertion.
+        """
         self.table_names = [
             "server_logs",
             "server_logs_timestamps",
@@ -60,6 +80,16 @@ class MonitoringAgent:
         self.batch_sender = ClickHouseBatchSender()
 
     async def start(self):
+        """Start the monitoring agent to consume and process data continuously.
+
+        Runs an infinite loop to consume messages from Kafka topics, deserialize
+        the data according to table schemas, and forward it to the batch sender
+        for insertion into ClickHouse.
+
+        Raises:
+            KeyboardInterrupt: When the agent is manually stopped.
+            Exception: For any other processing errors (logged as warnings).
+        """
         loop = asyncio.get_running_loop()
 
         while True:
@@ -84,6 +114,11 @@ class MonitoringAgent:
 
 
 def main():
+    """Creates the :class:`MonitoringAgent` instance and starts it.
+
+    Entry point for the monitoring agent that initializes and runs
+    the asynchronous monitoring process.
+    """
     clickhouse_consumer = MonitoringAgent()
     asyncio.run(clickhouse_consumer.start())
 
