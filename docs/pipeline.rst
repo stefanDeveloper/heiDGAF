@@ -323,12 +323,28 @@ and efficient data processing across different message streams.
 Stage 3: Log Filtering
 ======================
 
-Overview
---------
+The Log Filtering stage processes batches from the Log Collection stage and filters out irrelevant entries based on configurable relevance criteria, ensuring only meaningful data proceeds to anomaly detection.
+
+Core Functionality
+------------------
 
 The `Log Filtering` stage is responsible for processing and refining log data by filtering out entries based on
-specified error types. This step ensures that only relevant logs are passed on for further analysis, optimizing the
-performance and accuracy of subsequent pipeline stages.
+relevance criteria defined in the logline format configuration. This step ensures that only relevant logs are passed
+on for further analysis, optimizing the performance and accuracy of subsequent pipeline stages.
+
+Data Processing Pipeline
+........................
+
+The filtering process operates on complete batches rather than individual loglines, maintaining batch metadata and
+timestamps throughout the process. Each batch is processed as a unit, preserving the subnet-based grouping established
+in the previous stage.
+
+Relevance-Based Filtering
+.........................
+
+The filtering mechanism uses the ``check_relevance()`` method from the :class:`LoglineHandler` to determine which
+entries should proceed to the next stage. This approach allows for flexible filtering criteria based on field values
+defined in the configuration.
 
 Main Class
 ----------
@@ -336,29 +352,68 @@ Main Class
 .. py:currentmodule:: src.prefilter.prefilter
 .. autoclass:: Prefilter
 
-The :class:`Prefilter` class serves as the primary component in this stage, handling the extraction and filtering of
-log data.
-
 Usage
 -----
 
-The :class:`Prefilter` loads data from the Kafka topic ``Prefilter``. It extracts the log entries and applies a filter
-to retain only those entries that match the specified error types. These error types are provided as a list of strings
-during the initialization of a :class:`Prefilter` instance.
+Data Flow and Processing
+........................
 
-Once the filtering process is complete, the refined data is sent back to the Kafka Brokers under the topic ``Inspect``
-for further processing in subsequent stages.
+The :class:`Prefilter` consumes batches from the Kafka topic ``batch_sender_to_prefilter`` and processes them through
+the following workflow:
+
+1. **Batch Reception**: Receives complete batches with metadata (batch_id, begin_timestamp, end_timestamp, subnet_id)
+2. **Relevance Filtering**: Applies relevance checks to each logline within the batch
+3. **Monitoring**: Tracks filtered and unfiltered data counts for monitoring purposes
+4. **Batch Forwarding**: Sends filtered batches to the ``prefilter_to_inspector`` topic
+
+Filtering Logic
+...............
+
+The filtering process:
+
+- Retains loglines that pass the relevance check defined by ``ListItem`` field configurations
+- Discards irrelevant loglines and marks them as "filtered_out" in the monitoring system
+- Preserves batch structure and metadata for filtered data
+- Handles empty batches gracefully (logs info but does not forward empty data)
+
+Error Handling
+..............
+
+The implementation includes robust error handling:
+
+- **Empty Data**: Logs informational messages when batches contain no data
+- **No Filtered Data**: Raises ``ValueError`` when no relevant data remains after filtering
+- **Kafka Exceptions**: Continues processing on message fetch exceptions
+- **Graceful Shutdown**: Supports ``KeyboardInterrupt`` for clean termination
 
 Configuration
 -------------
 
-To customize the filtering behavior, the following options in the ``logline_format`` set
-in the ``config.yaml`` are used.
+Filtering behavior is controlled through the ``logline_format`` configuration in ``config.yaml``:
 
-- **Relevant Types**:
+- **Relevance Criteria**:
 
-  - If the fourth entry of the field configuration with type ``ListItem`` in the ``logline_format`` list is defined for
-    any field name, the values in this list are the relevant values.
+  - For fields of type ``ListItem``, the fourth entry (relevant_list) defines which values are considered relevant
+  - If no relevant_list is specified, all allowed values are deemed relevant
+  - Multiple fields can have relevance criteria, and all must pass for a logline to be retained
+
+- **Example Configuration**:
+
+  .. code-block:: yaml
+
+     logline_format:
+       - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]  # Only NXDOMAIN relevant
+       - [ "record_type", ListItem, [ "A", "AAAA" ] ]  # A and AAAA relevant
+
+Monitoring and Metrics
+........................
+
+The :class:`Prefilter` provides comprehensive monitoring:
+
+- **Batch Processing**: Tracks batch timestamps and processing status
+- **Fill Levels**: Monitors data volumes before and after filtering
+- **Logline Tracking**: Records "filtered_out" status for individual loglines
+- **Performance Metrics**: Logs processing statistics for each batch
 
 
 Stage 4: Inspection

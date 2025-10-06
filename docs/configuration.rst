@@ -255,9 +255,6 @@ The following parameters control the infrastructure of the software.
    * - Parameter
      - Default Value
      - Description
-   * - timestamp_format
-     - ``"%Y-%m-%dT%H:%M:%S.%fZ"``
-     - Timestamp format used by the Inspector. Will be removed soon.
    * - kafka_brokers
      - ``hostname: kafka1, port: 8097``, ``hostname: kafka2, port: 8098``, ``hostname: kafka3, port: 8099``
      - Hostnames and ports of the Kafka brokers, given as list.
