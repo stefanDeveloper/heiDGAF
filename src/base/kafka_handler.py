@@ -9,6 +9,7 @@ import os
 import sys
 import time
 from abc import abstractmethod
+from typing import Optional
 
 import marshmallow_dataclass
 from confluent_kafka import (
@@ -35,59 +36,99 @@ KAFKA_BROKERS = config["environment"]["kafka_brokers"]
 
 
 class TooManyFailedAttemptsError(Exception):
-    """
-    Exception for too many failed attempts.
+    """Exception raised when operations exceed the maximum number of retry attempts
+
+    This exception is typically raised during Kafka topic creation or connection
+    establishment when the maximum number of retry attempts has been exceeded.
     """
 
     pass
 
 
 class KafkaMessageFetchException(Exception):
-    """
-    Exception for failed fetch of Kafka messages during consuming.
+    """Exception raised when Kafka message consumption fails
+
+    This exception is raised when there are errors during the process of fetching
+    or consuming messages from Kafka topics, including network issues, timeout
+    errors, or malformed message data.
     """
 
     pass
 
 
 class KafkaHandler:
-    """
-    Base class for all Kafka wrappers. Only specifies the initialization.
+    """Base class for all Kafka wrappers and handlers
+
+    Provides common initialization and configuration setup for Kafka producers
+    and consumers. This abstract base class establishes the foundation for
+    specific Kafka handling implementations.
     """
 
     def __init__(self) -> None:
         """
-        Initializes the broker configuration.
+        Sets up the initial configuration and initializes the consumer attribute
+        to None. Specific implementations should override this method to establish
+        their respective Kafka clients.
         """
         self.consumer = None
 
 
 class KafkaProduceHandler(KafkaHandler):
-    """
-    Base class for Kafka Producer wrappers.
+    """Abstract base class for Kafka Producer wrappers
+
+    Extends KafkaHandler to provide producer-specific functionality. This class
+    establishes the interface for Kafka message production with different
+    semantic guarantees (simple vs exactly-once).
     """
 
     def __init__(self, conf):
+        """
+        Args:
+            conf (dict): Configuration dictionary for the Kafka producer.
+                         Should contain broker settings and producer-specific options.
+        """
         super().__init__()
         self.producer = Producer(conf)
 
     @abstractmethod
     def produce(self, *args, **kwargs):
-        """
-        Encodes the given data for transport and sends it on the specified topic.
+        """Abstract method for producing messages to Kafka topics
+
+        Encodes the given data for transport and sends it to the specified topic.
+        Implementations must define the specific behavior for message production.
+
+        Args:
+            *args: Variable arguments depending on implementation.
+            **kwargs: Keyword arguments depending on implementation.
+
+        Raises:
+            NotImplementedError: This method must be implemented by subclasses.
         """
         raise NotImplementedError
 
     def __del__(self) -> None:
+        """Cleanup method called when the object is destroyed
+
+        Ensures that all pending messages are flushed before the producer
+        is destroyed, preventing message loss.
+        """
         self.producer.flush()
 
 
 class SimpleKafkaProduceHandler(KafkaProduceHandler):
-    """
-    Simple wrapper for the Kafka Producer without Write-Exactly-Once semantics.
+    """Simple Kafka Producer wrapper without Write-Exactly-Once semantics
+
+    Provides basic message production capabilities with at-least-once delivery
+    guarantees. This implementation prioritizes simplicity and performance over
+    strict consistency guarantees.
     """
 
     def __init__(self):
+        """
+        Sets up a Kafka producer with standard configuration for simple message
+        production without transactional guarantees. Broker addresses are
+        automatically configured from the global KAFKA_BROKERS setting.
+        """
         self.brokers = ",".join(
             [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
         )
@@ -101,13 +142,21 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
         super().__init__(conf)
 
     def produce(self, topic: str, data: str, key: None | str = None) -> None:
-        """
-        Encodes the given data for transport and sends it on the specified topic.
+        """Produce a message to the specified Kafka topic.
+
+        Encodes and sends the provided data to the specified topic. The producer
+        is flushed before sending to ensure message delivery. Empty data is
+        silently ignored.
 
         Args:
-            topic (str): Topic to send the data with
-            data (str): Data to be sent
-            key (str): Key to send the data with
+            topic (str): Target Kafka topic name.
+            data (str): Message data to send (ignored if empty).
+            key (str, optional): Optional message key for partitioning.
+                                 Default: None.
+
+        Raises:
+            KafkaException: If message production fails.
+            BufferError: If the producer's message buffer is full.
         """
         if not data:
             return
@@ -122,11 +171,29 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
 
 
 class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
-    """
-    Wrapper for the Kafka Producer with Write-Exactly-Once semantics.
+    """Kafka Producer wrapper with Write-Exactly-Once semantics
+
+    Provides transactional message production with exactly-once delivery
+    guarantees. This implementation ensures that messages are delivered
+    exactly once, even in the presence of failures and retries.
+
+    Configuration:
+        - transactional.id: Set to HOSTNAME for unique transaction identification
+        - enable.idempotence: True (required for exactly-once semantics)
+
+    Note:
+        Each instance must have a unique transactional.id to avoid conflicts.
     """
 
     def __init__(self):
+        """
+        Sets up a Kafka producer with transactional capabilities for exactly-once
+        semantics. The producer is initialized with transactions enabled and
+        configured with a unique transactional ID based on the hostname.
+
+        Raises:
+            KafkaException: If transaction initialization fails.
+        """
         self.brokers = ",".join(
             [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
         )
@@ -141,17 +208,21 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
         self.producer.init_transactions()
 
     def produce(self, topic: str, data: str, key: None | str = None) -> None:
-        """
-        Encodes the given data for transport and sends it with the specified topic.
+        """Produce a message to the specified Kafka topic with exactly-once semantics.
+
+        Sends the provided data within a Kafka transaction to ensure exactly-once
+        delivery. The transaction is automatically committed on success or aborted
+        on failure. Empty data is silently ignored.
 
         Args:
-            topic (str): Topic to send the data with.
-            data (str): Data to be sent.
-            key (str): Key to send the data with.
+            topic (str): Target Kafka topic name.
+            data (str): Message data to send (ignored if empty).
+            key (str, optional): Optional message key for partitioning.
+                                 Default: None.
 
         Raises:
-            Exception: During :meth:`commit_transaction_with_retry()` or Producer's ``produce()``. Aborts
-                       transaction then.
+            KafkaException: If message production or transaction handling fails.
+            RuntimeError: If transaction commit fails after retries.
         """
         if not data:
             return
@@ -176,13 +247,21 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
     def commit_transaction_with_retry(
         self, max_retries: int = 3, retry_interval_ms: int = 1000
     ) -> None:
-        """
-        Commits a transaction including retries. If committing fails, it is retried after the given retry interval
-        time up to ``max_retries`` times.
+        """Commit a Kafka transaction with automatic retry logic.
+
+        Attempts to commit the current transaction with built-in retry mechanism
+        for handling transient failures. If committing fails due to conflicting
+        API calls, the method will retry after the specified interval.
 
         Args:
-            max_retries (int): Maximum number of retries
-            retry_interval_ms (int): Interval between retries in ms
+            max_retries (int): Maximum number of commit retry attempts. Default: 3.
+            retry_interval_ms (int): Time to wait between retries in milliseconds.
+                                     Default: 1000.
+
+        Raises:
+            KafkaException: If transaction commit fails for reasons other than
+                            conflicting API calls.
+            RuntimeError: If transaction commit fails after all retry attempts.
         """
         committed = False
         retry_count = 0
@@ -209,11 +288,30 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
 
 
 class KafkaConsumeHandler(KafkaHandler):
-    """
-    Base class for Kafka Consumer wrappers.
+    """Abstract base class for Kafka Consumer wrappers
+
+    Provides common functionality for Kafka message consumption including
+    topic creation, subscription management, and consumer configuration.
+    All consumer implementations should extend this class.
+
+    Attributes:
+        brokers (str): Comma-separated list of Kafka broker addresses.
+        consumer (Consumer): Confluent Kafka Consumer instance.
     """
 
     def __init__(self, topics: str | list[str]) -> None:
+        """
+        Creates a Kafka consumer, ensures the specified topics exist, and
+        subscribes to them. Topics are automatically created if they don't exist.
+
+        Args:
+            topics (str | list[str]): Topic name(s) to subscribe to.
+                                      Can be a single topic string or list of topics.
+
+        Raises:
+            TooManyFailedAttemptsError: If topic creation fails after retries.
+            KafkaException: If consumer creation or subscription fails.
+        """
         super().__init__()
 
         # get brokers
@@ -253,21 +351,34 @@ class KafkaConsumeHandler(KafkaHandler):
 
     @abstractmethod
     def consume(self, *args, **kwargs):
-        """
-        Consumes available messages on the specified topic and decodes it.
+        """Abstract method for consuming messages from Kafka topics
+
+        Implementations must define the specific behavior for message consumption,
+        including how to handle message polling, error handling, and data decoding.
+
+        Args:
+            *args: Variable arguments depending on implementation.
+            **kwargs: Keyword arguments depending on implementation.
+
+        Raises:
+            NotImplementedError: This method must be implemented by subclasses.
         """
         raise NotImplementedError
 
     def consume_as_json(self) -> tuple[None | str, dict]:
-        """
-        Consumes available messages on the specified topic. Decodes the data and returns the contents in JSON format.
-        Blocks and waits if no data is available.
+        """Consume messages and return them in JSON format.
+
+        Consumes available messages from subscribed topics, decodes the data,
+        and returns the contents as a JSON dictionary. This method blocks
+        until a message is available.
 
         Returns:
-            Consumed data in JSON format
+            tuple[None | str, dict]: A tuple containing:
+                - Message key (str or None)
+                - Message value as dictionary (empty dict if no message)
 
         Raises:
-            ValueError: Invalid data format
+            ValueError: If the message data format is invalid or cannot be parsed.
         """
         key, value, topic = self.consume()
 
@@ -284,14 +395,18 @@ class KafkaConsumeHandler(KafkaHandler):
         except Exception:
             raise ValueError("Unknown data format")
 
-    def _all_topics_created(self, topics) -> bool:
-        """
-        Checks whether each topic in a list of topics was created. If not, retries for a set amount of times
+    def _all_topics_created(self, topics: list[str]) -> bool:
+        """Verify that all specified topics have been created successfully.
+
+        Polls the Kafka cluster to check if each topic in the provided list
+        has been created. Retries for a maximum duration if topics are not
+        immediately available.
 
         Args:
-            topics (list): List of topics to check
+            topics (list[str]): List of topic names to verify.
+
         Returns:
-            bool
+            bool: True if all topics are created, False if timeout exceeded.
         """
         number_of_retries_left = 30
         all_topics_created = False
@@ -314,26 +429,49 @@ class KafkaConsumeHandler(KafkaHandler):
         return True
 
     def __del__(self) -> None:
+        """Cleanup method called when the object is destroyed
+
+        Properly closes the Kafka consumer connection to release resources
+        and ensure graceful shutdown.
+        """
         if self.consumer:
             self.consumer.close()
 
 
 class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
-    """
-    Simple wrapper for the Kafka Consumer without Write-Exactly-Once semantics.
+    """Simple Kafka Consumer wrapper without Write-Exactly-Once semantics
+
+    Provides basic message consumption capabilities with at-least-once delivery
+    semantics. Messages are not automatically committed, allowing for manual
+    offset management by the application.
     """
 
-    def __init__(self, topics):
+    def __init__(self, topics: str | list[str]) -> None:
+        """
+        Args:
+            topics (str | list[str]): Topic name(s) to subscribe to.
+        """
         super().__init__(topics)
 
-    def consume(self) -> tuple[str | None, str | None, str | None]:
+    def consume(self) -> tuple[Optional[str], Optional[str], Optional[str]]:
         """
-        Consumes available messages on the specified topic. Decodes the data and returns a tuple
-        of key, data and topic of the message. Blocks and waits if no data is available.
+        Consume messages from subscribed Kafka topics.
+
+        Polls for available messages and decodes them. This method blocks
+        until a message is available or a keyboard interrupt is received.
+        The consumer does not automatically commit offsets.
 
         Returns:
-            Either ``[None,None,None]`` if empty data was retrieved or ``[key,value,topic]`` as tuple
-            of strings of the consumed data.
+            tuple[Optional[str], Optional[str], Optional[str]]: A tuple containing:
+                - Message key (str or None)
+                - Message value (str or None)
+                - Topic name (str or None)
+                Returns (None, None, None) if no valid message is retrieved.
+
+        Raises:
+            ValueError: If the received message is invalid.
+            KeyboardInterrupt: If consumption is interrupted by user.
+            KafkaException: If message commit fails.
         """
         empty_data_retrieved = False
 
@@ -366,21 +504,39 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
 
 
 class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
-    """
-    Wrapper for the Kafka Consumer with Write-Exactly-Once semantics.
+    """Kafka Consumer wrapper with Write-Exactly-Once semantics
+
+    Provides message consumption with exactly-once processing guarantees.
+    Messages are automatically committed after successful processing to
+    ensure each message is processed exactly once.
     """
 
     def __init__(self, topics: str | list[str]) -> None:
+        """
+        Args:
+            topics (str | list[str]): Topic name(s) to subscribe to.
+        """
         super().__init__(topics)
 
-    def consume(self) -> tuple[str | None, str | None, str | None]:
+    def consume(self) -> tuple[Optional[str], Optional[str], Optional[str]]:
         """
-        Consumes available messages on the specified topic. Decodes the data and returns a tuple
-        of key, data and topic of the message. Blocks and waits if no data is available.
+        Consume messages from subscribed Kafka topics with exactly-once semantics.
+
+        Polls for available messages, decodes them, and automatically commits
+        the message offset after successful processing. This ensures each
+        message is processed exactly once.
 
         Returns:
-            Either ``[None,None,None]`` if empty data was retrieved or ``[key,value,topic]`` as tuple
-            of strings of the consumed data.
+            tuple[Optional[str], Optional[str], Optional[str]]: A tuple containing:
+                - Message key (str or None)
+                - Message value (str or None)
+                - Topic name (str or None)
+                Returns (None, None, None) if no valid message is retrieved.
+
+        Raises:
+            ValueError: If the received message is invalid.
+            KeyboardInterrupt: If consumption is interrupted by user.
+            KafkaException: If message commit fails.
         """
         empty_data_retrieved = False
 
@@ -415,18 +571,33 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
 
     @staticmethod
     def _is_dicts(obj):
-        return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
+        """Check if the provided object is a list containing only dictionaries.
 
-    def consume_as_object(self) -> tuple[None | str, Batch]:
-        """
-        Consumes available messages on the specified topic. Decodes the data and converts it to a Batch
-        object. Returns the Batch object.
+        Args:
+            obj: Object to check.
 
         Returns:
-            Consumed data as Batch object
+            bool: True if obj is a list of dictionaries, False otherwise.
+        """
+        return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
+
+    def consume_as_object(self) -> tuple[Optional[str], Batch]:
+        """
+        Consume messages and return them as Batch objects.
+
+        Consumes available messages from subscribed topics, decodes the data,
+        and converts it to a structured Batch object using marshmallow schema
+        validation. This method provides type-safe message consumption.
+
+        Returns:
+            tuple[Optional[str], Batch]: A tuple containing:
+                - Message key (str or None).
+                - Batch object containing the deserialized message data.
 
         Raises:
-            ValueError: Invalid data format
+            ValueError: If the message data format is invalid or cannot be
+                        converted to a Batch object.
+            marshmallow.ValidationError: If data doesn't conform to Batch schema.
         """
         key, value, topic = self.consume()
 
