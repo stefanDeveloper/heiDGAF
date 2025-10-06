@@ -44,8 +44,11 @@ class WrongChecksum(Exception):  # pragma: no cover
 
 
 class Detector:
-    """Logs detection with probability score of requests. It runs the provided machine learning model.
-    In addition, it returns all individually probabilities of the anomalous batch.
+    """Main component of the Data Analysis stage to perform anomaly detection
+
+    Processes suspicious batches from the Inspector using machine learning models to detect
+    anomalous DNS requests. Downloads and validates models, calculates probability scores, and
+    generates alerts when anomalies are detected above the configured threshold.
     """
 
     def __init__(self) -> None:
