@@ -80,7 +80,7 @@ address is retrieved from the logline and used to create the ``subnet_id`` with 
 in the configuration.
 
 Advanced Features
-................
+.................
 
 The functionality of the buffer system is detailed in the subsection :ref:`Buffer Functionality`. This approach helps
 detect errors or attacks that may occur at the boundary between two batches when analyzed in later pipeline stages.
@@ -197,7 +197,7 @@ The :class:`BufferedBatch` manages the buffering of validated loglines as well a
   - Collects log entries into a ``batch`` dictionary, with the ``subnet_id`` as key.
   - Uses a ``buffer`` per key to concatenate and send both the current and previous batches together.
   - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
-    :ref:`Stage 4: Data Inspection` and :ref:`Stage 5: Data Analysis`.
+    :ref:`Stage 4: Inspection` and :ref:`Stage 5: Detection`.
   - All batches get sorted by their timestamps at completion to ensure correct chronological order.
   - A `begin_timestamp` and `end_timestamp` per key are extracted and sent as metadata (needed for analysis). These
     are taken from the chronologically first and last message in a batch.
@@ -406,7 +406,7 @@ Filtering behavior is controlled through the ``logline_format`` configuration in
        - [ "record_type", ListItem, [ "A", "AAAA" ] ]  # A and AAAA relevant
 
 Monitoring and Metrics
-........................
+......................
 
 The :class:`Prefilter` provides comprehensive monitoring:
 
@@ -417,7 +417,7 @@ The :class:`Prefilter` provides comprehensive monitoring:
 
 
 Stage 4: Inspection
-========================
+===================
 
 Overview
 --------

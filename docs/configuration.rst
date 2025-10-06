@@ -84,7 +84,7 @@ There are four field types available:
        All relevant values must also be in the allowed list. If not specified, all allowed values are deemed relevant.
 
 Configuration Examples
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 Here are examples for each field type:
 
