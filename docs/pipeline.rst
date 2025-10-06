@@ -234,8 +234,7 @@ The :class:`BufferedBatchSender` manages the sending of validated loglines store
 Configuration
 -------------
 
-The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format`` configured
-in the ``config.yaml``.
+The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format`` configured in the ``config.yaml``. Section :ref:`Logline format configuration` provides detailed information on how to customize the logline format and field definitions. The LogCollector uses the following configuration options from the configuration:
 
 - **LogCollector Analyzation Criteria**:
 
