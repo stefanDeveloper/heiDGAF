@@ -60,7 +60,7 @@
 
 ## Getting Started
 
-##### Run **heiDGAF** using Docker Compose:
+#### Run **heiDGAF** using Docker Compose:
 
 ```sh
 HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
@@ -69,7 +69,7 @@ HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
   <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
 </p>
 
-##### Or run the modules locally on your machine:
+#### Or run the modules locally on your machine:
 ```sh
 python -m venv .venv
 source .venv/bin/activate
@@ -185,7 +185,6 @@ Have a look at the following pictures showing examples of how these dashboards m
   This dashboard is only active for the **_datatest_** mode. Users who want to test their own models can use this mode
   for inspecting confusion matrices on testing data.
 
-  > [!CAUTION]
   > This feature is in a very early development stage.
 
   <p align="center">
@@ -254,20 +253,20 @@ Commands:
 Setting up the [dataset directories](#insert-test-data) (and adding the code for your model class if applicable) lets you start
 the training process by running the following commands:
 
-##### Model Training
+#### Model Training
 
 ```sh
 > python src/train/train.py train  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name>
 ```
 The results will be saved per default to `./results`, if not configured otherwise.
 
-##### Model Tests
+#### Model Tests
 
 ```sh
 > python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
 ```
 
-##### Model Explain
+#### Model Explain
 
 ```sh
 > python src/train/train.py explain  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
