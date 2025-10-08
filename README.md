@@ -58,9 +58,9 @@
 
 ![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/heidgaf_overview_detailed.drawio.png?raw=true)
 
-## 🛠️ Getting Started
+## Getting Started
 
-Run `heiDGAF` using Docker Compose:
+##### Run **heiDGAF** using Docker Compose:
 
 ```sh
 HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
@@ -69,10 +69,65 @@ HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
   <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
 </p>
 
-## Examplary Dashboards
-In the below summary you will find examplary views of the grafana dashboards. The metrics were obtained using the [mock-generator](./docker/docker-compose.send-real-logs.yml)
+##### Or run the modules locally on your machine:
+```sh
+python -m venv .venv
+source .venv/bin/activate
+
+sh install_requirements.sh
+```
+Alternatively, you can use `pip install` and enter all needed requirements individually with `-r requirements.*.txt`.
+
+Now, you can start each stage, e.g. the inspector:
+
+```sh
+python src/inspector/inspector.py
+```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+## Usage
+
+### Configuration
+
+To configure **heiDGAF** according to your needs, use the provided `config.yaml`.
+
+The most relevant settings are related to your specific log line format, the model you want to use, and
+possibly infrastructure.
+
+The section `pipeline.log_collection.collector.logline_format` has to be adjusted to reflect your specific input log
+line format. Using our adjustable and flexible log line configuration, you can rename, reorder and fully configure each
+field of a valid log line. Freely define timestamps, RegEx patterns, lists, and IP addresses. For example, your
+configuration might look as follows:
+
+```yml
+- [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ" ]
+- [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+- [ "client_ip", IpAddress ]
+- [ "dns_server_ip", IpAddress ]
+- [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+- [ "record_type", ListItem, [ "A", "AAAA" ] ]
+- [ "response_ip", IpAddress ]
+- [ "size", RegEx, '^\d+b$' ]
+```
+
+The options `pipeline.data_inspection` and `pipeline.data_analysis` are relevant for configuring the model. The section
+`environment` can be fine-tuned to prevent naming collisions for Kafka topics and adjust addressing in your environment.
+
+For more in-depth information on your options, have a look at our
+[official documentation](https://heidgaf.readthedocs.io/en/latest/usage.html), where we provide tables explaining all
+values in detail.
+
+### Monitoring
+To monitor the system and observe its real-time behavior, multiple Grafana dashboards have been set up.
+
+Have a look at the following pictures showing examples of how these dashboards might look at runtime.
+
 <details>
-  <summary>📊 <strong>Overview Dashboard</strong></summary>
+  <summary><strong>Overview</strong> dashboard</summary>
+
+  Contains the most relevant information on the system's runtime behavior, its efficiency and its effectivity.
 
   <p align="center">
     <a href="./assets/readme_assets/overview.png">
@@ -83,7 +138,10 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 </details>
 
 <details>
-  <summary>📈 <strong>Latencies Dashboard</strong></summary>
+  <summary><strong>Latencies</strong> dashboard</summary>
+
+  Presents any information on latencies, including comparisons between the modules and more detailed,
+  stand-alone metrics.
 
   <p align="center">
     <a href="./assets/readme_assets/latencies.jpeg">
@@ -94,7 +152,11 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 </details>
 
 <details>
-  <summary>📉 <strong>Log Volumes Dashboard</strong></summary>
+  <summary><strong>Log Volumes</strong> dashboard</summary>
+
+  Presents any information on the fill levels of each module, i.e. the number of entries that are currently in the
+  module for processing. Includes comparisons between the modules, more detailed, stand-alone metrics, as well as
+  total numbers of logs entering the pipeline or being marked as fully processed.
 
   <p align="center">
     <a href="./assets/readme_assets/log_volumes.jpeg">
@@ -105,7 +167,9 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 </details>
 
 <details>
-  <summary>🚨 <strong>Alerts Dashboard</strong></summary>
+  <summary><strong>Alerts</strong> dashboard</summary>
+
+  Presents details on the number of logs detected as malicious including IP addresses responsible for those alerts.
 
   <p align="center">
     <a href="./assets/readme_assets/alerts.png">
@@ -116,7 +180,13 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 </details>
 
 <details>
-  <summary>🧪 <strong>Dataset Dashboard</strong></summary>
+  <summary><strong>Dataset</strong> dashboard</summary>
+
+  This dashboard is only active for the **_datatest_** mode. Users who want to test their own models can use this mode
+  for inspecting confusion matrices on testing data.
+
+  > [!CAUTION]
+  > This feature is in a very early development stage.
 
   <p align="center">
     <a href="./assets/readme_assets/datatests.png">
@@ -126,76 +196,42 @@ In the below summary you will find examplary views of the grafana dashboards. Th
 
 </details>
 
-
-## Developing
-
-Install `Python` requirements:
-
-```sh
-python -m venv .venv
-source .venv/bin/activate
-
-sh install_requirements.sh
-```
-
-Alternatively, you can use `pip install` and enter all needed requirements individually with `-r requirements.*.txt`.
-
-Now, you can start each stage, e.g. the inspector:
-
-```sh
-python src/inspector/main.py
-```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Configuration
 
-The following table lists the most important configuration parameters with their respective default values.
-The full list of configuration parameters is available at the [documentation](https://heidgaf.readthedocs.io/en/latest/usage.html)
+## Models and Training
 
-| Path                                       | Description                                                                 | Default Value                                                                                                |
-| :----------------------------------------- | :-------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- |
-| `pipeline.data_inspection.inspector.mode`  | Mode of operation for the data inspector.                                   | `univariate` (options: `multivariate`, `ensemble`)                                                           |
-| `pipeline.data_inspection.inspector.ensemble.model` | Model to use when inspector mode is `ensemble`.                             | `WeightEnsemble`                                                                                             |
-| `pipeline.data_inspection.inspector.ensemble.module` | Module name for the ensemble model.                                       | `streamad.process`                                                                                           |
-| `pipeline.data_inspection.inspector.models` | List of models to use for data inspection (e.g., anomaly detection).      | Array of model definitions (e.g., `{"model": "ZScoreDetector", "module": "streamad.model", "model_args": {"is_global": false}}`)|
-| `pipeline.data_inspection.inspector.anomaly_threshold` | Threshold for classifying an observation as an anomaly.                     | `0.01`                                                                                                     |
-| `pipeline.data_analysis.detector.model`    | Model to use for data analysis (e.g., DGA detection).                       | `rf` (Random Forest) option: `XGBoost`                                                    |
-| `pipeline.data_analysis.detector.checksum` | Checksum for the model file to ensure integrity.                            | `021af76b2385ddbc76f6e3ad10feb0bb081f9cf05cff2e52333e31040bbf36cc`                                       |
-| `pipeline.data_analysis.detector.base_url` | Base URL for downloading the model if not present locally.                  | `https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/`                                                  |
+To train and test our and possibly your own models, we currently rely on the following datasets:
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-### Insert Data
-
->[!IMPORTANT]
-> We rely on the following datasets to train and test our or your own models:
-
-For training our models, we currently rely on the following data sets:
 - [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)
 - [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
 - [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
 - [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
 - [DGArchive](https://dgarchive.caad.fkie.fraunhofer.de/)
 
-We compute all feature separately and only rely on the `domain` and `class` for binary classification.
+We compute all features separately and only rely on the `domain` and `class` for binary classification.
 
-After downloading the dataset and storing it under `<project-root>/data` you can run
+### Inserting Data for Testing
+
+For testing purposes, we provide multiple scripts in the `scripts` directory. Use `real_logs.dev.py` to send data from
+the datasets into the pipeline. After downloading the dataset and storing it under `<project-root>/data`, run
 ```sh
 python scripts/real_logs.dev.py
 ```
-to start inserting the dataset traffic.
+to start continuously inserting dataset traffic.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-### Train your own models
+### Training Your Own Models
 
 > [!IMPORTANT]
 > This is only a brief wrap-up of a custom training process.
 > We highly encourage you to have a look at the [documentation](https://heidgaf.readthedocs.io/en/latest/training.html)
 > for a full description and explanation of the configuration parameters.
 
-We feature two trained models: XGBoost (`src/train/model.py#XGBoostModel`) and RandomForest (`src/train/model.py#RandomForestModel`).
+We feature two trained models:
+1. XGBoost (`src/train/model.py#XGBoostModel`) and
+2. RandomForest (`src/train/model.py#RandomForestModel`).
+
+After installing the requirements, use `src/train/train.py`:
 
 ```sh
 > python -m venv .venv
@@ -215,55 +251,31 @@ Commands:
   train
 ```
 
-Setting up the [dataset directories](#insert-test-data) (and adding the code for your model class if applicable) let's you start the training process by running the following commands:
+Setting up the [dataset directories](#insert-test-data) (and adding the code for your model class if applicable) lets you start
+the training process by running the following commands:
 
-**Model Training**
+##### Model Training
 
 ```sh
 > python src/train/train.py train  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name>
 ```
-The results will be saved per default to `./results`, if not configured otherwise. <br>
+The results will be saved per default to `./results`, if not configured otherwise.
 
-**Model Tests**
+##### Model Tests
 
 ```sh
 > python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
 ```
 
-**Model Explain**
+##### Model Explain
 
 ```sh
 > python src/train/train.py explain  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
 ```
-This will create a rules.txt file containing the innards of the model, explaining the rules it created.
+This will create a `rules.txt` file containing the innards of the model, explaining the rules it created.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-### Data
-
-> [!IMPORTANT]
-> We support custom schemes.
-
-Depending on your data and usecase, you can customize the data scheme to fit your needs.
-The below configuration is part of the [main configuration file](./config.yaml) which is detailed in our [documentation](https://heidgaf.readthedocs.io/en/latest/usage.html#id2)
-
-```yml
-loglines:
-  fields:
-    - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
-    - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
-    - [ "client_ip", IpAddress ]
-    - [ "dns_server_ip", IpAddress ]
-    - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
-    - [ "record_type", ListItem, [ "A", "AAAA" ] ]
-    - [ "response_ip", IpAddress ]
-    - [ "size", RegEx, '^\d+b$' ]
-```
-
-
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
 ## Contributing
