@@ -36,9 +36,7 @@ CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
 
 
 class WrongChecksum(Exception):  # pragma: no cover
-    """
-    Exception if Checksum is not equal.
-    """
+    """Raises when model checksum validation fails."""
 
     pass
 
@@ -46,9 +44,10 @@ class WrongChecksum(Exception):  # pragma: no cover
 class Detector:
     """Main component of the Data Analysis stage to perform anomaly detection
 
-    Processes suspicious batches from the Inspector using machine learning models to detect
-    anomalous DNS requests. Downloads and validates models, calculates probability scores, and
-    generates alerts when anomalies are detected above the configured threshold.
+    Processes suspicious batches from the Inspector using configurable ML models to classify
+    DNS requests as benign or malicious. Downloads and validates models from a remote server,
+    extracts features from domain names, calculates probability scores, and generates alerts
+    when malicious requests are detected above the configured threshold.
     """
 
     def __init__(self) -> None:
@@ -87,7 +86,12 @@ class Detector:
         )
 
     def get_and_fill_data(self) -> None:
-        """Consumes data from KafkaConsumeHandler and stores it for processing."""
+        """Consumes suspicious batches from Kafka and stores them for analysis.
+
+        Fetches suspicious batch data from the Inspector via Kafka and stores it in internal
+        data structures. If the Detector is already busy processing data, consumption is
+        skipped with a warning. Updates database entries for monitoring and logging purposes.
+        """
         if self.messages:
             logger.warning(
                 "Detector is busy: Not consuming new messages. Wait for the Detector to finish the "
@@ -137,13 +141,13 @@ class Detector:
             )
 
     def _sha256sum(self, file_path: str) -> str:
-        """Return a SHA265 sum check to validate the model.
+        """Calculates SHA256 checksum for model file validation.
 
         Args:
-            file_path (str): File path of model.
+            file_path (str): Path to the model file to validate.
 
         Returns:
-            str: SHA256 sum
+            str: SHA256 hexadecimal digest of the file.
         """
         h = hashlib.sha256()
 
@@ -158,9 +162,17 @@ class Detector:
         return h.hexdigest()
 
     def _get_model(self):
-        """
-        Downloads model from server. If model already exists, it returns the current model. In addition, it checks the
-        sha256 sum in case a model has been updated.
+        """Downloads and loads ML model and scaler from remote server.
+
+        Retrieves the configured model and scaler files from the remote server if not
+        already present locally. Validates model integrity using SHA256 checksum and
+        loads the pickled model and scaler objects for inference.
+
+        Returns:
+            tuple: Trained ML model and data scaler objects.
+
+        Raises:
+            WrongChecksum: If model checksum validation fails.
         """
         logger.info(f"Get model: {MODEL} with checksum {CHECKSUM}")
         if not os.path.isfile(self.model_path):
@@ -206,21 +218,29 @@ class Detector:
 
         return clf, scaler
 
-    def clear_data(self):
-        """Clears the data in the internal data structures."""
+    def clear_data(self) -> None:
+        """Clears all data from internal data structures.
+
+        Resets messages, timestamps, and warnings to prepare the Detector
+        for processing the next suspicious batch.
+        """
         self.messages = []
         self.begin_timestamp = None
         self.end_timestamp = None
         self.warnings = []
 
-    def _get_features(self, query: str):
-        """Transform a dataset with new features using numpy.
+    def _get_features(self, query: str) -> np.ndarray:
+        """Extracts feature vector from domain name for ML model inference.
+
+        Computes various statistical and linguistic features from the domain name
+        including label lengths, character frequencies, entropy measures, and
+        counts of different character types across domain name levels.
 
         Args:
-            query (str): A string to process.
+            query (str): Domain name string to extract features from.
 
         Returns:
-            dict: Preprocessed data with computed features.
+            numpy.ndarray: Feature vector ready for ML model prediction.
         """
 
         # Splitting by dots to calculate label length and max length
@@ -309,7 +329,12 @@ class Detector:
         return all_features.reshape(1, -1)
 
     def detect(self) -> None:  # pragma: no cover
-        """Method to detect malicious requests in the network flows"""
+        """Analyzes DNS requests and identifies malicious domains.
+
+        Processes each DNS request in the current batch by extracting features,
+        running ML model prediction, and collecting warnings for requests that
+        exceed the configured maliciousness threshold.
+        """
         logger.info("Start detecting malicious requests.")
         for message in self.messages:
             # TODO predict all messages
@@ -328,7 +353,13 @@ class Detector:
                 self.warnings.append(warning)
 
     def send_warning(self) -> None:
-        """Dispatch warnings saved to the object's warning list"""
+        """Generates and stores alerts for detected malicious requests.
+
+        Creates comprehensive alert records from accumulated warnings including
+        overall risk scores, individual predictions, and metadata. Stores alerts
+        in the database and updates batch processing status. If no warnings are
+        present, marks the batch as filtered out.
+        """
         logger.info("Store alert.")
         if len(self.warnings) > 0:
             overall_score = median(
@@ -420,15 +451,19 @@ class Detector:
         )
 
 
-def main(one_iteration: bool = False):  # pragma: no cover
-    """
-    Creates the :class:`Detector` instance. Starts a loop that continously fetches data.
+def main(one_iteration: bool = False) -> None:  # pragma: no cover
+    """Creates and runs the Detector instance in a continuous processing loop.
+
+    Initializes the Detector and starts the main processing loop that continuously
+    fetches suspicious batches from Kafka, performs malicious domain detection,
+    and generates alerts. Handles various exceptions gracefully and ensures
+    proper cleanup of data structures.
 
     Args:
-        one_iteration (bool): For testing purposes: stops loop after one iteration
+        one_iteration (bool): For testing purposes - stops loop after one iteration.
 
     Raises:
-        KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
+        KeyboardInterrupt: Execution interrupted by user.
     """
     logger.info("Starting Detector...")
     detector = Detector()
