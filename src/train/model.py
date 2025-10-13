@@ -1,20 +1,21 @@
-from abc import ABCMeta, abstractmethod
+import os
 import re
 import sys
-import os
+from abc import ABCMeta, abstractmethod
+
 import joblib
-from sklearn.exceptions import NotFittedError
-from sklearn.utils.validation import check_is_fitted
-import sklearn.model_selection
-from sklearn.metrics import confusion_matrix, make_scorer
-import xgboost as xgb
-import optuna
-import torch
+import lightgbm as lgb
 import numpy as np
+import optuna
+import sklearn.model_selection
+import torch
+import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.exceptions import NotFittedError
+from sklearn.metrics import confusion_matrix, make_scorer
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.utils import class_weight
-import lightgbm as lgb
+from sklearn.utils.validation import check_is_fitted
 
 sys.path.append(os.getcwd())
 from src.train.feature import Processor
@@ -398,10 +399,10 @@ class Model(metaclass=ABCMeta):
         if self.device.type == "cuda":
             logger.info("Memory Usage:")
             logger.info(
-                f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
+                f"\tAllocated: {round(torch.cuda.memory_allocated(0) / 1024 ** 3, 1)} GB"
             )
             logger.info(
-                f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
+                f"\tCached:    {round(torch.cuda.memory_reserved(0) / 1024 ** 3, 1)} GB"
             )
             self.device = "gpu"
         else:

@@ -1,8 +1,9 @@
-import sys
 import os
-import math
+import sys
 from string import ascii_lowercase as alc
 from typing import List
+
+import math
 import polars as pl
 
 sys.path.append(os.getcwd())

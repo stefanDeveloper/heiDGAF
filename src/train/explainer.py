@@ -1,17 +1,15 @@
-import sys
 import os
+import sys
+
+import matplotlib.pyplot as plt
+import numpy as np
+import polars as pl
+import seaborn as sns
 from scipy.stats import ks_2samp
 from scipy.stats import wasserstein_distance
-import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-import seaborn as sns
-import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from te2rules.explainer import ModelExplainer
-import polars as pl
-
 
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
