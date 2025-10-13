@@ -22,22 +22,30 @@ logger = get_logger("train.explainer")
 
 
 class Plotter:
-    def __init__(self, output_path: str = f"./{RESULT_FOLDER}/data"):
-        """
-        Initialize the Plotter class for PCA visualization.
+    """Creates visualizations and plots for dataset analysis and model interpretation
 
+    Generates various plots including PCA visualizations, t-SNE projections, label
+    distributions, and feature analysis plots to understand dataset characteristics
+    and model behavior in DGA detection tasks.
+    """
+
+    def __init__(self, output_path: str = f"./{RESULT_FOLDER}/data") -> None:
+        """
         Args:
-            output_path (str): Path to save the figures. Defaults to './results'.
+            output_path (str): Directory path to save generated visualization files.
         """
         self.output_path = output_path
 
     def _plot_pca_2d(self, X: np.ndarray, y: np.ndarray, name: str) -> None:
-        """
-        Perform PCA and plot the first two principal components in 2D.
+        """Creates 2D PCA visualization of feature data.
+
+        Reduces dimensionality to 2D using PCA and generates scatter plot with
+        different colors and markers for each class to visualize data separation.
 
         Args:
-            X (np.ndarray): Feature matrix.
-            y (np.ndarray): Label array.
+            X (np.ndarray): Feature matrix for dimensionality reduction.
+            y (np.ndarray): Class labels for color coding.
+            name (str): Dataset name for output file naming.
         """
         pca = PCA(n_components=2)
 
@@ -77,12 +85,15 @@ class Plotter:
         plt.close()
 
     def _plot_pca_3d(self, X: np.ndarray, y: np.ndarray, name: str) -> None:
-        """
-        Perform PCA and plot the first three principal components in 3D.
+        """Creates 3D PCA visualization of feature data.
+
+        Reduces dimensionality to 3D using PCA and generates 3D scatter plot
+        showing class separation across the first three principal components.
 
         Args:
-            X (np.ndarray): Feature matrix.
-            y (np.ndarray): Label array.
+            X (np.ndarray): Feature matrix for dimensionality reduction.
+            y (np.ndarray): Class labels for color coding.
+            name (str): Dataset name for output file naming.
         """
         pca = PCA(n_components=3)
         pca.fit(X)
@@ -164,10 +175,14 @@ class Plotter:
         plt.close()
 
     def _plot_label_distribution(self, data: pl.DataFrame, name: str) -> None:
-        """Plots label distribution.
+        """Creates bar chart showing distribution of class labels in dataset.
+
+        Visualizes the frequency distribution of different classes using logarithmic
+        scale to handle imbalanced datasets effectively.
 
         Args:
-            data (pl.DataFrame): DataFrame with all features.
+            data (pl.DataFrame): Dataset containing class labels in 'class' column.
+            name (str): Dataset name for output file naming.
         """
         label_counts = data["class"].value_counts()
         label_distribution = dict(zip(label_counts["class"], label_counts["count"]))
@@ -195,14 +210,17 @@ class Plotter:
     def _remove_feature(
         self, component: int, X: np.ndarray, y: np.ndarray, pca: PCA, name: str
     ) -> None:
-        """
-        Visualize data after removing the projection onto a specific principal component.
+        """Visualizes data after removing specific principal component projection.
+
+        Creates scatter plot showing how data appears when the influence of a particular
+        principal component is removed, helping to understand component contributions.
 
         Args:
-            component (int): Index of the principal component to remove (0-based).
-            X (np.ndarray): Feature matrix.
-            y (np.ndarray): Label array.
-            pca (PCA): Pre-fitted PCA object.
+            component (int): Index of principal component to remove (0-based).
+            X (np.ndarray): Original feature matrix.
+            y (np.ndarray): Class labels for color coding.
+            pca (PCA): Fitted PCA object containing component information.
+            name (str): Dataset name for output file naming.
         """
         # Remove PC1
         Xmean = X - X.mean(axis=0)
@@ -224,12 +242,16 @@ class Plotter:
     def create_plots_binary(
         self, ds_X: list[np.ndarray], ds_y: list[np.ndarray], data: list[Dataset]
     ) -> None:
-        """
-        Generate 2D and 3D PCA plots, and visualizations after removing PC1, PC2, and PC3.
+        """Generates comprehensive visualization suite for binary classification datasets.
+
+        Creates PCA plots (2D/3D), t-SNE projections, principal component removal analysis,
+        and label distribution charts for multiple datasets to understand data characteristics
+        and class separability in binary DGA detection tasks.
 
         Args:
-            X (np.ndarray): Feature matrix.
-            y (np.ndarray): Label array.
+            ds_X (list[np.ndarray]): List of feature matrices for each dataset.
+            ds_y (list[np.ndarray]): List of label arrays for each dataset.
+            data (list[Dataset]): List of dataset objects containing metadata.
         """
         for X, y, ds in zip(ds_X, ds_y, data):
             if "heicloud" in ds.name:
@@ -288,12 +310,16 @@ class Plotter:
     def create_plots_multiclass(
         self, ds_X: list[np.ndarray], ds_y: list[np.ndarray], data: list[Dataset]
     ) -> None:
-        """Create Plots for multiclass.
+        """Generates visualizations for multiclass DGA family classification datasets.
+
+        Creates specialized plots for datasets containing multiple DGA families,
+        focusing on label distribution analysis to understand class imbalances
+        and dataset composition for multiclass classification tasks.
 
         Args:
-            ds_X (list[np.ndarray]): X
-            ds_y (list[np.ndarray]): y
-            data (list[Dataset]): pl.DataFrame
+            ds_X (list[np.ndarray]): List of feature matrices for each dataset.
+            ds_y (list[np.ndarray]): List of label arrays for each dataset.
+            data (list[Dataset]): List of dataset objects containing class information.
         """
         # Plot label distribution from DGArchive
         df_dgarchive_list = []
@@ -456,22 +482,33 @@ class Plotter:
 
 
 class Explainer:
-    """Explainer class to interpret sklearn.ensemble or XGBClassifier models after training."""
+    """Interprets and explains trained machine learning models for DGA detection.
 
-    def __init__(self, output_path: str = f"./{RESULT_FOLDER}"):
+    Provides model interpretation capabilities including rule extraction, feature
+    importance analysis, and threshold rescaling for decision trees and ensemble
+    models used in domain generation algorithm detection tasks.
+    """
+
+    def __init__(self, output_path: str = f"./{RESULT_FOLDER}") -> None:
+        """
+        Args:
+            output_path (str): Directory path to save interpretation results.
+        """
         self.output_path = output_path
 
     def __rescale_rule(self, rule: str, scaler, feature_names: list[str]) -> str:
-        """
-        Rescale feature thresholds in a rule back to their original (pre-scaled) values.
+        """Rescales feature thresholds in decision rules to original value ranges.
+
+        Converts scaled feature thresholds back to their original (pre-scaled) values
+        for better interpretability of decision tree rules and feature importance.
 
         Args:
-            rule (str): A rule string (e.g., "feature1 > 0.5 and feature2 <= 1.3").
-            scaler (sklearn.preprocessing): A fitted scaler object with an inverse_transform method.
-            feature_names (list[str]): List of original feature names.
+            rule (str): Decision rule string with scaled thresholds (e.g., "feature1 > 0.5 and feature2 <= 1.3").
+            scaler (sklearn.preprocessing): Fitted scaler with inverse_transform method.
+            feature_names (list[str]): Names of features in original order.
 
         Returns:
-            str: Rule with scaled thresholds replaced by original (unscaled) values.
+            str: Decision rule with thresholds in original value ranges.
         """
         # If scaler is none, no rescaling is needed
         if scaler is None:
