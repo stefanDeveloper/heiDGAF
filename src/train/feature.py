@@ -12,24 +12,32 @@ logger = get_logger("train.feature")
 
 
 class Processor:
-    """Processor for data set. Extracts features from data space."""
+    """Extracts statistical and linguistic features from domain name datasets.
 
-    def __init__(self, features_to_drop: List):
-        """Init.
+    Computes comprehensive feature sets including domain label statistics, character
+    frequencies, entropy measures, and domain structure analysis for machine learning
+    model training and DGA detection tasks.
+    """
 
+    def __init__(self, features_to_drop: List) -> None:
+        """
         Args:
-            feature_to_drop (list): List of feature to drop
+            features_to_drop (List): List of column names to exclude from final features.
         """
         self.features_to_drop = features_to_drop
 
     def transform(self, x: pl.DataFrame) -> pl.DataFrame:
-        """Transform our dataset with new features.
+        """Extracts comprehensive feature set from domain name dataset.
+
+        Computes domain label statistics, character frequencies for all letters,
+        character type ratios, and entropy measures for different domain levels.
+        Handles missing values and removes specified columns from final output.
 
         Args:
-            x (pl.DataFrame): pl.DataFrame with our features.
+            x (pl.DataFrame): Input dataset with domain structure columns.
 
         Returns:
-            np.ndarray: Preprocessed dataframe.
+            pl.DataFrame: Feature-engineered dataset ready for ML model training.
         """
         logger.debug("Start data transformation")
         x = x.with_columns(
