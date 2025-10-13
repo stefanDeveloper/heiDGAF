@@ -278,7 +278,7 @@ class Pipeline:
     def train_test_val_split(
         self,
         X: np.ndarray,
-        Y=np.ndarray,
+        Y: np.ndarray,
         train_frac: float = 0.8,
         random_state: int = SEED,
     ) -> tuple[
