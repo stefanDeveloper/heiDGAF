@@ -36,7 +36,7 @@ class Table:
     columns: dict[str, type]
 
     def verify(self, data: dict[str, Any]):
-        """Verify if the data has the correct columns and types.
+        """Verifies if the data has the correct columns and types.
 
         Validates that the provided data dictionary contains the expected columns
         with correct data types according to the table schema definition.
