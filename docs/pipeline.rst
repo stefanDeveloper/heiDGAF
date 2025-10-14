@@ -433,17 +433,28 @@ Stage 4: Inspection
 Overview
 --------
 
-The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage
-is essentiell to reduce the load on the `Detection` stage. Otherwise, resource complexity increases disproportionately.
+The **Inspection** stage performs time-series-based anomaly detection on prefiltered DNS request batches.
+Its primary purpose is to reduce the load on the `Detection` stage by filtering out non-suspicious traffic early.
+
+This stage uses StreamAD models—supporting univariate, multivariate, and ensemble techniques—to detect unusual patterns
+in request volume and packet sizes.
+
 
 Main Class
 ----------
 
 .. py:currentmodule:: src.inspector.inspector
 .. autoclass:: Inspector
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-The :class:`Inspector` is the primary class to run StreamAD models for time-series based anomaly detection, such as the Z-Score outlier detection.
-In addition, it features fine-tuning settings for models and anomaly thresholds.
+The :class:`Inspector` class is responsible for:
+
+- Loading batches from Kafka
+- Extracting time-series features (e.g., frequency and packet size)
+- Applying anomaly detection models
+- Forwarding suspicious batches to the detector stage
 
 Usage
 -----
@@ -498,9 +509,9 @@ Stage 5: Detection
 Overview
 --------
 
-The `Detector` resembles the heart of heiDGAF. It runs pre-trained machine learning models to get a probability outcome for the DNS requests.
-The pre-trained models are under the EUPL-1.2 license online available.
-In total, we rely on the following data sets for the pre-trained models we offer:
+The **Detection** stage is the core of the heiDGAF pipeline. It consumes **suspicious batches** passed from the `Inspector`, applies **pre-trained ML models** to classify individual DNS requests, and issues alerts based on aggregated probabilities.
+
+The pre-trained models used here are licensed under **EUPL‑1.2** and built from the following datasets:
 
 - `CIC-Bell-DNS-2021 <https://www.unb.ca/cic/datasets/dns-2021.html>`_
 - `DGTA-BENCH - Domain Generation and Tunneling Algorithms for Benchmark <https://data.mendeley.com/datasets/2wzf9bz7xr/1>`_
@@ -511,15 +522,39 @@ Main Class
 
 .. py:currentmodule:: src.detector.detector
 .. autoclass:: Detector
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+The :class:`Detector` class:
+
+- Consumes a batch flagged as suspicious.
+- Downloads and validates the ML model (if necessary).
+- Extracts features from domain names (e.g. character distributions, entropy, label statistics).
+- Computes a probability per request and an overall risk score per batch.
+- Emits alerts to ClickHouse and logs in ``/tmp/warnings.json`` where applicable.
 
 Usage
 -----
 
-The :class:`Detector` consumes anomalous batches of requests.
-It calculates a probability score for each request, and at last, an overall score of the batch.
-Alerts are log to ``/tmp/warnings.json``.
+1. The `Detector` listens on the Kafka topic from the Inspector (``inspector_to_detector``).  
+2. For each suspicious batch:
+   - Extracts features for every domain request.
+   - Applies the loaded ML model (after scaling) to compute class probabilities.
+   - Marks a request as malicious if its probability exceeds the configured `threshold`.
+3. Computes an **overall score** (e.g. median of malicious probabilities) for the batch.
+4. If malicious requests exist, issues an **alert** record and logs it; otherwise, the batch is filtered.
+
+Alerts are recorded in ClickHouse and also appended to a local JSON file (`warnings.json`) for external monitoring.
 
 Configuration
 -------------
 
-In case you want to load self-trained models, the :class:`Detector` needs a URL path, model name, and SHA256 checksum to download the model during start-up.
+You may use the provided, pre-trained models or supply your own. To use a custom model, specify:
+
+- `base_url`: URL from which to fetch model artifacts  
+- `model`: model name  
+- `checksum`: SHA256 digest for integrity validation  
+- `threshold`: probability threshold for classifying a request as malicious  
+
+These parameters are loaded at startup and used to download, verify, and load the model/scaler if not already cached locally (in temp directory).
