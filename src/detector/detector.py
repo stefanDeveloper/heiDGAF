@@ -250,7 +250,9 @@ class Detector:
         levels = {
             "fqdn": query,
             "secondleveldomain": label_parts[-2] if len(label_parts) >= 2 else "",
-            "thirdleveldomain": ".".join(label_parts[:-2]) if len(label_parts) > 2 else "",
+            "thirdleveldomain": (
+                ".".join(label_parts[:-2]) if len(label_parts) > 2 else ""
+            ),
         }
 
         label_length = len(label_parts)
@@ -258,16 +260,19 @@ class Detector:
         label_max = len(max(parts, key=str)) if parts else 0
         label_average = len(query)
 
-        basic_features = np.array([label_length, label_max, label_average], dtype=np.float64)
+        basic_features = np.array(
+            [label_length, label_max, label_average], dtype=np.float64
+        )
 
         alc = "abcdefghijklmnopqrstuvwxyz"
         query_len = len(query)
         freq = np.array(
             [query.lower().count(c) / query_len if query_len > 0 else 0.0 for c in alc],
-            dtype=np.float64
+            dtype=np.float64,
         )
 
         logger.debug("Get full, alpha, special, and numeric count.")
+
         def calculate_counts(level: str) -> np.ndarray:
             if not level:
                 return np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float64)
@@ -275,9 +280,14 @@ class Detector:
             full_count = len(level) / len(level)
             alpha_ratio = sum(c.isalpha() for c in level) / len(level)
             numeric_ratio = sum(c.isdigit() for c in level) / len(level)
-            special_ratio = sum(not c.isalnum() and not c.isspace() for c in level) / len(level)
+            special_ratio = sum(
+                not c.isalnum() and not c.isspace() for c in level
+            ) / len(level)
 
-            return np.array([full_count, alpha_ratio, numeric_ratio, special_ratio], dtype=np.float64)
+            return np.array(
+                [full_count, alpha_ratio, numeric_ratio, special_ratio],
+                dtype=np.float64,
+            )
 
         fqdn_counts = calculate_counts(levels["fqdn"])
         third_counts = calculate_counts(levels["thirdleveldomain"])
@@ -290,22 +300,23 @@ class Detector:
                 return 0.0
             probs = [s.count(c) / len(s) for c in dict.fromkeys(s)]
             return -sum(p * math.log(p, 2) for p in probs)
+
         logger.debug("Start entropy calculation")
-        entropy_features = np.array([
-            calculate_entropy(levels["fqdn"]),
-            calculate_entropy(levels["thirdleveldomain"]),
-            calculate_entropy(levels["secondleveldomain"]),
-        ], dtype=np.float64)
+        entropy_features = np.array(
+            [
+                calculate_entropy(levels["fqdn"]),
+                calculate_entropy(levels["thirdleveldomain"]),
+                calculate_entropy(levels["secondleveldomain"]),
+            ],
+            dtype=np.float64,
+        )
 
         logger.debug("Entropy features calculated")
 
-        all_features = np.concatenate([
-            basic_features,
-            freq,
-            level_features,
-            entropy_features
-        ])
-        
+        all_features = np.concatenate(
+            [basic_features, freq, level_features, entropy_features]
+        )
+
         logger.debug("Finished data transformation")
 
         return all_features.reshape(1, -1)
