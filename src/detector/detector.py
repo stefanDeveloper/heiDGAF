@@ -244,84 +244,77 @@ class Detector:
         """
 
         # Splitting by dots to calculate label length and max length
+        query = query.strip(".")
         label_parts = query.split(".")
-        label_length = len(label_parts)
-        label_max = max(len(part) for part in label_parts)
-        label_average = len(query.strip("."))
 
-        logger.debug("Get letter frequency")
+        levels = {
+            "fqdn": query,
+            "secondleveldomain": label_parts[-2] if len(label_parts) >= 2 else "",
+            "thirdleveldomain": (
+                ".".join(label_parts[:-2]) if len(label_parts) > 2 else ""
+            ),
+        }
+
+        label_length = len(label_parts)
+        parts = query.split(".")
+        label_max = len(max(parts, key=str)) if parts else 0
+        label_average = len(query)
+
+        basic_features = np.array(
+            [label_length, label_max, label_average], dtype=np.float64
+        )
+
         alc = "abcdefghijklmnopqrstuvwxyz"
+        query_len = len(query)
         freq = np.array(
-            [query.lower().count(i) / len(query) if len(query) > 0 else 0 for i in alc]
+            [query.lower().count(c) / query_len if query_len > 0 else 0.0 for c in alc],
+            dtype=np.float64,
         )
 
         logger.debug("Get full, alpha, special, and numeric count.")
 
         def calculate_counts(level: str) -> np.ndarray:
-            if len(level) == 0:
-                return np.array([0, 0, 0, 0])
+            if not level:
+                return np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float64)
 
-            full_count = len(level)
-            alpha_count = sum(c.isalpha() for c in level) / full_count
-            numeric_count = sum(c.isdigit() for c in level) / full_count
-            special_count = (
-                sum(not c.isalnum() and not c.isspace() for c in level) / full_count
+            full_count = len(level) / len(level)
+            alpha_ratio = sum(c.isalpha() for c in level) / len(level)
+            numeric_ratio = sum(c.isdigit() for c in level) / len(level)
+            special_ratio = sum(
+                not c.isalnum() and not c.isspace() for c in level
+            ) / len(level)
+
+            return np.array(
+                [full_count, alpha_ratio, numeric_ratio, special_ratio],
+                dtype=np.float64,
             )
 
-            return np.array([full_count, alpha_count, numeric_count, special_count])
+        fqdn_counts = calculate_counts(levels["fqdn"])
+        third_counts = calculate_counts(levels["thirdleveldomain"])
+        second_counts = calculate_counts(levels["secondleveldomain"])
 
-        levels = {
-            "fqdn": query,
-            "thirdleveldomain": label_parts[0] if len(label_parts) > 2 else "",
-            "secondleveldomain": label_parts[1] if len(label_parts) > 1 else "",
-        }
-        counts = {
-            level: calculate_counts(level_value)
-            for level, level_value in levels.items()
-        }
-
-        logger.debug(
-            "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
-        )
-        stats = {}
-        for level, count_array in counts.items():
-            stats[f"{level}_std"] = np.std(count_array)
-            stats[f"{level}_var"] = np.var(count_array)
-            stats[f"{level}_median"] = np.median(count_array)
-            stats[f"{level}_mean"] = np.mean(count_array)
-
-        logger.debug("Start entropy calculation")
+        level_features = np.hstack([third_counts, second_counts, fqdn_counts])
 
         def calculate_entropy(s: str) -> float:
             if len(s) == 0:
-                return 0
-            probabilities = [float(s.count(c)) / len(s) for c in dict.fromkeys(list(s))]
-            entropy = -sum(p * math.log(p, 2) for p in probabilities)
-            return entropy
+                return 0.0
+            probs = [s.count(c) / len(s) for c in dict.fromkeys(s)]
+            return -sum(p * math.log(p, 2) for p in probs)
 
-        entropy = {level: calculate_entropy(value) for level, value in levels.items()}
-
-        logger.debug("Finished entropy calculation")
-
-        # Final feature aggregation as a NumPy array
-        basic_features = np.array([label_length, label_max, label_average])
-
-        # Flatten counts and stats for each level into arrays
-        level_features = np.hstack([counts[level] for level in levels.keys()])
-
-        # Entropy features
-        entropy_features = np.array([entropy[level] for level in levels.keys()])
-
-        # Concatenate all features into a single numpy array
-        all_features = np.concatenate(
+        logger.debug("Start entropy calculation")
+        entropy_features = np.array(
             [
-                basic_features,
-                freq,
-                # freq_features,
-                level_features,
-                # stats_features,
-                entropy_features,
-            ]
+                calculate_entropy(levels["fqdn"]),
+                calculate_entropy(levels["thirdleveldomain"]),
+                calculate_entropy(levels["secondleveldomain"]),
+            ],
+            dtype=np.float64,
+        )
+
+        logger.debug("Entropy features calculated")
+
+        all_features = np.concatenate(
+            [basic_features, freq, level_features, entropy_features]
         )
 
         logger.debug("Finished data transformation")
@@ -338,8 +331,9 @@ class Detector:
         logger.info("Start detecting malicious requests.")
         for message in self.messages:
             # TODO predict all messages
+            # TODO use scalar: self.scaler.transform(self._get_features(message["domain_name"]))
             y_pred = self.model.predict_proba(
-                self.scaler.transform(self._get_features(message["domain_name"]))
+                self._get_features(message["domain_name"])
             )
             logger.info(f"Prediction: {y_pred}")
             if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:

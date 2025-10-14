@@ -22,7 +22,7 @@ CLICKHOUSE_HOSTNAME = CONFIG["environment"]["monitoring"]["clickhouse_server"][
 
 
 def prepare_all_tables():
-    """Prepare and create all ClickHouse tables from SQL files.
+    """Prepares and creates all ClickHouse tables from SQL files.
 
     Reads all SQL files from the CREATE_TABLES_DIRECTORY and executes them
     to create the required database tables for monitoring data storage.
@@ -80,7 +80,7 @@ class MonitoringAgent:
         self.batch_sender = ClickHouseBatchSender()
 
     async def start(self):
-        """Start the monitoring agent to consume and process data continuously.
+        """Starts the monitoring agent to consume and process data continuously.
 
         Runs an infinite loop to consume messages from Kafka topics, deserialize
         the data according to table schemas, and forward it to the batch sender

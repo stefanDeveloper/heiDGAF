@@ -36,7 +36,7 @@ class Table:
     columns: dict[str, type]
 
     def verify(self, data: dict[str, Any]):
-        """Verify if the data has the correct columns and types.
+        """Verifies if the data has the correct columns and types.
 
         Validates that the provided data dictionary contains the expected columns
         with correct data types according to the table schema definition.
@@ -260,7 +260,7 @@ class ClickHouseBatchSender:
         self.timer = None
 
     def _start_timer(self):
-        """Set the timer for batch processing of data insertion.
+        """Sets the timer for batch processing of data insertion.
 
         Cancels any existing timer and starts a new one that will trigger
         batch insertion after the configured timeout period.
