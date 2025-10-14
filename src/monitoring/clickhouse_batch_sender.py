@@ -260,7 +260,7 @@ class ClickHouseBatchSender:
         self.timer = None
 
     def _start_timer(self):
-        """Set the timer for batch processing of data insertion.
+        """Sets the timer for batch processing of data insertion.
 
         Cancels any existing timer and starts a new one that will trigger
         batch insertion after the configured timeout period.
