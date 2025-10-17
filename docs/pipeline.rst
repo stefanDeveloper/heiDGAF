@@ -10,16 +10,19 @@ traverses through it using Apache Kafka.
 .. image:: media/pipeline_overview.png
 
 
+.. _stage-1-log-storage:
+
 Stage 1: Log Storage
 ====================
 
-This stage serves as the central contact point for all data.
+This stage serves as the central contact point for all data. Data is read and entered into the pipeline.
 
 Overview
 --------
 
-The :class:`LogServer` class is the core component of this stage. It reads from several input sources and sends the
-data to Kafka, where it can be obtained by the following module.
+The :class:`LogServer` class is the core component of this stage. It reads data from one or multiple data sources and
+enters it into the pipeline by sending it to Kafka, where it can be obtained by the following module. For monitoring,
+it logs all ingoing log lines including their timestamps of entering and leaving the module.
 
 Main Class
 ----------
@@ -30,8 +33,11 @@ Main Class
 Usage and configuration
 -----------------------
 
-Currently, the :class:`LogServer` reads from both an input file and a Kafka topic, simultaneously. The configuration
-allows changing the file name to read from.
+The :class:`LogServer` simultaneously listens on a Kafka topic and reads from an input file. The configuration
+allows changing the Kafka topic to listen on, as well as the file name to read from.
+
+The Kafka topic to listen on can be changed through setting the ``environment.kafka_topics.pipeline.logserver_in``
+field in `config.yaml`. Changing the file name to read from differs depending on your environment:
 
 - **Without Docker**:
 
@@ -49,14 +55,37 @@ allows changing the file name to read from.
 Stage 2: Log Collection
 =======================
 
-The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<Stage 1: Log Storage>`,
+The Log Collection stage validates and processes incoming loglines from the Log Storage stage, organizes them into
+batches based on subnet IDs, and forwards them to the next pipeline stage for further analysis.
+
+Core Functionality
+------------------
+
+The `Log Collection` stage is responsible for retrieving loglines from the :ref:`Log Storage<stage-1-log-storage>`,
 parsing their information fields, and validating the data. Each field is checked to ensure it is of the correct type
-and format. This stage ensures that all data is accurate, reducing the need for further verification in subsequent
-stages. Any loglines that do not meet the required format are immediately discarded to maintain data integrity. Valid
-loglines are then buffered and transmitted in batches after a pre-defined timeout or when the buffer reaches its
+and format. This stage ensures that all data is accurate, reducing the need for further verification
+in subsequent stages.
+
+Data Processing and Validation
+..............................
+
+Any loglines that do not meet the required format are immediately discarded to maintain data integrity. The
+validation process includes data type verification and value range checks (e.g., verifying that IP addresses are
+valid). Only validated loglines proceed to the batching phase.
+
+Batching and Performance Optimization
+.....................................
+
+Valid loglines are buffered and transmitted in batches after a pre-defined timeout or when the buffer reaches its
 capacity. This minimizes the number of messages sent to the next stage and optimizes performance. The client's IP
-address is retrieved from the logline and used to create the ``subnet_id`` with the number of subnet bits specified in
-the configuration. The functionality of the buffer is detailed in the subsection, :ref:`Buffer Functionality`.
+address is retrieved from the logline and used to create the ``subnet_id`` with the number of subnet bits specified
+in the configuration.
+
+Advanced Features
+.................
+
+The functionality of the buffer system is detailed in the subsection :ref:`buffer-functionality`. This approach helps
+detect errors or attacks that may occur at the boundary between two batches when analyzed in later pipeline stages.
 
 Overview
 --------
@@ -67,7 +96,7 @@ The `Log Collection` stage comprises three main classes:
    and content. Adds ``subnet_id`` that it retrieves from the client's IP address in the logline.
 2. :class:`BufferedBatch`: Buffers validated loglines with respect to their ``subnet_id``. Maintains the timestamps for
    accurate processing and analysis per key (``subnet_id``). Returns sorted batches.
-3. :class:`CollectorKafkaBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
+3. :class:`BufferedBatchSender`: Adds messages to the data structure :class:`BufferedBatch`, maintains the timer
    and checks the fill level of the key-specific batches. Sends the key's batches if full, sends all batches at timeout.
 
 Main Classes
@@ -80,7 +109,7 @@ Main Classes
 .. autoclass:: BufferedBatch
 
 .. py:currentmodule:: src.logcollector.batch_handler
-.. autoclass:: CollectorKafkaBatchSender
+.. autoclass:: BufferedBatchSender
 
 Usage
 -----
@@ -94,7 +123,7 @@ validates. The logline is parsed into its respective fields, each checked for co
 - **Field Validation**:
 
   - Checks include data type verification and value range checks (e.g., verifying that an IP address is valid).
-  - Only loglines meeting the criteria are forwarded to the :class:`CollectorKafkaBatchSender`.
+  - Only loglines meeting the criteria are forwarded to the :class:`BufferedBatchSender`.
 
 - **Subnet Identification**:
 
@@ -125,17 +154,16 @@ validates. The logline is parsed into its respective fields, each checked for co
     | **Field**            | **Description**                                |
     +======================+================================================+
     | ``TIMESTAMP``        | The date and time when the log entry was       |
-    |                      | recorded. Formatted as                         |
-    |                      | ``YYYY-MM-DDTHH:MM:SS.sssZ``.                  |
+    |                      | recorded. The format is configurable through   |
+    |                      | the ``logline_format`` in ``config.yaml``.     |
     |                      |                                                |
-    |                      | - **Format**: ``%Y-%m-%dT%H:%M:%S.%f`` (with   |
-    |                      |   microseconds truncated to milliseconds).     |
-    |                      | - **Time Zone**: ``Z``                         |
-    |                      |   indicates Zulu time (UTC).                   |
-    |                      | - **Example**: ``2024-07-28T14:45:30.123Z``    |
+    |                      | - **Default Format**: ``%Y-%m-%dT%H:%M:%S.%fZ``|
+    |                      |   (ISO 8601 with microseconds and UTC).        |
+    |                      | - **Example**: ``2024-07-28T14:45:30.123456Z`` |
     |                      |                                                |
-    |                      | This format closely resembles ISO 8601, with   |
-    |                      | milliseconds precision.                        |
+    |                      | The format can be customized by modifying the  |
+    |                      | timestamp configuration in the pipeline        |
+    |                      | configuration file.                            |
     +----------------------+------------------------------------------------+
     | ``STATUS``           | The status of the DNS query, e.g., ``NOERROR``,|
     |                      | ``NXDOMAIN``.                                  |
@@ -159,40 +187,59 @@ validates. The logline is parsed into its respective fields, each checked for co
     |                      | bytes.                                         |
     +----------------------+------------------------------------------------+
 
-  - Users can change the format and field types, as described in the :ref:`Logline format configuration` section.
+  - Users can change the format and field types, as described in the :ref:`logline-format-configuration` section.
 
 BufferedBatch
 .............
 
-The :class:`BufferedBatch` manages the buffering of validated loglines as well as their timestamps:
+The :class:`BufferedBatch` manages the buffering of validated loglines as well as their timestamps and batch metadata:
 
 - **Batching Logic and Buffering Strategy**:
 
   - Collects log entries into a ``batch`` dictionary, with the ``subnet_id`` as key.
   - Uses a ``buffer`` per key to concatenate and send both the current and previous batches together.
   - This approach helps detect errors or attacks that may occur at the boundary between two batches when analyzed in
-    :ref:`Stage 4: Data Inspection` and :ref:`Stage 5: Data Analysis`.
+    :ref:`stage-4-inspection` and :ref:`stage-5-detection`.
   - All batches get sorted by their timestamps at completion to ensure correct chronological order.
-  - A `begin_timestamp` and `end_timestamp` per key are extracted and send as metadata (needed for analysis). These
+  - A `begin_timestamp` and `end_timestamp` per key are extracted and sent as metadata (needed for analysis). These
     are taken from the chronologically first and last message in a batch.
+  - Tracks batch IDs, timestamps, and fill levels for comprehensive monitoring and debugging.
 
-CollectorKafkaBatchSender
-.........................
+- **Monitoring and Metadata**:
 
-The :class:`CollectorKafkaBatchSender` manages the sending of validated loglines stored in the :class:`BufferedBatch`:
+  - Each batch is assigned a unique batch ID for tracking purposes.
+  - Logs associations between loglines and their respective batches.
+  - Maintains fill level statistics for both batches and buffers.
+  - Records batch status changes (waiting, completed) with timestamps.
 
-- Starts a timer upon receiving the first log entry.
-- When a batch reaches the configured size (e.g., 1000 entries), the current and previous
-  batches of this key are concatenated and sent to the Kafka Broker(s) with topic ``Prefilter``.
-- Upon timer expiration, the currently stored batches of all keys are sent. Serves as backup if batches don't reach
-  the configured size.
-- If no messages are present when the timer expires, nothing is sent.
+BufferedBatchSender
+...................
+
+The :class:`BufferedBatchSender` manages the sending of validated loglines stored in the :class:`BufferedBatch`:
+
+- **Timer-based and Size-based Triggers**:
+
+  - Starts a timer upon receiving the first log entry.
+  - When a batch reaches the configured size (e.g., 1000 entries), the current and previous
+    batches of this key are concatenated and sent to the Kafka topic ``batch_sender_to_prefilter``.
+  - Upon timer expiration, the currently stored batches of all keys are sent. Serves as backup if batches don't reach
+    the configured size.
+  - If no messages are present when the timer expires, nothing is sent.
+
+- **Message Processing and Monitoring**:
+
+  - Extracts logline IDs from JSON messages for tracking purposes.
+  - Logs processing timestamps (in_process, batched) for each message.
+  - Provides detailed logging about the number of messages and batches sent.
+  - Uses the Batch schema for serialization before sending to Kafka.
 
 Configuration
 -------------
 
-The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format`` configured
-in the ``config.yaml``.
+The :class:`LogCollector` checks the validity of incoming loglines. For this, it uses the ``logline_format``
+configured in the ``config.yaml``. Section :ref:`logline-format-configuration` provides detailed information
+on how to customize the logline format and field definitions. The LogCollector uses the following
+configuration options from the configuration:
 
 - **LogCollector Analyzation Criteria**:
 
@@ -200,6 +247,9 @@ in the ``config.yaml``.
     ``"status_code"`` in the ``logline_format`` list.
   - Valid record types: The accepted DNS record types for logline validation. This is defined in the field with name
     ``"record_type"`` in the ``logline_format`` list.
+
+
+.. _buffer-functionality:
 
 Buffer Functionality
 --------------------
@@ -214,7 +264,11 @@ Class Overview
 
 - **Batch**: Stores the latest incoming messages associated with a particular key.
 
-- **Buffer**: Stores the previous batch of messages associated with a particular key, including the timestamps.
+- **Buffer**: Stores the previous batch of messages associated with a particular key.
+
+- **Batch ID**: Unique identifier assigned to each batch for tracking and monitoring purposes.
+
+- **Monitoring Databases**: Tracks logline-to-batch associations, batch timestamps, and fill levels for comprehensive monitoring.
 
 Key Procedures
 ..............
@@ -223,14 +277,18 @@ Key Procedures
 
   - When a new message arrives, the ``add_message()`` method is called.
   - If the key already exists in the batch, the message is appended to the list of messages for that key.
-  - If the key does not exist, a new entry is created in the batch.
+  - If the key does not exist, a new entry is created in the batch with a unique batch ID.
+  - Batch timestamps and logline-to-batch associations are logged for monitoring.
   - **Example**:
+
     - ``message_1`` arrives for ``key_1`` and is added to ``batch["key_1"]``.
 
 2. **Retrieving Message Counts**:
 
-  - Use ``get_number_of_messages(key)`` to get the count of messages in the current batch for a specific key.
-  - Use ``get_number_of_buffered_messages(key)`` to get the count of messages in the buffer for a specific key.
+  - Use ``get_message_count_for_batch_key(key)`` to get the count of messages in the current batch for a specific key.
+  - Use ``get_message_count_for_buffer_key(key)`` to get the count of messages in the buffer for a specific key.
+  - Use ``get_message_count_for_batch()`` to get the total count across all batches.
+  - Use ``get_message_count_for_buffer()`` to get the total count across all buffers.
 
 3. **Completing a Batch**:
 
@@ -273,12 +331,28 @@ and efficient data processing across different message streams.
 Stage 3: Log Filtering
 ======================
 
-Overview
---------
+The Log Filtering stage processes batches from the Log Collection stage and filters out irrelevant entries based on configurable relevance criteria, ensuring only meaningful data proceeds to anomaly detection.
+
+Core Functionality
+------------------
 
 The `Log Filtering` stage is responsible for processing and refining log data by filtering out entries based on
-specified error types. This step ensures that only relevant logs are passed on for further analysis, optimizing the
-performance and accuracy of subsequent pipeline stages.
+relevance criteria defined in the logline format configuration. This step ensures that only relevant logs are passed
+on for further analysis, optimizing the performance and accuracy of subsequent pipeline stages.
+
+Data Processing Pipeline
+........................
+
+The filtering process operates on complete batches rather than individual loglines, maintaining batch metadata and
+timestamps throughout the process. Each batch is processed as a unit, preserving the subnet-based grouping established
+in the previous stage.
+
+Relevance-Based Filtering
+.........................
+
+The filtering mechanism uses the ``check_relevance()`` method from the :class:`LoglineHandler` to determine which
+entries should proceed to the next stage. This approach allows for flexible filtering criteria based on field values
+defined in the configuration.
 
 Main Class
 ----------
@@ -286,40 +360,85 @@ Main Class
 .. py:currentmodule:: src.prefilter.prefilter
 .. autoclass:: Prefilter
 
-The :class:`Prefilter` class serves as the primary component in this stage, handling the extraction and filtering of
-log data.
-
 Usage
 -----
 
-The :class:`Prefilter` loads data from the Kafka topic ``Prefilter``. It extracts the log entries and applies a filter
-to retain only those entries that match the specified error types. These error types are provided as a list of strings
-during the initialization of a :class:`Prefilter` instance.
+Data Flow and Processing
+........................
 
-Once the filtering process is complete, the refined data is sent back to the Kafka Brokers under the topic ``Inspect``
-for further processing in subsequent stages.
+The :class:`Prefilter` consumes batches from the Kafka topic ``batch_sender_to_prefilter`` and processes them through
+the following workflow:
+
+1. **Batch Reception**: Receives complete batches with metadata (batch_id, begin_timestamp, end_timestamp, subnet_id)
+2. **Relevance Filtering**: Applies relevance checks to each logline within the batch
+3. **Monitoring**: Tracks filtered and unfiltered data counts for monitoring purposes
+4. **Batch Forwarding**: Sends filtered batches to the ``prefilter_to_inspector`` topic
+
+Filtering Logic
+...............
+
+The filtering process:
+
+- Retains loglines that pass the relevance check defined by ``ListItem`` field configurations
+- Discards irrelevant loglines and marks them as "filtered_out" in the monitoring system
+- Preserves batch structure and metadata for filtered data
+- Handles empty batches gracefully (logs info but does not forward empty data)
+
+Error Handling
+..............
+
+The implementation includes robust error handling:
+
+- **Empty Data**: Logs informational messages when batches contain no data
+- **No Filtered Data**: Raises ``ValueError`` when no relevant data remains after filtering
+- **Kafka Exceptions**: Continues processing on message fetch exceptions
+- **Graceful Shutdown**: Supports ``KeyboardInterrupt`` for clean termination
 
 Configuration
 -------------
 
-To customize the filtering behavior, the following options in the ``logline_format`` set
-in the ``config.yaml`` are used.
+Filtering behavior is controlled through the ``logline_format`` configuration in ``config.yaml``:
 
-- **Relevant Types**:
+- **Relevance Criteria**:
 
-  - If the fourth entry of the field configuration with type ``ListItem`` in the ``logline_format`` list is defined for
-    any field name, the values in this list are the relevant values.
+  - For fields of type ``ListItem``, the fourth entry (relevant_list) defines which values are considered relevant
+  - If no relevant_list is specified, all allowed values are deemed relevant
+  - Multiple fields can have relevance criteria, and all must pass for a logline to be retained
 
+- **Example Configuration**:
+
+  .. code-block:: yaml
+
+     logline_format:
+       - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]  # Only NXDOMAIN relevant
+       - [ "record_type", ListItem, [ "A", "AAAA" ] ]  # A and AAAA relevant
+
+Monitoring and Metrics
+......................
+
+The :class:`Prefilter` provides comprehensive monitoring:
+
+- **Batch Processing**: Tracks batch timestamps and processing status
+- **Fill Levels**: Monitors data volumes before and after filtering
+- **Logline Tracking**: Records "filtered_out" status for individual loglines
+- **Performance Metrics**: Logs processing statistics for each batch
+
+
+
+.. _stage-4-inspection:
 
 Stage 4: Inspection
-========================
+===================
 
 Overview
 --------
 
-The `Inspector` stage is responsible to run time-series based anomaly detection on prefiltered batches. This stage is essentiell to reduce
-the load on the `Detection` stage.
-Otherwise, resource complexity increases disproportionately.
+The **Inspection** stage performs time-series-based anomaly detection on prefiltered DNS request batches.
+Its primary purpose is to reduce the load on the `Detection` stage by filtering out non-suspicious traffic early.
+
+This stage uses StreamAD models—supporting univariate, multivariate, and ensemble techniques—to detect unusual patterns
+in request volume and packet sizes.
+
 
 Main Class
 ----------
@@ -327,52 +446,129 @@ Main Class
 .. py:currentmodule:: src.inspector.inspector
 .. autoclass:: Inspector
 
-The :class:`Inspector` is the primary class to run StreamAD models for time-series based anomaly detection, such as the Z-Score outlier detection.
-In addition, it features fine-tuning settings for models and anomaly thresholds.
+The :class:`Inspector` class is responsible for:
+
+- Loading batches from Kafka
+- Extracting time-series features (e.g., frequency and packet size)
+- Applying anomaly detection models
+- Forwarding suspicious batches to the detector stage
 
 Usage
 -----
 
-The :class:`Inspector` loads the StreamAD model to perform anomaly detection.
-It consumes batches on the topic ``inspect``, usually produced by the ``Prefilter``.
-For a new batch, it derives the timestamps ``begin_timestamp`` and ``end_timestamp``.
-Based on time type (e.g. ``s``, ``ms``) and time range (e.g. ``5``) the sliding non-overlapping window is created.
-For univariate time-series, it counts the number of occurances, whereas for multivariate, it considers the number of occurances and packet size. :cite:`schuppen_fanci_2018`
+Data Flow and Processing
+........................
 
-An anomaly is noted when it is greater than a ``score_threshold``.
-In addition, we support a relative anomaly threshold.
-So, if the anomaly threshold is ``0.01``, it sends anomalies for further detection, if the amount of anomlies divided by the total amount of requests in the batch is greater than ``0.01``.
+The :class:`Inspector` consumes batches from the Kafka topic ``prefilter_to_inspector`` and processes them through
+the following workflow:
+
+1. **Batch Reception**: Receives batches with metadata (batch_id, begin_timestamp, end_timestamp) from the Prefilter
+2. **Time Series Construction**: Creates time series features based on configurable time windows
+3. **Anomaly Detection**: Applies StreamAD models to detect suspicious patterns
+4. **Threshold Evaluation**: Evaluates anomaly scores against configured thresholds
+5. **Suspicious Batch Forwarding**: Groups and forwards anomalous data by client IP to the Detector
+
+Time Series Feature Extraction
+..............................
+
+The Inspector creates time series features using sliding non-overlapping windows:
+
+- **Time Window Configuration**: Based on ``time_type`` (e.g., ``ms``) and ``time_range`` (e.g., ``20``) from configuration
+- **Univariate Mode**: Counts message occurrences per time step for single-feature anomaly detection
+- **Multivariate Mode**: Combines message counts and mean packet sizes for two-dimensional feature analysis
+- **Ensemble Mode**: Uses message counts with multiple models combined through ensemble methods
+
+Anomaly Detection Logic
+.......................
+
+The anomaly detection process evaluates suspicious patterns through a two-level threshold system:
+
+- **Score Threshold**: Individual time steps are flagged as anomalous when scores exceed ``score_threshold`` (default: 0.5)
+- **Anomaly Threshold**: Batches are considered suspicious when the proportion of anomalous time steps exceeds ``anomaly_threshold`` (default: 0.01)
+- **Client IP Grouping**: Suspicious batches are grouped by client IP and forwarded as separate suspicious batches to the Detector
+
+Error Handling and Monitoring
+.............................
+
+The implementation includes comprehensive monitoring and error handling:
+
+- **Busy State Management**: Prevents new batch consumption while processing current data
+- **Model Validation**: Validates model compatibility with selected detection mode
+- **Fill Level Tracking**: Monitors data volumes throughout the processing pipeline
+- **Graceful Degradation**: Handles empty batches and model loading failures appropriately
 
 Configuration
 -------------
 
-All StreamAD models are supported. This includes univariate, multivariate, and ensemble methods.
-In case special arguments are desired for your environment, the ``model_args`` as a dictionary ``dict`` can be passed for each model.
+The Inspector supports comprehensive configuration through the ``data_inspection.inspector`` section in ``config.yaml``.
+All StreamAD models are supported, including univariate, multivariate, and ensemble methods.
 
-Univariate models in `streamad.model`:
+Detection Modes
+................
 
-- :class:`ZScoreDetector`
-- :class:`KNNDetector`
-- :class:`SpotDetector`
-- :class:`SRDetector`
-- :class:`OCSVMDetector`
+Three detection modes are available:
 
-Multivariate models in `streamad.model`:
-Currently, we rely on the packet size and number occurances for multivariate processing.
+- **Univariate Mode** (``mode: univariate``): Uses message count time series for anomaly detection
+- **Multivariate Mode** (``mode: multivariate``): Combines message counts and mean packet sizes
+- **Ensemble Mode** (``mode: ensemble``): Uses multiple models with ensemble combination methods
 
-- :class:`xStreamDetector`
-- :class:`RShashDetector`
-- :class:`HSTreeDetector`
-- :class:`LodaDetector`
-- :class:`OCSVMDetector`
-- :class:`RrcfDetector`
+Model Configuration
+...................
 
-Ensemble prediction in ``streamad.process:
+**Univariate Models** (``streamad.model``):
 
-- :class:`WeightEnsemble`
-- :class:`VoteEnsemble`
+- ``ZScoreDetector``: Statistical anomaly detection using z-scores
+- ``KNNDetector``: K-nearest neighbors based detection
+- ``SpotDetector``: Streaming peaks-over-threshold detection
+- ``SRDetector``: Spectral residual based detection
+- ``OCSVMDetector``: One-class SVM for anomaly detection
+- ``MadDetector``: Median absolute deviation detection
+- ``SArimaDetector``: Streaming ARIMA-based detection
 
-It takes a list of ``streamad.model`` for perform the ensemble prediction.
+**Multivariate Models** (``streamad.model``):
+
+- ``xStreamDetector``: Multi-dimensional streaming detection
+- ``RShashDetector``: Random projection hash-based detection
+- ``HSTreeDetector``: Half-space tree based detection
+- ``LodaDetector``: Lightweight online detector of anomalies
+- ``OCSVMDetector``: One-class SVM (supports multivariate)
+- ``RrcfDetector``: Robust random cut forest detection
+
+**Ensemble Methods** (``streamad.process``):
+
+- ``WeightEnsemble``: Weighted combination of multiple detectors
+- ``VoteEnsemble``: Voting-based ensemble prediction
+
+Configuration Parameters
+.........................
+
+.. code-block:: yaml
+
+   data_inspection:
+     inspector:
+       mode: univariate                    # Detection mode: univariate, multivariate, ensemble
+       models:                             # List of models to use
+         - model: ZScoreDetector
+           module: streamad.model
+           model_args:
+             is_global: false
+       ensemble:                           # Ensemble configuration (when mode: ensemble)
+         model: WeightEnsemble
+         module: streamad.process
+         model_args: {}
+       anomaly_threshold: 0.01            # Proportion of anomalous time steps required
+       score_threshold: 0.5               # Individual score threshold for anomaly detection
+       time_type: ms                      # Time unit for window creation
+       time_range: 20                     # Time range for each window step
+
+**Model Arguments**: Custom arguments for specific models can be provided via the ``model_args`` dictionary.
+This allows fine-tuning of model parameters for specific deployment requirements.
+
+**Time Window Settings**: The ``time_type`` and ``time_range`` parameters control the granularity of time series analysis.
+Current configuration uses 20-millisecond windows for high-resolution anomaly detection.
+
+
+.. _stage-5-detection:
 
 Stage 5: Detection
 ==================
@@ -380,9 +576,9 @@ Stage 5: Detection
 Overview
 --------
 
-The `Detector` resembles the heart of heiDGAF. It runs pre-trained machine learning models to get a probability outcome for the DNS requests.
-The pre-trained models are under the EUPL-1.2 license online available.
-In total, we rely on the following data sets for the pre-trained models we offer:
+The **Detection** stage is the core of the heiDGAF pipeline. It consumes **suspicious batches** passed from the `Inspector`, applies **pre-trained ML models** to classify individual DNS requests, and issues alerts based on aggregated probabilities.
+
+The pre-trained models used here are licensed under **EUPL‑1.2** and built from the following datasets:
 
 - `CIC-Bell-DNS-2021 <https://www.unb.ca/cic/datasets/dns-2021.html>`_
 - `DGTA-BENCH - Domain Generation and Tunneling Algorithms for Benchmark <https://data.mendeley.com/datasets/2wzf9bz7xr/1>`_
@@ -394,14 +590,35 @@ Main Class
 .. py:currentmodule:: src.detector.detector
 .. autoclass:: Detector
 
+The :class:`Detector` class:
+
+- Consumes a batch flagged as suspicious.
+- Downloads and validates the ML model (if necessary).
+- Extracts features from domain names (e.g. character distributions, entropy, label statistics).
+- Computes a probability per request and an overall risk score per batch.
+- Emits alerts to ClickHouse and logs in ``/tmp/warnings.json`` where applicable.
+
 Usage
 -----
 
-The :class:`Detector` consumes anomalous batches of requests.
-It calculates a probability score for each request, and at last, an overall score of the batch.
-Alerts are log to ``/tmp/warnings.json``.
+1. The `Detector` listens on the Kafka topic from the Inspector (``inspector_to_detector``).
+2. For each suspicious batch:
+   - Extracts features for every domain request.
+   - Applies the loaded ML model (after scaling) to compute class probabilities.
+   - Marks a request as malicious if its probability exceeds the configured `threshold`.
+3. Computes an **overall score** (e.g. median of malicious probabilities) for the batch.
+4. If malicious requests exist, issues an **alert** record and logs it; otherwise, the batch is filtered.
+
+Alerts are recorded in ClickHouse and also appended to a local JSON file (`warnings.json`) for external monitoring.
 
 Configuration
 -------------
 
-In case you want to load self-trained models, the :class:`Detector` needs a URL path, model name, and SHA256 checksum to download the model during start-up.
+You may use the provided, pre-trained models or supply your own. To use a custom model, specify:
+
+- `base_url`: URL from which to fetch model artifacts
+- `model`: model name
+- `checksum`: SHA256 digest for integrity validation
+- `threshold`: probability threshold for classifying a request as malicious
+
+These parameters are loaded at startup and used to download, verify, and load the model/scaler if not already cached locally (in temp directory).

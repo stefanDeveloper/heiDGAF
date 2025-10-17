@@ -36,16 +36,18 @@ CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
 
 
 class WrongChecksum(Exception):  # pragma: no cover
-    """
-    Exception if Checksum is not equal.
-    """
+    """Raises when model checksum validation fails."""
 
     pass
 
 
 class Detector:
-    """Logs detection with probability score of requests. It runs the provided machine learning model.
-    In addition, it returns all individually probabilities of the anomalous batch.
+    """Main component of the Data Analysis stage to perform anomaly detection
+
+    Processes suspicious batches from the Inspector using configurable ML models to classify
+    DNS requests as benign or malicious. Downloads and validates models from a remote server,
+    extracts features from domain names, calculates probability scores, and generates alerts
+    when malicious requests are detected above the configured threshold.
     """
 
     def __init__(self) -> None:
@@ -84,7 +86,12 @@ class Detector:
         )
 
     def get_and_fill_data(self) -> None:
-        """Consumes data from KafkaConsumeHandler and stores it for processing."""
+        """Consumes suspicious batches from Kafka and stores them for analysis.
+
+        Fetches suspicious batch data from the Inspector via Kafka and stores it in internal
+        data structures. If the Detector is already busy processing data, consumption is
+        skipped with a warning. Updates database entries for monitoring and logging purposes.
+        """
         if self.messages:
             logger.warning(
                 "Detector is busy: Not consuming new messages. Wait for the Detector to finish the "
@@ -134,13 +141,13 @@ class Detector:
             )
 
     def _sha256sum(self, file_path: str) -> str:
-        """Return a SHA265 sum check to validate the model.
+        """Calculates SHA256 checksum for model file validation.
 
         Args:
-            file_path (str): File path of model.
+            file_path (str): Path to the model file to validate.
 
         Returns:
-            str: SHA256 sum
+            str: SHA256 hexadecimal digest of the file.
         """
         h = hashlib.sha256()
 
@@ -155,9 +162,17 @@ class Detector:
         return h.hexdigest()
 
     def _get_model(self):
-        """
-        Downloads model from server. If model already exists, it returns the current model. In addition, it checks the
-        sha256 sum in case a model has been updated.
+        """Downloads and loads ML model and scaler from remote server.
+
+        Retrieves the configured model and scaler files from the remote server if not
+        already present locally. Validates model integrity using SHA256 checksum and
+        loads the pickled model and scaler objects for inference.
+
+        Returns:
+            tuple: Trained ML model and data scaler objects.
+
+        Raises:
+            WrongChecksum: If model checksum validation fails.
         """
         logger.info(f"Get model: {MODEL} with checksum {CHECKSUM}")
         if not os.path.isfile(self.model_path):
@@ -203,102 +218,103 @@ class Detector:
 
         return clf, scaler
 
-    def clear_data(self):
-        """Clears the data in the internal data structures."""
+    def clear_data(self) -> None:
+        """Clears all data from internal data structures.
+
+        Resets messages, timestamps, and warnings to prepare the Detector
+        for processing the next suspicious batch.
+        """
         self.messages = []
         self.begin_timestamp = None
         self.end_timestamp = None
         self.warnings = []
 
-    def _get_features(self, query: str):
-        """Transform a dataset with new features using numpy.
+    def _get_features(self, query: str) -> np.ndarray:
+        """Extracts feature vector from domain name for ML model inference.
+
+        Computes various statistical and linguistic features from the domain name
+        including label lengths, character frequencies, entropy measures, and
+        counts of different character types across domain name levels.
 
         Args:
-            query (str): A string to process.
+            query (str): Domain name string to extract features from.
 
         Returns:
-            dict: Preprocessed data with computed features.
+            numpy.ndarray: Feature vector ready for ML model prediction.
         """
 
         # Splitting by dots to calculate label length and max length
+        query = query.strip(".")
         label_parts = query.split(".")
-        label_length = len(label_parts)
-        label_max = max(len(part) for part in label_parts)
-        label_average = len(query.strip("."))
 
-        logger.debug("Get letter frequency")
+        levels = {
+            "fqdn": query,
+            "secondleveldomain": label_parts[-2] if len(label_parts) >= 2 else "",
+            "thirdleveldomain": (
+                ".".join(label_parts[:-2]) if len(label_parts) > 2 else ""
+            ),
+        }
+
+        label_length = len(label_parts)
+        parts = query.split(".")
+        label_max = len(max(parts, key=str)) if parts else 0
+        label_average = len(query)
+
+        basic_features = np.array(
+            [label_length, label_max, label_average], dtype=np.float64
+        )
+
         alc = "abcdefghijklmnopqrstuvwxyz"
+        query_len = len(query)
         freq = np.array(
-            [query.lower().count(i) / len(query) if len(query) > 0 else 0 for i in alc]
+            [query.lower().count(c) / query_len if query_len > 0 else 0.0 for c in alc],
+            dtype=np.float64,
         )
 
         logger.debug("Get full, alpha, special, and numeric count.")
 
         def calculate_counts(level: str) -> np.ndarray:
-            if len(level) == 0:
-                return np.array([0, 0, 0, 0])
+            if not level:
+                return np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float64)
 
-            full_count = len(level)
-            alpha_count = sum(c.isalpha() for c in level) / full_count
-            numeric_count = sum(c.isdigit() for c in level) / full_count
-            special_count = (
-                sum(not c.isalnum() and not c.isspace() for c in level) / full_count
+            full_count = len(level) / len(level)
+            alpha_ratio = sum(c.isalpha() for c in level) / len(level)
+            numeric_ratio = sum(c.isdigit() for c in level) / len(level)
+            special_ratio = sum(
+                not c.isalnum() and not c.isspace() for c in level
+            ) / len(level)
+
+            return np.array(
+                [full_count, alpha_ratio, numeric_ratio, special_ratio],
+                dtype=np.float64,
             )
 
-            return np.array([full_count, alpha_count, numeric_count, special_count])
+        fqdn_counts = calculate_counts(levels["fqdn"])
+        third_counts = calculate_counts(levels["thirdleveldomain"])
+        second_counts = calculate_counts(levels["secondleveldomain"])
 
-        levels = {
-            "fqdn": query,
-            "thirdleveldomain": label_parts[0] if len(label_parts) > 2 else "",
-            "secondleveldomain": label_parts[1] if len(label_parts) > 1 else "",
-        }
-        counts = {
-            level: calculate_counts(level_value)
-            for level, level_value in levels.items()
-        }
-
-        logger.debug(
-            "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
-        )
-        stats = {}
-        for level, count_array in counts.items():
-            stats[f"{level}_std"] = np.std(count_array)
-            stats[f"{level}_var"] = np.var(count_array)
-            stats[f"{level}_median"] = np.median(count_array)
-            stats[f"{level}_mean"] = np.mean(count_array)
-
-        logger.debug("Start entropy calculation")
+        level_features = np.hstack([third_counts, second_counts, fqdn_counts])
 
         def calculate_entropy(s: str) -> float:
             if len(s) == 0:
-                return 0
-            probabilities = [float(s.count(c)) / len(s) for c in dict.fromkeys(list(s))]
-            entropy = -sum(p * math.log(p, 2) for p in probabilities)
-            return entropy
+                return 0.0
+            probs = [s.count(c) / len(s) for c in dict.fromkeys(s)]
+            return -sum(p * math.log(p, 2) for p in probs)
 
-        entropy = {level: calculate_entropy(value) for level, value in levels.items()}
-
-        logger.debug("Finished entropy calculation")
-
-        # Final feature aggregation as a NumPy array
-        basic_features = np.array([label_length, label_max, label_average])
-
-        # Flatten counts and stats for each level into arrays
-        level_features = np.hstack([counts[level] for level in levels.keys()])
-
-        # Entropy features
-        entropy_features = np.array([entropy[level] for level in levels.keys()])
-
-        # Concatenate all features into a single numpy array
-        all_features = np.concatenate(
+        logger.debug("Start entropy calculation")
+        entropy_features = np.array(
             [
-                basic_features,
-                freq,
-                # freq_features,
-                level_features,
-                # stats_features,
-                entropy_features,
-            ]
+                calculate_entropy(levels["fqdn"]),
+                calculate_entropy(levels["thirdleveldomain"]),
+                calculate_entropy(levels["secondleveldomain"]),
+            ],
+            dtype=np.float64,
+        )
+
+        logger.debug("Entropy features calculated")
+
+        all_features = np.concatenate(
+            [basic_features, freq, level_features, entropy_features]
         )
 
         logger.debug("Finished data transformation")
@@ -306,12 +322,18 @@ class Detector:
         return all_features.reshape(1, -1)
 
     def detect(self) -> None:  # pragma: no cover
-        """Method to detect malicious requests in the network flows"""
+        """Analyzes DNS requests and identifies malicious domains.
+
+        Processes each DNS request in the current batch by extracting features,
+        running ML model prediction, and collecting warnings for requests that
+        exceed the configured maliciousness threshold.
+        """
         logger.info("Start detecting malicious requests.")
         for message in self.messages:
             # TODO predict all messages
+            # TODO use scalar: self.scaler.transform(self._get_features(message["domain_name"]))
             y_pred = self.model.predict_proba(
-                self.scaler.transform(self._get_features(message["domain_name"]))
+                self._get_features(message["domain_name"])
             )
             logger.info(f"Prediction: {y_pred}")
             if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:
@@ -325,7 +347,13 @@ class Detector:
                 self.warnings.append(warning)
 
     def send_warning(self) -> None:
-        """Dispatch warnings saved to the object's warning list"""
+        """Generates and stores alerts for detected malicious requests.
+
+        Creates comprehensive alert records from accumulated warnings including
+        overall risk scores, individual predictions, and metadata. Stores alerts
+        in the database and updates batch processing status. If no warnings are
+        present, marks the batch as filtered out.
+        """
         logger.info("Store alert.")
         if len(self.warnings) > 0:
             overall_score = median(
@@ -417,15 +445,19 @@ class Detector:
         )
 
 
-def main(one_iteration: bool = False):  # pragma: no cover
-    """
-    Creates the :class:`Detector` instance. Starts a loop that continously fetches data.
+def main(one_iteration: bool = False) -> None:  # pragma: no cover
+    """Creates and runs the Detector instance in a continuous processing loop.
+
+    Initializes the Detector and starts the main processing loop that continuously
+    fetches suspicious batches from Kafka, performs malicious domain detection,
+    and generates alerts. Handles various exceptions gracefully and ensures
+    proper cleanup of data structures.
 
     Args:
-        one_iteration (bool): For testing purposes: stops loop after one iteration
+        one_iteration (bool): For testing purposes - stops loop after one iteration.
 
     Raises:
-        KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
+        KeyboardInterrupt: Execution interrupted by user.
     """
     logger.info("Starting Detector...")
     detector = Detector()

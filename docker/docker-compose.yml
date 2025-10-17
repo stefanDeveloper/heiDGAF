@@ -120,3 +120,12 @@ networks:
       config:
         - subnet: 172.27.0.0/16
           gateway: 172.27.0.1
+
+volumes:
+  ch_data:
+  ch_logs:
+  kafka-data1:
+  kafka-data2:
+  kafka-data3:
+  zk-data:
+  zk-txn-logs:

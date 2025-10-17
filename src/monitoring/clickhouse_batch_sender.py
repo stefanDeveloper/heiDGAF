@@ -26,17 +26,27 @@ BATCH_TIMEOUT = CONFIG["pipeline"]["monitoring"]["clickhouse_connector"][
 
 @dataclass
 class Table:
-    """Defines the table name and allowed column fields with types."""
+    """Defines the table name and allowed column fields with types.
+
+    Stores metadata about ClickHouse table structure including column names
+    and their expected data types for validation during batch insertion.
+    """
 
     name: str
     columns: dict[str, type]
 
     def verify(self, data: dict[str, Any]):
-        """
-        Verify if the data has the correct columns and types.
+        """Verifies if the data has the correct columns and types.
+
+        Validates that the provided data dictionary contains the expected columns
+        with correct data types according to the table schema definition.
 
         Args:
-            data (dict): The values for each cell
+            data (dict): The values for each cell.
+
+        Raises:
+            ValueError: If column count or column names don't match expected schema.
+            TypeError: If data types don't match expected column types.
         """
         if len(data) != len(self.columns):
             raise ValueError(
@@ -63,8 +73,12 @@ class Table:
 
 
 class ClickHouseBatchSender:
-    """Manages the batches that store insert commands for each table. After the timer runs out, all batches are sent.
-    If a batch reaches the maximum size, it is also sent."""
+    """Manages batched insert operations for ClickHouse tables.
+
+    Collects insert commands in batches and sends them to ClickHouse when either
+    the batch size limit is reached or a timeout occurs. Provides efficient bulk
+    insertion with automatic schema validation for all monitored tables.
+    """
 
     def __init__(self):
         self.tables = {
@@ -188,13 +202,18 @@ class ClickHouseBatchSender:
         self.insert_all()
 
     def add(self, table_name: str, data: dict[str, Any]):
-        """
-        Adds the data to the batch for the table. Verifies the fields first.
+        """Adds the data to the batch for the table.
+
+        Verifies the data fields first, then adds the data to the appropriate
+        table batch. Triggers immediate insertion if batch size limit is reached.
 
         Args:
-            table_name (str): Name of the table to add data to
-            data (dict): The values for each cell in the table
+            table_name (str): Name of the table to add data to.
+            data (dict): The values for each cell in the table.
 
+        Raises:
+            ValueError: If table name is invalid or data format is incorrect.
+            TypeError: If data types don't match table schema.
         """
         self.tables.get(table_name).verify(data)
         self.batch.get(table_name).append(list(data.values()))
@@ -206,11 +225,13 @@ class ClickHouseBatchSender:
             self._start_timer()
 
     def insert(self, table_name: str):
-        """
-        Inserts the batch for the given table.
+        """Inserts the batch for the given table.
+
+        Executes the accumulated batch insert operation for the specified table
+        and clears the batch after successful insertion.
 
         Args:
-            table_name (str): Name of the table to insert data to
+            table_name (str): Name of the table to insert data to.
         """
         if self.batch[table_name]:
             with self.lock:
@@ -225,7 +246,11 @@ class ClickHouseBatchSender:
                 self.batch[table_name] = []
 
     def insert_all(self):
-        """Inserts the batch for every table."""
+        """Inserts the batch for every table.
+
+        Executes batch insert operations for all tables with pending data
+        and cancels the current timer if active.
+        """
         for table in self.batch:
             self.insert(table)
 
@@ -235,7 +260,11 @@ class ClickHouseBatchSender:
         self.timer = None
 
     def _start_timer(self):
-        """Set the timer for batch processing of data insertion"""
+        """Sets the timer for batch processing of data insertion.
+
+        Cancels any existing timer and starts a new one that will trigger
+        batch insertion after the configured timeout period.
+        """
         if self.timer:
             self.timer.cancel()
 

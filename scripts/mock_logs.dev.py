@@ -7,10 +7,12 @@ from src.mock.log_generator import generate_dns_log_line
 
 kafka_producer = SimpleKafkaProduceHandler()
 
+NUMBER_OF_LOGLINES_TO_SEND: int = 50000
+
 
 def main():
     try:
-        for i in range(50000):
+        for i in range(NUMBER_OF_LOGLINES_TO_SEND):
             kafka_producer.produce(
                 "pipeline-logserver_in", f"{generate_dns_log_line('random-ip.de')}"
             )

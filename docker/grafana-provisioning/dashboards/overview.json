@@ -233,7 +233,7 @@
     },
     {
       "datasource": {
-        "default": false,
+        "default": true,
         "type": "grafana-clickhouse-datasource",
         "uid": "PDEE91DDB90597936"
       },
@@ -312,7 +312,7 @@
         ]
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 15,
         "x": 0,
         "y": 8
@@ -331,29 +331,6 @@
         }
       },
       "targets": [
-        {
-          "datasource": {
-            "type": "grafana-clickhouse-datasource",
-            "uid": "PDEE91DDB90597936"
-          },
-          "editorType": "sql",
-          "format": 1,
-          "hide": false,
-          "meta": {
-            "builderOptions": {
-              "columns": [],
-              "database": "",
-              "limit": 1000,
-              "mode": "list",
-              "queryType": "table",
-              "table": ""
-            }
-          },
-          "pluginVersion": "4.5.1",
-          "queryType": "table",
-          "rawSql": "SELECT timestamp, entry_count AS \" \"\nFROM fill_levels\nWHERE stage = 'log_collection.collector'\n  AND 'Collector' IN (${include_modules:csv})\n  AND timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp ASC;",
-          "refId": "Collector"
-        },
         {
           "datasource": {
             "type": "grafana-clickhouse-datasource",
@@ -500,7 +477,7 @@
         ]
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 9,
         "x": 15,
         "y": 8
@@ -544,9 +521,9 @@
               "table": ""
             }
           },
-          "pluginVersion": "4.7.0",
+          "pluginVersion": "4.10.2",
           "queryType": "table",
-          "rawSql": "SELECT *\nFROM (\n  SELECT 'Collector' AS name, median(value) AS \"Median\", 2 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.collector' AND entry_type = 'total_loglines'\n      AND timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'BatchHandler' AS name, median(value) AS \"Median\", 3 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.batch_handler' AND entry_type = 'total_loglines_in_batches' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Prefilter' AS name, median(value) AS \"Median\", 4 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_filtering.prefilter' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Inspector' AS name, median(value) AS \"Median\", 5 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_inspection.inspector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Detector' AS name, median(value) AS \"Median\", 6 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_analysis.detector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n)\nWHERE name IN (${include_modules:csv})\nORDER BY sort_order ASC;",
+          "rawSql": "SELECT *\nFROM (\n  SELECT 'BatchHandler' AS name, median(value) AS \"Median\", 3 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_collection.batch_handler' AND entry_type = 'total_loglines_in_batches' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Prefilter' AS name, median(value) AS \"Median\", 4 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'log_filtering.prefilter' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Inspector' AS name, median(value) AS \"Median\", 5 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_inspection.inspector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n\n  UNION ALL\n\n  SELECT 'Detector' AS name, median(value) AS \"Median\", 6 AS sort_order\n  FROM (\n    SELECT entry_count as value\n    FROM fill_levels\n    WHERE stage = 'data_analysis.detector' AND entry_type = 'total_loglines' AND\n          timestamp >= $__fromTime AND timestamp <= $__toTime\n  )\n)\nWHERE name IN (${include_modules:csv})\nORDER BY sort_order ASC;",
           "refId": "Fill States"
         }
       ],
@@ -626,7 +603,7 @@
         "h": 8,
         "w": 13,
         "x": 0,
-        "y": 15
+        "y": 16
       },
       "id": 1,
       "options": {
@@ -754,7 +731,7 @@
         "h": 4,
         "w": 11,
         "x": 13,
-        "y": 15
+        "y": 16
       },
       "id": 3,
       "options": {
@@ -875,7 +852,7 @@
         "h": 4,
         "w": 11,
         "x": 13,
-        "y": 19
+        "y": 20
       },
       "id": 4,
       "options": {
@@ -950,7 +927,7 @@
     "list": [
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
             "All"
           ],
@@ -1016,6 +993,6 @@
   "timezone": "browser",
   "title": "Overview",
   "uid": "eebjla27u66f4f",
-  "version": 5,
+  "version": 1,
   "weekStart": ""
 }

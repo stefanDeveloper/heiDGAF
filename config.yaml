@@ -70,11 +70,11 @@ pipeline:
 
 environment:
   kafka_brokers:
-    - hostname: kafka1
+    - hostname: 127.0.0.1
       port: 8097
-    - hostname: kafka2
+    - hostname: 127.0.0.1
       port: 8098
-    - hostname: kafka3
+    - hostname: 127.0.0.1
       port: 8099
   kafka_topics:
     pipeline:

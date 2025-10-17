@@ -16,15 +16,17 @@ To use heiDGAF, just use the provided ``docker-compose.yml`` to quickly bootstra
 
 .. code-block:: console
 
-   $ docker compose -f docker/docker-compose.yml up
+   $ HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
 
 If you want to run containers individually, use:
 
 .. code-block:: console
 
-   $ docker compose -f docker/docker-compose.kafka.yml up
+   $ HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.kafka.yml up
    $ docker run ...
 
+
+Make sure you set the environment variable ``HOST_IP`` to your host's IP address, so that the services can communicate with each other.
 
 Installation
 ------------
@@ -49,22 +51,9 @@ Now, you can start each module, e.g. the `Inspector`:
 
    (.venv) $ python src/inspector/main.py
 
-
-Commit Hook
-------------
-
-Contributing to the project you might be noting failed pipeline runs.
-This can be due to the pre.commit hook finding errors in the formatting. Therefore, we suggest you run
-
-.. code-block:: console
-
-   (.venv) pre-commit run --show-diff-on-failure --color=always --all-files
-
-before committing your changes to GitHub.
-This reformates the code accordingly, preventing errors in the pipeline.
-
-
 Configuration
 -------------
+
+.. _logline-format-configuration:
 
 .. include:: configuration.rst

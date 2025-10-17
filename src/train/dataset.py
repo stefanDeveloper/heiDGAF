@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 from dataclasses import dataclass
 from typing import Callable, List
 
@@ -12,14 +12,18 @@ from src.base.log_config import get_logger
 logger = get_logger("train.dataset")
 
 
-def preprocess(x: pl.DataFrame):
-    """Preprocesses a `pl.DataFrame` into a basic data set for later transformation.
+def preprocess(x: pl.DataFrame) -> pl.DataFrame:
+    """Preprocesses DataFrame into structured dataset for feature extraction.
+
+    Filters out empty queries, removes duplicates, splits domain names into labels,
+    and extracts top-level domain (TLD), second-level domain, and third-level domain
+    components for further analysis.
 
     Args:
-        x (pl.DataFrame): Data sets for preprocessing
+        x (pl.DataFrame): Raw dataset containing DNS queries for preprocessing.
 
     Returns:
-        pl.DataFrame: Preprocessed data set
+        pl.DataFrame: Preprocessed dataset with structured domain components.
     """
     logger.debug("Start preprocessing data.")
     x = x.filter(pl.col("query").str.len_chars() > 0)
@@ -79,14 +83,17 @@ def preprocess(x: pl.DataFrame):
 
 
 def cast_dga(data_path: str, max_rows: int) -> pl.DataFrame:
-    """Cast dga data set.
+    """Loads and processes DGA dataset from CSV file.
+
+    Reads DGA domain dataset, renames columns to standard format, adds malicious
+    class label, and applies preprocessing to structure domain components.
 
     Args:
-        data_path (str): Data path to data set
-        max_rows (int): Maximum rows.
+        data_path (str): Path to the DGA dataset CSV file.
+        max_rows (int): Maximum number of rows to process.
 
     Returns:
-        pl.DataFrame: Loaded pl.DataFrame.
+        pl.DataFrame: Processed DGA dataset with structured domain information.
     """
     logger.info(f"Start casting data set {data_path}.")
     df = pl.read_csv(data_path)
@@ -103,14 +110,17 @@ def cast_dga(data_path: str, max_rows: int) -> pl.DataFrame:
 
 
 def cast_bambenek(data_path: str, max_rows: int) -> pl.DataFrame:
-    """Cast Bambenek data set.
+    """Loads and processes Bambenek DGA dataset from CSV file.
+
+    Reads Bambenek DGA domain dataset, renames columns to standard format, adds
+    malicious class label, and applies preprocessing to structure domain components.
 
     Args:
-        data_path (str): Data path to data set
-        max_rows (int): Maximum rows.
+        data_path (str): Path to the Bambenek dataset CSV file.
+        max_rows (int): Maximum number of rows to process.
 
     Returns:
-        pl.DataFrame: Loaded pl.DataFrame.
+        pl.DataFrame: Processed Bambenek dataset with structured domain information.
     """
     logger.info(f"Start casting data set {data_path}.")
     df = pl.read_csv(data_path)
@@ -127,14 +137,17 @@ def cast_bambenek(data_path: str, max_rows: int) -> pl.DataFrame:
 
 
 def cast_cic(data_path: List[str], max_rows: int) -> pl.DataFrame:
-    """Cast CIC data set.
+    """Loads and processes CIC DNS dataset from multiple CSV files.
+
+    Reads CIC DNS datasets (benign, malware, phishing, spam), assigns appropriate
+    class labels based on filename, and combines all datasets into a unified format.
 
     Args:
-        data_path (str): Data path to data set
-        max_rows (int): Maximum rows.
+        data_path (List[str]): List of paths to CIC dataset CSV files.
+        max_rows (int): Maximum number of rows to process per file.
 
     Returns:
-        pl.DataFrame: Loaded pl.DataFrame.
+        pl.DataFrame: Combined CIC dataset with structured domain information.
     """
     dataframes = []
     for data in data_path:
@@ -157,14 +170,17 @@ def cast_cic(data_path: List[str], max_rows: int) -> pl.DataFrame:
 
 
 def cast_dgarchive(data_path: str, max_rows: int) -> pl.DataFrame:
-    """Cast DGArchive data set.
+    """Loads and processes DGArchive dataset from CSV file.
+
+    Reads DGArchive domain dataset, extracts class label from filename, renames
+    columns to standard format, and applies preprocessing for domain analysis.
 
     Args:
-        data_path (str): Data path to data set
-        max_rows (int): Maximum rows.
+        data_path (str): Path to the DGArchive dataset CSV file.
+        max_rows (int): Maximum number of rows to process.
 
     Returns:
-        pl.DataFrame: Loaded pl.DataFrame.
+        pl.DataFrame: Processed DGArchive dataset with structured domain information.
     """
     dataframes = []
     logger.info(f"Start casting data set {data_path}.")
@@ -186,14 +202,17 @@ def cast_dgarchive(data_path: str, max_rows: int) -> pl.DataFrame:
 
 
 def cast_dgta(data_path: str, max_rows: int) -> pl.DataFrame:
-    """Cast DGTA data set.
+    """Loads and processes DGTA benchmark dataset from Parquet file.
+
+    Reads DGTA benchmark dataset, handles custom UTF-8 encoding, renames columns
+    to standard format, and applies preprocessing for domain structure analysis.
 
     Args:
-        data_path (str): Data path to data set
-        max_rows (int): Maximum rows.
+        data_path (str): Path to the DGTA dataset Parquet file.
+        max_rows (int): Maximum number of rows to process.
 
     Returns:
-        pl.DataFrame: Loaded pl.DataFrame.
+        pl.DataFrame: Processed DGTA dataset with structured domain information.
     """
 
     def __custom_decode(data):
@@ -226,14 +245,17 @@ def cast_dgta(data_path: str, max_rows: int) -> pl.DataFrame:
 
 
 def cast_heicloud(data_path: str, max_rows: int) -> pl.DataFrame:
-    """Cast heiCLOUD data set.
+    """Loads and processes heiCLOUD dataset from space-separated text file.
+
+    Reads heiCLOUD DNS log dataset, parses space-separated columns, extracts
+    domain queries, and labels them as legitimate traffic for training.
 
     Args:
-        data_path (str): Data path to data set
-        max_rows (int): Maximum rows.
+        data_path (str): Path to the heiCLOUD dataset text file.
+        max_rows (int): Maximum number of rows to process.
 
     Returns:
-        pl.DataFrame: Loaded pl.DataFrame.
+        pl.DataFrame: Processed heiCLOUD dataset with legitimate domain labels.
     """
     dataframes = []
     logger.info(f"Start casting data set {data_path}.")
@@ -269,14 +291,18 @@ def cast_heicloud(data_path: str, max_rows: int) -> pl.DataFrame:
 
 
 class DatasetLoader:
-    """DatasetLoader for Training."""
+    """Manages loading and access to multiple DNS datasets for training.
+
+    Provides convenient access to various DNS datasets including DGA detection
+    benchmarks, legitimate traffic datasets, and combined multi-source datasets.
+    Handles dataset-specific loading and preprocessing requirements.
+    """
 
     def __init__(self, base_path: str = "", max_rows: int = -1) -> None:
-        """Initialise data sets.
-
+        """
         Args:
-            base_path (str, optional): Base path to data set folder. Defaults to "".
-            max_rows (int, optional): Maximum rows to consider. Defaults to -1.
+            base_path (str): Base directory path containing all dataset folders.
+            max_rows (int): Maximum rows to load per dataset (default: -1 for unlimited).
         """
         logger.info("Initialise DatasetLoader")
         self.base_path = base_path
@@ -358,7 +384,12 @@ class DatasetLoader:
 
 @dataclass
 class Dataset:
-    """Dataset class."""
+    """Single DNS dataset with loading and preprocessing capabilities
+
+    Encapsulates dataset information including name, file paths, and data processing
+    functions. Supports flexible data loading from various sources including CSV,
+    Parquet, and text files with custom preprocessing functions.
+    """
 
     def __init__(
         self,
@@ -368,18 +399,20 @@ class Dataset:
         cast_dataset: Callable = None,
         max_rows: int = -1,
     ) -> None:
-        """Initializes data.
-
-        Either a valid data_path is given to load data or the provided data is set. If callback for preprocessing is set, the callback is run by cast_dataset(data_path).
-
+        """
+        Loads dataset either from file path using optional preprocessing function
+        or directly from provided DataFrame. Supports various data formats and
+        custom preprocessing callbacks for dataset-specific requirements.
 
         Args:
-            data_path (Any): _description_
-            data (pl.DataFrame, optional): _description_. Defaults to None.
-            cast_dataset (Callable, optional): _description_. Defaults to None.
+            name (str): Unique identifier for the dataset.
+            data_path (List[str]): File paths to dataset files.
+            data (pl.DataFrame): Pre-loaded dataset (alternative to data_path).
+            cast_dataset (Callable): Custom preprocessing function for data loading.
+            max_rows (int): Maximum rows to load (default: -1 for unlimited).
 
         Raises:
-            NotImplementedError: _description_
+            NotImplementedError: When neither data_path nor data is provided.
         """
         self.name = name
         self.data_path = data_path
@@ -397,9 +430,9 @@ class Dataset:
             raise NotImplementedError("No data given")
 
     def __len__(self) -> int:
-        """Returns the length of data set.
+        """Returns number of rows in the dataset.
 
         Returns:
-            int: Length of the data set
+            int: Total number of records in the dataset.
         """
         return len(self.data)

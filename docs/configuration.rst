@@ -1,63 +1,101 @@
 Logline format configuration
 ............................
 
-Users can define the format and fields of their DNS server loglines. For this, change the
-``pipeline.log_collection.collector.logline_format`` parameter:
+Configure the format and validation rules for DNS server loglines through flexible field definitions that
+support timestamps, IP addresses, regular expressions, and list-based validation.
+
+Configuration Overview
+^^^^^^^^^^^^^^^^^^^^^^
+
+Users can define the format and fields of their DNS server loglines through the
+``pipeline.log_collection.collector.logline_format`` parameter. This configuration allows complete customization
+of field types, validation rules, and filtering criteria for incoming log data.
 
 For example, a logline might look like this:
 
 .. code-block:: console
 
-   2025-04-04T14:45:32.458Z NXDOMAIN 192.168.3.152 10.10.0.3 test.com AAAA 192.168.15.34 196b
+   2025-04-04T14:45:32.458123Z NXDOMAIN 192.168.3.152 10.10.0.3 test.com AAAA 192.168.15.34 196b
+
+Field Definition Structure
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each list entry of the parameter defines one field of the input logline, and the order of the entries corresponds to the
 order of the values in each logline. Each list entry itself consists of a list with
-three or four entries: For example, a field definition might look like this:
+two to four entries depending on the field type. For example, a field definition might look like this:
 
 .. code-block:: console
 
    [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
 
-The first entry always corresponds to the name of the field. Some field values must exist in the logline, as they are
-used by the modules. Some field names are cannot be used, as they are defined for internal communication.
+Field Names and Requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The first entry of each field definition always corresponds to the name of the field. Certain field names are required
+for proper pipeline operation, while others are forbidden as they are reserved for internal use.
 
 .. list-table:: Required and forbidden field names
-   :header-rows: 0
+   :header-rows: 1
    :widths: 15 50
 
-   * - Required
+   * - Category
+     - Field Names
+   * - **Required**
      - ``timestamp``, ``status_code``, ``client_ip``, ``record_type``, ``domain_name``
-   * - Forbidden
+   * - **Forbidden**
      - ``logline_id``, ``batch_id``
 
-The second entry specifies the type of the field. Depending on the type defined here, the method for defining the
-possible values varies. The third and fourth entry change depending on the type.
-Please check the following table for more information on the types.
+**Required fields** must be present in the configuration as they are essential for pipeline processing.
+**Forbidden fields** are reserved for internal communication and cannot be used as custom field names.
 
-There are three types to choose from:
+Field Types and Validation
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The second entry specifies the type of the field. Depending on the type defined, the method for defining
+validation parameters varies. The third and fourth entries change depending on the type.
+
+There are four field types available:
 
 .. list-table:: Field types
    :header-rows: 1
-   :widths: 20 20 20 30
+   :widths: 20 25 20 35
 
    * - Field type
      - Format of 3rd entry
      - Format of 4th entry
      - Description
+   * - ``Timestamp``
+     - Timestamp format string
+     - *(not used)*
+     - Validates timestamp fields using Python's strptime format. Automatically converts to ISO format for internal processing.
+       Example: ``"%Y-%m-%dT%H:%M:%S.%fZ"``
+   * - ``IpAddress``
+     - *(not used)*
+     - *(not used)*
+     - Validates IPv4 and IPv6 addresses. No additional parameters required.
    * - ``RegEx`` (Regular Expression)
      - RegEx pattern as string
-     -
-     - The logline field is checked against the pattern. If the pattern is met, the field is valid.
+     - *(not used)*
+     - Validates field content against a regular expression pattern. If the pattern matches, the field is valid.
    * - ``ListItem``
-     - List of values
-     - List of values (optional)
-     - If the logline field value is in the first list, it is valid. If it is also in the second list, it is relevant
-       for the inspection and detection algorithm. All values in the second list must also be in the first list, not
-       vice versa. If this entry is not specified, all values are deemed relevant.
-   * - ``IpAddress``
-     -
-     -
-     - If the logline field value is an IPv4 or IPv6 address, it is valid.
+     - List of allowed values
+     - List of relevant values *(optional)*
+     - Validates field values against an allowed list. Optionally defines relevant values for filtering in later pipeline stages.
+       All relevant values must also be in the allowed list. If not specified, all allowed values are deemed relevant.
+
+Configuration Examples
+^^^^^^^^^^^^^^^^^^^^^^
+
+Here are examples for each field type:
+
+.. code-block:: yaml
+
+   logline_format:
+     - [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ" ]
+     - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+     - [ "client_ip", IpAddress ]
+     - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)' ]
+     - [ "record_type", ListItem, [ "A", "AAAA" ] ]
 
 
 Logging Configuration
@@ -111,8 +149,8 @@ functionality of the modules.
    * - Parameter
      - Description
    * - logline_format
-     - Defines the expected format for incoming log lines. See the :ref:`Logline format configuration` section for more
-       details.
+     - Defines the expected format for incoming log lines. See the :ref:`logline-format-configuration`
+       section for more details.
 
 .. list-table:: ``batch_handler`` Parameters
    :header-rows: 1
@@ -217,9 +255,6 @@ The following parameters control the infrastructure of the software.
    * - Parameter
      - Default Value
      - Description
-   * - timestamp_format
-     - ``"%Y-%m-%dT%H:%M:%S.%fZ"``
-     - Timestamp format used by the Inspector. Will be removed soon.
    * - kafka_brokers
      - ``hostname: kafka1, port: 8097``, ``hostname: kafka2, port: 8098``, ``hostname: kafka3, port: 8099``
      - Hostnames and ports of the Kafka brokers, given as list.

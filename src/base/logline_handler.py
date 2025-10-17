@@ -22,29 +22,38 @@ FORBIDDEN_FIELD_NAMES = [
 
 
 class FieldType:
-    """
-    Base class for types of fields.
+    """Base class for all field validation types in the logline format configuration
+
+    Provides the common interface for field validation. All specific field types inherit
+    from this class and implement their own validation logic in the :meth:`validate` method.
     """
 
     def __init__(self, name: str):
         self.name = name
 
     def validate(self, value) -> bool:
-        """
-        Validates the input value. Implementation in inheriting classes.
+        """Validates the input value according to the field type's rules.
+
+        This method must be implemented by all inheriting field type classes.
+        Each implementation defines specific validation logic appropriate for the field type.
 
         Args:
-            value: The value to be validated
+            value: The value to be validated.
+
+        Returns:
+            True if the value is valid according to the field type's rules, False otherwise.
 
         Raises:
-            NotImplementedError
+            NotImplementedError: This base method must be overridden by subclasses.
         """
         raise NotImplementedError
 
 
 class RegEx(FieldType):
-    """
-    A :cls:`RegEx` object takes a name, and a pattern, which a value needs to have the format of.
+    """Field type for regular expression pattern validation
+
+    Validates field values against a specified regular expression pattern.
+    Useful for validating structured text fields like domain names, sizes, or custom formats.
     """
 
     def __init__(self, name: str, pattern: str):
@@ -52,21 +61,22 @@ class RegEx(FieldType):
         self.pattern = re.compile(r"{}".format(pattern))
 
     def validate(self, value) -> bool:
-        """
-        Validates the input value.
+        """Validates the input value against the configured regular expression pattern.
 
         Args:
-            value: The value to be validated
+            value: The value to be validated against the regex pattern.
 
         Returns:
-            True if the value is valid, False otherwise
+            True if the value matches the pattern, False otherwise.
         """
         return True if re.match(self.pattern, value) else False
 
 
 class Timestamp(FieldType):
-    """
-    A :cls:`Timestamp` object takes a name, and a timestamp format, which a value needs to have.
+    """Field type for timestamp validation and parsing
+
+    Validates timestamp fields according to a specified format string and provides
+    functionality to convert valid timestamps to ISO format for internal processing.
     """
 
     def __init__(self, name: str, timestamp_format: str):
@@ -74,14 +84,13 @@ class Timestamp(FieldType):
         self.timestamp_format = timestamp_format
 
     def validate(self, value) -> bool:
-        """
-        Validates the input value.
+        """Validates the input value against the configured timestamp format.
 
         Args:
-            value: The value to be validated
+            value: The timestamp string to be validated.
 
         Returns:
-            True if the value is valid, False otherwise
+            True if the value matches the timestamp format, False otherwise.
         """
         try:
             datetime.datetime.strptime(value, self.timestamp_format)
@@ -91,36 +100,35 @@ class Timestamp(FieldType):
         return True
 
     def get_timestamp_as_str(self, value) -> str:
-        """
-        Returns the timestamp as string for a given timestamp with valid format.
+        """Converts a valid timestamp to ISO format string.
 
         Args:
-            value: Correctly formatted timestamp according to self.timestamp_format
+            value: Correctly formatted timestamp according to self.timestamp_format.
 
         Returns:
-            String of the given timestamp with standard format
+            ISO formatted timestamp string for internal processing.
         """
         return str(datetime.datetime.strptime(value, self.timestamp_format).isoformat())
 
 
 class IpAddress(FieldType):
-    """
-    An :cls:`IpAddress` object takes only a name. It is used for IP addresses, and checks in the :meth:`validate` method
-    if the value is a correct IP address.
+    """Field type for IP address validation
+
+    Validates both IPv4 and IPv6 addresses using the utility validation functions.
+    No additional configuration parameters are required beyond the field name.
     """
 
     def __init__(self, name):
         super().__init__(name)
 
     def validate(self, value) -> bool:
-        """
-        Validates the input value.
+        """Validates the input value as a valid IP address.
 
         Args:
-            value: The value to be validated
+            value: The IP address string to be validated.
 
         Returns:
-            True if the value is valid, False otherwise
+            True if the value is a valid IPv4 or IPv6 address, False otherwise.
         """
         try:
             validate_host(value)
@@ -131,11 +139,12 @@ class IpAddress(FieldType):
 
 
 class ListItem(FieldType):
-    """
-    A :cls:`ListItem` object takes a name, and two lists: The
-    ``allowed_list`` contains all values, that the :cls:`ListItem` is allowed to have, and therefore are not sorted out.
-    The ``relevant_list`` must contain fields that are also in ``allowed_list`` and that are relevant for further
-    inspection. These are filtered in the Prefilter stage.
+    """Field type for list-based validation with optional relevance filtering
+
+    Validates field values against an allowed list and optionally defines which values
+    are considered relevant for filtering in later pipeline stages. The allowed_list
+    contains all valid values, while the optional relevant_list defines a subset
+    used for relevance-based filtering in the Log Filtering stage.
     """
 
     def __init__(self, name: str, allowed_list: list, relevant_list: list):
@@ -148,26 +157,24 @@ class ListItem(FieldType):
         self.relevant_list = relevant_list
 
     def validate(self, value) -> bool:
-        """
-        Validates the input value.
+        """Validates the input value against the allowed list.
 
         Args:
-            value: The value to be validated
+            value: The value to be validated.
 
         Returns:
-            True if the value is valid, False otherwise
+            True if the value is in the allowed_list, False otherwise.
         """
         return True if value in self.allowed_list else False
 
     def check_relevance(self, value) -> bool:
-        """
-        Checks if the given value is a relevant value.
+        """Checks if the given value is considered relevant for filtering.
 
         Args:
-            value: Value to be checked for relevance
+            value: Value to be checked for relevance.
 
         Returns:
-            True if the value is relevant, else False
+            True if the value is relevant (in relevant_list or if no relevant_list is defined), False otherwise.
         """
         if self.relevant_list:
             return True if value in self.relevant_list else False
@@ -176,9 +183,11 @@ class ListItem(FieldType):
 
 
 class LoglineHandler:
-    """
-    Stores the configuration format of loglines and can be used to validate a given logline, i.e. checks if the given
-    logline has the format given in the configuration. Can also return the validated logline as dictionary.
+    """Main handler for logline validation and processing
+
+    Manages the configuration-based validation of loglines according to the format
+    specified in the configuration file. Provides validation, field extraction,
+    and relevance checking functionality for the log processing pipeline.
     """
 
     def __init__(self):
@@ -210,16 +219,17 @@ class LoglineHandler:
             raise ValueError("No fields configured")
 
     def validate_logline(self, logline: str) -> bool:
-        """
-        Validates the given input logline by checking if the number of fields is correct as well as all the fields, by
-        calling the :meth:`validate` method of each field. If the logline is incorrect, it shows an error with the
-        incorrect fields being highlighted.
+        """Validates a complete logline according to the configured format.
+
+        Checks if the number of fields is correct and validates each field using
+        the appropriate field type validator. Provides detailed error logging
+        with visual indicators for incorrect fields.
 
         Args:
-            logline (str): Logline as string to be validated
+            logline (str): Logline string to be validated.
 
         Returns:
-            True if the logline contains correct fields in the configured format, False otherwise
+            True if the logline contains correct fields in the configured format, False otherwise.
         """
         parts = logline.split()
         number_of_entries = len(parts)
@@ -253,15 +263,17 @@ class LoglineHandler:
         return True
 
     def __get_fields_as_json(self, logline: str) -> dict:
-        """
-        Returns the fields of the given logline as dictionary, with the names of the fields as key, and the field value
-        as value. Does not validate fields.
+        """Extracts fields from a logline and returns them as a dictionary.
+
+        Parses the logline into individual fields and creates a dictionary with
+        field names as keys and field values as values. Handles timestamp conversion
+        to ISO format for internal processing. Does not perform validation.
 
         Args:
-            logline (str): Logline to get the fields from
+            logline (str): Logline to extract fields from.
 
         Returns:
-            Dictionary of field names as keys and field values as value
+            Dictionary with field names as keys and field values as values.
         """
         parts = logline.split()
         return_dict = {}
@@ -277,14 +289,19 @@ class LoglineHandler:
         return return_dict.copy()
 
     def validate_logline_and_get_fields_as_json(self, logline: str) -> dict:
-        """Validates the fields and returns them as dictionary, with the names of the fields as key, and the field
-        value as value.
+        """Validates a logline and returns the fields as a dictionary.
+
+        Combines validation and field extraction in a single operation.
+        First validates the logline format, then extracts and returns the fields.
 
         Args:
-            logline (str): Logline as string to be validated
+            logline (str): Logline string to be validated and parsed.
 
         Returns:
-            Dictionary of field names as keys and field values as value
+            Dictionary with field names as keys and field values as values.
+
+        Raises:
+            ValueError: If logline validation fails.
         """
         if not self.validate_logline(logline):
             raise ValueError("Incorrect logline, validation unsuccessful")
@@ -292,14 +309,17 @@ class LoglineHandler:
         return self.__get_fields_as_json(logline)
 
     def check_relevance(self, logline_dict: dict) -> bool:
-        """
-        Checks if the given logline is relevant.
+        """Checks if a logline is relevant based on configured relevance criteria.
+
+        Iterates through all ListItem fields and checks their relevance using
+        the check_relevance method. A logline is considered relevant only if
+        all ListItem fields pass their relevance checks.
 
         Args:
-            logline_dict (dict): Logline parts to be checked for relevance as dictionary
+            logline_dict (dict): Logline fields as dictionary to be checked for relevance.
 
         Returns:
-            True if the logline is relevant, else False
+            True if the logline is relevant according to all configured criteria, False otherwise.
         """
         relevant = True
 
@@ -316,14 +336,20 @@ class LoglineHandler:
 
     @staticmethod
     def _create_instance_from_list_entry(field_list: list):
-        """
-        Extracts the information from the ``field_list`` to generate one instance of the specified type.
+        """Creates a field type instance from configuration list entry.
+
+        Parses the configuration format and creates the appropriate field type instance
+        based on the specified class name and parameters. Supports RegEx, Timestamp,
+        ListItem, and IpAddress field types with their respective parameter requirements.
 
         Args:
-            field_list (list): List of field name, type and additional fields
+            field_list (list): Configuration list containing field name, type, and parameters.
 
         Returns:
-            Generated instance with the name, type and additional parameters given in the ``field_list``
+            Field type instance configured according to the specification.
+
+        Raises:
+            ValueError: If the field configuration is invalid or unsupported.
         """
         len_of_field_list = len(field_list)
 

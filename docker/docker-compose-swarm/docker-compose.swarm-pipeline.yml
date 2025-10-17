@@ -15,6 +15,7 @@ services:
         constraints: [ node.hostname == heidgaf-2 ]
     volumes:
       - ../default.txt:/opt/file.txt
+      - ../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=log_storage
 
@@ -32,6 +33,8 @@ services:
 #          memory: 256m
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
+    volumes:
+      - ../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=log_collection
 
@@ -51,6 +54,8 @@ services:
 #          memory: 256m
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
+    volumes:
+      - ../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=log_filtering
 
@@ -70,6 +75,8 @@ services:
 #          memory: 256m
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
+    volumes:
+      - ../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=data_inspection
       - NUMBER_OF_INSTANCES=1
@@ -94,6 +101,8 @@ services:
 #                value: 1
       placement:
         constraints: [ node.hostname == heidgaf-2 ]
+    volumes:
+      - ../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=data_analysis
 

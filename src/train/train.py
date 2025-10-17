@@ -1,19 +1,18 @@
 import hashlib
 import json
+import os
 import pickle
 import sys
-import os
-from enum import Enum, unique
 import tempfile
+from enum import Enum, unique
 
 import click
 import joblib
 import numpy as np
+import polars as pl
 import torch
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import StandardScaler
-import polars as pl
-
 
 sys.path.append(os.getcwd())
 from src.train.dataset import DatasetLoader
@@ -37,6 +36,8 @@ def add_options(options):
 
 @unique
 class DatasetEnum(str, Enum):
+    """Available dataset configurations for DGA detection model training"""
+
     COMBINE = "combine"
     CIC = "cic"
     DGTA = "dgta"
@@ -45,12 +46,21 @@ class DatasetEnum(str, Enum):
 
 @unique
 class ModelEnum(str, Enum):
+    """Available machine learning algorithms for DGA detection"""
+
     RANDOM_FOREST_CLASSIFIER = "rf"
     XG_BOOST_CLASSIFIER = "xg"
     GBM_CLASSIFIER = "gbm"
 
 
 class DetectorTraining:
+    """Orchestrates end-to-end training of DGA detection models.
+
+    Manages dataset loading, model selection, training pipeline execution,
+    and model persistence for domain generation algorithm detection. Supports
+    multiple datasets, model types, and handles checksum-based model versioning.
+    """
+
     def __init__(
         self,
         model_name: ModelEnum.RANDOM_FOREST_CLASSIFIER,
@@ -59,17 +69,21 @@ class DetectorTraining:
         data_base_path: str = "./data",
         max_rows: int = -1,
     ) -> None:
-        """Trainer class to fit models on data sets.
+        """Initializes training configuration and dataset loading.
+
+        Sets up model training pipeline with specified algorithm, datasets, and
+        output paths. Handles existing model detection and checksum validation
+        for incremental training workflows.
 
         Args:
-            model_name (ModelEnum.RANDOM_FOREST_CLASSIFIER): _description_
-            model_output_path (str, optional): _description_. Defaults to "./".
-            dataset (DatasetEnum, optional): _description_. Defaults to DatasetEnum.COMBINE.
-            data_base_path (str, optional): _description_. Defaults to "./data".
-            max_rows (int, optional): _description_. Defaults to -1.
+            model_name (ModelEnum): ML algorithm type for training.
+            model_output_path (str): Directory path for saving trained models.
+            dataset (DatasetEnum): Dataset configuration for training.
+            data_base_path (str): Base directory containing raw datasets.
+            max_rows (int): Maximum rows per dataset (default: -1 for unlimited).
 
         Raises:
-            NotImplementedError: _description_
+            NotImplementedError: If specified dataset configuration is not supported.
         """
         logger.info("Get DatasetLoader.")
         self.dataset_loader = DatasetLoader(base_path=data_base_path, max_rows=max_rows)
@@ -118,7 +132,12 @@ class DetectorTraining:
         )
         self._load_model()
 
-    def explain(self):
+    def explain(self) -> None:
+        """Generates and saves interpretable explanations for the trained model.
+
+        Extracts decision rules and model interpretations from the trained classifier
+        and saves them to text files for analysis and understanding of model behavior.
+        """
         rules = self.model_pipeline.explain(
             self.model_pipeline.x_val, self.model_pipeline.y_val
         )
@@ -133,7 +152,13 @@ class DetectorTraining:
             for i, rule in enumerate(rules, 1):
                 f.write(f"Rule {i}: {rule}\n")
 
-    def test(self):
+    def test(self) -> None:
+        """Evaluates trained model on all datasets and generates comprehensive reports.
+
+        Tests model performance across all loaded datasets, computes metrics including
+        classification reports, FDR, and FTTAR. Saves detailed error analysis and
+        misprediction information for model debugging and improvement.
+        """
         for X, y, ds in zip(
             self.model_pipeline.ds_X,
             self.model_pipeline.ds_y,
@@ -188,11 +213,15 @@ class DetectorTraining:
                 results["fttar"] = self._fttar(y, y_pred)
                 f.write(json.dumps(results) + "\n")
 
-    def train(self, seed=SEED):
-        """Starts training of the model. Checks prior if GPU is available.
+    def train(self, seed: int = SEED) -> None:
+        """Executes complete model training workflow with evaluation and persistence.
+
+        Performs hyperparameter optimization, model training, evaluation on test set,
+        and generates comprehensive analysis including model interpretation and
+        performance reports across all datasets.
 
         Args:
-            seed (int, optional): _description_. Defaults to 42.
+            seed (int): Random seed for reproducible training results.
         """
         if seed > 0:
             np.random.seed(seed)
@@ -221,14 +250,18 @@ class DetectorTraining:
         self.explain()
 
     def _fttar(self, y_actual: list[int], y_pred: list[int]) -> float:
-        """FTTAR metric
+        """Calculates False Positive to True Positive Ratio (FTTAR) metric.
+
+        Computes the ratio of false positives to true positives, which is useful
+        for understanding the trade-off between detecting malicious domains and
+        generating false alarms in DGA detection systems.
 
         Args:
-            y_actual (list[int]): y true labels
-            y_pred (list[int]): y preds
+            y_actual (list[int]): Ground truth binary labels.
+            y_pred (list[int]): Predicted binary labels.
 
         Returns:
-            float: FTTAR
+            float: FTTAR ratio (0 if no true positives detected).
         """
         _, FP, _, TP = confusion_matrix(y_actual, y_pred, labels=[0, 1]).ravel()
         if (TP) == 0:
@@ -237,14 +270,17 @@ class DetectorTraining:
         return FP / TP
 
     def _fdr(self, y_actual: list[int], y_pred: list[int]) -> float:
-        """Returns False Discovery Rate
+        """Calculates False Discovery Rate (FDR) for model evaluation.
+
+        Computes the proportion of false positives among all positive predictions,
+        which indicates the reliability of positive DGA detections in the model.
 
         Args:
-            y_actual (list[int]): y true labels
-            y_pred (list[int]): y preds
+            y_actual (list[int]): Ground truth binary labels.
+            y_pred (list[int]): Predicted binary labels.
 
         Returns:
-            float: FDR
+            float: FDR value (0 if no positive predictions made).
         """
         _, FP, _, TP = confusion_matrix(y_actual, y_pred, labels=[0, 1]).ravel()
         if (FP + TP) == 0:
@@ -318,13 +354,13 @@ class DetectorTraining:
             pickle.dump(self.scaler, f)
 
     def _sha256sum(self, file_path: str) -> str:
-        """Return a SHA265 sum check to validate the model.
+        """Calculates SHA256 checksum for model file integrity verification.
 
         Args:
-            file_path (str): File path of model.
+            file_path (str): Path to the model file to checksum.
 
         Returns:
-            str: SHA256 sum
+            str: SHA256 hexadecimal digest for file validation.
         """
         h = hashlib.sha256()
 

@@ -32,8 +32,12 @@ KAFKA_BROKERS = ",".join(
 
 
 class BufferedBatch:
-    """Data structure for managing the batch, buffer, and timestamps. The batch contains the latest messages and a
-    buffer that stores the previous batch messages. Sorts the batches and can return timestamps.
+    """Data structure for managing batches, buffers, and timestamps in the log collection pipeline
+
+    Manages two data structures: a current batch that collects incoming messages and a buffer that stores
+    previously processed batch messages. The batch groups messages by key (typically subnet ID) and handles
+    automatic sending when size or timeout limits are reached. All batches are sorted by timestamp to ensure
+    chronological processing. Tracks batch metadata including IDs, timestamps, and fill levels for monitoring.
     """
 
     def __init__(self):
@@ -65,12 +69,16 @@ class BufferedBatch:
         )
 
     def add_message(self, key: str, logline_id: uuid.UUID, message: str) -> None:
-        """Adds message to the key. If the key does not exist yet, it is created first.
+        """Adds a message to the batch associated with the given key.
+
+        If the key does not exist in the current batch, a new batch entry is created with a unique batch ID.
+        For existing keys, the message is appended to the existing batch. Logs the association between the
+        logline and batch ID, updates batch timestamps, and tracks fill levels for monitoring purposes.
 
         Args:
-            key (str): Key to which the message is added
-            logline_id (uuid.UUID): Logline ID of the message
-            message (str): Message to be added
+            key (str): Key to which the message is added (typically subnet ID).
+            logline_id (uuid.UUID): Unique identifier of the logline message.
+            message (str): JSON-formatted message to be added to the batch.
         """
         if key in self.batch:  # key already has messages associated
             self.batch[key].append(message)
@@ -128,18 +136,33 @@ class BufferedBatch:
         )
 
     def get_message_count_for_batch(self) -> int:
-        """Returns the number of all batch entries as a sum over all key's batch entries."""
+        """Returns the total number of messages across all batches.
+
+        Calculates the sum of message counts from all key-specific batches currently stored.
+
+        Returns:
+            Total number of messages in all batches.
+        """
         return sum(len(key_entry) for key_entry in self.batch.values())
 
     def get_message_count_for_buffer(self) -> int:
-        """Returns the number of all buffered entries as a sum over all key's buffer entries."""
+        """Returns the total number of messages across all buffers.
+
+        Calculates the sum of message counts from all key-specific buffers currently stored.
+
+        Returns:
+            Total number of messages in all buffers.
+        """
         return sum(len(key_entry) for key_entry in self.buffer.values())
 
     def get_message_count_for_batch_key(self, key: str) -> int:
-        """Returns the number of all batch messages for a given key.
+        """Returns the number of messages in the batch for a specific key.
 
         Args:
-            key (str): Key for which message count is returned
+            key (str): Key for which message count is returned.
+
+        Returns:
+            Number of messages in the batch for the given key, or 0 if key doesn't exist.
         """
         if key in self.batch:
             return len(self.batch[key])
@@ -147,10 +170,13 @@ class BufferedBatch:
         return 0
 
     def get_message_count_for_buffer_key(self, key: str) -> int:
-        """Returns the number of all buffered messages for a given key.
+        """Returns the number of messages in the buffer for a specific key.
 
         Args:
-            key (str): Key for which message count is returned
+            key (str): Key for which message count is returned.
+
+        Returns:
+            Number of messages in the buffer for the given key, or 0 if key doesn't exist.
         """
         if key in self.buffer:
             return len(self.buffer[key])
@@ -158,15 +184,23 @@ class BufferedBatch:
         return 0
 
     def complete_batch(self, key: str) -> dict:
-        """Completes the batch and returns a full data packet including timestamps and messages. Depending on the
-        stored data, either both batches are added to the packet, or just the latest messages.
+        """Completes the batch for a specific key and returns a formatted data packet.
+
+        Handles multiple scenarios based on available data:
+        - Variant 1: Only batch has entries - sends current batch data
+        - Variant 2: Both buffer and batch have entries - combines both in chronological order
+        - Variant 3: Only buffer has entries - cleans up old buffer data
+        - Variant 4: No data exists - raises ValueError
+
+        The method sorts all messages by timestamp, creates a data packet with batch metadata,
+        logs completion timestamps, and moves current batch data to buffer for next iteration.
 
         Args:
-            key (str): Key for which to complete the current batch and return data packet
+            key (str): Key for which to complete the current batch and return data packet.
 
         Returns:
-            Set of new Logline IDs and dictionary of begin_timestamp, end_timestamp and messages (including buffered
-            data) associated with a key
+            Dictionary containing batch_id, begin_timestamp, end_timestamp, and chronologically
+            sorted message data combining buffer and batch messages.
 
         Raises:
             ValueError: No data is available for sending.
@@ -284,11 +318,13 @@ class BufferedBatch:
         raise ValueError("No data available for sending.")
 
     def get_stored_keys(self) -> set:
-        """
-        Retrieve all keys stored in either the batch or the buffer.
+        """Retrieves all keys stored in either the batch or the buffer.
+
+        Combines keys from both the current batch dictionary and the buffer dictionary
+        to provide a complete set of all keys that have associated data.
 
         Returns:
-            List of all keys stored in either dictionary
+            Set of all unique keys stored in either batch or buffer dictionaries.
         """
         keys_set = set()
 
@@ -304,6 +340,17 @@ class BufferedBatch:
     def _extract_tuples_from_json_formatted_strings(
         data: list[str],
     ) -> list[tuple[str, str]]:
+        """Extracts timestamp-message tuples from JSON-formatted message strings.
+
+        Parses each JSON string to extract the timestamp field and creates tuples
+        containing the timestamp and the original message for sorting purposes.
+
+        Args:
+            data (list[str]): List of JSON-formatted message strings.
+
+        Returns:
+            List of tuples containing (timestamp, message) pairs.
+        """
         tuples = []
 
         for item in data:
@@ -318,18 +365,45 @@ class BufferedBatch:
     def _sort_by_timestamp(
         data: list[tuple[str, str]],
     ) -> list[str]:
+        """Sorts message tuples by timestamp and returns the sorted messages.
+
+        Takes a list of (timestamp, message) tuples, sorts them chronologically
+        by timestamp, and extracts the sorted messages.
+
+        Args:
+            data (list[tuple[str, str]]): List of (timestamp, message) tuples.
+
+        Returns:
+            List of messages sorted chronologically by timestamp.
+        """
         sorted_data = sorted(data, key=lambda x: x[0])
         loglines = [message for _, message in sorted_data]
 
         return loglines
 
     def _sort_batch(self, key: str):
+        """Sorts the batch messages for a specific key by timestamp.
+
+        Extracts timestamps from JSON-formatted messages in the batch and sorts them
+        chronologically. Updates the batch in-place with the sorted messages.
+
+        Args:
+            key (str): Key identifying the batch to be sorted.
+        """
         if key in self.batch:
             self.batch[key] = self._sort_by_timestamp(
                 self._extract_tuples_from_json_formatted_strings(self.batch[key])
             )
 
     def _sort_buffer(self, key: str):
+        """Sorts the buffer messages for a specific key by timestamp.
+
+        Extracts timestamps from JSON-formatted messages in the buffer and sorts them
+        chronologically. Updates the buffer in-place with the sorted messages.
+
+        Args:
+            key (str): Key identifying the buffer to be sorted.
+        """
         if key in self.buffer:
             self.buffer[key] = self._sort_by_timestamp(
                 self._extract_tuples_from_json_formatted_strings(self.buffer[key])
@@ -337,7 +411,14 @@ class BufferedBatch:
 
 
 class BufferedBatchSender:
-    """Adds messages to the :class:`BufferedBatch` and sends them after a timer ran out or a key's batch is full."""
+    """Main component for managing batch collection and dispatch in the log collection stage
+
+    Coordinates the addition of messages to batches and handles automatic sending based on two triggers:
+    size-based (when a batch reaches the configured size limit) or time-based (when a timeout expires).
+    Manages a timer that ensures batches are sent even if they don't reach the size threshold,
+    preventing data from being held indefinitely. Sends completed batches to the next pipeline stage
+    via Kafka and tracks message timestamps for monitoring and debugging purposes.
+    """
 
     def __init__(self):
         self.topic = PRODUCE_TOPIC
@@ -356,12 +437,16 @@ class BufferedBatchSender:
         self._send_all_batches(reset_timer=False)
 
     def add_message(self, key: str, message: str) -> None:
-        """Adds the message to the key's batch and sends it if it is full. In the first execution, a timer starts
-        whose timeout triggers sending for all batches.
+        """Adds a message to the batch and triggers sending if batch size limit is reached.
+
+        Extracts the logline ID from the JSON message, logs the processing timestamps,
+        and adds the message to the appropriate batch. If the batch reaches the configured
+        size limit, it is immediately sent. On the first message, starts a timer that will
+        trigger sending of all batches when the timeout expires.
 
         Args:
-            message (str): Message to be added to the batch
-            key (str): Key of the message (e.g. subnet of client IP address in a log message)
+            key (str): Key of the message (typically subnet ID derived from client IP address).
+            message (str): JSON-formatted message to be added to the batch.
         """
         logline_id = json.loads(message).get("logline_id")
         self.logline_timestamps.insert(
@@ -398,11 +483,15 @@ class BufferedBatchSender:
             self._reset_timer()
 
     def _send_all_batches(self, reset_timer: bool = True) -> None:
-        """
-        Dispatch all batches for the Kafka queue
+        """Dispatches all available batches to the Kafka queue.
+
+        Iterates through all stored keys and sends their associated batches. Provides
+        detailed logging about the number of messages and batches sent. Optionally
+        resets the internal timer after completion.
 
         Args:
-            reset_timer (bool): whether the timer should be reset
+            reset_timer (bool): Whether the timer should be reset after sending.
+                                Default: True
         """
         number_of_keys = 0
         total_number_of_batch_messages = self.batch.get_message_count_for_batch()
@@ -436,11 +525,13 @@ class BufferedBatchSender:
             )
 
     def _send_batch_for_key(self, key: str) -> None:
-        """
-        Send one batch based on the key
+        """Sends a single batch for the specified key.
+
+        Attempts to complete the batch for the given key and sends the resulting
+        data packet. If no data is available for the key, the operation is skipped.
 
         Args:
-            key (str): Key to identify the batch
+            key (str): Key to identify the batch to be sent.
         """
         try:
             data = self.batch.complete_batch(key)
@@ -451,12 +542,14 @@ class BufferedBatchSender:
         self._send_data_packet(key, data)
 
     def _send_data_packet(self, key: str, data: dict) -> None:
-        """
-        Sends a packet of a Batch to the defined Kafka topic
+        """Sends a batch data packet to the configured Kafka topic.
+
+        Serializes the batch data using the Batch schema and produces it to the
+        configured Kafka topic with the associated key for proper partitioning.
 
         Args:
-            key (str): key to identify the batch
-            data (dict): the batch data to send
+            key (str): Key to identify the batch for Kafka partitioning.
+            data (dict): The batch data to be serialized and sent.
         """
         batch_schema = marshmallow_dataclass.class_schema(Batch)()
 
@@ -467,7 +560,11 @@ class BufferedBatchSender:
         )
 
     def _reset_timer(self) -> None:
-        """Restarts the internal timer of the object"""
+        """Restarts the internal timer for batch timeout handling.
+
+        Cancels any existing timer and creates a new one with the configured timeout.
+        When the timer expires, all available batches will be automatically sent.
+        """
         if self.timer:
             self.timer.cancel()
 

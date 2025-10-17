@@ -1,20 +1,21 @@
-from abc import ABCMeta, abstractmethod
+import os
 import re
 import sys
-import os
+from abc import ABCMeta, abstractmethod
+
 import joblib
-from sklearn.exceptions import NotFittedError
-from sklearn.utils.validation import check_is_fitted
-import sklearn.model_selection
-from sklearn.metrics import confusion_matrix, make_scorer
-import xgboost as xgb
-import optuna
-import torch
+import lightgbm as lgb
 import numpy as np
+import optuna
+import sklearn.model_selection
+import torch
+import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.exceptions import NotFittedError
+from sklearn.metrics import confusion_matrix, make_scorer
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.utils import class_weight
-import lightgbm as lgb
+from sklearn.utils.validation import check_is_fitted
 
 sys.path.append(os.getcwd())
 from src.train.feature import Processor
@@ -30,7 +31,12 @@ CV_RESULT_DIR = f"./{RESULT_FOLDER}"
 
 
 class Pipeline:
-    """Pipeline for training models."""
+    """Manages end-to-end machine learning pipeline for DGA detection model training.
+
+    Orchestrates data preprocessing, feature engineering, model training, and evaluation
+    for domain generation algorithm detection. Supports multiple datasets, model types,
+    and handles data scaling, splitting, and persistence operations.
+    """
 
     def __init__(
         self,
@@ -39,12 +45,20 @@ class Pipeline:
         model_output_path: str,
         scaler=None,
     ) -> None:
-        """Initializes preprocessors, encoder, and model.
+        """Initializes complete ML pipeline with datasets and model configuration.
+
+        Sets up feature processing, data loading, train/validation/test splitting,
+        and model instantiation based on specified algorithm type. Handles data
+        persistence and visualization setup.
 
         Args:
-            mean_imputer (Imputer): Mean imputer to handle null values.
-            target_encoder (TargetEncoder): Target encoder for non-numeric values.
-            clf (torch.nn.Modul): torch.nn.Modul for training.
+            model (str): Model type identifier ('rf', 'xg', 'gbm').
+            datasets (list[Dataset]): List of datasets for training and evaluation.
+            model_output_path (str): Directory path for saving trained models.
+            scaler: Optional data scaler for feature normalization.
+
+        Raises:
+            NotImplementedError: If specified model type is not supported.
         """
         self.plotting = False
         self.processor = Processor(
@@ -142,8 +156,22 @@ class Pipeline:
                 raise NotImplementedError(f"Model not implemented!")
 
     def _load_npy(
-        self, ds_name: str, output_path: str = f"./{RESULT_FOLDER}/data"
+        self,
+        ds_name: str,
+        output_path: str = f"./{RESULT_FOLDER}/data",
     ) -> tuple[np.ndarray, np.ndarray]:
+        """Loads preprocessed feature matrices and labels from cached NumPy files.
+
+        Args:
+            ds_name (str): Name of the dataset to load.
+            output_path (str): Directory containing cached dataset files.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Feature matrix and label array.
+
+        Raises:
+            FileNotFoundError: If cached files don't exist for the dataset.
+        """
         if os.path.exists(
             os.path.join(output_path, ds_name, "X.npy")
         ) and os.path.exists(os.path.join(output_path, ds_name, "y.npy")):
@@ -161,6 +189,14 @@ class Pipeline:
         ds_name: str,
         output_path: str = f"./{RESULT_FOLDER}/data",
     ) -> None:
+        """Caches processed feature matrices and labels as NumPy files.
+
+        Args:
+            X (np.ndarray): Processed feature matrix to cache.
+            y (np.ndarray): Processed label array to cache.
+            ds_name (str): Name of the dataset for file organization.
+            output_path (str): Directory to store cached files.
+        """
         os.makedirs(os.path.join(output_path, ds_name), exist_ok=True)
         np.save(os.path.join(output_path, ds_name, "X.npy"), X)
         np.save(os.path.join(output_path, ds_name, "y.npy"), y)
@@ -168,11 +204,15 @@ class Pipeline:
     def _label_encoder(
         self, labels: list[str], legit_label: str = "legit"
     ) -> tuple[list[int], dict, dict]:
-        """Encodes labels for correct stratification of training set.
+        """Encodes string labels to numeric values for model training.
+
+        Maps string class labels to integers with legitimate domains assigned to 0
+        and malicious domain families assigned sequential positive integers.
+        Creates bidirectional mappings for label conversion.
 
         Args:
-            labels (list[str]): List of labels, e.g. ["legit", "DGA", "tuns"]
-            legit_label (str, optional): Default legit label for benign domains. Defaults to "legit".
+            labels (list[str]): String class labels (e.g., ["legit", "DGA", "tuns"]).
+            legit_label (str): Label identifier for legitimate domains.
 
         Returns:
             tuple[list[int], dict, dict]:   encoded, label_to_index, index_to_label
@@ -216,14 +256,16 @@ class Pipeline:
             raise FileNotFoundError("Columns does not exist")
 
     def _clean_column_name(self, column: str) -> str:
-        """
-        Clean column names to be compatible with ML models.
+        """Sanitizes column names for machine learning model compatibility.
+
+        Replaces spaces and special characters with underscores, removes invalid
+        characters, and ensures column names don't start with digits.
 
         Args:
-            column (str): Original column name
+            column (str): Original column name to clean.
 
         Returns:
-            str: Cleaned column name
+            str: ML-compatible column name.
         """
         # Replace spaces and hyphens with underscores
         cleaned = re.sub(r"[\s\-]+", "_", column)
@@ -237,7 +279,7 @@ class Pipeline:
     def train_test_val_split(
         self,
         X: np.ndarray,
-        Y=np.ndarray,
+        Y: np.ndarray,
         train_frac: float = 0.8,
         random_state: int = SEED,
     ) -> tuple[
@@ -248,14 +290,19 @@ class Pipeline:
         np.ndarray,
         np.ndarray,
     ]:
-        """Splits data set in train, test, and validation set
+        """Splits dataset into training, validation, and test sets with stratification.
+
+        Creates stratified splits maintaining class distribution across all subsets.
+        Training set gets specified fraction, validation and test sets split remaining data equally.
 
         Args:
-            train_frac (float, optional): Training fraction. Defaults to 0.8.
-            random_state (int, optional): Random state. Defaults to None.
+            X (np.ndarray): Feature matrix to split.
+            Y (np.ndarray): Label array to split.
+            train_frac (float): Proportion of data for training set. Default: 0.8
+            random_state (int): Random seed for reproducible splits.
 
         Returns:
-            tuple[list, list, list, list, list, list]: X_train, X_val, X_test, Y_train, Y_val, Y_test
+            tuple: X_train, X_val, X_test, Y_train, Y_val, Y_test arrays.
         """
 
         logger.info("Create train, validation, and test split.")
@@ -270,12 +317,11 @@ class Pipeline:
 
         return X_train, X_val, X_test, Y_train, Y_val, Y_test
 
-    def hyperparam_fit(self):
-        """Fits models to training data.
+    def hyperparam_fit(self) -> None:
+        """Performs hyperparameter optimization and model training.
 
-        Args:
-            x_train (np.array): X data.
-            y_train (np.array): Y labels.
+        Uses Optuna to search optimal hyperparameters through Bayesian optimization,
+        then trains the model with best parameters found during the search process.
         """
         if not os.path.exists(CV_RESULT_DIR):
             os.mkdir(CV_RESULT_DIR)
@@ -300,23 +346,29 @@ class Pipeline:
             y=self.y_train,
         )
 
-    def predict(self, x):
-        """Predicts given X.
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        """Generates predictions for input feature matrix.
 
         Args:
-            x (np.array): X data
+            x (np.ndarray): Feature matrix for prediction.
 
         Returns:
-            np.array: Model output.
+            np.ndarray: Model predictions.
         """
         return self.model.predict(x)
 
-    def explain(self, x, y) -> list[str]:
-        """Explains models
+    def explain(self, x: np.ndarray, y: np.ndarray) -> list[str]:
+        """Generates interpretable explanations for trained model decisions.
+
+        Creates human-readable decision rules and feature importance explanations
+        for supported model types (XGBoost, Random Forest).
 
         Args:
-            x (np.array): X data
-            y (np.array): Y data
+            x (np.ndarray): Feature matrix for explanation generation.
+            y (np.ndarray): True labels for explanation context.
+
+        Returns:
+            list[str]: List of interpretable decision rules and explanations.
         """
         if isinstance(self.model.clf, xgb.XGBClassifier) or isinstance(
             self.model.clf, RandomForestClassifier
@@ -347,10 +399,10 @@ class Model(metaclass=ABCMeta):
         if self.device.type == "cuda":
             logger.info("Memory Usage:")
             logger.info(
-                f"\tAllocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB"
+                f"\tAllocated: {round(torch.cuda.memory_allocated(0) / 1024 ** 3, 1)} GB"
             )
             logger.info(
-                f"\tCached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB"
+                f"\tCached:    {round(torch.cuda.memory_reserved(0) / 1024 ** 3, 1)} GB"
             )
             self.device = "gpu"
         else:

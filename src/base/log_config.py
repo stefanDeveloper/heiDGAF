@@ -32,20 +32,25 @@ detailed_formatter = colorlog.ColoredFormatter(
 
 
 class CustomHandler(logging.StreamHandler):
-    """
-    Handles the different styles of logging messages with respect to their level.
+    """Custom logging handler that applies different formatting based on log level
+
+    Provides level-specific message formatting where INFO and WARNING messages
+    use a simplified format, while DEBUG, ERROR, and CRITICAL messages include
+    detailed context information such as module name, line number, and function name.
     """
 
     def format(self, record) -> str:
-        """
-        Formats the data with respect to the level. Uses the simple format for INFO and WARNING messages,
-        for all other levels, the detailed format is used.
+        """Format log records with level-appropriate detail.
+
+        Applies simple formatting for INFO and WARNING messages, and detailed
+        formatting (including module, line number, and function name) for all
+        other log levels.
 
         Args:
-            record: record to be formatted
+            record: The log record to format.
 
         Returns:
-            formatted logging info
+            str: Formatted log message string.
         """
         if record.levelno in (logging.INFO, logging.WARNING):
             return simple_formatter.format(record)
@@ -53,7 +58,15 @@ class CustomHandler(logging.StreamHandler):
 
 
 def load_config() -> Dict[str, Any]:
-    """Loads the configuration file."""
+    """Load the application configuration from the YAML configuration file.
+
+    Returns:
+        Dict[str, Any]: Parsed configuration data as a dictionary.
+
+    Raises:
+        FileNotFoundError: If the configuration file cannot be found at the expected path.
+        yaml.YAMLError: If the configuration file contains invalid YAML syntax.
+    """
     try:
         with open(CONFIG_FILEPATH, "r") as file:
             return yaml.safe_load(file)
@@ -62,14 +75,23 @@ def load_config() -> Dict[str, Any]:
 
 
 def get_logger(module_name: str = "base") -> logging.Logger:
-    """
-    Creates or retrieves a logger for a specific module.
+    """Create or retrieve a configured logger for a specific module.
+
+    Sets up a logger with custom formatting and debug level configuration
+    based on the module-specific settings in config.yaml. If no module-specific
+    configuration exists, falls back to the base module settings.
 
     Args:
-        module_name (str): Name of the module (as defined in config.yaml)
+        module_name (str): Name of the module to create a logger for.
+                           Must match a module defined in config.yaml ``logging.modules``.
+                           Default: "base".
 
     Returns:
-        Configured logger for the module
+        logging.Logger: Configured logger instance for the specified module.
+
+    Raises:
+        FileNotFoundError: If the configuration file cannot be loaded.
+        KeyError: If the configuration structure is invalid.
     """
     config = load_config()
     logger = logging.getLogger(module_name)

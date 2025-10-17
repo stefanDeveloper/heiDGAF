@@ -36,9 +36,11 @@ KAFKA_BROKERS = ",".join(
 
 
 class Prefilter:
-    """
-    Loads the data from the topic ``Prefilter`` and filters it so that only entries with the given status type(s) are
-    kept. Filtered data is then sent using topic ``Inspect``.
+    """Main component of the Log Filtering stage to process and filter batches
+
+    Consumes batches from the Log Collection stage and applies relevance-based filtering
+    using the :class:`LoglineHandler`. Filters out irrelevant loglines and forwards only relevant
+    data to the next pipeline stage for anomaly detection.
     """
 
     def __init__(self):
@@ -69,9 +71,11 @@ class Prefilter:
         )
 
     def get_and_fill_data(self) -> None:
-        """
-        Clears data already stored and consumes new data. Unpacks the data and checks if it is empty. Data is stored
-        internally, including timestamps.
+        """Retrieves and processes a new batch from the configured Kafka topic.
+
+        Clears any previously stored data and consumes a new batch message. Unpacks the batch
+        data including metadata (batch_id, timestamps, subnet_id) and stores it internally.
+        Logs batch reception information and updates monitoring metrics for tracking purposes.
         """
         self.clear_data()  # clear in case we already have data stored
 
@@ -117,9 +121,12 @@ class Prefilter:
             )
 
     def filter_by_error(self) -> None:
-        """
-        Applies the filter to the data in ``unfiltered_data``, i.e. all loglines whose error status is in
-        the given error types are kept and added to ``filtered_data``, all other ones are discarded.
+        """Applies relevance-based filtering to the unfiltered batch data.
+
+        Iterates through all loglines in the unfiltered data and applies the relevance check
+        using the :class:`LoglineHandler`. Relevant loglines are added to the filtered data, while
+        irrelevant ones are discarded and marked as "filtered_out" in the monitoring system.
+        Updates fill level metrics to track filtering progress.
         """
         for e in self.unfiltered_data:
             if self.logline_handler.check_relevance(e):
@@ -146,9 +153,15 @@ class Prefilter:
             )
         )
 
-    def send_filtered_data(self):
-        """
-        Sends the filtered data if available via the :class:`KafkaProduceHandler`.
+    def send_filtered_data(self) -> None:
+        """Sends the filtered batch data to the next pipeline stage via Kafka.
+
+        Creates a properly formatted batch message with metadata and sends it to the
+        configured output topic. Updates batch processing status and resets fill level
+        metrics. Logs detailed statistics about the filtering results.
+
+        Raises:
+            ValueError: If no filtered data is available to send.
         """
         if not self.filtered_data:
             raise ValueError("Failed to send data: No filtered data.")
@@ -192,24 +205,26 @@ class Prefilter:
             f"{len(self.unfiltered_data)} message(s). Belongs to subnet_id '{self.subnet_id}'."
         )
 
-    def clear_data(self):
-        """Clears the data in the internal data structures."""
+    def clear_data(self) -> None:
+        """Clears all data from the internal data structures.
+
+        Resets both unfiltered_data and filtered_data lists to empty state,
+        preparing for the next batch processing cycle.
+        """
         self.unfiltered_data = []
         self.filtered_data = []
 
 
 def main(one_iteration: bool = False) -> None:
-    """
-    Runs the main loop by
+    """Creates the :class:`Prefilter` instance and runs the main processing loop.
 
-    1. Retrieving new data,
-    2. Filtering the data and
-    3. Sending the filtered data if not empty.
-
-    Stops by a ``KeyboardInterrupt``, any internal data is lost.
+    Continuously processes batches by retrieving data, applying filters, and sending
+    filtered results. The loop handles various exceptions gracefully and supports
+    clean shutdown via KeyboardInterrupt.
 
     Args:
-        one_iteration (bool): Only one iteration is done if True (for testing purposes). False by default.
+        one_iteration (bool): If True, only processes one batch and exits.
+                              Used primarily for testing purposes. Default: False
     """
     prefilter = Prefilter()
 
