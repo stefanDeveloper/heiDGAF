@@ -63,7 +63,7 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: "${{ env.IMAGE_NAME }}-${{ matrix.container }}:${{ steps.meta.outputs.tags }}"
+          tags: "${{ steps.meta.outputs.tags }}"
           labels: ${{ steps.meta.outputs.labels }}
           file: ./docker/dockerfiles/Dockerfile.${{ matrix.container }}
           cache-from: type=gha
