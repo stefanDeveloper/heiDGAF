@@ -456,46 +456,116 @@ The :class:`Inspector` class is responsible for:
 Usage
 -----
 
-The :class:`Inspector` loads the StreamAD model to perform anomaly detection.
-It consumes batches on the topic ``inspect``, usually produced by the ``Prefilter``.
-For a new batch, it derives the timestamps ``begin_timestamp`` and ``end_timestamp``.
-Based on time type (e.g. ``s``, ``ms``) and time range (e.g. ``5``) the sliding non-overlapping window is created.
-For univariate time-series, it counts the number of occurances, whereas for multivariate, it considers the number of occurances and packet size. :cite:`schuppen_fanci_2018`
+Data Flow and Processing
+........................
 
-An anomaly is noted when it is greater than a ``score_threshold``.
-In addition, we support a relative anomaly threshold.
-So, if the anomaly threshold is ``0.01``, it sends anomalies for further detection, if the amount of anomlies divided by the total amount of requests in the batch is greater than ``0.01``.
+The :class:`Inspector` consumes batches from the Kafka topic ``prefilter_to_inspector`` and processes them through
+the following workflow:
+
+1. **Batch Reception**: Receives batches with metadata (batch_id, begin_timestamp, end_timestamp) from the Prefilter
+2. **Time Series Construction**: Creates time series features based on configurable time windows
+3. **Anomaly Detection**: Applies StreamAD models to detect suspicious patterns
+4. **Threshold Evaluation**: Evaluates anomaly scores against configured thresholds
+5. **Suspicious Batch Forwarding**: Groups and forwards anomalous data by client IP to the Detector
+
+Time Series Feature Extraction
+..............................
+
+The Inspector creates time series features using sliding non-overlapping windows:
+
+- **Time Window Configuration**: Based on ``time_type`` (e.g., ``ms``) and ``time_range`` (e.g., ``20``) from configuration
+- **Univariate Mode**: Counts message occurrences per time step for single-feature anomaly detection
+- **Multivariate Mode**: Combines message counts and mean packet sizes for two-dimensional feature analysis
+- **Ensemble Mode**: Uses message counts with multiple models combined through ensemble methods
+
+Anomaly Detection Logic
+.......................
+
+The anomaly detection process evaluates suspicious patterns through a two-level threshold system:
+
+- **Score Threshold**: Individual time steps are flagged as anomalous when scores exceed ``score_threshold`` (default: 0.5)
+- **Anomaly Threshold**: Batches are considered suspicious when the proportion of anomalous time steps exceeds ``anomaly_threshold`` (default: 0.01)
+- **Client IP Grouping**: Suspicious batches are grouped by client IP and forwarded as separate suspicious batches to the Detector
+
+Error Handling and Monitoring
+.............................
+
+The implementation includes comprehensive monitoring and error handling:
+
+- **Busy State Management**: Prevents new batch consumption while processing current data
+- **Model Validation**: Validates model compatibility with selected detection mode
+- **Fill Level Tracking**: Monitors data volumes throughout the processing pipeline
+- **Graceful Degradation**: Handles empty batches and model loading failures appropriately
 
 Configuration
 -------------
 
-All StreamAD models are supported. This includes univariate, multivariate, and ensemble methods.
-In case special arguments are desired for your environment, the ``model_args`` as a dictionary ``dict`` can be passed for each model.
+The Inspector supports comprehensive configuration through the ``data_inspection.inspector`` section in ``config.yaml``.
+All StreamAD models are supported, including univariate, multivariate, and ensemble methods.
 
-Univariate models in `streamad.model`:
+Detection Modes
+................
 
-- :class:`ZScoreDetector`
-- :class:`KNNDetector`
-- :class:`SpotDetector`
-- :class:`SRDetector`
-- :class:`OCSVMDetector`
+Three detection modes are available:
 
-Multivariate models in `streamad.model`:
-Currently, we rely on the packet size and number occurances for multivariate processing.
+- **Univariate Mode** (``mode: univariate``): Uses message count time series for anomaly detection
+- **Multivariate Mode** (``mode: multivariate``): Combines message counts and mean packet sizes
+- **Ensemble Mode** (``mode: ensemble``): Uses multiple models with ensemble combination methods
 
-- :class:`xStreamDetector`
-- :class:`RShashDetector`
-- :class:`HSTreeDetector`
-- :class:`LodaDetector`
-- :class:`OCSVMDetector`
-- :class:`RrcfDetector`
+Model Configuration
+...................
 
-Ensemble prediction in ``streamad.process``:
+**Univariate Models** (``streamad.model``):
 
-- :class:`WeightEnsemble`
-- :class:`VoteEnsemble`
+- ``ZScoreDetector``: Statistical anomaly detection using z-scores
+- ``KNNDetector``: K-nearest neighbors based detection
+- ``SpotDetector``: Streaming peaks-over-threshold detection
+- ``SRDetector``: Spectral residual based detection
+- ``OCSVMDetector``: One-class SVM for anomaly detection
+- ``MadDetector``: Median absolute deviation detection
+- ``SArimaDetector``: Streaming ARIMA-based detection
 
-It takes a list of ``streamad.model`` for perform the ensemble prediction.
+**Multivariate Models** (``streamad.model``):
+
+- ``xStreamDetector``: Multi-dimensional streaming detection
+- ``RShashDetector``: Random projection hash-based detection
+- ``HSTreeDetector``: Half-space tree based detection
+- ``LodaDetector``: Lightweight online detector of anomalies
+- ``OCSVMDetector``: One-class SVM (supports multivariate)
+- ``RrcfDetector``: Robust random cut forest detection
+
+**Ensemble Methods** (``streamad.process``):
+
+- ``WeightEnsemble``: Weighted combination of multiple detectors
+- ``VoteEnsemble``: Voting-based ensemble prediction
+
+Configuration Parameters
+.........................
+
+.. code-block:: yaml
+
+   data_inspection:
+     inspector:
+       mode: univariate                    # Detection mode: univariate, multivariate, ensemble
+       models:                             # List of models to use
+         - model: ZScoreDetector
+           module: streamad.model
+           model_args:
+             is_global: false
+       ensemble:                           # Ensemble configuration (when mode: ensemble)
+         model: WeightEnsemble
+         module: streamad.process
+         model_args: {}
+       anomaly_threshold: 0.01            # Proportion of anomalous time steps required
+       score_threshold: 0.5               # Individual score threshold for anomaly detection
+       time_type: ms                      # Time unit for window creation
+       time_range: 20                     # Time range for each window step
+
+**Model Arguments**: Custom arguments for specific models can be provided via the ``model_args`` dictionary.
+This allows fine-tuning of model parameters for specific deployment requirements.
+
+**Time Window Settings**: The ``time_type`` and ``time_range`` parameters control the granularity of time series analysis.
+Current configuration uses 20-millisecond windows for high-resolution anomaly detection.
 
 
 .. _stage-5-detection:
