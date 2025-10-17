@@ -445,9 +445,6 @@ Main Class
 
 .. py:currentmodule:: src.inspector.inspector
 .. autoclass:: Inspector
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 The :class:`Inspector` class is responsible for:
 
@@ -522,9 +519,6 @@ Main Class
 
 .. py:currentmodule:: src.detector.detector
 .. autoclass:: Detector
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 The :class:`Detector` class:
 
@@ -537,7 +531,7 @@ The :class:`Detector` class:
 Usage
 -----
 
-1. The `Detector` listens on the Kafka topic from the Inspector (``inspector_to_detector``).  
+1. The `Detector` listens on the Kafka topic from the Inspector (``inspector_to_detector``).
 2. For each suspicious batch:
    - Extracts features for every domain request.
    - Applies the loaded ML model (after scaling) to compute class probabilities.
@@ -552,9 +546,9 @@ Configuration
 
 You may use the provided, pre-trained models or supply your own. To use a custom model, specify:
 
-- `base_url`: URL from which to fetch model artifacts  
-- `model`: model name  
-- `checksum`: SHA256 digest for integrity validation  
-- `threshold`: probability threshold for classifying a request as malicious  
+- `base_url`: URL from which to fetch model artifacts
+- `model`: model name
+- `checksum`: SHA256 digest for integrity validation
+- `threshold`: probability threshold for classifying a request as malicious
 
 These parameters are loaded at startup and used to download, verify, and load the model/scaler if not already cached locally (in temp directory).
