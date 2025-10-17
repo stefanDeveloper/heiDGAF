@@ -35,7 +35,7 @@
 </div>
 
 > [!CAUTION]
-> The project is under active development right now. Everything might change, break, or move around quickly.
+> This project has been moved to https://github.com/Hamstring-NDR/hamstring. Future development, issues, and releases will be maintained there.
 
 <table>
 <tr>
