@@ -1,21 +1,23 @@
 services:
   logserver:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.logserver
-      network: host
+    # build:
+    #   context: ../../..
+    #   dockerfile: docker/dockerfiles/Dockerfile.logserver
+    #   network: host
+    image: stefan96/heidgaf-logserver:v1.0.0
     restart: "unless-stopped"
     networks:
       heidgaf:
-    memswap_limit: 768m
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+    # platform: linux/x86_64
+    # memswap_limit: 768m
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 512m
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 256m
     volumes:
       - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
       - ../../../config.yaml:/app/config.yaml
@@ -23,97 +25,105 @@ services:
       - GROUP_ID=log_storage
 
   logcollector:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.logcollector
-      network: host
+    # build:
+    #   context: ../../..
+    #   dockerfile: docker/dockerfiles/Dockerfile.logcollector
+    #   network: host
+    image: stefan96/heidgaf-logcollector:v1.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
       heidgaf:
-    memswap_limit: 768m
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+    # platform: linux/x86_64
+    # memswap_limit: 768m
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 512m
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 256m
     environment:
       - GROUP_ID=log_collection
 
   prefilter:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.prefilter
-      network: host
+    # build:
+    #   context: ../../..
+    #   dockerfile: docker/dockerfiles/Dockerfile.prefilter
+    #   network: host
+    image: stefan96/heidgaf-prefilter:v1.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
       heidgaf:
+    # platform: linux/x86_64
     deploy:
       mode: "replicated"
       replicas: 1
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+      # resources:
+      #   limits:
+      #     cpus: '2'
+      #     memory: 512m
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 256m
     environment:
       - GROUP_ID=log_filtering
 
   inspector:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.inspector
-      network: host
+    # build:
+    #   context: ../../..
+    #   dockerfile: docker/dockerfiles/Dockerfile.inspector
+    #   network: host
+    image: stefan96/heidgaf-inspector:v1.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
       heidgaf:
+    # platform: linux/x86_64
     deploy:
       mode: "replicated"
       replicas: 2
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-        reservations:
-          cpus: '1'
-          memory: 256m
+      # resources:
+      #   limits:
+      #     cpus: '2'
+      #     memory: 512m
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 256m
     environment:
       - GROUP_ID=data_inspection
       - NUMBER_OF_INSTANCES=2
 
   detector:
-    build:
-      context: ../../..
-      dockerfile: docker/dockerfiles/Dockerfile.detector
-      network: host
+    # build:
+    #   context: ../../..
+    #   dockerfile: docker/dockerfiles/Dockerfile.detector
+    #   network: host
+    image: stefan96/heidgaf-detector:v1.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
       heidgaf:
+    # platform: linux/x86_64
     deploy:
       mode: "replicated"
       replicas: 1
-      resources:
-        limits:
-          cpus: '2'
-          memory: 512m
-#        reservations:
-#          cpus: '1'
-#          memory: 256m
-#          devices:
-#            - driver: nvidia
-#              count: 1 # alternatively, use `count: all` for all GPUs
-#              capabilities: [ gpu ]
+      # resources:
+      #   limits:
+      #     cpus: '2'
+      #     memory: 512m
+      #  reservations:
+      #    cpus: '1'
+      #    memory: 256m
+      #    devices:
+      #      - driver: nvidia
+      #        count: 1 # alternatively, use `count: all` for all GPUs
+      #        capabilities: [ gpu ]
     environment:
       - GROUP_ID=data_analysis

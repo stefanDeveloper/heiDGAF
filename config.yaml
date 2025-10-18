@@ -70,12 +70,12 @@ pipeline:
 
 environment:
   kafka_brokers:
-    - hostname: 127.0.0.1
-      port: 8097
-    - hostname: 127.0.0.1
-      port: 8098
-    - hostname: 127.0.0.1
-      port: 8099
+    - hostname: kafka1
+      port: 19092
+    - hostname: kafka2
+      port: 19093
+    - hostname: kafka3
+      port: 19094
   kafka_topics:
     pipeline:
       logserver_in: "pipeline-logserver_in"
