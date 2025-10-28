@@ -335,7 +335,9 @@ class Inspector:
             valid_mask = (time_indices >= 0) & (time_indices < counts.size)
             if not np.all(valid_mask):
                 invalid_count = np.count_nonzero(~valid_mask)
-                logger.warning(f"{invalid_count} timestamps outside expected time range — ignored.")
+                logger.warning(
+                    f"{invalid_count} timestamps outside expected time range — ignored."
+                )
                 time_indices = time_indices[valid_mask]
                 unique_counts = unique_counts[valid_mask]
 

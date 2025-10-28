@@ -270,7 +270,6 @@ class TestDataFunction(unittest.TestCase):
 
         np.testing.assert_array_equal(result, expected)
 
-
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
