@@ -226,6 +226,56 @@ class TestDataFunction(unittest.TestCase):
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.TIME_TYPE", "ms")
     @patch("src.inspector.inspector.TIME_RANGE", 1)
+    def test_count_errors_valid_and_out_of_range(
+        self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
+    ):
+        """Test that _count_errors correctly counts events
+        and ignores timestamps outside the [begin, end] range.
+        """
+
+        # Mock Kafka handlers to avoid side effects
+        mock_kafka_consume_handler.return_value = MagicMock()
+        mock_produce_handler.return_value = MagicMock()
+        mock_clickhouse.return_value = MagicMock()
+
+        sut = Inspector()
+
+        # Prepare timestamps
+        begin_timestamp = datetime.now()
+        end_timestamp = begin_timestamp + timedelta(milliseconds=2)
+
+        # Message within range
+        in_range = DEFAULT_DATA.copy()
+        in_range["timestamp"] = datetime.strftime(
+            begin_timestamp + timedelta(milliseconds=1),
+            TIMESTAMP_FORMAT,
+        )
+
+        # Message outside range (should be ignored)
+        out_of_range = DEFAULT_DATA.copy()
+        out_of_range["timestamp"] = datetime.strftime(
+            begin_timestamp + timedelta(milliseconds=10),
+            TIMESTAMP_FORMAT,
+        )
+
+        messages = [in_range, out_of_range]
+
+        # Execute
+        result = sut._count_errors(messages, begin_timestamp, end_timestamp)
+
+        # The expected counts:
+        # 1 ms → one event
+        # 0 ms, 2 ms → no events
+        expected = np.asarray([[0.0], [1.0], [0.0]])
+
+        np.testing.assert_array_equal(result, expected)
+
+
+    @patch("src.inspector.inspector.ClickHouseKafkaSender")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaProduceHandler")
+    @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
+    @patch("src.inspector.inspector.TIME_TYPE", "ms")
+    @patch("src.inspector.inspector.TIME_RANGE", 1)
     def test_count_errors(
         self, mock_kafka_consume_handler, mock_produce_handler, mock_clickhouse
     ):

@@ -326,11 +326,20 @@ class Inspector:
             unique_times, _, unique_counts = np.unique(
                 timestamps, return_index=True, return_counts=True
             )
-            time_indices = (
-                ((unique_times - min_date) // TIME_RANGE)
-                .astype(f"timedelta64[{TIME_TYPE}]")
-                .astype(int)
-            )
+
+            # Compute indices
+            deltas = unique_times - min_date
+            time_indices = (deltas / np.timedelta64(TIME_RANGE, TIME_TYPE)).astype(int)
+
+            # Filter out-of-range indices
+            valid_mask = (time_indices >= 0) & (time_indices < counts.size)
+            if not np.all(valid_mask):
+                invalid_count = np.count_nonzero(~valid_mask)
+                logger.warning(f"{invalid_count} timestamps outside expected time range — ignored.")
+                time_indices = time_indices[valid_mask]
+                unique_counts = unique_counts[valid_mask]
+
+            # Fill counts
             counts[time_indices] = unique_counts
         else:
             logger.warning("Empty messages to inspect.")
